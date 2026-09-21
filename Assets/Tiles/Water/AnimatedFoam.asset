@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 772476c45a164d27b7daa17ac676e430, type: 3}
+  m_Name: AnimatedFoam
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Terrain.AnimatedFoamTile
+  frames:
+  - {fileID: 1803886646, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -1222734948, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 1465256085, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 568011516, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -1367531096, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 625886648, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 63828858, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 1586023041, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -1096988537, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: 1903598710, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -203915613, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -1442076775, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -1857587921, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -331849419, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -2101092238, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  - {fileID: -703441528, guid: 9cefe49effca30a44a0e6a8643654986, type: 3}
+  framesPerSecond: 10

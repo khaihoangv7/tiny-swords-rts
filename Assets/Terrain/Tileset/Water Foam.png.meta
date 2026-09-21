@@ -1,0 +1,641 @@
+fileFormatVersion: 2
+guid: 9cefe49effca30a44a0e6a8643654986
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8045197053618216752
+    second: Water Foam_0
+  - first:
+      213: -1778029542102904798
+    second: Water Foam_1
+  - first:
+      213: 5677542656759928977
+    second: Water Foam_2
+  - first:
+      213: -4839569638931813264
+    second: Water Foam_3
+  - first:
+      213: 2004939184200893186
+    second: Water Foam_4
+  - first:
+      213: 8432400645076990619
+    second: Water Foam_5
+  - first:
+      213: -3704847506149939038
+    second: Water Foam_6
+  - first:
+      213: 2230421966675971980
+    second: Water Foam_7
+  - first:
+      213: 2397228053743353214
+    second: Water Foam_8
+  - first:
+      213: -3258321334757180875
+    second: Water Foam_9
+  - first:
+      213: -1659767062332973701
+    second: Water Foam_10
+  - first:
+      213: -3681904862023827580
+    second: Water Foam_11
+  - first:
+      213: -8034513510692042630
+    second: Water Foam_12
+  - first:
+      213: 8313790842667632763
+    second: Water Foam_13
+  - first:
+      213: 1024707267088520393
+    second: Water Foam_14
+  - first:
+      213: -5952541215844301678
+    second: Water Foam_15
+  - first:
+      213: -7246919922376091940
+    second: Water Foam_16
+  - first:
+      213: -3069142653608433362
+    second: Water Foam_17
+  - first:
+      213: -5325884588442896443
+    second: Water Foam_18
+  - first:
+      213: -919020306557182392
+    second: Water Foam_19
+  - first:
+      213: 1135235706185558148
+    second: Water Foam_20
+  - first:
+      213: 2222934897207559995
+    second: Water Foam_21
+  - first:
+      213: 1069966877033028819
+    second: Water Foam_22
+  - first:
+      213: -3803895587366179922
+    second: Water Foam_23
+  - first:
+      213: -2131257901949059038
+    second: Water Foam_24
+  - first:
+      213: -1773724235370078843
+    second: Water Foam_25
+  - first:
+      213: 1189260599072863298
+    second: Water Foam_26
+  - first:
+      213: -4336079170336631345
+    second: Water Foam_27
+  - first:
+      213: -751878561935923258
+    second: Water Foam_28
+  - first:
+      213: 7278319106955294742
+    second: Water Foam_29
+  - first:
+      213: -9168385708611434871
+    second: Water Foam_30
+  - first:
+      213: 1006692839932715938
+    second: Water Foam_31
+  - first:
+      213: 6795773364510719568
+    second: Water Foam_32
+  - first:
+      213: 6605961068008765442
+    second: Water Foam_33
+  - first:
+      213: 497843931099244999
+    second: Water Foam_34
+  - first:
+      213: 4142915125162943621
+    second: Water Foam_35
+  - first:
+      213: -4539198036191000429
+    second: Water Foam_36
+  - first:
+      213: -7805909876245928653
+    second: Water Foam_37
+  - first:
+      213: -8691950988162655251
+    second: Water Foam_38
+  - first:
+      213: -466133766351994544
+    second: Water Foam_39
+  - first:
+      213: -5608133407083556420
+    second: Water Foam_40
+  - first:
+      213: 9143733339786417360
+    second: Water Foam_41
+  - first:
+      213: -3097033425731197601
+    second: Water Foam_42
+  - first:
+      213: -5436074770276008187
+    second: Water Foam_43
+  - first:
+      213: 3278772845877227186
+    second: Water Foam_44
+  - first:
+      213: -7535411210889344192
+    second: Water Foam_45
+  - first:
+      213: 2436453326956209862
+    second: Water Foam_46
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 64
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationMethod: 0
+  spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: WaterFoam_Frame00
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2583b62353c3d4a459aff2d58f0d0bd1
+      internalID: 1803886646
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame01
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6623e25724d745b49b3126bbd1bab9bc
+      internalID: -1222734948
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame02
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b3e7ac0e2db67bc43b46cabe72dc6b80
+      internalID: 1465256085
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame03
+      rect:
+        serializedVersion: 2
+        x: 576
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6b5313382f0b06459152cdda45134e0
+      internalID: 568011516
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame04
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8b677f346af6e4d4999342c3b5928c55
+      internalID: -1367531096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame05
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ca1167f10b00f5e488ba7bc6cb80e3d7
+      internalID: 625886648
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame06
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 49cecfc383fa6474aba6ca4a4c959df5
+      internalID: 63828858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame07
+      rect:
+        serializedVersion: 2
+        x: 1344
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: aa3146446fd0e704e817de003cb0401e
+      internalID: 1586023041
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame08
+      rect:
+        serializedVersion: 2
+        x: 1536
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f2fd7e9f6d9f92c4798f1af39eded3da
+      internalID: -1096988537
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame09
+      rect:
+        serializedVersion: 2
+        x: 1728
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b2967315daf390b40ba4091f4d84ccaa
+      internalID: 1903598710
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame10
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5bf99db91b96aef48a6e1ea2b2e65d2b
+      internalID: -203915613
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame11
+      rect:
+        serializedVersion: 2
+        x: 2112
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 28f6aa036ad705d4989f30fd8d298456
+      internalID: -1442076775
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame12
+      rect:
+        serializedVersion: 2
+        x: 2304
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5bd22a2d09e2b1b4983734abb7a8538e
+      internalID: -1857587921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame13
+      rect:
+        serializedVersion: 2
+        x: 2496
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8282cdb2b279c014eb7983940171bc42
+      internalID: -331849419
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame14
+      rect:
+        serializedVersion: 2
+        x: 2688
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 289f6212876c8574e8881a9e61073edb
+      internalID: -2101092238
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WaterFoam_Frame15
+      rect:
+        serializedVersion: 2
+        x: 2880
+        y: 0
+        width: 192
+        height: 192
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6e1cde2fbd1d6a54391de00f2f78696a
+      internalID: -703441528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 34bd065be3519bb428a0c7a2564fb45c
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      WaterFoam_Frame00: 1803886646
+      WaterFoam_Frame01: -1222734948
+      WaterFoam_Frame02: 1465256085
+      WaterFoam_Frame03: 568011516
+      WaterFoam_Frame04: -1367531096
+      WaterFoam_Frame05: 625886648
+      WaterFoam_Frame06: 63828858
+      WaterFoam_Frame07: 1586023041
+      WaterFoam_Frame08: -1096988537
+      WaterFoam_Frame09: 1903598710
+      WaterFoam_Frame10: -203915613
+      WaterFoam_Frame11: -1442076775
+      WaterFoam_Frame12: -1857587921
+      WaterFoam_Frame13: -331849419
+      WaterFoam_Frame14: -2101092238
+      WaterFoam_Frame15: -703441528
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

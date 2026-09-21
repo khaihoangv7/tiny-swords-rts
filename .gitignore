@@ -1,0 +1,49 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Bb]uild/
+[Bb]uilds/
+MemoryCaptures/
+
+# IDE generated files
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+
+.vs/
+.idea/
+.vscode/
+
+.vsconfig
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local helper files
+folder-tree.txt
+phase2-path.txt
+
+# Tiny Swords artwork - do not redistribute
+/Assets/Buildings/**/*.png
+/Assets/Buildings/**/*.aseprite
+
+/Assets/Particle FX/**/*.png
+/Assets/Particle FX/**/*.aseprite
+
+/Assets/Terrain/**/*.png
+/Assets/Terrain/**/*.aseprite
+
+/Assets/UI Elements/**/*.png
+/Assets/UI Elements/**/*.aseprite
+
+/Assets/Units/**/*.png
+/Assets/Units/**/*.aseprite
+# Unity template / welcome assets
+/Assets/Welcome/
