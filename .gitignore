@@ -45,5 +45,16 @@ phase2-path.txt
 
 /Assets/Units/**/*.png
 /Assets/Units/**/*.aseprite
+
+# Unused local Tiny Swords content (keep on disk, exclude from repository)
+/Assets/Buildings/Goblins Building/
+/Assets/Buildings/Goblins Building.meta
+/Assets/Units/Goblins Units/
+/Assets/Units/Goblins Units.meta
+/Assets/Terrain/Resources/Gold/Gold Mine/
+/Assets/Terrain/Resources/Gold/Gold Mine.meta
+/Assets/Terrain/Tileset/Bridge_All.png
+/Assets/Terrain/Tileset/Bridge_All.png.meta
+
 # Unity template / welcome assets
 /Assets/Welcome/

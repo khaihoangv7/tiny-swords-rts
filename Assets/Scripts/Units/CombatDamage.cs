@@ -19,12 +19,21 @@ namespace TinyKingdom.Units
 
         public static int Calculate(int baseDamage, UnitType attacker, UnitType defender,
             AttackDelivery delivery, bool guarding)
+            => Calculate(baseDamage, attacker, defender, delivery, guarding, 1f, true);
+
+        public static int Calculate(int baseDamage, UnitType attacker, UnitType defender,
+            AttackDelivery delivery, bool guarding, float sourceMultiplier,
+            bool applyCounterMultiplier)
         {
             if (baseDamage <= 0) return 0;
+            double counter = applyCounterMultiplier ? Multiplier(attacker, defender) : 1d;
+            int counterAdjusted = (int)Math.Floor(baseDamage * counter + 0.5d);
+            int modified = (int)Math.Floor(counterAdjusted
+                * Math.Max(0d, sourceMultiplier) + 0.5d);
             double guard = guarding
                 ? (delivery == AttackDelivery.Projectile ? 0.50d : 0.75d) : 1d;
             // Gameplay HP is integral; round positive half values up consistently.
-            return (int)Math.Floor(baseDamage * (double)Multiplier(attacker, defender) * guard + 0.5d);
+            return (int)Math.Floor(modified * guard + 0.5d);
         }
     }
 }

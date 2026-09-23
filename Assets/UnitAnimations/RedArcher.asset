@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: RedArcher
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimationSet
   framesPerSecond: 10
+  attackFramesPerSecond: 6.666667
   frameCellSize: 192
   visualAnchorPixels: {x: 93, y: 100}
   idle:

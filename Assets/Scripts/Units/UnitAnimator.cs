@@ -9,6 +9,7 @@ namespace TinyKingdom.Units
 
         private UnitController controller;
         private CombatController combat;
+        private UnitMovement movement;
         private SpriteRenderer original;
         private SpriteRenderer visual;
         private Sprite[] frames;
@@ -16,11 +17,17 @@ namespace TinyKingdom.Units
         private int frame;
         private bool attackPlaying;
         private bool flipAttack;
+        private bool facingLeft;
+        private const float FacingEpsilon = 0.01f;
+        public SpriteRenderer VisualRenderer => visual;
+        public bool IsAttackPresentationConnected => combat == null
+            || combat.HasAttackPresentationListener;
 
         private void Awake()
         {
             controller = GetComponent<UnitController>();
             combat = GetComponent<CombatController>();
+            movement = GetComponent<UnitMovement>();
             original = GetComponent<SpriteRenderer>();
             var child = new GameObject("AnimatedVisual");
             child.transform.SetParent(transform, false);
@@ -43,10 +50,12 @@ namespace TinyKingdom.Units
 
         private void Update()
         {
+            UpdateFacing();
             if (animationSet == null || frames == null || frames.Length == 0 || !visual.enabled)
                 return;
             elapsed += Time.deltaTime;
-            float duration = 1f / animationSet.FramesPerSecond;
+            float duration = 1f / (attackPlaying
+                ? animationSet.AttackFramesPerSecond : animationSet.FramesPerSecond);
             while (elapsed >= duration)
             {
                 elapsed -= duration;
@@ -76,6 +85,8 @@ namespace TinyKingdom.Units
             if (chosen == null || chosen.Length == 0) return;
             attackPlaying = true;
             flipAttack = direction.x < 0f;
+            if (Mathf.Abs(direction.x) > FacingEpsilon)
+                facingLeft = direction.x < 0f;
             Begin(chosen);
         }
 
@@ -101,8 +112,26 @@ namespace TinyKingdom.Units
                 UnitState.Guarding => animationSet.Guard,
                 _ => animationSet.Idle
             };
-            flipAttack = false;
             Begin(chosen);
+        }
+
+        private void UpdateFacing()
+        {
+            if (visual == null || controller == null || !controller.IsAlive) return;
+            Vector2 direction = movement != null ? movement.LastMovementDirection : Vector2.zero;
+            if (controller.CurrentState == UnitState.Attacking && combat != null)
+            {
+                if (combat.Target != null)
+                    direction = combat.Target.transform.position - transform.position;
+                else if (combat.BuildingTarget != null)
+                    direction = combat.BuildingTarget.AttackPresentationPoint(
+                        transform.position) - transform.position;
+            }
+            if (Mathf.Abs(direction.x) <= FacingEpsilon) return;
+            bool next = direction.x < 0f;
+            if (next == facingLeft) return;
+            facingLeft = next;
+            if (!attackPlaying) ShowFrame();
         }
 
         private void Begin(Sprite[] chosen)
@@ -118,14 +147,15 @@ namespace TinyKingdom.Units
             if (frames == null || frame >= frames.Length || frames[frame] == null) return;
             Sprite sprite = frames[frame];
             visual.sprite = sprite;
-            visual.flipX = flipAttack;
+            bool flip = attackPlaying ? flipAttack : facingLeft;
+            visual.flipX = flip;
             // Existing sheets use tight automatic rectangles. Align each sprite to
             // the same point within its source cell without moving the gameplay root.
             float x = sprite.rect.x % animationSet.FrameCellSize + sprite.pivot.x;
             float y = sprite.rect.y + sprite.pivot.y;
             Vector2 offset = (new Vector2(x, y) - animationSet.VisualAnchorPixels)
                 / sprite.pixelsPerUnit;
-            if (flipAttack) offset.x = -offset.x;
+            if (flip) offset.x = -offset.x;
             visual.transform.localPosition = new Vector3(offset.x, offset.y, 0f);
         }
     }

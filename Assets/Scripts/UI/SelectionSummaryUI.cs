@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TinyKingdom.Input;
+using TinyKingdom.Economy;
 using TinyKingdom.Units;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,6 +20,8 @@ namespace TinyKingdom.UI
         private readonly List<GameObject> rows = new();
         private RectTransform panel;
         private Text hpLabel;
+        private Text cargoLabel;
+        private PawnGatherer inspectedPawn;
         private GameObject guardButton;
         private Image guardBackground;
         private HealthComponent inspectedHealth;
@@ -54,6 +57,11 @@ namespace TinyKingdom.UI
 
         private void Update()
         {
+            if (cargoLabel != null && inspectedPawn != null)
+                cargoLabel.text = inspectedPawn.CarriedAmount > 0
+                    ? $"Cargo: {inspectedPawn.CarriedResourceType} "
+                        + $"{inspectedPawn.CarriedAmount}/{inspectedPawn.CarryCapacity}"
+                    : $"Cargo: 0/{inspectedPawn.CarryCapacity}";
             if (guardButton == null || !guardButton.activeSelf) return;
             bool active = false;
             foreach (UnitSelection unit in selectionManager.SelectedUnits)
@@ -69,11 +77,13 @@ namespace TinyKingdom.UI
 
         private void BuildPanel()
         {
-            panel = MakeRect("SelectionSummary", transform, new Vector2(280, 192),
+            panel = MakeRect("SelectionSummary", transform, new Vector2(280, 244),
                 new Vector2(12, 12));
             panel.anchorMin = panel.anchorMax = panel.pivot = Vector2.zero;
             panel.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.11f, 0.15f, 0.88f);
             hpLabel = MakeText("HP", panel, "", 16, new Vector2(250, 24), new Vector2(12, 52));
+            cargoLabel = MakeText("Cargo", panel, "", 16,
+                new Vector2(250, 24), new Vector2(12, 26));
 
             RectTransform buttonRect = MakeRect("GuardButton", panel, new Vector2(122, 36),
                 new Vector2(146, 8));
@@ -97,6 +107,7 @@ namespace TinyKingdom.UI
         {
             if (inspectedHealth != null) inspectedHealth.HealthChanged -= RefreshHealth;
             inspectedHealth = null;
+            inspectedPawn = null;
             foreach (GameObject row in rows) if (row != null) Destroy(row);
             rows.Clear();
             if (selectionManager == null || selectionManager.SelectedUnits.Count == 0)
@@ -106,17 +117,36 @@ namespace TinyKingdom.UI
             }
             panel.gameObject.SetActive(true);
             int[] counts = new int[3];
+            int pawnCount = 0;
+            Sprite pawnPortrait = null;
             foreach (UnitSelection unit in selectionManager.SelectedUnits)
             {
+                PawnGatherer pawn = unit != null ? unit.GetComponent<PawnGatherer>() : null;
+                if (pawn != null)
+                {
+                    pawnCount++;
+                    pawnPortrait ??= unit.GetComponent<SpriteRenderer>()?.sprite;
+                }
                 UnitCombatData data = unit != null ? unit.GetComponent<HealthComponent>()?.CombatData : null;
-                if (data != null) counts[(int)data.UnitType]++;
+                if (data != null && data.UnitType != UnitType.Pawn)
+                    counts[(int)data.UnitType]++;
             }
-            for (int i = 0, rowIndex = 0; i < counts.Length; i++)
+            int rowIndex = 0;
+            if (pawnCount > 0)
+            {
+                RectTransform row = MakeRect("Pawn", panel, new Vector2(250, 34),
+                    new Vector2(12, 200 - rowIndex++ * 38));
+                rows.Add(row.gameObject);
+                AddPortrait(row, pawnPortrait);
+                MakeText("Count", row, $"Pawn x{pawnCount}", 16,
+                    new Vector2(200, 32), new Vector2(40, 0)).raycastTarget = false;
+            }
+            for (int i = 0; i < counts.Length; i++)
             {
                 if (counts[i] == 0) continue;
                 UnitType type = (UnitType)i;
                 RectTransform row = MakeRect(type.ToString(), panel, new Vector2(250, 34),
-                    new Vector2(12, 148 - rowIndex++ * 38));
+                    new Vector2(12, 200 - rowIndex++ * 38));
                 rows.Add(row.gameObject);
                 UnitAnimationSet set = type switch
                 {
@@ -126,12 +156,7 @@ namespace TinyKingdom.UI
                 };
                 if (set != null && set.Idle != null && set.Idle.Length > 0)
                 {
-                    RectTransform icon = MakeRect("Portrait", row, new Vector2(30, 30),
-                        new Vector2(0, 2));
-                    Image portrait = icon.gameObject.AddComponent<Image>();
-                    portrait.sprite = set.Idle[0];
-                    portrait.preserveAspect = true;
-                    portrait.raycastTarget = false;
+                    AddPortrait(row, set.Idle[0]);
                 }
                 MakeText("Count", row, $"{type} x{counts[i]}", 16,
                     new Vector2(200, 32), new Vector2(40, 0)).raycastTarget = false;
@@ -139,9 +164,11 @@ namespace TinyKingdom.UI
             if (selectionManager.SelectedUnits.Count == 1)
             {
                 inspectedHealth = selectionManager.SelectedUnits[0].GetComponent<HealthComponent>();
+                inspectedPawn = selectionManager.SelectedUnits[0].GetComponent<PawnGatherer>();
                 if (inspectedHealth != null) inspectedHealth.HealthChanged += RefreshHealth;
             }
             RefreshHealth(inspectedHealth);
+            cargoLabel.gameObject.SetActive(inspectedPawn != null);
             guardButton.SetActive(counts[(int)UnitType.Warrior] > 0);
         }
 
@@ -150,6 +177,17 @@ namespace TinyKingdom.UI
             hpLabel.text = health != null && health.IsAlive
                 ? $"{health.CombatData.UnitType}  HP {health.CurrentHP}/{health.MaxHP}"
                 : "";
+        }
+
+        private static void AddPortrait(RectTransform row, Sprite sprite)
+        {
+            if (sprite == null) return;
+            RectTransform icon = MakeRect("Portrait", row, new Vector2(30, 30),
+                new Vector2(0, 2));
+            Image portrait = icon.gameObject.AddComponent<Image>();
+            portrait.sprite = sprite;
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
         }
 
         private static RectTransform MakeRect(string name, Transform parent, Vector2 size, Vector2 position)

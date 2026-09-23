@@ -18,8 +18,17 @@ MonoBehaviour:
   baseDamage: 10
   attackRange: 5
   attackInterval: 1.2
+  rangedReleaseDelay: 0.7
   moveSpeed: 3
   foodCost: 40
   woodCost: 40
   goldCost: 0
   projectileSpeed: 8
+  acquisitionRadius: 5.5
+  acquisitionInterval: 0.25
+  autoChaseLimit: 7
+  canRetaliateWhenDamaged: 1
+  retaliationLeash: 10
+  populationCost: 1
+  trainingSeconds: 6
+  visionRadius: 4

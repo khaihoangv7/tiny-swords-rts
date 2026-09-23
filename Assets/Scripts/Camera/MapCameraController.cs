@@ -9,8 +9,14 @@ public sealed class MapCameraController : MonoBehaviour
     [SerializeField, Min(0.1f)] private float minimumZoom = 5f;
     [SerializeField, Min(0.1f)] private float maximumZoom = 14f;
     [SerializeField] private Rect playableBounds = new Rect(0f, 0f, 40f, 28f);
+    [SerializeField] private bool edgeScrollEnabled = true;
+    [SerializeField, Min(1f)] private float edgeScrollThicknessPixels = 16f;
 
     private Camera mapCamera;
+
+    public float MovementSpeed => movementSpeed;
+    public bool EdgeScrollEnabled => edgeScrollEnabled;
+    public float EdgeScrollThicknessPixels => edgeScrollThicknessPixels;
 
     private void Awake()
     {
@@ -21,21 +27,33 @@ public sealed class MapCameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        Vector2 direction = Vector2.zero;
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null)
         {
-            Vector2 direction = Vector2.zero;
-            if (keyboard.aKey.isPressed) direction.x -= 1f;
-            if (keyboard.dKey.isPressed) direction.x += 1f;
-            if (keyboard.sKey.isPressed) direction.y -= 1f;
-            if (keyboard.wKey.isPressed) direction.y += 1f;
-
-            transform.position += (Vector3)(direction.normalized * movementSpeed * Time.unscaledDeltaTime);
+            if (keyboard.leftArrowKey.isPressed) direction.x -= 1f;
+            if (keyboard.rightArrowKey.isPressed) direction.x += 1f;
+            if (keyboard.downArrowKey.isPressed) direction.y -= 1f;
+            if (keyboard.upArrowKey.isPressed) direction.y += 1f;
         }
 
         Mouse mouse = Mouse.current;
         if (mouse != null)
         {
+            if (edgeScrollEnabled)
+            {
+                Vector2 pointer = mouse.position.ReadValue();
+                bool insideWindow = pointer.x >= 0f && pointer.x <= Screen.width
+                    && pointer.y >= 0f && pointer.y <= Screen.height;
+                if (insideWindow)
+                {
+                    if (pointer.x <= edgeScrollThicknessPixels) direction.x -= 1f;
+                    if (pointer.x >= Screen.width - edgeScrollThicknessPixels) direction.x += 1f;
+                    if (pointer.y <= edgeScrollThicknessPixels) direction.y -= 1f;
+                    if (pointer.y >= Screen.height - edgeScrollThicknessPixels) direction.y += 1f;
+                }
+            }
+
             float wheel = mouse.scroll.ReadValue().y;
             if (!Mathf.Approximately(wheel, 0f))
             {
@@ -45,6 +63,10 @@ public sealed class MapCameraController : MonoBehaviour
                     maximumZoom);
             }
         }
+
+        if (direction.sqrMagnitude > 0f)
+            transform.position += (Vector3)(direction.normalized
+                * movementSpeed * Time.unscaledDeltaTime);
 
         ClampCamera();
     }
@@ -70,5 +92,6 @@ public sealed class MapCameraController : MonoBehaviour
     private void OnValidate()
     {
         maximumZoom = Mathf.Max(minimumZoom, maximumZoom);
+        edgeScrollThicknessPixels = Mathf.Max(1f, edgeScrollThicknessPixels);
     }
 }

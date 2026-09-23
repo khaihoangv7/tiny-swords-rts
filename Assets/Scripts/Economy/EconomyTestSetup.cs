@@ -1,0 +1,425 @@
+using TinyKingdom.UI;
+using TinyKingdom.Units;
+using TinyKingdom.Buildings;
+using TinyKingdom.Navigation;
+using TinyKingdom.Input;
+using TinyKingdom.Presentation;
+using TinyKingdom.Vision;
+using TinyKingdom.Match;
+using UnityEngine;
+
+namespace TinyKingdom.Economy
+{
+    // Phase 5A test content. It is attached only to the Map scene.
+    public sealed class EconomyTestSetup : MonoBehaviour
+    {
+        [SerializeField] private PawnAnimationSet pawnAnimations = null;
+        [SerializeField] private UnitCombatData pawnCombatData = null;
+        [SerializeField] private UnitCombatData warriorCombatData = null;
+        [SerializeField] private UnitCombatData lancerCombatData = null;
+        [SerializeField] private UnitCombatData archerCombatData = null;
+        [SerializeField] private GameObject blueWarriorPrefab = null;
+        [SerializeField] private GameObject blueLancerPrefab = null;
+        [SerializeField] private GameObject blueArcherPrefab = null;
+        [SerializeField] private Sprite treeStumpSprite = null;
+        [SerializeField] private Sprite sheepSprite = null;
+        [SerializeField] private Sprite treeSprite = null;
+        [SerializeField] private Sprite goldSprite = null;
+        [SerializeField] private Sprite blueCastleSprite = null;
+        [SerializeField] private EconomyConfig economyConfig = null;
+        [SerializeField] private Sprite foodIcon = null;
+        [SerializeField] private Sprite woodIcon = null;
+        [SerializeField] private Sprite goldIcon = null;
+        [SerializeField] private Sprite healthBarLeft = null;
+        [SerializeField] private Sprite healthBarMiddle = null;
+        [SerializeField] private Sprite healthBarRight = null;
+        [SerializeField] private Sprite healthBarFill = null;
+        [SerializeField] private Shader hitFlashShader = null;
+        private Material hitFlashMaterial;
+        private bool setupReady;
+        private EconomyFeedback feedback;
+        private Transform areaTransform;
+        private int producedCount;
+        private PresentationAssetCatalog presentation;
+
+        private void Awake()
+        {
+            if (pawnAnimations == null || pawnAnimations.Idle.Length == 0
+                || pawnCombatData == null || hitFlashShader == null
+                || foodIcon == null || woodIcon == null || goldIcon == null
+                || healthBarLeft == null || healthBarMiddle == null
+                || healthBarRight == null || healthBarFill == null
+                || treeSprite == null || sheepSprite == null || goldSprite == null
+                || treeStumpSprite == null || blueCastleSprite == null || economyConfig == null)
+            {
+                Debug.LogError("Phase 5A test setup has missing Tiny Swords sprite references.", this);
+                return;
+            }
+
+            var area = new GameObject("BlueEconomyTest");
+            area.transform.SetParent(transform, false);
+            areaTransform = area.transform;
+            feedback = area.AddComponent<EconomyFeedback>();
+            feedback.Configure(foodIcon, woodIcon, goldIcon);
+            ResourceStockpile blue = MakeStockpile(area.transform, Faction.Blue);
+            ResourceStockpile red = MakeStockpile(area.transform, Faction.Red);
+            BuildingData[] buildings = Resources.LoadAll<BuildingData>("Buildings");
+            BuildingData castleData = System.Array.Find(buildings,
+                item => item != null && item.Type == BuildingType.Castle);
+            GridManager navigation = FindAnyObjectByType<GridManager>();
+            presentation = PresentationAssetCatalog.Load();
+            if (presentation == null)
+                Debug.LogError("Phase 5C2.1 presentation catalog is missing. "
+                    + "Allow the Editor asset setup to finish importing.", this);
+            CastleDropOff castle = MakeCastle(area.transform, blue,
+                new Vector3(4.5f, 10.5f, 0f), castleData, Faction.Blue);
+            feedback.Watch(castle);
+
+            for (int i = 0; i < 4; i++)
+                MakeNode(area.transform, $"Tree_{i + 1}", ResourceType.Wood,
+                    economyConfig.TreeCapacity, new Vector3(3.5f + i * 2f, 14.5f, 0f),
+                    presentation?.Tree(i) ?? treeSprite, 1.5f,
+                    presentation?.Stump(i) ?? treeStumpSprite, null,
+                    presentation?.TreeFrames(i));
+            MakeNode(area.transform, "Sheep_1", ResourceType.Food, economyConfig.SheepCapacity,
+                new Vector3(9.5f, 12.5f, 0f), First(presentation?.SheepIdle) ?? sheepSprite, 0.65f);
+            MakeNode(area.transform, "Sheep_2", ResourceType.Food, economyConfig.SheepCapacity,
+                new Vector3(11.5f, 13.5f, 0f), First(presentation?.SheepIdle) ?? sheepSprite, 0.65f);
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 position = new Vector3(9.5f + i % 3 * 2f,
+                    16.5f + i / 3 * 2f, 0f);
+                MakeNode(area.transform, $"Gold_{i + 1}", ResourceType.Gold,
+                    economyConfig.GetGoldStoneCapacity(i), position,
+                    presentation?.Gold(i) ?? goldSprite, 0.65f, null,
+                    presentation?.GoldHighlight(i));
+            }
+
+            feedback.Watch(MakePawn(area.transform, "BluePawn_1", new Vector3(3.5f, 7.5f, 0f)));
+            feedback.Watch(MakePawn(area.transform, "BluePawn_2", new Vector3(4.5f, 7.5f, 0f)));
+            feedback.Watch(MakePawn(area.transform, "BluePawn_3", new Vector3(5.5f, 7.5f, 0f)));
+
+            SelectionSummaryUI summary = FindAnyObjectByType<SelectionSummaryUI>();
+            if (summary != null)
+                summary.gameObject.AddComponent<EconomyHUD>().Configure(blue);
+            else
+                Debug.LogError("Phase 5A needs the existing UI Canvas for the economy HUD.", this);
+
+            SelectionManager selection = FindAnyObjectByType<SelectionManager>();
+            PlayerCommandController commands = FindAnyObjectByType<PlayerCommandController>();
+            if (buildings.Length < 6 || castleData == null || navigation == null
+                || selection == null || commands == null)
+            {
+                Debug.LogError("Phase 5C2 needs six BuildingData assets and existing grid/input.", this);
+                setupReady = true;
+                return;
+            }
+            var populationObject = new GameObject("BluePopulation");
+            populationObject.transform.SetParent(area.transform, false);
+            FactionPopulation population = populationObject.AddComponent<FactionPopulation>();
+            population.Configure(Faction.Blue, 10);
+            BuildingSystem buildingSystem = area.AddComponent<BuildingSystem>();
+            buildingSystem.Configure(navigation, blue, population, buildings);
+            if (!buildingSystem.IsReady)
+            {
+                Debug.LogError("Phase 5B1 BuildingData is missing a valid type, sprite or navigation link.", this);
+                setupReady = true;
+                return;
+            }
+            BuildingPlacementController placement = commands.gameObject.AddComponent<BuildingPlacementController>();
+            placement.Configure(buildingSystem, selection, navigation, Camera.main);
+
+            if (summary != null)
+                summary.gameObject.AddComponent<BuildingCommandUI>().Configure(
+                    buildingSystem, placement, selection, blue, population);
+
+            if (warriorCombatData == null || lancerCombatData == null || archerCombatData == null
+                || blueWarriorPrefab == null || blueLancerPrefab == null || blueArcherPrefab == null)
+            {
+                Debug.LogError("Phase 5C1 production needs existing unit data and Blue prefabs.", this);
+                setupReady = true;
+                return;
+            }
+            UnitCombatData[] unitData =
+                { pawnCombatData, warriorCombatData, lancerCombatData, archerCombatData };
+            castle.gameObject.AddComponent<UnitProductionQueue>().Configure(
+                castle, blue, population, navigation, unitData, SpawnProductionUnit);
+            SetupDefense(castle, navigation);
+            CastleDropOff redCastle = MakeCastle(area.transform, red,
+                new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
+            SetupDefense(redCastle, navigation);
+            BuildingData towerData = System.Array.Find(buildings,
+                item => item != null && item.Type == BuildingType.Tower);
+            if (TryFindOpenBuildingOrigin(towerData, navigation,
+                new Vector2Int(31, 18), out Vector2Int redTowerOrigin))
+            {
+                var redTowerObject = new GameObject("RedTowerDefenseTarget");
+                redTowerObject.transform.SetParent(area.transform, false);
+                BuildingSite redTower = redTowerObject.AddComponent<BuildingSite>();
+                redTower.Configure(towerData, Faction.Red, redTowerOrigin,
+                    navigation, null);
+                redTower.CompleteImmediatelyForTestSetup();
+                SetupDefense(redTower, navigation);
+            }
+            else Debug.LogWarning("No safe Map position found for the Red Tower defense target.", this);
+            buildingSystem.BuildingPlaced += site =>
+            {
+                if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
+                    || site.Type == BuildingType.Monastery)
+                    site.gameObject.AddComponent<UnitProductionQueue>().Configure(
+                        site, blue, population, navigation, unitData, SpawnProductionUnit);
+                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
+            };
+            if (summary != null)
+                summary.gameObject.AddComponent<ProductionUI>().Configure(selection,
+                    pawnAnimations.Idle[0], blueWarriorPrefab.GetComponent<SpriteRenderer>()?.sprite,
+                    blueLancerPrefab.GetComponent<SpriteRenderer>()?.sprite,
+                    blueArcherPrefab.GetComponent<SpriteRenderer>()?.sprite);
+            if (summary != null)
+                summary.gameObject.AddComponent<GarrisonUI>().Configure(selection);
+            TeamVisionBootstrap.Ensure(transform, navigation, selection.PlayerFaction);
+
+            MatchManager match = area.AddComponent<MatchManager>();
+            match.Configure(selection.PlayerFaction, 0.85f);
+            if (!match.RegisterMainCastle(castle) || !match.RegisterMainCastle(redCastle))
+                Debug.LogError("Phase 6C could not register both Main Castles.", this);
+            MatchResultAssetCatalog resultAssets = MatchResultAssetCatalog.Load();
+            if (summary != null)
+                summary.gameObject.AddComponent<MatchResultUI>().Configure(
+                    match, selection, resultAssets);
+            else Debug.LogError("Phase 6C needs the existing screen-space UI Canvas.", this);
+            setupReady = true;
+        }
+
+        private void Start()
+        {
+            if (!setupReady) return;
+            hitFlashMaterial = new Material(hitFlashShader);
+            // All scene unit animators have completed Awake by Start.
+            foreach (HealthComponent health in FindObjectsByType<HealthComponent>())
+            {
+                DecorateHealth(health);
+            }
+        }
+
+        private void DecorateHealth(HealthComponent health)
+        {
+            if (health == null || hitFlashMaterial == null) return;
+            DamageTextEmitter text = health.GetComponent<DamageTextEmitter>();
+            if (text != null) text.enabled = false;
+            if (health.GetComponent<UnitHitFlash>() == null)
+                health.gameObject.AddComponent<UnitHitFlash>().Configure(hitFlashMaterial);
+            if (health.GetComponent<UnitHealthBar>() == null)
+                health.gameObject.AddComponent<UnitHealthBar>().Configure(
+                    healthBarLeft, healthBarMiddle, healthBarRight, healthBarFill);
+        }
+
+        private UnitController SpawnProductionUnit(UnitType type, Vector3 position)
+        {
+            if (areaTransform == null) return null;
+            if (type == UnitType.Pawn)
+            {
+                PawnGatherer pawn = MakePawn(areaTransform,
+                    "BluePawn_Produced_" + ++producedCount, position);
+                feedback.Watch(pawn);
+                DecorateHealth(pawn.GetComponent<HealthComponent>());
+                return pawn.GetComponent<UnitController>();
+            }
+            GameObject prefab = type switch
+            {
+                UnitType.Warrior => blueWarriorPrefab,
+                UnitType.Lancer => blueLancerPrefab,
+                UnitType.Archer => blueArcherPrefab,
+                _ => null
+            };
+            if (prefab == null) return null;
+            GameObject instance = Instantiate(prefab, position, Quaternion.identity, areaTransform);
+            instance.name = "Blue" + type + "_Produced_" + ++producedCount;
+            UnitController unit = instance.GetComponent<UnitController>();
+            if (unit == null) { Destroy(instance); return null; }
+            DecorateHealth(instance.GetComponent<HealthComponent>());
+            return unit;
+        }
+
+        private void OnDestroy()
+        {
+            if (hitFlashMaterial != null) Destroy(hitFlashMaterial);
+        }
+
+        private static ResourceStockpile MakeStockpile(Transform parent, Faction faction)
+        {
+            var obj = new GameObject(faction + "Stockpile");
+            obj.transform.SetParent(parent, false);
+            ResourceStockpile stockpile = obj.AddComponent<ResourceStockpile>();
+            stockpile.Configure(faction, 200, 200, 100);
+            return stockpile;
+        }
+
+        private CastleDropOff MakeCastle(Transform parent, ResourceStockpile stockpile,
+            Vector3 position, BuildingData castleData, Faction faction)
+        {
+            var obj = new GameObject(faction + "CastleDropOff");
+            obj.transform.SetParent(parent, false);
+            obj.transform.position = position;
+            MakeVisual(obj.transform, castleData.GetSprite(faction), true);
+            BoxCollider2D collider = obj.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(3f, 2.6f);
+            collider.offset = new Vector2(0f, 0.4f);
+            CastleDropOff castle = obj.AddComponent<CastleDropOff>();
+            castle.Configure(faction, stockpile, castleData);
+            return castle;
+        }
+
+        private static bool TryFindOpenBuildingOrigin(BuildingData data, GridManager navigation,
+            Vector2Int preferred, out Vector2Int origin)
+        {
+            origin = default;
+            if (data == null || navigation == null) return false;
+            for (int radius = 0; radius < 12; radius++)
+            for (int y = preferred.y - radius; y <= preferred.y + radius; y++)
+            for (int x = preferred.x - radius; x <= preferred.x + radius; x++)
+            {
+                if (Mathf.Max(Mathf.Abs(x - preferred.x), Mathf.Abs(y - preferred.y)) != radius)
+                    continue;
+                int height = -1;
+                bool valid = true;
+                for (int fy = 0; fy < data.Footprint.y && valid; fy++)
+                for (int fx = 0; fx < data.Footprint.x; fx++)
+                {
+                    GridCell cell = navigation.GetCell(x + fx, y + fy);
+                    if (cell == null || !cell.Walkable || cell.Occupied
+                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                        || (height >= 0 && cell.HeightLevel != height))
+                    {
+                        valid = false;
+                        break;
+                    }
+                    height = cell.HeightLevel;
+                }
+                if (!valid) continue;
+                foreach (UnitController unit in UnitController.ActiveUnits)
+                {
+                    Vector2Int cell = navigation.WorldToGrid(unit.transform.position);
+                    if (cell.x >= x && cell.x < x + data.Footprint.x
+                        && cell.y >= y && cell.y < y + data.Footprint.y)
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (!valid) continue;
+                origin = new Vector2Int(x, y);
+                return true;
+            }
+            return false;
+        }
+
+        private void SetupDefense(IDefensiveBuildingHost host, GridManager navigation)
+        {
+            MonoBehaviour component = host as MonoBehaviour;
+            if (component == null || host.DefenseData == null) return;
+            BuildingGarrison garrison = component.GetComponent<BuildingGarrison>()
+                ?? component.gameObject.AddComponent<BuildingGarrison>();
+            garrison.Configure(host, navigation);
+            BuildingCombatTarget target = component.GetComponent<BuildingCombatTarget>()
+                ?? component.gameObject.AddComponent<BuildingCombatTarget>();
+            target.Configure(host);
+            CombatController archer = blueArcherPrefab.GetComponent<CombatController>();
+            if (host.Faction == Faction.Red)
+            {
+                foreach (CombatController candidate in FindObjectsByType<CombatController>())
+                    if (candidate.GetComponent<UnitController>()?.Faction == Faction.Red
+                        && candidate.CombatData?.UnitType == UnitType.Archer)
+                    {
+                        archer = candidate;
+                        break;
+                    }
+            }
+            BuildingDefense defense = component.GetComponent<BuildingDefense>()
+                ?? component.gameObject.AddComponent<BuildingDefense>();
+            defense.Configure(host, garrison, archer.ProjectileSprite,
+                archerCombatData.ProjectileSpeed, archer.ProjectileArcHeight);
+            (component.GetComponent<BuildingVisionSource>()
+                ?? component.gameObject.AddComponent<BuildingVisionSource>()).Configure(host);
+            if (host is CastleDropOff castle && BuildingRallyPoint.Supports(host.Type))
+                (component.GetComponent<BuildingRallyPoint>()
+                    ?? component.gameObject.AddComponent<BuildingRallyPoint>()).Configure(
+                        castle, navigation, FindAnyObjectByType<SelectionManager>());
+            if (component.GetComponent<BuildingDamagePresentation>() == null)
+                component.gameObject.AddComponent<BuildingDamagePresentation>().Configure(host);
+            if (host.Type == BuildingType.Castle
+                && component.GetComponent<BuildingHealthBar>() == null)
+                component.gameObject.AddComponent<BuildingHealthBar>().Configure(host, 1.45f);
+        }
+
+        private void MakeNode(Transform parent, string name, ResourceType type,
+            int capacity, Vector3 position, Sprite sprite, float clickSize,
+            Sprite depletedSprite = null, Sprite[] highlightFrames = null,
+            Sprite[] ambientFrames = null)
+        {
+            var obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            obj.transform.position = position;
+            SpriteRenderer renderer = MakeVisual(obj.transform, sprite,
+                type != ResourceType.Wood);
+            var collider = obj.AddComponent<BoxCollider2D>();
+            collider.size = new Vector2(clickSize, type == ResourceType.Wood ? 2f : clickSize);
+            collider.offset = type == ResourceType.Wood ? new Vector2(0f, 0.9f) : Vector2.zero;
+            obj.AddComponent<ResourceInteractionSlots>().Configure(1);
+            if (type == ResourceType.Food)
+                obj.AddComponent<ResourceHarvestFlash>().Configure(renderer);
+            ResourceNode node = obj.AddComponent<ResourceNode>();
+            node.Configure(type, capacity, renderer, depletedSprite);
+            if (type == ResourceType.Food && presentation != null)
+                obj.AddComponent<SheepPresentation>().Configure(node, renderer,
+                    presentation.SheepIdle, presentation.SheepGrass, presentation.SheepMove);
+            if (type == ResourceType.Gold && highlightFrames != null
+                && highlightFrames.Length > 0)
+                obj.AddComponent<GoldHarvestHighlight>().Configure(node, sprite, highlightFrames);
+            if (type == ResourceType.Wood && ambientFrames != null
+                && ambientFrames.Length > 0)
+                obj.AddComponent<TreePresentation>().Configure(node, ambientFrames);
+        }
+
+        private static Sprite First(Sprite[] sprites)
+            => sprites != null && sprites.Length > 0 ? sprites[0] : null;
+
+        private PawnGatherer MakePawn(Transform parent, string name, Vector3 position)
+        {
+            var obj = new GameObject(name);
+            obj.transform.SetParent(parent, false);
+            obj.transform.position = position;
+            SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
+            renderer.sprite = pawnAnimations.Idle[0];
+            renderer.sortingOrder = 10;
+            obj.AddComponent<UnitController>().Configure(Faction.Blue);
+            obj.AddComponent<HealthComponent>().Configure(pawnCombatData);
+            obj.AddComponent<UnitMovement>();
+            obj.AddComponent<UnitSelection>().ConfigureMarkerYOffset(-0.35f);
+            PawnGatherer gatherer = obj.AddComponent<PawnGatherer>();
+            gatherer.ConfigureGathering(economyConfig.GatherSecondsPerUnit,
+                economyConfig.GatherImpactDelay, economyConfig.AmountPerStep);
+            obj.AddComponent<CombatController>().Configure(pawnCombatData);
+            obj.AddComponent<PawnBuilder>();
+            obj.AddComponent<PawnVisual>().Configure(pawnAnimations);
+            return gatherer;
+        }
+
+        private static SpriteRenderer MakeVisual(Transform parent, Sprite sprite, bool centerY)
+        {
+            var child = new GameObject("Visual");
+            child.transform.SetParent(parent, false);
+            // Use the imported pivot. The Tiny Swords slices use Center alignment;
+            // the serialized pivot field in their .meta files is not a bottom-left pivot.
+            child.transform.localPosition = new Vector3(
+                (sprite.pivot.x - sprite.rect.width * 0.5f) / sprite.pixelsPerUnit,
+                (sprite.pivot.y - (centerY ? sprite.rect.height * 0.5f : 0f))
+                    / sprite.pixelsPerUnit,
+                0f);
+            SpriteRenderer renderer = child.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = 10;
+            return renderer;
+        }
+    }
+}

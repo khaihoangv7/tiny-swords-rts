@@ -93,6 +93,8 @@ namespace TinyKingdom.EditorTools
             int cell = type == "Lancer" ? 320 : 192;
             serialized.FindProperty("frameCellSize").intValue = cell;
             serialized.FindProperty("framesPerSecond").floatValue = 10f;
+            serialized.FindProperty("attackFramesPerSecond").floatValue = type == "Archer"
+                ? 6.666667f : 10f;
             serialized.FindProperty("visualAnchorPixels").vector2Value = type switch
             {
                 "Warrior" => new Vector2(101.5f, 99.5f),

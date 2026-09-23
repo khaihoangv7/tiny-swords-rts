@@ -23,3 +23,11 @@ MonoBehaviour:
   woodCost: 0
   goldCost: 80
   projectileSpeed: 8
+  acquisitionRadius: 4
+  acquisitionInterval: 0.25
+  autoChaseLimit: 6
+  canRetaliateWhenDamaged: 1
+  retaliationLeash: 10
+  populationCost: 1
+  trainingSeconds: 8
+  visionRadius: 3.5

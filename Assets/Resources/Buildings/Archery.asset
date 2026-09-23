@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 852642b6f9284c3693ec31cca53fc26a, type: 3}
+  m_Name: Archery
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Buildings.BuildingData
+  buildingType: 4
+  maxHP: 250
+  foodCost: 0
+  woodCost: 150
+  goldCost: 0
+  footprint: {x: 3, y: 3}
+  constructionSeconds: 7
+  repairHPPerSecond: 20
+  populationBonus: 0
+  blueSprite: {fileID: 1765351576224072635, guid: d232a22b813c86941a0444cfa811a878, type: 3}
+  redSprite: {fileID: 1765351576224072635, guid: 8398c30bc0e471441a84f1ffc696cb7d, type: 3}
+  blueHouseVariants: []
+  redHouseVariants: []
+  visualOffset: {x: 0, y: 0}
+  visionRadius: 5

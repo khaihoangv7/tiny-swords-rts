@@ -28,6 +28,9 @@ namespace TinyKingdom.EditorTools
                     $"Wrong Idle/Run frames: {path}");
                 Require(set.AttackFor(Vector2.right).Length == (name == "Archer" ? 8 : name == "Warrior" ? 4 : 3),
                     $"Wrong Attack frames: {path}");
+                if (name == "Archer")
+                    Require(Mathf.Abs(set.AttackFramesPerSecond - 6.666667f) < 0.001f,
+                        $"Archer Shoot playback no longer matches the 0.7-second release: {path}");
                 if (name == "Warrior") Require(set.Guard.Length == 6, $"Wrong Guard frames: {path}");
                 foreach (Sprite sprite in set.Idle.Concat(set.Run).Concat(set.AttackFor(Vector2.right)))
                     Require(sprite != null, $"Missing sprite in {path}");

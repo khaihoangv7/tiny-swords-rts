@@ -6,23 +6,14 @@ TextureImporter:
       213: -7630237011073246913
     second: Pawn_Interact Knife_0
   - first:
-      213: 1537740210692759063
+      213: 8846431254335609180
     second: Pawn_Interact Knife_1
   - first:
-      213: 8846431254335609180
+      213: -4819376441665360405
     second: Pawn_Interact Knife_2
   - first:
-      213: -2719170756685289180
-    second: Pawn_Interact Knife_3
-  - first:
-      213: -4819376441665360405
-    second: Pawn_Interact Knife_4
-  - first:
-      213: -9165007210808111390
-    second: Pawn_Interact Knife_5
-  - first:
       213: 6529477856461104490
-    second: Pawn_Interact Knife_6
+    second: Pawn_Interact Knife_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -55,7 +46,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -95,7 +86,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -108,7 +99,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -121,7 +112,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -136,10 +127,10 @@ TextureImporter:
       name: Pawn_Interact Knife_0
       rect:
         serializedVersion: 2
-        x: 66
-        y: 56
-        width: 52
-        height: 77
+        x: 0
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -158,32 +149,10 @@ TextureImporter:
       name: Pawn_Interact Knife_1
       rect:
         serializedVersion: 2
-        x: 117
-        y: 82
-        width: 20
-        height: 25
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 71e1d270396275510800000000000000
-      internalID: 1537740210692759063
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Pawn_Interact Knife_2
-      rect:
-        serializedVersion: 2
-        x: 252
-        y: 50
-        width: 80
-        height: 82
+        x: 192
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -199,35 +168,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Pawn_Interact Knife_3
+      name: Pawn_Interact Knife_2
       rect:
         serializedVersion: 2
-        x: 322
-        y: 84
-        width: 12
-        height: 21
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 429a4248a90934ad0800000000000000
-      internalID: -2719170756685289180
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Pawn_Interact Knife_4
-      rect:
-        serializedVersion: 2
-        x: 446
-        y: 56
-        width: 67
-        height: 73
+        x: 384
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -243,35 +190,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Pawn_Interact Knife_5
+      name: Pawn_Interact Knife_3
       rect:
         serializedVersion: 2
-        x: 510
-        y: 51
-        width: 15
-        height: 43
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 2ee83e3008a5fc080800000000000000
-      internalID: -9165007210808111390
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Pawn_Interact Knife_6
-      rect:
-        serializedVersion: 2
-        x: 643
-        y: 56
-        width: 74
-        height: 75
+        x: 576
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -301,12 +226,9 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Pawn_Interact Knife_0: -7630237011073246913
-      Pawn_Interact Knife_1: 1537740210692759063
-      Pawn_Interact Knife_2: 8846431254335609180
-      Pawn_Interact Knife_3: -2719170756685289180
-      Pawn_Interact Knife_4: -4819376441665360405
-      Pawn_Interact Knife_5: -9165007210808111390
-      Pawn_Interact Knife_6: 6529477856461104490
+      Pawn_Interact Knife_1: 8846431254335609180
+      Pawn_Interact Knife_2: -4819376441665360405
+      Pawn_Interact Knife_3: 6529477856461104490
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

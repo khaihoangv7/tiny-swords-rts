@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BlueWarrior
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimationSet
   framesPerSecond: 10
+  attackFramesPerSecond: 10
   frameCellSize: 192
   visualAnchorPixels: {x: 101.5, y: 99.5}
   idle:

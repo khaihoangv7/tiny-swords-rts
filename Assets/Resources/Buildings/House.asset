@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 852642b6f9284c3693ec31cca53fc26a, type: 3}
+  m_Name: House
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Buildings.BuildingData
+  buildingType: 1
+  maxHP: 150
+  foodCost: 0
+  woodCost: 100
+  goldCost: 0
+  footprint: {x: 2, y: 2}
+  constructionSeconds: 5
+  repairHPPerSecond: 20
+  populationBonus: 5
+  blueSprite: {fileID: -5391499930902814504, guid: 14b786ab107506847bf5f6a7f950f3ae, type: 3}
+  redSprite: {fileID: -5391499930902814504, guid: 3a20fe4482995c24c8eea12e3bd70ecc, type: 3}
+  blueHouseVariants:
+  - {fileID: -5391499930902814504, guid: 14b786ab107506847bf5f6a7f950f3ae, type: 3}
+  - {fileID: -6871032511782127585, guid: 7e232d87f8b4fb64588656ed1a3d724e, type: 3}
+  - {fileID: -8882018789552535208, guid: d3eef7e4387a88d42888bc16cefcb9be, type: 3}
+  redHouseVariants:
+  - {fileID: -5391499930902814504, guid: 3a20fe4482995c24c8eea12e3bd70ecc, type: 3}
+  - {fileID: -6871032511782127585, guid: d650760bdf8465a4d8cde2f28ab53111, type: 3}
+  - {fileID: -8882018789552535208, guid: 077fd1b375f05b0419185ee41aeba846, type: 3}
+  visualOffset: {x: 0, y: 0}
+  visionRadius: 5

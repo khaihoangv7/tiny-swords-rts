@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 852642b6f9284c3693ec31cca53fc26a, type: 3}
+  m_Name: Castle
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Buildings.BuildingData
+  buildingType: 0
+  maxHP: 1000
+  foodCost: 0
+  woodCost: 0
+  goldCost: 0
+  footprint: {x: 3, y: 2}
+  constructionSeconds: 1
+  repairHPPerSecond: 20
+  populationBonus: 0
+  blueSprite: {fileID: -6754239384357436178, guid: 8b7afb0e043f1e547a695e4ffee2ebdd, type: 3}
+  redSprite: {fileID: -6754239384357436178, guid: 3d25ec15c0e7470449aad3be7729ba14, type: 3}
+  blueHouseVariants: []
+  redHouseVariants: []
+  visualOffset: {x: 0, y: 0}
+  visionRadius: 9
+  internalGarrisonCapacity: 5
+  mountedArcherCapacity: 3
+  defensiveArrowDamage: 5
+  defensiveVolleyInterval: 1.5
+  defensiveAttackRange: 8
+  mountedDamageMultiplier: 1.2
+  mountedRangeMultiplier: 1.25
+  defensiveProjectileOrigin: {x: 0, y: 0.75}
+  blueRooftopAnchors:
+  - {x: -0.95, y: 0.83}
+  - {x: 0, y: 0.83}
+  - {x: 0.95, y: 0.83}
+  redRooftopAnchors:
+  - {x: -0.95, y: 0.83}
+  - {x: 0, y: 0.83}
+  - {x: 0.95, y: 0.83}

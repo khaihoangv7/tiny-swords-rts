@@ -7,17 +7,21 @@ namespace TinyKingdom.Input
     public static class DestinationDistributor
     {
         public static List<GridCell> FindNearbyDestinations(IGridCellProvider grid, Vector2Int center,
-            int requestedCount, int maximumRadius = 8)
+            int requestedCount, int maximumRadius = 8,
+            bool searchAroundOccupiedCenter = false)
         {
             var result = new List<GridCell>();
             if (grid == null || requestedCount <= 0 || !grid.IsInsideGrid(center.x, center.y))
                 return result;
 
             GridCell centerCell = grid.GetCell(center.x, center.y);
-            if (centerCell == null || !centerCell.Walkable || centerCell.Occupied)
+            if (centerCell == null || !centerCell.Walkable
+                || (centerCell.Occupied && !searchAroundOccupiedCenter))
                 return result;
 
-            AddIfValid(grid, center.x, center.y, centerCell.HeightLevel, result, requestedCount);
+            if (!centerCell.Occupied)
+                AddIfValid(grid, center.x, center.y, centerCell.HeightLevel, result,
+                    requestedCount);
             for (int radius = 1; radius <= maximumRadius && result.Count < requestedCount; radius++)
             {
                 for (int y = -radius; y <= radius && result.Count < requestedCount; y++)

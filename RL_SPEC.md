@@ -109,3 +109,30 @@ Small time penalty:
 discourage endless games.
 
 These values are experimental and may be tuned later.
+
+---
+
+## Observable State and World Truth
+
+Future Commander observations should use faction-observable state rather than
+unrestricted world truth unless an experiment explicitly selects omniscient
+observations. `TeamVisionSystem` is the gameplay authority for normal faction
+awareness. A unit's local retaliation awareness after direct damage is not a
+team reveal and must not be promoted into the Commander's global observation.
+
+Phase 6B adds no RL observations, rewards or actions.
+
+## Phase 6C.1 Faction Knowledge Contract
+
+Future Rule-Based and RL Commanders must query knowledge for their own faction.
+Current world truth is available only for objects in that faction's `Visible`
+cells. `Explored` building and resource observations may use immutable
+last-seen snapshots from `FogMemorySystem`; `Unexplored` cells provide no object
+knowledge. Enemy units have no persistent last-seen observation.
+
+Snapshot queries must not be converted back into hidden live scene references.
+Hidden HP, repairs, construction, garrison, production, movement, destruction
+and resource depletion are not observable until the faction sees the area
+again. Physical A* navigation may still use authoritative occupancy internally,
+but Commander observations and action validation must not expose that hidden
+world state. Phase 6C.1 adds no AI/RL actions, rewards or policies.

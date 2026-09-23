@@ -172,6 +172,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: 1ba883f965984ea28be5b873fb834b48, type: 2}
   projectileSprite: {fileID: -4346244404228752641, guid: 8272bfa3e4efb5c49b84dad00929f11e, type: 3}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2233285390701142780
 MonoBehaviour:

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TinyKingdom.Units;
+using TinyKingdom.Match;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,6 +23,12 @@ namespace TinyKingdom.Input
 
         private void Update()
         {
+            if (!MatchManager.AllowsGameplay)
+            {
+                End(keyboardGuards, mouseGuards);
+                EndMouseGuard();
+                return;
+            }
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
             {
@@ -41,7 +48,7 @@ namespace TinyKingdom.Input
 
         public void BeginMouseGuard()
         {
-            if (mouseHeld) return;
+            if (!MatchManager.AllowsGameplay || mouseHeld) return;
             mouseHeld = true;
             Begin(mouseGuards, keyboardGuards);
         }

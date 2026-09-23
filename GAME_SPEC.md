@@ -146,7 +146,13 @@ Pawn can:
 * construct buildings
 * repair buildings
 
-Pawn is not intended to be a combat unit.
+Pawn is primarily a worker and may fight only after an explicit Attack command.
+Pawn does not automatically acquire enemy targets while working or Idle. Enemy
+military units may target, damage, and kill Pawns through the normal combat system.
+
+Phase 5C1 Pawn combat data: 50 HP, 2 base melee damage, 1 world-unit attack
+range, 1.4-second attack interval, 3 world-units/second movement, and
+1 population. These are MVP values; the existing 50 Food cost remains.
 
 Cost:
 
@@ -184,6 +190,11 @@ Gather Food.
 
 The gather loop is:
 
+Each Pawn's successful resource gather uses a 1.5-second cycle for Wood, Gold,
+and Food. Work animation playback is independent of that gameplay timer;
+resource gain occurs at a configured gameplay impact time, followed by a
+recovery delay until the next cycle.
+
 Move to resource
 
 → Gather
@@ -199,6 +210,11 @@ Move to resource
 → Continue gathering.
 
 If the resource is depleted, the Pawn becomes Idle.
+
+An explicit Move or Attack order cancels the current worker job and releases its
+resource/Castle interaction reservation. Any already gathered cargo stays on
+the Pawn. A later Gather order may resume work, depositing mismatched cargo
+before gathering a different resource.
 
 ---
 
@@ -315,6 +331,13 @@ Attack Interval = 1.2 seconds
 Move Speed = 3
 
 Archer attacks using projectiles.
+
+An Archer attack cycle begins its Shoot presentation immediately. Its gameplay
+release delay is configured as 0.7 seconds; the projectile is created when
+that delay elapses if the attack remains valid. The 1.2-second Attack Interval is
+measured from the start of each cycle, including the release delay. Cancelling
+the attack before release cancels the pending projectile. A released projectile
+still evaluates Guard and damage when it hits.
 
 Projectile visuals must not determine damage timing.
 
@@ -532,8 +555,13 @@ The initial game contains:
 * House
 * Barracks
 * Tower
+* Archery
+* Monastery
 
-No other building types are required for MVP.
+House is a population building and never trains units. Castle trains Pawn,
+Barracks trains Warrior and Lancer, and Archery trains Archer. Monastery is
+reserved for Monk production after Monk gameplay values are specified. These
+specialized rosters replace the previous generic Barracks roster.
 
 ---
 
@@ -551,6 +579,20 @@ If Castle HP reaches 0:
 
 that faction loses immediately.
 
+Phase 5C2 defensive data:
+
+* provisional MaxHP = 1000
+* Internal Garrison capacity = 5 living friendly Pawn/Warrior/Archer/Lancer
+* Mounted Archer capacity = 3
+* each internal occupant contributes one generic 5-damage projectile per volley
+* an empty Castle fires no garrison arrows
+
+The main Castle has VisionRadius 9. When a Pawn physically reaches the main
+Castle and successfully enters its internal garrison, any carried resource is
+deposited through the existing Castle drop-off transaction before the Pawn is
+hidden. Cancelling the approach does not deposit cargo. Tower entry never
+deposits resources.
+
 ---
 
 # 17. House
@@ -563,7 +605,9 @@ Function:
 
 Increase population capacity by 5.
 
-The player may build multiple Houses.
+The player may build multiple Houses. House1, House2 and House3 are visual
+variants of the same House gameplay type; each has the same cost, HP, logical
+footprint, construction behavior and +5 population bonus.
 
 ---
 
@@ -575,12 +619,11 @@ Cost:
 
 Function:
 
-Train military units.
+Train Warrior and Lancer.
 
 Available units:
 
 * Warrior
-* Archer
 * Lancer
 
 Each training action requires resources and time.
@@ -593,19 +636,111 @@ Only one unit should be produced per training request.
 
 Cost:
 
-100 Wood
+75 Wood
 
 50 Gold.
 
 Function:
 
-Automatically attacks enemy units inside its attack range.
+Fires defensive arrows only when friendly units are stationed inside or when
+mounted Archers are present. An empty Tower has no free attack.
 
 Tower target priority:
 
 nearest valid enemy unit.
 
 Tower cannot move.
+
+Phase 5C1 Tower MaxHP = 300. Tower garrison and attack changes are deferred to
+Phase 5C2.
+
+Phase 5C2 Tower rules:
+
+* Internal Garrison capacity = 2 living friendly Pawn/Warrior/Archer/Lancer
+* Mounted Archer capacity = 1
+* each internal occupant contributes one generic 5-damage projectile per volley
+* mounted Archers are separate and do not add generic garrison arrows
+
+---
+
+# 19A. Archery and Monastery
+
+Archery trains Archer after construction. Its Phase 5C1 test values are
+provisional: 150 Wood, 250 HP, 3x3 logical cells, 7-second construction.
+
+Monastery is constructible but does not train Monk until Monk HP, cost,
+movement speed, role, healing/combat behavior and population cost are defined.
+Its Phase 5C1 test values are provisional: 150 Wood, 50 Gold, 300 HP, 3x3
+logical cells, 8-second construction.
+
+---
+
+# 19B. Unit Production MVP
+
+Training uses a FIFO queue of at most five requests per building. Each request
+spends its unit cost and reserves its population at enqueue time. The queue
+rejects requests without resources or available population. One request trains
+at a time; production pauses while its building is incomplete. A finished
+request waits if every nearby spawn cell is blocked or the population cap has
+since fallen. Destroying a producer discards its queue and releases reserved
+population; resources already spent are not refunded in this MVP.
+
+Provisional gameplay training times: Pawn 4 seconds, Warrior 8 seconds,
+Archer 6 seconds, Lancer 6 seconds. Animation frames do not control training.
+Monk training remains disabled pending gameplay data.
+
+VisionRadius is stored as configurable unit/building data for later vision
+work. Phase 5C1 does not calculate visibility or render Fog of War; current
+test values are provisional.
+
+---
+
+# 19C. Tower and Castle Defense MVP
+
+Internal occupants are hidden and suspended from movement, selection, normal
+combat, collision, separation and direct targeting. Their HP, faction, unit
+type and Pawn cargo remain unchanged. Mounted Archers remain visible at explicit
+roof anchors, cannot move or be targeted while the host survives, and retain
+their existing Shoot windup, projectile release, attack interval, counter rules
+and Guard-at-impact behavior.
+
+Mounted Archer final damage is the normal counter-adjusted Archer hit multiplied
+by 1.20, rounded using the existing positive half-up rule. Mounted attack range
+is base Archer range multiplied by the provisional 1.25 range multiplier. The
+normal UnitCombatData asset is never rewritten.
+
+Generic defensive arrows use projectile delivery, 5 base damage and no unit
+counter multiplier. Projectile Guard mitigation still applies at impact. The
+number of arrows in one volley equals the current internal occupant count.
+Targets are sorted by distance, then world position and stable entity identity;
+arrows are distributed round-robin, so multiple arrows may hit one target when
+there are fewer targets than arrows.
+
+The following defense values are provisional MVP balance values:
+
+* defensive volley interval: 1.5 seconds for Tower and Castle
+* Tower defensive attack range: 7 world units
+* Castle defensive attack range: 8 world units
+* mounted range multiplier: 1.25
+* Castle MaxHP: 1000
+
+Tower and Castle use explicit projectile-origin and rooftop-anchor offsets from
+BuildingData. Right-clicking a friendly completed defensive building orders
+selected units by nearest distance. Archers reserve rooftop slots first and
+then internal slots; other supported units reserve internal slots. Units walk
+to distinct cardinal interaction positions before entering.
+
+On voluntary Eject All or host destruction, occupants are restored at distinct,
+nearby, walkable and unoccupied grid positions. Host occupancy is released
+before destruction ejection. Occupants keep their HP and cargo and receive no
+collapse damage. No verified ruin sprites are currently mapped, so the destroyed
+host visual is hidden.
+
+Living world units and defensive buildings register queryable VisionRadius
+sources. Tower and Castle vision radius remains independent from attack range.
+A future Fog-of-War system will darken areas outside current faction vision and
+query these sources. Phase 5C2 does not render darkness, retain explored memory,
+hide enemies or implement minimap visibility.
 
 ---
 
@@ -700,6 +835,8 @@ Pawns additionally support:
 
 Gather
 
+Explicit Attack
+
 Build
 
 Repair
@@ -715,6 +852,12 @@ Right-clicking walkable ground gives selected units a Move order.
 Units pathfind toward the destination.
 
 Units stop when reaching an acceptable destination radius.
+
+Rapid Move commands that resolve to the same logical destination cell and are
+within a 0.2-world-unit command epsilon keep the active route. A replacement
+route omits the A* start-cell center, because that point may already be behind
+a unit moving between cell centers. The newest genuinely different destination
+still replaces the route normally.
 
 Living military units maintain a small configurable personal space when
 moving or standing near each other. Local separation does not reserve logical
@@ -737,6 +880,12 @@ Move into attack range
 
 → Return to Idle.
 
+When possible, multiple melee attackers on the same target reserve distinct
+valid engagement directions around it. The reserved direction guides combat
+positioning and does not change the normal attack-range check. Engagement
+slots handle preferred combat positions; local UnitSeparation handles nearby
+unit spacing and incidental crowding.
+
 ---
 
 # 26. Attack Move
@@ -754,6 +903,13 @@ temporarily interrupt movement
 → attack
 
 → when enemy dies, continue toward the original destination.
+
+The player presses `A`, then left-clicks valid ground to issue AttackMove to
+selected Warrior, Archer and Lancer units. Pawn is excluded. A successful
+command exits the mode; an invalid left-click destination keeps it armed so the
+player can try again. Escape cancels the pending mode. Right Click while armed
+cancels AttackMove targeting and then performs the normal contextual Right
+Click command for that same click.
 
 ---
 
@@ -971,13 +1127,15 @@ Game simulation must not depend on visual frame rate.
 
 Player camera supports:
 
-WASD movement
+Arrow-key movement, including normalized diagonal combinations.
 
-Mouse edge movement may be added later.
+Mouse-edge scrolling in all eight directions with a configurable edge width.
 
 Mouse wheel zoom.
 
 Camera cannot move infinitely outside the playable map.
+
+WASD is not used for camera movement; `A` is reserved for AttackMove.
 
 ---
 
@@ -1098,6 +1256,10 @@ House
 
 Barracks
 
+Archery
+
+Monastery (building only until Monk gameplay is defined)
+
 Tower
 
 resource gathering
@@ -1134,7 +1296,6 @@ Do NOT implement these unless explicitly requested:
 * gates
 * multiplayer networking
 * procedural maps
-* fog of war
 * campaign
 * quests
 * experience / leveling
@@ -1164,7 +1325,198 @@ If testing shows that the intended matchup relationships are incorrect, numerica
 
 ---
 
-# 44. Source of Truth
+# 44. Phase 5C2.1 Construction and Economy Continuity
+
+Construction uses additive MVP BuildPower. Every Pawn that has physically
+reached its own valid reserved interaction cell and is actively building
+contributes BuildPower 1.0. The authoritative construction rate is the base
+rate multiplied by total active BuildPower. Resource cost is still paid once
+at placement. Interrupting one builder removes only that Pawn's contribution;
+the other builders continue and accumulated progress never resets.
+
+A Pawn keeps the ResourceType of its active gathering job when a node is
+depleted. It searches once at depletion or invalidation for the nearest
+deterministically ordered, reachable, non-depleted node of the same type within
+`AutoResourceSearchRadius`. The MVP radius is 6 world/grid units and remains
+configurable. Full cargo returns to the Castle before the next search. Partial
+cargo continues at a nearby same-type node; when none exists in range, the Pawn
+deposits the partial cargo and becomes Idle. Any explicit player command ends
+the automatic chain.
+
+Gold Stone capacities are gameplay data and do not depend on sprite size:
+
+* Gold Stone 1: 100 Gold
+* Gold Stone 2: 150 Gold
+* Gold Stone 3: 250 Gold
+* Gold Stone 4: 300 Gold
+* Gold Stone 5: 400 Gold
+* Gold Stone 6: 500 Gold
+
+# 45. Military Retaliation
+
+Warrior, Archer and Lancer may retaliate when they receive damage from a valid
+enemy unit. Pawn and Monk do not automatically retaliate. Damage carries the
+original attacking `UnitController`; projectiles preserve that source through
+impact and the projectile object itself never becomes the retaliation target.
+
+Retaliation can acquire the attacker outside the normal passive acquisition
+radius. It uses the existing CombatController, A*, ranged positioning and melee
+engagement slots. Its configurable provisional MVP leash is 10 world units,
+measured from the position where retaliation began. If either combatant exceeds
+that leash, the attacker dies, becomes protected, becomes unreachable or is no
+longer targetable, retaliation ends safely.
+
+Explicit player Attack, Guard and normal Move remain authoritative. A unit
+already fighting a valid target keeps it rather than switching on every hit.
+AttackMove may be interrupted by retaliation and resumes its stored destination
+after that target is resolved. Automatic retaliation never creates the red
+player Attack-command feedback rings. Internal and mounted protected occupants
+do not retaliate because they cannot receive valid direct unit damage.
+
+# 46. Phase 6A Vision Balance
+
+Unit vision is configured in `UnitCombatData` and remains separate from attack
+range and aggro radius:
+
+* Pawn VisionRadius = 3.0
+* Warrior VisionRadius = 3.5
+* Archer VisionRadius = 4.0
+* Lancer VisionRadius = 3.5
+
+Archer intentionally has slightly better vision than melee units. Strategic
+buildings retain their larger values: Tower VisionRadius = 7 and Castle
+VisionRadius = 9. Vision calculations, per-faction exploration and Fog of War
+presentation are defined in `VISION_FOG_SPEC.md`.
+
+# 47. Phase 6B Combat Awareness
+
+Normal combat awareness uses the authoritative faction visibility stored by
+`TeamVisionSystem`. Passive acquisition, AttackMove interruption, explicit
+Attack continuation, mounted Archer targeting and Tower/Castle defensive
+targeting require the enemy's current gameplay position to be Visible to the
+attacker's faction. Shared allied vision counts; attack range, aggro radius and
+VisionRadius remain separate values.
+
+When a normal target leaves faction vision, the attacker clears the target,
+cancels any unreleased ranged windup and releases its melee engagement slot.
+AttackMove resumes its saved route. Other normal orders return to their existing
+Idle or defensive-anchor behavior. Phase 6B does not pursue a last-known
+position. AttackMove continues to acquire units only and does not add automatic
+building acquisition.
+
+A projectile released while its target was legitimately visible remains
+authorized and resolves through the existing projectile rules even if the
+target later leaves vision. A ranged windup that has not released its projectile
+is cancelled when awareness is lost. Each later attack cycle and each defensive
+building volley must pass a new visibility check.
+
+Direct damage provides a controlled local retaliation exception for Warrior,
+Archer and Lancer. Only the damaged unit may track that specific attacker while
+the existing validity rules and 10-world-unit RetaliationLeash hold. This local
+awareness never changes `TeamVisionSystem`, reveals the attacker, enables player
+interaction with it, or lets other friendly units acquire it. Pawn and Monk do
+not auto-retaliate. Explicit Attack, Guard, normal Move and current-target
+priority remain unchanged.
+
+# 48. Phase 6B.1 Building Rally Points
+
+Completed friendly Castle/Home, Barracks, Archery, Monastery and Tower may each
+store one independent Rally Point. House is excluded. A Rally
+destination must be valid, reachable logical ground in a `Visible` or
+`Explored` cell; `Unexplored`, outside-map, blocked, Water and Cliff destinations
+are rejected without replacing the existing point.
+
+Produced units first spawn at the normal safe BuildingSpawnPoint and then
+receive a normal Move toward a distributed destination around their producer's
+Rally Point. They are never spawned directly at the Rally Point. Manual Tower
+ungarrison/Eject All follows the same rule after safe nearby ejection. Emergency
+ejection caused by building destruction ignores Rally and leaves survivors
+Idle. The Rally flag is selection-only presentation with no collider, raycast,
+navigation or vision effect.
+
+# 49. Phase 6B.2 Movement and Building Damage Presentation
+
+Movement and attack facing are presentation state on the unit's visual
+SpriteRenderer. Meaningful horizontal movement faces the sprite left or right;
+standing preserves the last direction. Attacks face the current unit/building
+target, and Pawn work faces its resource or construction target. Gameplay roots,
+colliders, selection rings, health bars and VFX are never mirrored. Lancer keeps
+its Down, DownRight, Right, Up and UpRight attack selection and uses horizontal
+flip only for the corresponding left-side directions.
+
+A successful AttackMove command creates a fixed two-ring red world marker at
+the ground destination. It shrinks and fades independently of the red explicit
+Attack marker that follows an enemy. Automatic acquisition and retaliation do
+not create either player-command marker.
+
+A completed damageable building burns while `0 < CurrentHP / MaxHP < 0.70`.
+Repair at or above 70 percent stops the three looping presentation-only Fire
+effects; under-construction buildings never burn from construction HP semantics.
+At zero HP, gameplay destruction remains immediate, looping Fire stops and the
+two verified Explosion effects play once as an independent one-shot. Enemy Fire
+and Explosion presentation never bypasses Fog visibility.
+
+Damaged completed buildings use the Tiny Swords BigBar Life Bar: one static
+assembled frame and one continuous red fill cropped from the right while its
+left edge and height remain fixed. It hides at full HP and on destruction.
+Units continue using SmallBar, and construction progress remains separate.
+
+# 50. Phase 6C Match Flow, Victory and Defeat
+
+`MatchManager` is the authoritative match lifecycle service. Its state advances
+from `Preparing` to `Playing` after the explicitly registered Blue and Red Main
+Castles are available, then to `Ended` when the first Main Castle destruction
+event is received. The only current win condition is destruction of the enemy
+Main Castle. Destroying House, Barracks, Archery, Monastery or Tower does not
+end the match.
+
+The result is `BlueVictory` when the Red Main Castle is destroyed and
+`RedVictory` when the Blue Main Castle is destroyed. Blue is the current human
+faction, so these map to VICTORY and DEFEAT respectively. The first authoritative
+Main Castle death locks the result; repeated or same-frame later callbacks are
+ignored and no Draw result is introduced.
+
+Match result authority changes immediately at Castle death. Normal Castle
+destruction, garrison ejection and Fire/Explosion cleanup still run. New player
+commands, production, gathering, construction, repair, garrison orders,
+retaliation, automatic combat and defensive volleys stop once the state is
+`Ended`. Already released projectiles and presentation VFX may finish. Camera
+pan and zoom remain available. `Time.timeScale` is not used for correctness.
+
+The screen-space result UI appears after a presentation-only 0.85-second delay,
+clears and disables selection, hides gameplay command panels and blocks world
+pointer input. Restart reloads the active gameplay scene so economy, population,
+units, buildings, Fog history, queues, garrison and match state reset together.
+Future Commander and RL systems query `IsMatchEnded`, `WinningFaction`,
+`LosingFaction` and the match-ended event directly rather than reading UI text.
+
+# 51. Phase 6C.1 Fog Memory and Presentation Rules
+
+Gameplay death remains immediate at zero HP. The shared unit death presentation
+then plays all fourteen verified `Dead.aseprite` frames in order: Dead 0-6,
+followed by Buried 7-13, and destroys only the presentation object after its
+1.8-second sequence. Pawn, Warrior, Archer and Lancer of either faction use the
+same presentation path. No permanent corpse remains.
+
+Authorized Warrior and Lancer attacks use the same `AttackPerformed`
+presentation event for unit and building targets. Building direction is measured
+to the closest combat collider point. Warrior uses its verified attack; Lancer
+retains directional attacks and horizontal flip for left-side equivalents.
+Damage, cooldowns and combat stats are unchanged.
+
+The main Castle/Home supports the same stored Rally Point as the other output
+buildings. A produced Pawn first spawns at a safe Castle output cell and then
+receives a normal Move. Voluntary Castle ejection follows Rally after safe
+ejection; emergency destruction ejection does not. Rally Point rules remain
+Visible or Explored allowed and Unexplored rejected.
+
+World truth, per-team visibility and faction memory remain separate. Explored
+building/resource visuals are last-seen presentation snapshots and never live
+targets. Hidden physical occupancy stays authoritative for A*, but cannot alter
+player cursor or command acceptance before the obstacle is currently observed
+or remembered by that faction. Enemy units receive no last-seen ghost.
+
+# 52. Source of Truth
 
 This file defines gameplay rules.
 

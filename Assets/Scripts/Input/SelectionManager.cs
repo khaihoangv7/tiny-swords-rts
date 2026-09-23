@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using TinyKingdom.Units;
+using TinyKingdom.UI;
+using TinyKingdom.Buildings;
+using TinyKingdom.Economy;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -13,12 +16,18 @@ namespace TinyKingdom.Input
         [SerializeField] private Faction playerFaction = Faction.Blue;
         [SerializeField, Min(1f)] private float dragThresholdPixels = 8f;
         [SerializeField] private bool blockWhenPointerIsOverUI = true;
+        [SerializeField] private SelectionDragVisual dragVisual;
 
         private readonly List<UnitSelection> selectedUnits = new();
         private Vector2 dragStart;
         private bool leftPointerActive;
+        private bool suppressNextLeftClick;
+        private BuildingSite selectedBuilding;
+        private CastleDropOff selectedCastle;
 
         public IReadOnlyList<UnitSelection> SelectedUnits => selectedUnits;
+        public BuildingSite SelectedBuilding => selectedBuilding;
+        public CastleDropOff SelectedCastle => selectedCastle;
         public Faction PlayerFaction => playerFaction;
         public event Action SelectionChanged;
 
@@ -28,29 +37,91 @@ namespace TinyKingdom.Input
             playerFaction = faction;
         }
 
+        public void SuppressNextLeftClick()
+        {
+            suppressNextLeftClick = true;
+            leftPointerActive = false;
+            dragVisual?.Hide();
+        }
+
+        public void CancelLeftClickSuppression()
+        {
+            suppressNextLeftClick = false;
+            leftPointerActive = false;
+            dragVisual?.Hide();
+        }
+
         private void Awake()
         {
             if (worldCamera == null)
                 worldCamera = Camera.main;
+            if (dragVisual == null)
+                dragVisual = FindAnyObjectByType<SelectionDragVisual>();
+        }
+
+        private void OnDisable()
+        {
+            leftPointerActive = false;
+            dragVisual?.Hide();
         }
 
         private void Update()
         {
             Mouse mouse = Mouse.current;
             if (mouse == null)
+            {
+                dragVisual?.Hide();
                 return;
+            }
+
+            if (leftPointerActive && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            {
+                leftPointerActive = false;
+                dragVisual?.Hide();
+                return;
+            }
 
             if (mouse.leftButton.wasPressedThisFrame)
             {
+                if (suppressNextLeftClick)
+                {
+                    leftPointerActive = false;
+                    dragVisual?.Hide();
+                    return;
+                }
                 leftPointerActive = !IsPointerOverUI();
                 if (leftPointerActive)
                     dragStart = mouse.position.ReadValue();
+                dragVisual?.Hide();
             }
 
+            if (mouse.leftButton.wasReleasedThisFrame && suppressNextLeftClick)
+            {
+                suppressNextLeftClick = false;
+                leftPointerActive = false;
+                dragVisual?.Hide();
+                return;
+            }
+
+            if (leftPointerActive && mouse.leftButton.isPressed)
+            {
+                Vector2 current = mouse.position.ReadValue();
+                if (Vector2.Distance(dragStart, current) >= dragThresholdPixels)
+                    dragVisual?.Show(dragStart, current);
+                else
+                    dragVisual?.Hide();
+            }
+
+            if (!mouse.leftButton.isPressed && !mouse.leftButton.wasReleasedThisFrame)
+            {
+                leftPointerActive = false;
+                dragVisual?.Hide();
+            }
             if (!mouse.leftButton.wasReleasedThisFrame || !leftPointerActive)
                 return;
 
             leftPointerActive = false;
+            dragVisual?.Hide();
             Vector2 releasePosition = mouse.position.ReadValue();
             bool additive = Keyboard.current != null
                 && (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
@@ -64,7 +135,31 @@ namespace TinyKingdom.Input
         public void SelectAtScreenPosition(Vector2 screenPosition, bool additive)
         {
             RemoveInvalidSelections();
-            UnitSelection hit = FindClosestFriendlyUnit(screenPosition);
+            UnitSelection hit = FindFriendlyUnitAtScreenPosition(screenPosition);
+            if (hit == null && !additive && worldCamera != null)
+            {
+                Vector3 world = worldCamera.ScreenToWorldPoint(new Vector3(screenPosition.x,
+                    screenPosition.y, -worldCamera.transform.position.z));
+                foreach (Collider2D collider in Physics2D.OverlapPointAll(world))
+                {
+                    BuildingSite building = collider.GetComponent<BuildingSite>();
+                    if (building != null && building.IsFriendlyCursorTarget(playerFaction))
+                    {
+                        ClearSelection();
+                        selectedBuilding = building;
+                        SelectionChanged?.Invoke();
+                        return;
+                    }
+                    CastleDropOff castle = collider.GetComponent<CastleDropOff>();
+                    if (castle != null && castle.IsFriendlyCursorTarget(playerFaction))
+                    {
+                        ClearSelection();
+                        selectedCastle = castle;
+                        SelectionChanged?.Invoke();
+                        return;
+                    }
+                }
+            }
             ApplyClickSelection(hit, additive);
         }
 
@@ -119,7 +214,7 @@ namespace TinyKingdom.Input
 
         public void ClearSelection()
         {
-            bool changed = selectedUnits.Count > 0;
+            bool changed = selectedUnits.Count > 0 || selectedBuilding != null || selectedCastle != null;
             foreach (UnitSelection unit in selectedUnits)
             {
                 if (unit == null) continue;
@@ -127,6 +222,8 @@ namespace TinyKingdom.Input
                 unit.SetSelected(false);
             }
             selectedUnits.Clear();
+            selectedBuilding = null;
+            selectedCastle = null;
             if (changed) SelectionChanged?.Invoke();
         }
 
@@ -137,7 +234,7 @@ namespace TinyKingdom.Input
             destination.AddRange(selectedUnits);
         }
 
-        private UnitSelection FindClosestFriendlyUnit(Vector2 screenPosition)
+        public UnitSelection FindFriendlyUnitAtScreenPosition(Vector2 screenPosition)
         {
             UnitSelection closest = null;
             float closestDistance = float.MaxValue;

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: RedLancer
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimationSet
   framesPerSecond: 10
+  attackFramesPerSecond: 10
   frameCellSize: 320
   visualAnchorPixels: {x: 149.5, y: 166.5}
   idle:

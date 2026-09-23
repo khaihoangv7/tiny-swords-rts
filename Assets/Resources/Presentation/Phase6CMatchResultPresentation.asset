@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69b1a37a5ed54e0a8e5bb93a1e826ff0, type: 3}
+  m_Name: Phase6CMatchResultPresentation
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Presentation.MatchResultAssetCatalog
+  victoryRibbon:
+  - {fileID: -4892212827595964496, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  - {fileID: 351974544103463365, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  - {fileID: -7536648891223242269, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  defeatRibbon:
+  - {fileID: 1064086505449676317, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  - {fileID: -5222043051815097015, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  - {fileID: 7388606491961418501, guid: 58fd6508e984f6b469df8187e510ceb7, type: 3}
+  resultPanel:
+  - {fileID: -3662080559894829788, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -3528550575293366639, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -559158166968446499, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -3425989083507711834, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -7541358502943136439, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -2500842349237177605, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: 4353327290290636131, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -7738430037826034828, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -4761550643975672150, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  victoryButtonRegular: {fileID: -2818588917556840465, guid: 7dc523c9c8e0cb64e81105ca74d84ec5, type: 3}
+  victoryButtonPressed: {fileID: -128128480842496838, guid: 0d6d9a6ae7d3eb94b817cbf2c318b2ae, type: 3}
+  defeatButtonRegular: {fileID: -2339831768886015402, guid: b7d244440313a724ca52438e3c166c36, type: 3}
+  defeatButtonPressed: {fileID: 6741408277770592616, guid: 016aafd9343d5c74390592cb87624e72, type: 3}

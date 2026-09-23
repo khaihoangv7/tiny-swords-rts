@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 852642b6f9284c3693ec31cca53fc26a, type: 3}
+  m_Name: Tower
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Buildings.BuildingData
+  buildingType: 3
+  maxHP: 300
+  foodCost: 0
+  woodCost: 75
+  goldCost: 50
+  footprint: {x: 2, y: 2}
+  constructionSeconds: 7
+  repairHPPerSecond: 20
+  populationBonus: 0
+  blueSprite: {fileID: 7316229441688303391, guid: aae96ef5d5710e6438d2864ada1ca57b, type: 3}
+  redSprite: {fileID: 7316229441688303391, guid: acf1af6ed95bc8c47be2b43156b0ffcd, type: 3}
+  visualOffset: {x: 0, y: 0}
+  blueHouseVariants: []
+  redHouseVariants: []
+  visionRadius: 7
+  internalGarrisonCapacity: 2
+  mountedArcherCapacity: 1
+  defensiveArrowDamage: 5
+  defensiveVolleyInterval: 1.5
+  defensiveAttackRange: 7
+  mountedDamageMultiplier: 1.2
+  mountedRangeMultiplier: 1.25
+  defensiveProjectileOrigin: {x: 0, y: 0.7}
+  blueRooftopAnchors:
+  - {x: 0, y: 0.83}
+  redRooftopAnchors:
+  - {x: 0, y: 0.83}

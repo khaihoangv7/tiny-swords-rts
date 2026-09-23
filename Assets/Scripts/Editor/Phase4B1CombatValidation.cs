@@ -68,6 +68,12 @@ namespace TinyKingdom.EditorTools
                 "Counter damage calculation failed.");
 
             Require(archerCombat.Attack(lancer), "Archer Attack order failed.");
+            Require(archerCombat.LastProjectile == null,
+                "Archer launched before the Shoot windup.");
+            archerCombat.TickCombat(0.69f);
+            Require(archerCombat.LastProjectile == null,
+                "Archer launched before the configured 0.7-second release.");
+            archerCombat.TickCombat(0.02f);
             CombatProjectile first = archerCombat.LastProjectile;
             Require(first != null && first.GetComponent<SpriteRenderer>().sprite != null,
                 "Archer did not launch a visible projectile.");
@@ -78,7 +84,10 @@ namespace TinyKingdom.EditorTools
             first.TickProjectile(1f);
             Require(lancerHP.CurrentHP == 112, "Projectile damaged target twice.");
 
-            archerCombat.TickCombat(1.2f);
+            archerCombat.TickCombat(0.50f);
+            Require(archerCombat.LastProjectile == first,
+                "The next attack cycle released an Arrow immediately.");
+            archerCombat.TickCombat(0.71f);
             CombatProjectile second = archerCombat.LastProjectile;
             Require(second != null && second != first, "Attack cooldown did not launch a new projectile.");
             lancerHP.TakeDamage(125);

@@ -1,0 +1,160 @@
+using System;
+using System.Collections.Generic;
+using TinyKingdom.Navigation;
+using TinyKingdom.Units;
+using TinyKingdom.Buildings;
+using TinyKingdom.Input;
+using UnityEngine;
+
+namespace TinyKingdom.Economy
+{
+    public sealed class CastleDropOff : MonoBehaviour, IProductionHost, IFriendlyCursorTarget,
+        IDefensiveBuildingHost
+    {
+        // Three positions just outside the visible front edge of the Blue Castle.
+        private static readonly Vector2[] FrontSlots =
+        {
+            new(-0.8f, -1.35f), new(0f, -1.35f), new(0.8f, -1.35f)
+        };
+
+        [SerializeField] private Faction faction = Faction.Blue;
+        [SerializeField] private ResourceStockpile stockpile;
+        [SerializeField, Range(0.05f, 0.3f)] private float arrivalTolerance = 0.15f;
+        [SerializeField] private BuildingData defenseData;
+
+        private readonly Dictionary<UnitController, int> reservations = new();
+        private GridManager grid;
+        private Vector2Int center;
+        private bool registered;
+        private float currentHP;
+
+        public Faction Faction => faction;
+        public BuildingType Type => BuildingType.Castle;
+        public Vector2Int FootprintOrigin => center + new Vector2Int(-1, 0);
+        public Vector2Int Footprint => new(3, 2);
+        public bool IsProductionReady => registered && IsAvailable && IsAlive;
+        public bool IsDefenseReady => IsProductionReady;
+        public BuildingData DefenseData => defenseData;
+        public Transform HostTransform => transform;
+        public Collider2D InteractionCollider => GetComponent<Collider2D>();
+        public float CurrentHP => currentHP;
+        public int MaxHP => defenseData != null ? defenseData.MaxHP : 0;
+        public bool IsAlive => defenseData != null && currentHP > 0f;
+        public SpriteRenderer PresentationRenderer => GetComponentInChildren<SpriteRenderer>();
+        public ResourceStockpile Stockpile => stockpile;
+        public float ArrivalTolerance => arrivalTolerance;
+        public int ReservationCount => reservations.Count;
+        public bool IsAvailable => isActiveAndEnabled && stockpile != null
+            && stockpile.Faction == faction && IsAlive;
+        public event Action<ResourceType, int> Deposited;
+        public event Action DefenseHostDestroyed;
+        public event Action DefenseHostHealthChanged;
+
+        private void Start()
+        {
+            grid = FindAnyObjectByType<GridManager>();
+            if (grid == null) return;
+            if (defenseData != null && currentHP <= 0f) currentHP = defenseData.MaxHP;
+            center = grid.WorldToGrid(transform.position);
+            // Leave the front row open for physical entry to the drop-off slots.
+            for (int y = 0; y <= 1; y++)
+            for (int x = -1; x <= 1; x++)
+                grid.SetOccupied(center.x + x, center.y + y, true);
+            registered = true;
+        }
+
+        private void OnDisable()
+        {
+            reservations.Clear();
+            ReleaseOccupancy();
+        }
+
+        public void Configure(Faction owner, ResourceStockpile resources,
+            BuildingData castleData = null)
+        {
+            faction = owner;
+            stockpile = resources;
+            defenseData = castleData;
+            currentHP = castleData != null ? castleData.MaxHP : 0f;
+            if (castleData != null)
+                (GetComponent<BuildingVisionSource>()
+                    ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
+        }
+
+        public bool IsFriendlyCursorTarget(Faction playerFaction)
+            => faction == playerFaction && IsAvailable && IsAlive;
+
+        public bool TryReserve(UnitController worker, GridManager navigation,
+            PathfindingSystem paths, out Vector3 position)
+        {
+            position = default;
+            if (worker == null || navigation == null || paths == null || !IsAvailable)
+                return false;
+            if (reservations.TryGetValue(worker, out int existing))
+            {
+                position = transform.position + (Vector3)FrontSlots[existing];
+                return true;
+            }
+
+            float best = float.PositiveInfinity;
+            int bestIndex = -1;
+            Vector2Int start = navigation.WorldToGrid(worker.transform.position);
+            for (int i = 0; i < FrontSlots.Length; i++)
+            {
+                if (reservations.ContainsValue(i)) continue;
+                Vector3 point = transform.position + (Vector3)FrontSlots[i];
+                Vector2Int cell = navigation.WorldToGrid(point);
+                GridCell destination = navigation.GetCell(cell.x, cell.y);
+                if (destination == null || !destination.Walkable || destination.Occupied
+                    || paths.FindPath(start, cell).Count == 0
+                    || !UnitSeparation.IsSafeSegment(navigation,
+                        navigation.GridToWorld(cell.x, cell.y), point)) continue;
+                float distance = ((Vector2)(point - worker.transform.position)).sqrMagnitude;
+                if (distance >= best) continue;
+                best = distance;
+                bestIndex = i;
+                position = point;
+            }
+            if (bestIndex < 0) return false;
+            reservations.Add(worker, bestIndex);
+            return true;
+        }
+
+        public void Release(UnitController worker)
+        {
+            if (!ReferenceEquals(worker, null)) reservations.Remove(worker);
+        }
+
+        public void Deposit(ResourceType type, int amount)
+        {
+            if (amount <= 0 || !IsAvailable) return;
+            stockpile.Add(type, amount);
+            Deposited?.Invoke(type, amount);
+        }
+
+        public bool ReceiveBuildingDamage(int damage)
+        {
+            if (!IsAlive || damage <= 0) return false;
+            currentHP = Mathf.Max(0f, currentHP - damage);
+            DefenseHostHealthChanged?.Invoke();
+            if (currentHP > 0f) return true;
+            ReleaseOccupancy();
+            DefenseHostDestroyed?.Invoke();
+            SpriteRenderer visual = GetComponentInChildren<SpriteRenderer>();
+            if (visual != null) visual.enabled = false;
+            Collider2D hit = GetComponent<Collider2D>();
+            if (hit != null) hit.enabled = false;
+            Destroy(gameObject);
+            return true;
+        }
+
+        public void ReleaseOccupancy()
+        {
+            if (!registered || grid == null) return;
+            for (int y = 0; y <= 1; y++)
+            for (int x = -1; x <= 1; x++)
+                grid.SetOccupied(center.x + x, center.y + y, false);
+            registered = false;
+        }
+    }
+}

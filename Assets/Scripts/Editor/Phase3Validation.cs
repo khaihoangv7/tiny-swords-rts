@@ -105,6 +105,11 @@ namespace TinyKingdom.EditorTools
         {
             selection.ApplyBoxSelection(units, false);
             Vector3 commandWorld = grid.GridToWorld(10, 8);
+            Require(commands.CanIssueMoveCommand(commandWorld),
+                "Move cursor query rejected a valid group destination.");
+            Require(units.All(unit => unit.Controller.CurrentState == UnitState.Idle
+                && unit.Movement.CurrentPath.Count == 0),
+                "Move cursor query issued a movement command.");
             int issued = commands.IssueMoveCommand(commandWorld);
             Require(issued == 3, "A valid group command was not issued to all three units.");
 
@@ -122,6 +127,10 @@ namespace TinyKingdom.EditorTools
             foreach (UnitSelection unit in units)
                 unit.Movement.Stop();
             Vector3[] positions = units.Select(unit => unit.transform.position).ToArray();
+            Require(!commands.CanIssueMoveCommand(grid.GridToWorld(0, 0))
+                && !commands.CanIssueMoveCommand(grid.GridToWorld(16, 12))
+                && !commands.CanIssueMoveCommand(grid.GridToWorld(18, 15)),
+                "Move cursor query disagreed with blocked terrain or unreachable height.");
             Require(commands.IssueMoveCommand(grid.GridToWorld(0, 0)) == 0,
                 "A Water command should fail safely.");
             Require(commands.IssueMoveCommand(grid.GridToWorld(16, 12)) == 0,

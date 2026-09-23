@@ -1,4 +1,5 @@
 using UnityEngine;
+using TinyKingdom.Match;
 
 namespace TinyKingdom.Units
 {
@@ -20,7 +21,11 @@ namespace TinyKingdom.Units
 
         public bool BeginGuard()
         {
+            if (!MatchManager.AllowsGameplay) return false;
             if (controller == null) Awake();
+            UnitStationing stationing = GetComponent<UnitStationing>();
+            if (stationing?.IsStationed == true) return false;
+            stationing?.CancelPending();
             if (!controller.IsAlive || GetComponent<HealthComponent>()?.CombatData?.UnitType != UnitType.Warrior)
                 return false;
             if (IsGuarding) return true;

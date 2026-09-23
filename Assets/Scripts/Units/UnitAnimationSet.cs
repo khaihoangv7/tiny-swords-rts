@@ -6,6 +6,7 @@ namespace TinyKingdom.Units
     public sealed class UnitAnimationSet : ScriptableObject
     {
         [SerializeField, Min(1f)] private float framesPerSecond = 10f;
+        [SerializeField, Min(1f)] private float attackFramesPerSecond = 10f;
         [SerializeField, Min(1)] private int frameCellSize = 192;
         [SerializeField] private Vector2 visualAnchorPixels = new(96f, 96f);
         [SerializeField] private Sprite[] idle = System.Array.Empty<Sprite>();
@@ -18,6 +19,7 @@ namespace TinyKingdom.Units
         [SerializeField] private Sprite[] attackUpRight = System.Array.Empty<Sprite>();
 
         public float FramesPerSecond => framesPerSecond;
+        public float AttackFramesPerSecond => attackFramesPerSecond;
         public int FrameCellSize => frameCellSize;
         public Vector2 VisualAnchorPixels => visualAnchorPixels;
         public Sprite[] Idle => idle;
