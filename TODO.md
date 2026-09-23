@@ -325,7 +325,7 @@ Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
 - [x] Deposit Pawn cargo through CastleDropOff only after successful main-Castle internal entry
 - [x] Add initial Rally Points for Barracks, Archery, Monastery and Tower; Phase 6C.1 later extends support to Castle/Home while House remains excluded
 - [x] Reject invalid, blocked, unreachable and Unexplored Rally destinations without replacing the stored point
-- [x] Add initial selection-only procedural Rally marker; Phase 6C.1 later replaces it with verified `Icon_07_0`
+- [x] Add initial selection-only procedural Rally marker; Phase 6C.1 later replaces it with `Icon_09_0` after targeted visual review
 - [x] Make produced units and manual ejects use distributed normal Move destinations; destruction eject ignores Rally
 - [x] Update GAME_SPEC, UI_SPEC, VISION_FOG_SPEC, ASSET_MANIFEST and Phase 6 validators
 - [x] Run `Tools > Tiny Kingdom > Validate Phase 6B.1 RTS QoL` in Unity Play Mode
@@ -423,7 +423,7 @@ required. Phase 7, Rule-Based AI and Reinforcement Learning have not started.
 - [x] Route Warrior/Lancer unit and building melee attacks through the same target-agnostic `AttackPerformed` presentation event
 - [x] Use the closest building combat collider point for facing while preserving Lancer directional attacks and horizontal flip
 - [x] Extend Rally support to Castle/Home production and voluntary ejection; keep emergency destruction ejection independent
-- [x] Replace the procedural Rally marker with verified neutral Tiny Swords `Icon_07_0`, one presentation-only marker per host
+- [x] Replace the procedural Rally marker with inspected Tiny Swords `Icon_09_0`, one presentation-only marker per host
 - [x] Separate player-facing destination knowledge from physical A* occupancy so hidden buildings do not leak through cursor/Move validation
 - [x] Add separate Blue/Red last-seen building and resource snapshot dictionaries with no hidden live-reference presentation
 - [x] Show static noninteractive ghosts only in Explored cells; remove/update them only after the location is Visible again
@@ -443,3 +443,11 @@ required. Phase 7, Rule-Based AI and Reinforcement Learning have not started.
 - [ ] Play Mode: verify enemy units disappear without ghosts and Blue/Red memory remains isolated
 - [ ] Play Mode: visually verify dedicated terrain shadow darkness/alignment and confirm baked unit/building/resource sprites were not darkened
 - [ ] Play Mode: run Fog, combat, Match Result, Restart and clean-Console regression tests
+
+### Phase 6C.1 targeted presentation corrections
+
+- [x] Prevent repeated building-range `movement.Stop()` calls from resetting Warrior/Lancer attack presentation every frame
+- [x] Change Rally marker from the incorrectly identified `Icon_07_0` to requested crossed-weapons `Icon_09_0`
+- [x] Increase dedicated terrain Shadow alpha from 128/255 to 153/255 while preserving baked gameplay sprites
+- [ ] Play Mode: verify Warrior and Lancer visibly complete attack clips against buildings
+- [ ] Play Mode: verify `Icon_09_0` Rally marker lifecycle and final Shadow_L1 readability

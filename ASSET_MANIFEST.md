@@ -807,15 +807,16 @@ wrapping and a Max Size large enough for the source dimensions.
 
 ## Phase 6B.1 Rally marker
 
-Phase 6C.1 replaces the earlier procedural marker with the inspected neutral
-green flag at `Assets/UI Elements/UI Elements/Icons/Icon_07.png`, imported as
-`Icon_07_0`. The PNG source is 64x64. Its single tight sprite rectangle is
-45x53 pixels at `(10,4)`, centered alignment, 100 PPU, Point filtering, no
-mipmaps, no compression and Clamp wrapping. It is a static one-frame icon; no
-verified faction variants or world-space flag animation were found. `Icon_08`
-and the Banner/Ribbon sheets were inspected but not selected because their
-faction or menu semantics do not provide a verified replacement. The neutral
-flag is presentation only and has no collider, raycast, navigation or Fog role.
+Phase 6C.1 initially used `Icon_07_0`. Targeted visual review showed that
+`Icon_07` is a green resource/food-shaped icon rather than a battlefield flag.
+The requested correction uses `Assets/UI Elements/UI Elements/Icons/Icon_09.png`,
+imported as `Icon_09_0`. It visibly contains two crossed red weapons. The PNG
+source is 64x64; its single tight sprite rectangle is 53x57 pixels at `(5,3)`,
+centered alignment and 100 PPU. Import is Point filtered, mipmaps off,
+uncompressed and Clamp wrapped. This is a deliberate Rally marker choice, not
+a claim that the source artwork is a literal flag. `Icon_08` was also inspected
+and resembles an orange banner/flag, but remains unused. The marker is
+presentation only and has no collider, raycast, navigation or Fog role.
 
 ## Phase 6C.1 shadow audit
 
@@ -825,7 +826,8 @@ Shadow SpriteRenderer that can be darkened independently, so Phase 6C.1 does
 not tint or rewrite those main sprites. The only separate gameplay shadow asset
 is `Assets/Terrain/Tileset/Shadow.png`, a 192x192 terrain/elevation shadow used
 by `Shadow_L1`. Its one nontransparent source color remains dark navy RGB
-`(22,28,46)`; alpha changes from `80/255` to `128/255`. `Shadow_L1` tint changes
+`(22,28,46)`; alpha first changed from `80/255` to `128/255`, then the targeted
+readability correction raises it to `153/255` (60%). `Shadow_L1` tint changes
 from white `(1,1,1,1)` to dark neutral `(0.28,0.32,0.42,1)`. Its existing
 Tilemap offset, cells and sorting are unchanged.
 

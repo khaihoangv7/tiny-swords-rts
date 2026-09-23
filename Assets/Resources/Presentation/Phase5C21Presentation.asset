@@ -144,4 +144,4 @@ MonoBehaviour:
   - {fileID: 510210000000000012, guid: deada551c5214f1e9c2a000000000001, type: 3}
   - {fileID: 510210000000000013, guid: deada551c5214f1e9c2a000000000001, type: 3}
   - {fileID: 510210000000000014, guid: deada551c5214f1e9c2a000000000001, type: 3}
-  rallyFlag: {fileID: 1828843058721014722, guid: 88d1469c6b9f8e34fb3a6ee03a73bb7b, type: 3}
+  rallyFlag: {fileID: -1545379965880211911, guid: e0a44b2ca21aa4246ae97eef49f20e59, type: 3}

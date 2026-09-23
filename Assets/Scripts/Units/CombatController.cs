@@ -539,7 +539,9 @@ namespace TinyKingdom.Units
                 }
                 if (inRange)
                 {
-                    movement.Stop();
+                    // Repeated Stop calls force Attacking -> Idle -> Attacking every
+                    // frame and cancel the presentation clip that just started.
+                    if (movement.IsMoving) movement.Stop();
                     controller.SetState(UnitState.Attacking);
                     if (attackCooldown <= 0f)
                     {
@@ -554,7 +556,7 @@ namespace TinyKingdom.Units
             }
             else if (inRange)
             {
-                movement.Stop();
+                if (movement.IsMoving) movement.Stop();
                 controller.SetState(UnitState.Attacking);
                 if (attackCooldown <= 0f)
                 {

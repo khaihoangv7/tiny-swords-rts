@@ -43,7 +43,7 @@ namespace TinyKingdom.EditorTools
 
             foreach (BuildingRallyPoint rally in
                 UnityEngine.Object.FindObjectsByType<BuildingRallyPoint>())
-                Require(rally.FlagSprite != null && rally.FlagSprite.name == "Icon_07_0"
+                Require(rally.FlagSprite != null && rally.FlagSprite.name == "Icon_09_0"
                     && rally.MarkerCount == 1,
                     $"{rally.name} Rally marker is missing, duplicated or incorrectly mapped.");
 
@@ -109,7 +109,7 @@ namespace TinyKingdom.EditorTools
 
             Debug.Log("Phase 6C.1 automated validation passed: 14-frame Dead/Buried VFX, "
                 + "Warrior/Lancer attack presentation connection, Castle Rally, one verified "
-                + "Icon_07 Rally marker per host, two-faction Fog memory, non-interactive "
+                + "Icon_09 Rally marker per host, two-faction Fog memory, non-interactive "
                 + "building/resource ghosts and darker Shadow_L1. Manual visual and hidden-state "
                 + "tests remain required.");
         }
@@ -127,8 +127,8 @@ namespace TinyKingdom.EditorTools
                     $"Dead/Buried frame {i} duration is incorrect.");
             Require(Mathf.Approximately(UnitDeathVfx.RuntimeTotalDuration, 1.8f),
                 "Dead/Buried total duration must be 1.8 seconds.");
-            Require(catalog.RallyFlag != null && catalog.RallyFlag.name == "Icon_07_0",
-                "Verified Icon_07_0 Rally flag is missing from the presentation catalog.");
+            Require(catalog.RallyFlag != null && catalog.RallyFlag.name == "Icon_09_0",
+                "Icon_09_0 Rally marker is missing from the presentation catalog.");
 
             const string shadowPath = "Assets/Terrain/Tileset/Shadow.png";
             Require(File.Exists(shadowPath), "Dedicated terrain Shadow texture is missing.");
@@ -138,9 +138,9 @@ namespace TinyKingdom.EditorTools
                 Require(ImageConversion.LoadImage(shadowTexture, File.ReadAllBytes(shadowPath)),
                     "Dedicated terrain Shadow texture could not be decoded.");
                 Color32[] pixels = shadowTexture.GetPixels32();
-                Require(pixels.Any(pixel => pixel.a == 128)
-                    && pixels.All(pixel => pixel.a == 0 || pixel.a == 128),
-                    "Dedicated terrain Shadow alpha must be the Phase 6C.1 value 128/255.");
+                Require(pixels.Any(pixel => pixel.a == 153)
+                    && pixels.All(pixel => pixel.a == 0 || pixel.a == 153),
+                    "Dedicated terrain Shadow alpha must be the corrected value 153/255.");
             }
             finally
             {
@@ -157,7 +157,7 @@ namespace TinyKingdom.EditorTools
 
             RequireDocumentation("VISION_FOG_SPEC.md", "last-seen");
             RequireDocumentation("GAME_SPEC.md", "Phase 6C.1");
-            RequireDocumentation("ASSET_MANIFEST.md", "Icon_07_0");
+            RequireDocumentation("ASSET_MANIFEST.md", "Icon_09_0");
         }
 
         private static void RequireDocumentation(string path, string value)

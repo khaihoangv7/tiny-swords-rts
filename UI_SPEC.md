@@ -156,8 +156,9 @@ presentation only and are never a gameplay or RL authority.
 
 ## Phase 6C.1 Fog memory and Rally presentation
 
-The Rally marker uses the verified neutral Tiny Swords `Icon_07_0` green flag
-as a world-space sprite. One marker is owned by each Rally-enabled building. It
+The Rally marker uses the inspected Tiny Swords `Icon_09_0` crossed-weapons
+icon as a world-space sprite, following the targeted presentation correction.
+One marker is owned by each Rally-enabled building. It
 is shown only when that friendly owner is selected, hides on deselection,
 moves instead of duplicating when the point changes, and is destroyed with the
 owner. It has no collider, raycast, navigation or vision role.
