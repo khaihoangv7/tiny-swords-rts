@@ -1,3 +1,4 @@
+using TinyKingdom.Vision;
 using UnityEngine;
 
 namespace TinyKingdom.Units
@@ -5,6 +6,9 @@ namespace TinyKingdom.Units
     [RequireComponent(typeof(HealthComponent))]
     public sealed class UnitHealthBar : MonoBehaviour
     {
+        public static readonly Color32 DefaultFriendlyFillColor = new(74, 201, 86, 255);
+        public static readonly Color32 DefaultEnemyFillColor = new(255, 62, 62, 255);
+
         // The source sheet has three separated frame pieces with transparent
         // padding. These are the opaque 16 + 64 + 16 pixel regions.
         private const int FrameWidth = 96;
@@ -23,19 +27,27 @@ namespace TinyKingdom.Units
         private Sprite croppedFill;
         private int visibleFillPixels = -1;
         private bool suppressed;
+        [SerializeField] private Color32 friendlyFillColor = new(74, 201, 86, 255);
+        [SerializeField] private Color32 enemyFillColor = new(255, 62, 62, 255);
+
+        public Color32 AppliedFillColor => fill != null ? (Color32)fill.color : default;
 
         private void OnEnable()
         {
             health = GetComponent<HealthComponent>();
             health.HealthChanged += Refresh;
             health.Died += OnDeath;
+            PlayerViewRelation.Changed += OnPlayerViewFactionChanged;
         }
 
         private void OnDisable()
         {
-            if (health == null) return;
-            health.HealthChanged -= Refresh;
-            health.Died -= OnDeath;
+            if (health != null)
+            {
+                health.HealthChanged -= Refresh;
+                health.Died -= OnDeath;
+            }
+            PlayerViewRelation.Changed -= OnPlayerViewFactionChanged;
         }
 
         private void OnDestroy()
@@ -78,6 +90,7 @@ namespace TinyKingdom.Units
                 (InnerX - FrameWidth * 0.5f) / left.pixelsPerUnit,
                 (InnerY + InnerHeight * 0.5f - FrameHeight * 0.5f)
                     / left.pixelsPerUnit, 33);
+            ApplyFactionColor();
             Refresh(health);
         }
 
@@ -134,7 +147,8 @@ namespace TinyKingdom.Units
                 wrapMode = TextureWrapMode.Clamp
             };
             var solid = new Color32[InnerWidth * InnerHeight];
-            for (int i = 0; i < solid.Length; i++) solid[i] = color;
+            for (int i = 0; i < solid.Length; i++)
+                solid[i] = new Color32(255, 255, 255, color.a);
             texture.SetPixels32(solid);
             texture.Apply(false);
             return texture;
@@ -172,6 +186,16 @@ namespace TinyKingdom.Units
         }
 
         private void OnDeath(HealthComponent _) { if (bar != null) bar.gameObject.SetActive(false); }
+
+        private void OnPlayerViewFactionChanged(Faction _) => ApplyFactionColor();
+
+        private void ApplyFactionColor()
+        {
+            if (fill == null) return;
+            UnitController owner = GetComponent<UnitController>();
+            fill.color = owner != null && PlayerViewRelation.IsFriendlyToView(owner.Faction)
+                ? friendlyFillColor : enemyFillColor;
+        }
 
         public void SetSuppressed(bool value)
         {

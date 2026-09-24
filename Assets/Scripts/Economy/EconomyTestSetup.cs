@@ -209,6 +209,12 @@ namespace TinyKingdom.Economy
             if (text != null) text.enabled = false;
             if (health.GetComponent<UnitHitFlash>() == null)
                 health.gameObject.AddComponent<UnitHitFlash>().Configure(hitFlashMaterial);
+            SpriteRenderer body = health.GetComponent<UnitAnimator>()?.VisualRenderer
+                ?? health.GetComponent<PawnVisual>()?.VisualRenderer;
+            HitSquashStretchPresentation reaction =
+                health.GetComponent<HitSquashStretchPresentation>()
+                ?? health.gameObject.AddComponent<HitSquashStretchPresentation>();
+            reaction.Configure(body, health);
             if (health.GetComponent<UnitHealthBar>() == null)
                 health.gameObject.AddComponent<UnitHealthBar>().Configure(
                     healthBarLeft, healthBarMiddle, healthBarRight, healthBarFill);
@@ -370,9 +376,14 @@ namespace TinyKingdom.Economy
                 obj.AddComponent<ResourceHarvestFlash>().Configure(renderer);
             ResourceNode node = obj.AddComponent<ResourceNode>();
             node.Configure(type, capacity, renderer, depletedSprite);
-            if (type == ResourceType.Food && presentation != null)
-                obj.AddComponent<SheepPresentation>().Configure(node, renderer,
-                    presentation.SheepIdle, presentation.SheepGrass, presentation.SheepMove);
+            if (type == ResourceType.Food)
+            {
+                if (presentation != null)
+                    obj.AddComponent<SheepPresentation>().Configure(node, renderer,
+                        presentation.SheepIdle, presentation.SheepGrass,
+                        presentation.SheepMove);
+                obj.AddComponent<HitSquashStretchPresentation>().Configure(renderer);
+            }
             if (type == ResourceType.Gold && highlightFrames != null
                 && highlightFrames.Length > 0)
                 obj.AddComponent<GoldHarvestHighlight>().Configure(node, sprite, highlightFrames);

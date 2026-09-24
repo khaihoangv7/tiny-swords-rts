@@ -451,3 +451,21 @@ required. Phase 7, Rule-Based AI and Reinforcement Learning have not started.
 - [x] Increase dedicated terrain Shadow alpha from 128/255 to 153/255 while preserving baked gameplay sprites
 - [ ] Play Mode: verify Warrior and Lancer visibly complete attack clips against buildings
 - [ ] Play Mode: verify `Icon_09_0` Rally marker lifecycle and final Shadow_L1 readability
+
+### Phase 6C.1 health relation and impact presentation additions
+
+- [x] Resolve SmallBar and Big/Large Life Bar fill color from owner faction relative to the shared `PlayerViewFaction`
+- [x] Use green `Color32(74, 201, 86, 255)` for friendly fills and red `Color32(255, 62, 62, 255)` for enemy fills without changing frame or fill geometry
+- [x] Keep live enemy bars Fog-gated and keep all health/status UI out of last-seen building ghosts
+- [x] Add one reusable ground-anchored squash/stretch controller for Pawn, Warrior, Archer, Lancer and Sheep visuals
+- [x] Trigger unit deformation only from positive actual HP loss and Sheep deformation only from successful Food transfer
+- [x] Preserve gameplay roots, colliders, shadows, selection rings, health bars, facing and active animation states
+- [x] Runtime and Editor compile: 0 errors, 0 warnings after the health/reaction additions
+- [ ] Run the extended Phase 6C.1 automated validator in Unity Play Mode
+- [ ] Play Mode: verify friendly unit/building bars are green and visible enemy unit/building bars are red, including both Castles
+- [ ] Play Mode: verify no health/status bar remains on an Explored enemy building ghost
+- [ ] Play Mode: verify unit hit flash plus squash/stretch/recovery while Idle, moving, attacking, Guarding and gathering
+- [ ] Play Mode: verify Lancer directions/facing, rapid-hit restart, feet anchoring and no transform drift
+- [ ] Play Mode: verify one Sheep flash and squash/stretch per successful Food gather impact with no position drift
+- [ ] Play Mode: verify lethal damage remains immediate and Dead/Buried VFX retains priority
+- [ ] Full Fog, combat, gathering, construction, production, garrison, Rally, Match Result and clean-Console regression

@@ -1,4 +1,6 @@
 using TinyKingdom.Presentation;
+using TinyKingdom.Units;
+using TinyKingdom.Vision;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -24,8 +26,11 @@ namespace TinyKingdom.Buildings
         private Sprite frameSprite;
         private Sprite croppedFill;
         private int visibleFillPixels = -1;
+        [SerializeField] private Color32 friendlyFillColor = new(74, 201, 86, 255);
+        [SerializeField] private Color32 enemyFillColor = new(255, 62, 62, 255);
 
         public bool IsConfigured => host != null && bar != null;
+        public Color32 AppliedFillColor => fill != null ? (Color32)fill.color : default;
 
         public static int CalculateFillPixelWidth(float normalizedHP)
             => Mathf.Clamp(Mathf.CeilToInt(InnerPixelWidth
@@ -59,6 +64,7 @@ namespace TinyKingdom.Buildings
                 new Vector2((InnerPixelX - FramePixelWidth * 0.5f) / 100f,
                     (InnerPixelY + InnerPixelHeight * 0.5f
                         - FramePixelHeight * 0.5f) / 100f), 33);
+            ApplyFactionColor();
             host.DefenseHostHealthChanged += Refresh;
             host.DefenseHostDestroyed += Hide;
             Refresh();
@@ -76,6 +82,10 @@ namespace TinyKingdom.Buildings
             if (fillTexture != null) Destroy(fillTexture);
             if (frameTexture != null) Destroy(frameTexture);
         }
+
+        private void OnEnable() => PlayerViewRelation.Changed += OnPlayerViewFactionChanged;
+
+        private void OnDisable() => PlayerViewRelation.Changed -= OnPlayerViewFactionChanged;
 
         private bool CreateAssets(Sprite left, Sprite middle, Sprite right, Sprite fillSource)
         {
@@ -108,11 +118,27 @@ namespace TinyKingdom.Buildings
             Color32[] fillAtlas = fillSource.texture.GetPixels32();
             int sourceX = Mathf.RoundToInt(fillSource.rect.x);
             int sourceY = Mathf.RoundToInt(fillSource.rect.y);
+            byte maximumValue = 1;
+            for (int y = 0; y < InnerPixelHeight; y++)
+            for (int x = 0; x < SourceFillPixelWidth; x++)
+            {
+                Color32 source = fillAtlas[(sourceY + y) * fillSource.texture.width
+                    + sourceX + x];
+                maximumValue = System.Math.Max(maximumValue,
+                    System.Math.Max(source.r, System.Math.Max(source.g, source.b)));
+            }
             for (int y = 0; y < InnerPixelHeight; y++)
             for (int x = 0; x < InnerPixelWidth; x++)
-                fillPixels[y * InnerPixelWidth + x] = fillAtlas[
+            {
+                Color32 source = fillAtlas[
                     (sourceY + y) * fillSource.texture.width
                     + sourceX + x % SourceFillPixelWidth];
+                byte value = (byte)Mathf.RoundToInt(255f
+                    * System.Math.Max(source.r, System.Math.Max(source.g, source.b))
+                    / maximumValue);
+                fillPixels[y * InnerPixelWidth + x] =
+                    new Color32(value, value, value, source.a);
+            }
             fillTexture = NewTexture(InnerPixelWidth, InnerPixelHeight, fillPixels);
             return true;
         }
@@ -172,6 +198,15 @@ namespace TinyKingdom.Buildings
         private void Hide()
         {
             if (bar != null) bar.gameObject.SetActive(false);
+        }
+
+        private void OnPlayerViewFactionChanged(Faction _) => ApplyFactionColor();
+
+        private void ApplyFactionColor()
+        {
+            if (fill == null || host == null) return;
+            fill.color = PlayerViewRelation.IsFriendlyToView(host.Faction)
+                ? friendlyFillColor : enemyFillColor;
         }
     }
 }

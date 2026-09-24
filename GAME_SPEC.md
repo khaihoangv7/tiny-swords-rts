@@ -1516,6 +1516,22 @@ targets. Hidden physical occupancy stays authoritative for A*, but cannot alter
 player cursor or command acceptance before the obstacle is currently observed
 or remembered by that faction. Enemy units receive no last-seen ghost.
 
+Health presentation is relative to `PlayerViewFaction`. Friendly unit SmallBar
+and building Life Bar fills are green (`Color32(74, 201, 86, 255)`); enemy fills
+are red (`Color32(255, 62, 62, 255)`). Frames and backgrounds retain their
+original art. Hidden live enemies expose no bar, and an Explored last-seen
+building ghost never contains health, Fire, repair, garrison or production UI.
+
+Every positive unit HP loss overlays a presentation-only, ground-anchored
+squash, stretch and recovery on the dedicated visual body. It does not change
+the gameplay root, collider, movement, facing, animation state or combat timing.
+The Phase 6C.1 MVP values are `SquashScaleY = 0.84`, `StretchScaleY = 1.12`,
+`SquashDuration = 0.055` seconds, `StretchDuration = 0.065` seconds and
+`RecoverDuration = 0.08` seconds. A new hit restarts from the stored baseline;
+lethal gameplay death remains immediate. Each successful Sheep Food transfer
+triggers the same deformation alongside the existing harvest flash without
+turning gathering into combat damage.
+
 # 52. Source of Truth
 
 This file defines gameplay rules.

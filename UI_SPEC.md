@@ -27,9 +27,9 @@ Normal combat damage numbers are disabled. A unit with actual HP loss briefly
 flashes red, then white, then returns to its normal sprite. The flash overlays
 the current animation frame and never affects gameplay damage or timing.
 
-The verified Tiny Swords `SmallBar_Base` three-piece border and
-`SmallBar_Fill` red stripe form a small health bar above each combat-capable
-unit, including Pawn. It is hidden at full HP and on death, and follows
+The verified Tiny Swords `SmallBar_Base` three-piece border and the runtime-tinted
+`SmallBar_Fill` stripe form a small health bar above each combat-capable unit,
+including Pawn. It is hidden at full HP and on death, and follows
 `HealthComponent.CurrentHP / MaxHP` immediately after HP changes. It has no
 collider or UI raycast target.
 
@@ -169,3 +169,17 @@ no health bar, construction bar, Fire, garrison count, Rally marker, tooltip,
 selection or combat interaction. Enemy units have no remembered presentation.
 Hover/cursor logic ignores hidden live objects and never treats a memory ghost
 as a live target.
+
+Friendly health fill color is resolved from `ownerFaction == PlayerViewFaction`,
+not from a fixed Blue mapping. Friendly SmallBar and Big/Large Life Bar fills use
+`Color32(74, 201, 86, 255)` green. Enemy fills use
+`Color32(255, 62, 62, 255)` red. Only fill pixels are recolored; frame,
+background, left anchoring, width calculation and visibility behavior remain
+unchanged. Fog hides the complete live enemy bar, and memory ghosts have no bar.
+
+Positive unit damage and successful Sheep Food harvest impacts use a shared
+presentation-only `Squash -> Stretch -> Normal` reaction. The animated body is
+wrapped by a dedicated ground-anchored presentation transform; gameplay root,
+Shadow, SelectionRing, health bar and labels are not scaled or moved. Hit flash
+and the currently playing Idle, Run, Attack, Guard, work or Sheep animation keep
+running. Rapid hits restart one reaction from the exact stored baseline.

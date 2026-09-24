@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
@@ -6,10 +7,30 @@ using UnityEngine;
 
 namespace TinyKingdom.Vision
 {
+    // One shared player-view relationship for presentation code. Gameplay ownership
+    // remains on UnitController/building hosts and is never inferred from colors.
+    public static class PlayerViewRelation
+    {
+        private static Faction playerViewFaction = Faction.Blue;
+
+        public static Faction PlayerViewFaction => playerViewFaction;
+        public static event Action<Faction> Changed;
+
+        public static bool IsFriendlyToView(Faction ownerFaction)
+            => ownerFaction == playerViewFaction;
+
+        internal static void SetPlayerViewFaction(Faction faction)
+        {
+            if (playerViewFaction == faction) return;
+            playerViewFaction = faction;
+            Changed?.Invoke(faction);
+        }
+    }
+
     // Presentation and human observability adapter. TeamVisionSystem remains authoritative.
     public sealed class FogWorldVisibility : MonoBehaviour
     {
-        private readonly Dictionary<Object, FogPresentationGate> gates = new();
+        private readonly Dictionary<UnityEngine.Object, FogPresentationGate> gates = new();
         private TeamVisionSystem vision;
         private Faction playerViewFaction = Faction.Blue;
         private float nextRefresh;
@@ -30,6 +51,7 @@ namespace TinyKingdom.Vision
             if (vision != null) vision.VisionChanged -= RefreshAll;
             vision = source;
             playerViewFaction = playerFaction;
+            PlayerViewRelation.SetPlayerViewFaction(playerFaction);
             vision.VisionChanged += RefreshAll;
             RefreshAll();
         }

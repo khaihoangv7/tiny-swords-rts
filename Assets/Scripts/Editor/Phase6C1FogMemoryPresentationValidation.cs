@@ -34,6 +34,8 @@ namespace TinyKingdom.EditorTools
             Require(memories.Length == 1 && memories[0].IsInitialized
                 && memories[0].InitializedFactionCount == 2,
                 "Exactly one initialized two-faction FogMemorySystem is required.");
+            Require(PlayerViewRelation.PlayerViewFaction == memories[0].PlayerViewFaction,
+                "Shared health-bar faction relation does not match Fog player view.");
 
             CastleDropOff[] castles = UnityEngine.Object.FindObjectsByType<CastleDropOff>();
             Require(castles.Length == 2, "Blue and Red Main Castles are required.");
@@ -49,6 +51,21 @@ namespace TinyKingdom.EditorTools
 
             foreach (HealthComponent health in UnityEngine.Object.FindObjectsByType<HealthComponent>())
             {
+                UnitHealthBar healthBar = health.GetComponent<UnitHealthBar>();
+                Require(healthBar != null,
+                    $"{health.name} is missing its SmallBar health presentation.");
+                Color32 expectedColor = PlayerViewRelation.IsFriendlyToView(
+                    health.GetComponent<UnitController>().Faction)
+                    ? UnitHealthBar.DefaultFriendlyFillColor
+                    : UnitHealthBar.DefaultEnemyFillColor;
+                Require(healthBar.AppliedFillColor.Equals(expectedColor),
+                    $"{health.name} SmallBar fill does not match its view relationship.");
+                HitSquashStretchPresentation reaction =
+                    health.GetComponent<HitSquashStretchPresentation>();
+                Require(reaction != null && reaction.IsConfigured
+                    && reaction.ReactionRoot != health.transform
+                    && reaction.VisualTransform.IsChildOf(reaction.ReactionRoot),
+                    $"{health.name} is missing an isolated squash/stretch visual root.");
                 if (health.CombatData == null || health.CombatData.UnitType
                     is not (UnitType.Warrior or UnitType.Lancer)) continue;
                 CombatController combat = health.GetComponent<CombatController>();
@@ -70,6 +87,14 @@ namespace TinyKingdom.EditorTools
                         building.VisionPosition))
                     Require(!gate.IsPresented,
                         $"{building.name} leaks live presentation outside current vision.");
+                BuildingHealthBar healthBar = building.GetComponent<BuildingHealthBar>();
+                Require(healthBar != null && healthBar.IsConfigured,
+                    $"{building.name} is missing its large Life Bar.");
+                Color32 expectedColor = PlayerViewRelation.IsFriendlyToView(building.Faction)
+                    ? UnitHealthBar.DefaultFriendlyFillColor
+                    : UnitHealthBar.DefaultEnemyFillColor;
+                Require(healthBar.AppliedFillColor.Equals(expectedColor),
+                    $"{building.name} Life Bar fill does not match its view relationship.");
             }
             foreach (ResourceNode resource in ResourceNode.ActiveNodes)
             {
@@ -81,6 +106,9 @@ namespace TinyKingdom.EditorTools
                     resource.transform.position))
                     Require(!gate.IsPresented,
                         $"{resource.name} leaks live presentation outside current vision.");
+                if (resource.ResourceType == ResourceType.Food)
+                    Require(resource.GetComponent<HitSquashStretchPresentation>()?.IsConfigured
+                        == true, $"{resource.name} is missing Sheep squash/stretch presentation.");
             }
 
             foreach (Faction faction in new[] { Faction.Blue, Faction.Red })
@@ -100,6 +128,9 @@ namespace TinyKingdom.EditorTools
                 "Last-seen ghosts must exist under FogMemoryGhosts without colliders.");
             Require(ghosts.GetComponentsInChildren<UnitController>(true).Length == 0,
                 "Enemy units must never receive last-seen ghost presentation.");
+            Require(ghosts.GetComponentsInChildren<UnitHealthBar>(true).Length == 0
+                && ghosts.GetComponentsInChildren<BuildingHealthBar>(true).Length == 0,
+                "Last-seen ghosts must never expose live health bars.");
 
             Tilemap shadow = UnityEngine.Object.FindObjectsByType<Tilemap>()
                 .FirstOrDefault(item => item.name == "Shadow_L1");
@@ -110,7 +141,8 @@ namespace TinyKingdom.EditorTools
             Debug.Log("Phase 6C.1 automated validation passed: 14-frame Dead/Buried VFX, "
                 + "Warrior/Lancer attack presentation connection, Castle Rally, one verified "
                 + "Icon_09 Rally marker per host, two-faction Fog memory, non-interactive "
-                + "building/resource ghosts and darker Shadow_L1. Manual visual and hidden-state "
+                + "building/resource ghosts, relation-colored health fills, unit/Sheep "
+                + "squash-stretch wiring and darker Shadow_L1. Manual visual and hidden-state "
                 + "tests remain required.");
         }
 
@@ -129,6 +161,17 @@ namespace TinyKingdom.EditorTools
                 "Dead/Buried total duration must be 1.8 seconds.");
             Require(catalog.RallyFlag != null && catalog.RallyFlag.name == "Icon_09_0",
                 "Icon_09_0 Rally marker is missing from the presentation catalog.");
+            Require(UnitHealthBar.DefaultFriendlyFillColor.Equals(
+                    new Color32(74, 201, 86, 255))
+                && UnitHealthBar.DefaultEnemyFillColor.Equals(
+                    new Color32(255, 62, 62, 255)),
+                "Health-bar relationship palette changed unexpectedly.");
+            Require(Mathf.Approximately(HitSquashStretchPresentation.DefaultSquashScaleY, 0.84f)
+                && Mathf.Approximately(HitSquashStretchPresentation.DefaultStretchScaleY, 1.12f)
+                && Mathf.Approximately(HitSquashStretchPresentation.DefaultSquashDuration, 0.055f)
+                && Mathf.Approximately(HitSquashStretchPresentation.DefaultStretchDuration, 0.065f)
+                && Mathf.Approximately(HitSquashStretchPresentation.DefaultRecoverDuration, 0.08f),
+                "Squash/stretch MVP values changed unexpectedly.");
 
             const string shadowPath = "Assets/Terrain/Tileset/Shadow.png";
             Require(File.Exists(shadowPath), "Dedicated terrain Shadow texture is missing.");
@@ -157,6 +200,8 @@ namespace TinyKingdom.EditorTools
 
             RequireDocumentation("VISION_FOG_SPEC.md", "last-seen");
             RequireDocumentation("GAME_SPEC.md", "Phase 6C.1");
+            RequireDocumentation("GAME_SPEC.md", "SquashScaleY = 0.84");
+            RequireDocumentation("UI_SPEC.md", "Friendly health fill");
             RequireDocumentation("ASSET_MANIFEST.md", "Icon_09_0");
         }
 

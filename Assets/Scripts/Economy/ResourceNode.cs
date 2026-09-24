@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
+using TinyKingdom.Presentation;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -83,6 +84,8 @@ namespace TinyKingdom.Economy
             ResourceHarvestFlash flash = resourceType == ResourceType.Food
                 ? GetComponent<ResourceHarvestFlash>() : null;
             if (taken > 0) flash?.Play(IsDepleted);
+            if (taken > 0 && resourceType == ResourceType.Food)
+                GetComponent<HitSquashStretchPresentation>()?.Trigger();
             if (taken > 0 && resourceType == ResourceType.Gold)
                 GetComponent<GoldHarvestHighlight>()?.Play();
             if (IsDepleted)
