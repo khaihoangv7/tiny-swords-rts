@@ -693,6 +693,13 @@ These PNGs were inspected directly in the project. The Map test setup uses the
 listed imported sprites; the Idle/Run and resource slicing listed here is unchanged.
 Gameplay gathering uses `PawnGatherer` timers, independent of these visuals.
 
+Phase 7A adds `Assets/UnitAnimations/RedPawn.asset` using the matching verified
+Red Pawn sheets for Idle, Run, Axe, Pickaxe, Knife, carried Wood/Gold/Meat and
+Hammer states. Slice names/order and 100 PPU imports are preserved. As with Blue,
+the unrelated `Pawn_Run Hammer_5` fragment is excluded from the six-frame logical
+Run Hammer sequence. Animation remains presentation-only; Red AI gathering uses
+the same gameplay timers as Blue.
+
 | Purpose | Tiny Swords source | Imported sprites used |
 | --- | --- | --- |
 | Blue Pawn Idle | `Assets/Units/Blue Units/Pawn/Pawn_Idle.png` | `Pawn_Idle_0` through `_7`, eight 192x192 cells |

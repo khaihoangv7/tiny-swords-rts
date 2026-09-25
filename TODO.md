@@ -570,3 +570,41 @@ Mode inspection remain required. No later gameplay, AI or RL phase has started.
 - [ ] Verify unit/build/production/Eject All command availability, disabled states, hotkeys and costs
 - [ ] Verify hold-to-Guard remains active for the complete mouse hold and AttackMove retains existing behavior
 - [ ] Verify building placement, production, economy, combat, Fog, cursor, camera, Match Result and clean Console regressions
+
+## Phase 7A - Rule-Based Commander Foundation
+
+Status: **PASS** - manual Play Mode validation, Phase 7A validation, Profiler
+inspection and a clean Unity Console have been confirmed.
+
+- [x] Add `ICommander`, `CommanderDecisionContext` and one Red `RuleBasedCommander`
+- [x] Keep Blue human-controlled and stop Commander decisions outside `MatchState.Playing`
+- [x] Add `FactionCommandService.TryMove` and `TryGather` with structured rejection results
+- [x] Enforce actor ownership, match state, actor/target validity, observation and reachability
+- [x] Add Red `FactionKnowledge` over own state, TeamVision and FogMemory
+- [x] Rebuild visible enemy-unit observations without persistent hidden unit references
+- [x] Copy building/resource last-seen memory into reference-free value snapshots
+- [x] Add 0.50-second deterministic Commander tick and profiler marker
+- [x] Add stable 40/35/25 economy policy with 3-worker 1/1/1 and 4-worker 2/1/1 allocations
+- [x] Reuse Pawn interaction slots, gathering, cargo, Castle drop-off and resource chaining
+- [x] Add temporary cooldown for rejected resource assignments
+- [x] Add one stable frontier scout with Lancer/Warrior/Archer/Pawn priority and Monk exclusion
+- [x] Exclude Pawn scout from economy allocation and release it after exploration completes
+- [x] Add mirrored Red test resources, three Red Pawns, Red population and verified Red Pawn visuals
+- [x] Keep Goblin Torch/TNT disabled and omit Gold Mine contest strategy
+- [x] Add `Tools > Tiny Kingdom > Prepare Phase 7A Commander`
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7A Commander`
+- [x] Document legal information, anti-cheat rules and future RL sharing in `AI_SPEC.md`
+- [x] Independent runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [x] Run `Tools > Tiny Kingdom > Prepare Phase 7A Commander` after Unity recompiles
+- [x] Run `Tools > Tiny Kingdom > Validate Phase 7A Commander` in Play Mode
+- [x] Manual Play Mode: verify Red begins only in Playing and Blue input remains fully functional
+- [x] Manual Play Mode: verify Red 1 Food / 1 Wood / 1 Gold when three Pawns gather
+- [x] Manual Play Mode: verify physical approach, work animation, cargo and Red Castle deposit
+- [x] Manual Play Mode: verify depletion, same-type chaining and failed-target cooldown
+- [x] Manual Play Mode: verify undiscovered resources and Blue Castle are absent from Red knowledge
+- [x] Manual Play Mode: verify visible enemy units disappear from observations after vision loss
+- [x] Manual Play Mode: verify hidden building/resource changes remain stale until re-scouted
+- [x] Manual Play Mode: verify frontier expansion, stable destination, scout death and Pawn fallback
+- [x] Manual Play Mode: verify Commander stops immediately at match end and resets on Restart
+- [x] Profiler: verify 0.50-second ticks, no scene-wide search and no continuous avoidable GC
+- [x] Verify no Goblins spawn or become a validator dependency and Console stays clean

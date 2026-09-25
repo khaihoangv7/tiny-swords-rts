@@ -6,6 +6,7 @@ using TinyKingdom.Input;
 using TinyKingdom.Presentation;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
+using TinyKingdom.AI;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -14,6 +15,7 @@ namespace TinyKingdom.Economy
     public sealed class EconomyTestSetup : MonoBehaviour
     {
         [SerializeField] private PawnAnimationSet pawnAnimations = null;
+        [SerializeField] private PawnAnimationSet redPawnAnimations = null;
         [SerializeField] private UnitCombatData pawnCombatData = null;
         [SerializeField] private UnitCombatData warriorCombatData = null;
         [SerializeField] private UnitCombatData lancerCombatData = null;
@@ -47,6 +49,7 @@ namespace TinyKingdom.Economy
         private void Awake()
         {
             if (pawnAnimations == null || pawnAnimations.Idle.Length == 0
+                || redPawnAnimations == null || redPawnAnimations.Idle.Length == 0
                 || pawnCombatData == null || hitFlashShader == null
                 || foodIcon == null || woodIcon == null || goldIcon == null
                 || healthBarLeft == null || healthBarMiddle == null
@@ -97,9 +100,36 @@ namespace TinyKingdom.Economy
                     presentation?.GoldHighlight(i));
             }
 
-            feedback.Watch(MakePawn(area.transform, "BluePawn_1", new Vector3(3.5f, 7.5f, 0f)));
-            feedback.Watch(MakePawn(area.transform, "BluePawn_2", new Vector3(4.5f, 7.5f, 0f)));
-            feedback.Watch(MakePawn(area.transform, "BluePawn_3", new Vector3(5.5f, 7.5f, 0f)));
+            // A mirrored, faction-neutral resource cluster gives Red only the
+            // resources its own Castle/Pawns can legitimately reveal.
+            for (int i = 0; i < 4; i++)
+                MakeNode(area.transform, $"RedTree_{i + 1}", ResourceType.Wood,
+                    economyConfig.TreeCapacity, new Vector3(35.5f - i * 2f, 14.5f, 0f),
+                    presentation?.Tree(i) ?? treeSprite, 1.5f,
+                    presentation?.Stump(i) ?? treeStumpSprite, null,
+                    presentation?.TreeFrames(i));
+            MakeNode(area.transform, "RedSheep_1", ResourceType.Food,
+                economyConfig.SheepCapacity, new Vector3(29.5f, 12.5f, 0f),
+                First(presentation?.SheepIdle) ?? sheepSprite, 0.65f);
+            MakeNode(area.transform, "RedSheep_2", ResourceType.Food,
+                economyConfig.SheepCapacity, new Vector3(27.5f, 13.5f, 0f),
+                First(presentation?.SheepIdle) ?? sheepSprite, 0.65f);
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 position = new Vector3(29.5f - i % 3 * 2f,
+                    16.5f + i / 3 * 2f, 0f);
+                MakeNode(area.transform, $"RedGold_{i + 1}", ResourceType.Gold,
+                    economyConfig.GetGoldStoneCapacity(i), position,
+                    presentation?.Gold(i) ?? goldSprite, 0.65f, null,
+                    presentation?.GoldHighlight(i));
+            }
+
+            feedback.Watch(MakePawn(area.transform, "BluePawn_1",
+                new Vector3(3.5f, 7.5f, 0f), Faction.Blue, pawnAnimations));
+            feedback.Watch(MakePawn(area.transform, "BluePawn_2",
+                new Vector3(4.5f, 7.5f, 0f), Faction.Blue, pawnAnimations));
+            feedback.Watch(MakePawn(area.transform, "BluePawn_3",
+                new Vector3(5.5f, 7.5f, 0f), Faction.Blue, pawnAnimations));
 
             SelectionSummaryUI summary = FindAnyObjectByType<SelectionSummaryUI>();
             if (summary == null)
@@ -118,6 +148,10 @@ namespace TinyKingdom.Economy
             populationObject.transform.SetParent(area.transform, false);
             FactionPopulation population = populationObject.AddComponent<FactionPopulation>();
             population.Configure(Faction.Blue, 10);
+            var redPopulationObject = new GameObject("RedPopulation");
+            redPopulationObject.transform.SetParent(area.transform, false);
+            FactionPopulation redPopulation = redPopulationObject.AddComponent<FactionPopulation>();
+            redPopulation.Configure(Faction.Red, 10);
             BuildingSystem buildingSystem = area.AddComponent<BuildingSystem>();
             buildingSystem.Configure(navigation, blue, population, buildings);
             if (!buildingSystem.IsReady)
@@ -145,6 +179,12 @@ namespace TinyKingdom.Economy
             CastleDropOff redCastle = MakeCastle(area.transform, red,
                 new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
             SetupDefense(redCastle, navigation);
+            MakePawn(area.transform, "RedPawn_1", new Vector3(33.5f, 7.5f, 0f),
+                Faction.Red, redPawnAnimations);
+            MakePawn(area.transform, "RedPawn_2", new Vector3(34.5f, 7.5f, 0f),
+                Faction.Red, redPawnAnimations);
+            MakePawn(area.transform, "RedPawn_3", new Vector3(35.5f, 7.5f, 0f),
+                Faction.Red, redPawnAnimations);
             BuildingData towerData = System.Array.Find(buildings,
                 item => item != null && item.Type == BuildingType.Tower);
             if (TryFindOpenBuildingOrigin(towerData, navigation,
@@ -175,13 +215,15 @@ namespace TinyKingdom.Economy
                     selection.GetComponent<GuardInputController>(), blue, population,
                     buildingSystem, placement);
             }
-            TeamVisionBootstrap.Ensure(transform, navigation, selection.PlayerFaction);
+            TeamVisionSystem teamVision = TeamVisionBootstrap.Ensure(
+                transform, navigation, selection.PlayerFaction);
             SetupStrategicObjective(area.transform, navigation, blue, red);
 
             MatchManager match = area.AddComponent<MatchManager>();
             match.Configure(selection.PlayerFaction, 0.85f);
             if (!match.RegisterMainCastle(castle) || !match.RegisterMainCastle(redCastle))
                 Debug.LogError("Phase 6C could not register both Main Castles.", this);
+            SetupRedCommander(area.transform, red, redPopulation, teamVision);
             MatchResultAssetCatalog resultAssets = MatchResultAssetCatalog.Load();
             if (summary != null)
                 summary.gameObject.AddComponent<MatchResultUI>().Configure(
@@ -225,7 +267,8 @@ namespace TinyKingdom.Economy
             if (type == UnitType.Pawn)
             {
                 PawnGatherer pawn = MakePawn(areaTransform,
-                    "BluePawn_Produced_" + ++producedCount, position);
+                    "BluePawn_Produced_" + ++producedCount, position,
+                    Faction.Blue, pawnAnimations);
                 feedback.Watch(pawn);
                 DecorateHealth(pawn.GetComponent<HealthComponent>());
                 return pawn.GetComponent<UnitController>();
@@ -459,15 +502,16 @@ namespace TinyKingdom.Economy
         private static Sprite First(Sprite[] sprites)
             => sprites != null && sprites.Length > 0 ? sprites[0] : null;
 
-        private PawnGatherer MakePawn(Transform parent, string name, Vector3 position)
+        private PawnGatherer MakePawn(Transform parent, string name, Vector3 position,
+            Faction faction, PawnAnimationSet animations)
         {
             var obj = new GameObject(name);
             obj.transform.SetParent(parent, false);
             obj.transform.position = position;
             SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
-            renderer.sprite = pawnAnimations.Idle[0];
+            renderer.sprite = animations.Idle[0];
             renderer.sortingOrder = 10;
-            obj.AddComponent<UnitController>().Configure(Faction.Blue);
+            obj.AddComponent<UnitController>().Configure(faction);
             obj.AddComponent<HealthComponent>().Configure(pawnCombatData);
             obj.AddComponent<UnitMovement>();
             obj.AddComponent<UnitSelection>().ConfigureMarkerYOffset(-0.35f);
@@ -476,8 +520,27 @@ namespace TinyKingdom.Economy
                 economyConfig.GatherImpactDelay, economyConfig.AmountPerStep);
             obj.AddComponent<CombatController>().Configure(pawnCombatData);
             obj.AddComponent<PawnBuilder>();
-            obj.AddComponent<PawnVisual>().Configure(pawnAnimations);
+            obj.AddComponent<PawnVisual>().Configure(animations);
             return gatherer;
+        }
+
+        private static void SetupRedCommander(Transform parent, ResourceStockpile redStockpile,
+            FactionPopulation redPopulation, TeamVisionSystem vision)
+        {
+            if (vision == null || FogMemorySystem.Instance == null)
+            {
+                Debug.LogError("Phase 7A requires TeamVisionSystem and FogMemorySystem.");
+                return;
+            }
+            var root = new GameObject("RedRuleBasedCommander");
+            root.transform.SetParent(parent, false);
+            FactionKnowledge knowledge = root.AddComponent<FactionKnowledge>();
+            knowledge.Configure(Faction.Red, vision, FogMemorySystem.Instance,
+                redStockpile, redPopulation);
+            FactionCommandService commands = root.AddComponent<FactionCommandService>();
+            commands.Configure(Faction.Red, knowledge);
+            RuleBasedCommander commander = root.AddComponent<RuleBasedCommander>();
+            commander.Configure(Faction.Red, knowledge, commands, 0.50f);
         }
 
         private static SpriteRenderer MakeVisual(Transform parent, Sprite sprite, bool centerY)

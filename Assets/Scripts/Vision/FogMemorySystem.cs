@@ -47,6 +47,8 @@ namespace TinyKingdom.Vision
         public int SortingOrder { get; internal set; }
         public bool FlipX { get; internal set; }
         public float RemainingRatio { get; internal set; }
+        public int RemainingAmount { get; internal set; }
+        public int MaximumAmount { get; internal set; }
     }
 
     // Stores faction-specific presentation snapshots. Public queries return snapshots only;
@@ -413,6 +415,8 @@ namespace TinyKingdom.Vision
             snapshot.FlipX = visual.flipX;
             snapshot.RemainingRatio = node.MaximumAmount > 0
                 ? Mathf.Clamp01((float)node.RemainingAmount / node.MaximumAmount) : 0f;
+            snapshot.RemainingAmount = node.RemainingAmount;
+            snapshot.MaximumAmount = node.MaximumAmount;
             return true;
         }
 
