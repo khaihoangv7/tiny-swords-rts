@@ -608,3 +608,59 @@ inspection and a clean Unity Console have been confirmed.
 - [x] Manual Play Mode: verify Commander stops immediately at match end and resets on Restart
 - [x] Profiler: verify 0.50-second ticks, no scene-wide search and no continuous avoidable GC
 - [x] Verify no Goblins spawn or become a validator dependency and Console stays clean
+
+## Phase 7B - Rule-Based AI Building, Population and Production
+
+Status: **NOT COMPLETE** - implementation and independent Runtime/Editor compile
+checks pass with 0 errors and 0 warnings. Unity Play Mode validator, manual tests
+and Profiler inspection remain required before PASS.
+
+- [x] Add separate `BuildingCommanderPolicy` and `ProductionCommanderPolicy`
+- [x] Extend `FactionCommandService` with authoritative Build, resume, Train and Rally commands
+- [x] Add structured placement, resource, population, queue and building rejection results
+- [x] Add one authoritative Economy / Scout / Builder Pawn role map
+- [x] Protect active Builders and Scouts from economy reassignment
+- [x] Select one deterministic Builder while preserving at least two Economy Pawns
+- [x] Release/recover Builder role after completion, death or invalid project state
+- [x] Limit Red to one strategic construction project at a time
+- [x] Search deterministic explored placement rings around Red Castle without hidden enemy queries
+- [x] Reuse authoritative footprint, occupancy, terrain, reachability and resource validation
+- [x] Maintain House capacity from `Cap - Used - Reserved` with a two-slot threshold
+- [x] Count pending House construction and prevent duplicate House command spam
+- [x] Train Red Pawns toward configurable target 6 through Castle FIFO production
+- [x] Build one Barracks, one Archery and one Monastery; defer Tower strategy
+- [x] Add bounded target 8 military population and one-item desired producer queues
+- [x] Count living and queued units toward deterministic balanced composition
+- [x] Limit Phase 7B Monk production to one
+- [x] Add deterministic explored Red staging Rally for military producers only
+- [x] Add retry cooldowns for rejected build and production commands
+- [x] Add Red production prefabs, Red Castle queue and Red BuildingSystem wiring
+- [x] Keep Goblins disabled and omit attack, defense and Gold Mine strategy
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7B Commander`
+- [x] Update AI, gameplay, economy and future RL contracts
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [x] Add fixed-name Profiler markers for Commander stages, command dispatch and A*
+- [x] Add Editor/development path-request counters split by gameplay and AI command source
+- [x] Add `Tools > Tiny Kingdom > Profile Phase 7B Commander` JSON capture tool
+- [x] Add an idempotent development FPS/frame-time overlay outside `RtsBottomHud`
+- [x] Remove repeated AI construction reachability preflight before authoritative `TryBuild`
+- [x] Rank construction/resource/drop-off interaction slots cheaply before running A*
+- [x] Replace repeated Pawn Castle `FindObjectsByType` lookup with the Castle registry
+- [x] Disable ordinary Pawn route diagnostic warnings by default
+- [ ] Capture comparable normal-Profiler before/after frame time, marker, GC and path metrics
+- [ ] Manual Play Mode: verify the FPS overlay at 1280x720, 1920x1080 and wide Game View
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 7B Commander` in Play Mode
+- [ ] Manual Play Mode: verify Castle grows living + queued Pawns to 6 without queue spam
+- [ ] Manual Play Mode: verify new Pawns enter normal economy and respect role ownership
+- [ ] Manual Play Mode: verify House trigger, no duplicate, normal payment and +5 completion bonus
+- [ ] Manual Play Mode: verify one legal Barracks, Archery and Monastery with deterministic spacing
+- [ ] Manual Play Mode: verify Builder travel, construction, release, death and resume recovery
+- [ ] Manual Play Mode: verify population deadlock pauses production until House completes
+- [ ] Manual Play Mode: verify shallow FIFO queues and bounded 8-population balanced army
+- [ ] Manual Play Mode: verify Monk count remains at most one
+- [ ] Manual Play Mode: verify safe military Rally and Castle Pawn Rally independence
+- [ ] Manual Play Mode: verify destroyed producer/project references clear and reconstruction works
+- [ ] Manual Play Mode: verify no organized military attack and no hidden Blue information use
+- [ ] Manual Play Mode: verify all Blue human gameplay and Phase 7A behavior remain functional
+- [ ] Profiler: verify 0.50-second think, event-driven placement search and no continuous GC/path spam
+- [ ] Confirm Unity Console has no new errors or recurring AI rejection warnings

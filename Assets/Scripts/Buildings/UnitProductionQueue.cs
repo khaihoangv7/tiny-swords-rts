@@ -22,6 +22,7 @@ namespace TinyKingdom.Buildings
 
         public int Count => requests.Count;
         public int MaxCount => MaximumQueue;
+        public IProductionHost ProductionHost => host;
         public UnitType? Current => requests.Count > 0 ? requests.Peek() : null;
         public float Progress => Current.HasValue && definitions.TryGetValue(Current.Value,
             out UnitCombatData data) ? Mathf.Clamp01(elapsed / data.TrainingSeconds) : 0f;

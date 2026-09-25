@@ -77,3 +77,22 @@ next Highlight starts only after that wait. A mining impact during the wait
 starts Highlight immediately. An impact during active playback does not stack
 or restart frames, avoiding flicker. Completion always resets the full
 10-second wait. Depletion stops playback and its timer permanently.
+
+## Phase 7B Red economy integration
+
+Red production and construction consume the same `ResourceStockpile` used by
+Red Pawn deposits. The Commander never adds or removes resources directly.
+Building payment occurs once through `BuildingSystem.TryBuild`; unit payment and
+population reservation occur once when `UnitProductionQueue.TryTrain` accepts a
+request.
+
+Red grows toward six living-or-queued Pawns. Newly produced Pawns enter the
+existing 40/35/25 Food/Wood/Gold assignment policy. Economy assignments exclude
+the active Scout and Builder roles. Construction preserves at least two Economy
+Pawns when possible and non-emergency infrastructure waits while the Red Food
+stockpile is below the 50 Food cost of one Pawn.
+
+Population pressure uses `Cap - Used - Reserved`. At two or fewer free slots the
+Commander prioritizes one House project and waits for its normal completion
+before considering another. No resource, population or construction shortcut is
+available to AI.

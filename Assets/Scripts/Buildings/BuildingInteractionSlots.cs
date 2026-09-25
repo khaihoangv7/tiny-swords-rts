@@ -35,33 +35,44 @@ namespace TinyKingdom.Buildings
             Vector2Int start = grid.WorldToGrid(builder.transform.position);
             GridCell footprintCell = grid.GetCell(site.Origin.x, site.Origin.y);
             if (footprintCell == null) return false;
-            Vector2Int bestCell = default;
-            float bestDistance = float.PositiveInfinity;
-            bool found = false;
             Vector2Int size = site.Data.Footprint;
-            for (int y = -1; y <= size.y; y++)
-            for (int x = -1; x <= size.x; x++)
+            int slotCount = size.x * 2 + size.y * 2;
+            ulong tried = 0UL;
+            for (int attempt = 0; attempt < slotCount && attempt < 64; attempt++)
             {
-                bool edge = (x == -1 || x == size.x) && y >= 0 && y < size.y
-                    || (y == -1 || y == size.y) && x >= 0 && x < size.x;
-                if (!edge) continue;
-                Vector2Int candidate = site.Origin + new Vector2Int(x, y);
-                if (reservations.ContainsValue(candidate)) continue;
-                GridCell cell = grid.GetCell(candidate.x, candidate.y);
-                if (cell == null || !cell.Walkable || cell.Occupied
-                    || cell.HeightLevel != footprintCell.HeightLevel
-                    || paths.FindPath(start, candidate).Count == 0) continue;
-                float distance = ((Vector2)(cell.WorldPosition
-                    - builder.transform.position)).sqrMagnitude;
-                if (distance >= bestDistance) continue;
-                bestDistance = distance;
-                bestCell = candidate;
-                found = true;
+                int bestIndex = -1;
+                Vector2Int bestCell = default;
+                float bestDistance = float.PositiveInfinity;
+                int index = 0;
+                for (int y = -1; y <= size.y; y++)
+                for (int x = -1; x <= size.x; x++)
+                {
+                    bool edge = (x == -1 || x == size.x) && y >= 0 && y < size.y
+                        || (y == -1 || y == size.y) && x >= 0 && x < size.x;
+                    if (!edge) continue;
+                    int candidateIndex = index++;
+                    if (candidateIndex >= 64) continue;
+                    if ((tried & (1UL << candidateIndex)) != 0) continue;
+                    Vector2Int candidate = site.Origin + new Vector2Int(x, y);
+                    if (reservations.ContainsValue(candidate)) continue;
+                    GridCell cell = grid.GetCell(candidate.x, candidate.y);
+                    if (cell == null || !cell.Walkable || cell.Occupied
+                        || cell.HeightLevel != footprintCell.HeightLevel) continue;
+                    float distance = ((Vector2)(cell.WorldPosition
+                        - builder.transform.position)).sqrMagnitude;
+                    if (bestIndex >= 0 && distance >= bestDistance) continue;
+                    bestIndex = candidateIndex;
+                    bestCell = candidate;
+                    bestDistance = distance;
+                }
+                if (bestIndex < 0) return false;
+                tried |= 1UL << bestIndex;
+                if (paths.FindPath(start, bestCell).Count == 0) continue;
+                reservations.Add(builder, bestCell);
+                position = grid.GridToWorld(bestCell.x, bestCell.y);
+                return true;
             }
-            if (!found) return false;
-            reservations.Add(builder, bestCell);
-            position = grid.GridToWorld(bestCell.x, bestCell.y);
-            return true;
+            return false;
         }
 
         public void Release(PawnBuilder builder)

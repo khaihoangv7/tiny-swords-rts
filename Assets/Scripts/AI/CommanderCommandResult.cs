@@ -9,6 +9,13 @@ namespace TinyKingdom.AI
         RejectedWrongUnitType,
         RejectedNotObserved,
         RejectedUnreachable,
-        RejectedMatchNotPlaying
+        RejectedMatchNotPlaying,
+        RejectedInvalidBuilding,
+        RejectedInvalidPlacement,
+        RejectedInsufficientResources,
+        RejectedPopulationBlocked,
+        RejectedQueueFull,
+        RejectedConstructionActive,
+        RejectedCommandFailed
     }
 }
