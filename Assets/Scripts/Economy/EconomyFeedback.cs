@@ -36,6 +36,11 @@ namespace TinyKingdom.Economy
             };
         }
 
+        public void Show(ResourceType type, int amount, Vector3 position)
+        {
+            if (amount > 0) ResourceGainPopup.Show(position, Icon(type), amount);
+        }
+
         private Sprite Icon(ResourceType type) => type switch
         {
             ResourceType.Food => foodIcon,

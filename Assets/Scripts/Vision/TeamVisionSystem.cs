@@ -1,6 +1,7 @@
 using System;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.Vision
@@ -8,6 +9,8 @@ namespace TinyKingdom.Vision
     [DefaultExecutionOrder(-120)]
     public sealed class TeamVisionSystem : MonoBehaviour
     {
+        private static readonly ProfilerMarker RecomputeMarker =
+            new("TinyKingdom.Fog.TeamVisionRecompute");
         [SerializeField] private GridManager gridManager;
         [SerializeField, Min(0.02f)] private float updateInterval = 0.10f;
         private TeamVisionGrid model;
@@ -53,8 +56,11 @@ namespace TinyKingdom.Vision
         public void RecomputeNow()
         {
             if (model == null) return;
-            if (model.Recompute(VisionSourceRegistry.ActiveSources))
-                VisionChanged?.Invoke();
+            using (RecomputeMarker.Auto())
+            {
+                if (model.Recompute(VisionSourceRegistry.ActiveSources))
+                    VisionChanged?.Invoke();
+            }
         }
 
         public VisionState GetVisionState(Faction faction, Vector2Int cell)

@@ -140,6 +140,12 @@ namespace TinyKingdom.Input
                 return;
             }
 
+            if (commandController != null && commandController.CanEnterGoldMineAt(world))
+            {
+                Apply(CursorVisual.Hand);
+                return;
+            }
+
             if (commandController == null)
             {
                 Apply(CursorVisual.Hand);

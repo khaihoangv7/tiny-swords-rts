@@ -36,18 +36,7 @@ namespace TinyKingdom.EditorTools
         [MenuItem("Tools/Tiny Kingdom/Build Phase 2 Navigation")]
         public static void Build()
         {
-            EnsureFolder("Assets/Data");
-            EnsureFolder("Assets/Data/Navigation");
-
-            NavigationGridData data = AssetDatabase.LoadAssetAtPath<NavigationGridData>(DataPath);
-            if (data == null)
-            {
-                data = ScriptableObject.CreateInstance<NavigationGridData>();
-                AssetDatabase.CreateAsset(data, DataPath);
-            }
-
-            data.Configure(Width, Height, Vector2.zero, 1f, CreateMapCells());
-            EditorUtility.SetDirty(data);
+            NavigationGridData data = RebuildDataAsset();
             AssetDatabase.SaveAssets();
 
             Scene scene = SceneManager.GetActiveScene();
@@ -81,6 +70,23 @@ namespace TinyKingdom.EditorTools
             Debug.Log("Phase 2 navigation generated and validated.");
         }
 
+        public static NavigationGridData RebuildDataAsset()
+        {
+            EnsureFolder("Assets/Data");
+            EnsureFolder("Assets/Data/Navigation");
+
+            NavigationGridData data = AssetDatabase.LoadAssetAtPath<NavigationGridData>(DataPath);
+            if (data == null)
+            {
+                data = ScriptableObject.CreateInstance<NavigationGridData>();
+                AssetDatabase.CreateAsset(data, DataPath);
+            }
+
+            data.Configure(Width, Height, Vector2.zero, 1f, CreateMapCells());
+            EditorUtility.SetDirty(data);
+            return data;
+        }
+
         public static List<NavigationCellData> CreateMapCells()
         {
             var result = new List<NavigationCellData>(Width * Height);
@@ -101,6 +107,13 @@ namespace TinyKingdom.EditorTools
                 else if (x >= 16 && x <= 23 && y >= 11 && y <= 12)
                 {
                     terrain = TerrainType.Cliff;
+                }
+
+                if (StrategicObjectiveMapLayout.TryGetConnectorCell(x, y,
+                    out int connectorHeight))
+                {
+                    terrain = TerrainType.Stairs;
+                    heightLevel = connectorHeight;
                 }
 
                 result.Add(new NavigationCellData(x, y, terrain, heightLevel));

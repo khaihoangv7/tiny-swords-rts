@@ -6,6 +6,8 @@ namespace TinyKingdom.Units
         Archer = 1,
         Lancer = 2,
         Pawn = 3,
-        Monk = 4 // Roster placeholder; training is disabled until gameplay data exists.
+        Monk = 4,
+        GoblinTorch = 5,
+        GoblinTNT = 6
     }
 }

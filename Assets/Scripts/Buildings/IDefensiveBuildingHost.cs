@@ -13,6 +13,7 @@ namespace TinyKingdom.Buildings
         int MaxHP { get; }
         bool IsAlive { get; }
         bool IsDefenseReady { get; }
+        float FireThreshold { get; }
         event Action DefenseHostDestroyed;
         event Action DefenseHostHealthChanged;
         bool ReceiveBuildingDamage(int damage);

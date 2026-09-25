@@ -18,37 +18,37 @@ namespace TinyKingdom.Units
         private UnitSelection selection;
         private CombatController combat;
         private Transform originalParent;
-        private BuildingGarrison pendingHost;
+        private IUnitStationHost pendingHost;
 
         public UnitStationingMode Mode { get; private set; } = UnitStationingMode.World;
-        public BuildingGarrison Host { get; private set; }
+        public IUnitStationHost Host { get; private set; }
         public bool IsStationed => Mode != UnitStationingMode.World;
         public bool IsPending => pendingHost != null;
 
         private void Awake() => Resolve();
 
-        public void BeginPending(BuildingGarrison host) => pendingHost = host;
+        public void BeginPending(IUnitStationHost host) => pendingHost = host;
 
-        public void ClearPending(BuildingGarrison host)
+        public void ClearPending(IUnitStationHost host)
         {
             if (pendingHost == host) pendingHost = null;
         }
 
         public void CancelPending()
         {
-            BuildingGarrison host = pendingHost;
+            IUnitStationHost host = pendingHost;
             pendingHost = null;
             host?.CancelPending(GetComponent<UnitController>());
         }
 
-        public bool EnterInternal(BuildingGarrison host)
+        public bool EnterInternal(IUnitStationHost host)
         {
             if (!Prepare(host)) return false;
             // Prepare succeeded and no later entry step can reject. Castle cargo is
             // transferred now, after physical arrival but before the Pawn is hidden.
-            host.DepositPawnCargoOnEntry(controller);
+            host.OnUnitEnteringInternal(controller);
             Mode = UnitStationingMode.Internal;
-            transform.SetParent(host.transform, true);
+            transform.SetParent(host.StationTransform, true);
             foreach ((Renderer renderer, _) in renderers)
                 if (renderer != null) renderer.enabled = false;
             combat?.SetStationedInternal(true);
@@ -95,7 +95,7 @@ namespace TinyKingdom.Units
             Mode = UnitStationingMode.World;
         }
 
-        private bool Prepare(BuildingGarrison host)
+        private bool Prepare(IUnitStationHost host)
         {
             Resolve();
             if (host == null || Host != null || !controller.IsAlive) return false;

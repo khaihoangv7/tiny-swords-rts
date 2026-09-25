@@ -34,6 +34,7 @@ namespace TinyKingdom.Economy
         public Vector2Int Footprint => new(3, 2);
         public bool IsProductionReady => registered && IsAvailable && IsAlive;
         public bool IsDefenseReady => IsProductionReady;
+        public float FireThreshold => 0.70f;
         public BuildingData DefenseData => defenseData;
         public Transform HostTransform => transform;
         public Collider2D InteractionCollider => GetComponent<Collider2D>();

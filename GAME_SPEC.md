@@ -559,9 +559,8 @@ The initial game contains:
 * Monastery
 
 House is a population building and never trains units. Castle trains Pawn,
-Barracks trains Warrior and Lancer, and Archery trains Archer. Monastery is
-reserved for Monk production after Monk gameplay values are specified. These
-specialized rosters replace the previous generic Barracks roster.
+Barracks trains Warrior and Lancer, Archery trains Archer, and Monastery trains
+Monk. These specialized rosters replace the previous generic Barracks roster.
 
 ---
 
@@ -581,7 +580,7 @@ that faction loses immediately.
 
 Phase 5C2 defensive data:
 
-* provisional MaxHP = 1000
+* MaxHP = 2000 from Phase 6C.2
 * Internal Garrison capacity = 5 living friendly Pawn/Warrior/Archer/Lancer
 * Mounted Archer capacity = 3
 * each internal occupant contributes one generic 5-damage projectile per volley
@@ -668,10 +667,8 @@ Phase 5C2 Tower rules:
 Archery trains Archer after construction. Its Phase 5C1 test values are
 provisional: 150 Wood, 250 HP, 3x3 logical cells, 7-second construction.
 
-Monastery is constructible but does not train Monk until Monk HP, cost,
-movement speed, role, healing/combat behavior and population cost are defined.
-Its Phase 5C1 test values are provisional: 150 Wood, 50 Gold, 300 HP, 3x3
-logical cells, 8-second construction.
+Monastery trains Monk. Its Phase 5C1 building values remain provisional:
+150 Wood, 50 Gold, 300 HP, 3x3 logical cells, 8-second construction.
 
 ---
 
@@ -686,8 +683,8 @@ since fallen. Destroying a producer discards its queue and releases reserved
 population; resources already spent are not refunded in this MVP.
 
 Provisional gameplay training times: Pawn 4 seconds, Warrior 8 seconds,
-Archer 6 seconds, Lancer 6 seconds. Animation frames do not control training.
-Monk training remains disabled pending gameplay data.
+Archer 6 seconds, Lancer 6 seconds and Monk 7 seconds. Animation frames do not
+control training.
 
 VisionRadius is stored as configurable unit/building data for later vision
 work. Phase 5C1 does not calculate visibility or render Fog of War; current
@@ -722,7 +719,7 @@ The following defense values are provisional MVP balance values:
 * Tower defensive attack range: 7 world units
 * Castle defensive attack range: 8 world units
 * mounted range multiplier: 1.25
-* Castle MaxHP: 1000
+* Castle MaxHP: 2000 (raised by Phase 6C.2)
 
 Tower and Castle use explicit projectile-origin and rooftop-anchor offsets from
 BuildingData. Right-clicking a friendly completed defensive building orders
@@ -1225,6 +1222,54 @@ The RL agent should be able to learn relationships such as:
 Exact RL design belongs in:
 
 RL_SPEC.md.
+
+---
+
+# 52. Phase 6C.2 Monk and Strategic Gold Mine
+
+Monk is a support unit trained by Monastery. Provisional MVP values are 80 HP,
+1 population, speed 3, 60 Food + 60 Gold and 7 seconds training. Monk has no
+normal attack or retaliation. It restores 5 HP every 4 seconds at range 2.
+Automatic healing detects injured same-faction units within range 4 and chooses
+lowest HP ratio, then nearest distance, then stable registry order. Manual
+right-click healing has no acquisition-distance limit and ends when resolved or
+replaced by another explicit command.
+
+The central Gold Mine is a neutral 2x2 logical blocker with 1500 HP and 2000
+Gold. The first Blue or Red Pawn to enter claims it; ownership persists while
+empty. Up to three internal Pawns generate 15 Gold each every 5 seconds. A
+partial final payout uses only remaining Gold. Depletion safely ejects Pawns and
+leaves the destroyed visual without an explosion. Combat destruction kills only
+Pawns currently internal, uses normal death authority and leaves the same wreck.
+Its Fire threshold is 0.60; ordinary buildings remain at 0.70.
+
+The strategic Gold Mine uses a uniform presentation scale of 1.30 for inactive,
+active and destroyed states. A dedicated visual root adds a +0.17 world-unit Y
+ground-contact correction; the authoritative 2x2 footprint and 1.75x1.25
+interaction collider remain unchanged. Its enlarged Fire presentation uses
+scale 2.47 with anchors (-0.585, 0.13), (0, 0.546), (0.585, 0.156). Its building
+Explosion scale is 2.08. Two official Tiny Swords terrain stair assemblies
+replace the corresponding south cliff columns and provide fair access from
+both sides without permitting arbitrary cliff traversal. Each visible stair and
+its logical height transition come from one shared connector definition.
+
+Goblin is a neutral hostile faction outside match-result, economy and population
+systems. One Torch and one TNT guard the primary mine. Torch uses Warrior
+baseline stats and regenerates approximately 1 percent MaxHP per second after
+five seconds without damage. TNT provisional values are 80 HP, 18 damage,
+range 4.5, interval 2.5, explosion radius 1.25 and deterministic knockback 0.60.
+TNT AoE affects Blue/Red units once, never Goblins, buildings or the mine.
+Goblin presentation uses the verified 192x192 exported PNG cells documented in
+`ASSET_MANIFEST.md`; transparent row-padding cells are excluded from animation
+clips. TNT Throw is seven frames at 10 FPS and releases the projectile at the
+start of zero-based frame 6 (0.60 seconds). This presentation timing does not
+change its 2.5-second gameplay attack interval or any damage, range, radius or
+knockback value.
+
+Current UI/UX milestone scope: Goblin Torch and Goblin TNT are temporarily
+disabled in the active Map setup, runtime spawn flow, current objective and
+automated validator. Their verified assets, data and dormant implementation are
+retained. Re-enabling them is a separate future gameplay task.
 
 ---
 

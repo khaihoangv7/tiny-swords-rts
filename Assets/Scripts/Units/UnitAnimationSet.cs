@@ -24,7 +24,12 @@ namespace TinyKingdom.Units
         public Vector2 VisualAnchorPixels => visualAnchorPixels;
         public Sprite[] Idle => idle;
         public Sprite[] Run => run;
+        public Sprite[] Attack => attack;
         public Sprite[] Guard => guard;
+        public Sprite[] AttackDown => attackDown;
+        public Sprite[] AttackDownRight => attackDownRight;
+        public Sprite[] AttackUp => attackUp;
+        public Sprite[] AttackUpRight => attackUpRight;
 
         public Sprite[] AttackFor(Vector2 direction)
         {

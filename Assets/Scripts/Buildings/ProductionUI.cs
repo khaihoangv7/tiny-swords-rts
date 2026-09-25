@@ -10,12 +10,12 @@ namespace TinyKingdom.Buildings
     public sealed class ProductionUI : MonoBehaviour
     {
         private static readonly UnitType[] Units =
-            { UnitType.Pawn, UnitType.Warrior, UnitType.Lancer, UnitType.Archer };
-        private readonly Button[] buttons = new Button[4];
-        private readonly Image[] backgrounds = new Image[4];
-        private readonly Image[] icons = new Image[4];
-        private readonly Text[] labels = new Text[4];
-        private readonly Sprite[] unitIcons = new Sprite[4];
+            { UnitType.Pawn, UnitType.Warrior, UnitType.Lancer, UnitType.Archer, UnitType.Monk };
+        private readonly Button[] buttons = new Button[5];
+        private readonly Image[] backgrounds = new Image[5];
+        private readonly Image[] icons = new Image[5];
+        private readonly Text[] labels = new Text[5];
+        private readonly Sprite[] unitIcons = new Sprite[5];
         private SelectionManager selection;
         private UnitProductionQueue queue;
         private RectTransform panel;
@@ -23,13 +23,14 @@ namespace TinyKingdom.Buildings
         private Text status;
 
         public void Configure(SelectionManager selected, Sprite pawn, Sprite warrior,
-            Sprite lancer, Sprite archer)
+            Sprite lancer, Sprite archer, Sprite monk)
         {
             selection = selected;
             unitIcons[0] = pawn;
             unitIcons[1] = warrior;
             unitIcons[2] = lancer;
             unitIcons[3] = archer;
+            unitIcons[4] = monk;
             Build();
             panel.gameObject.SetActive(false);
         }
@@ -71,19 +72,17 @@ namespace TinyKingdom.Buildings
                 labels[i].text = data == null ? Units[i].ToString()
                     : $"{Units[i]}\n{Cost(data)}";
             }
-            status.text = host.Type == BuildingType.Monastery
-                ? "Monk unavailable: gameplay data pending"
-                : $"Queue {queue.Count}/{queue.MaxCount}: {queue.QueueSummary()}"
-                    + (queue.Current.HasValue ? $"  {Mathf.RoundToInt(queue.Progress * 100f)}%" : "");
+            status.text = $"Queue {queue.Count}/{queue.MaxCount}: {queue.QueueSummary()}"
+                + (queue.Current.HasValue ? $"  {Mathf.RoundToInt(queue.Progress * 100f)}%" : "");
         }
 
         private void Build()
         {
             panel = Rect("ProductionCommands", transform,
-                new Vector2(500f, 130f), new Vector2(304f, 12f));
+                new Vector2(622f, 130f), new Vector2(304f, 12f));
             panel.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.11f, 0.15f, 0.9f);
-            title = Label("Title", panel, "", 16, new Vector2(480f, 22f), new Vector2(8f, 103f));
-            status = Label("Queue", panel, "", 13, new Vector2(480f, 25f), new Vector2(8f, 80f));
+            title = Label("Title", panel, "", 16, new Vector2(602f, 22f), new Vector2(8f, 103f));
+            status = Label("Queue", panel, "", 13, new Vector2(602f, 25f), new Vector2(8f, 80f));
             for (int i = 0; i < Units.Length; i++)
             {
                 UnitType type = Units[i];

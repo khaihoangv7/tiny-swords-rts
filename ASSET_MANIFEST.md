@@ -481,12 +481,11 @@ gameplay data asset and one 2x2 logical footprint; the visual choice does not
 alter population. The build buttons use the verified building sprites as icons;
 no dedicated building icon mapping was confirmed.
 
-The Blue and Red Monk folders contain `Idle.png` (1152x192, six imported
-frames) and `Run.png` (768x192, four imported frames). `Heal.png` and
-`Heal_Effect.png` are each 2112x192, but their current importers split the
-art into 37 and 99 fragments respectively. They are **not** a verified playable
-healing animation mapping. Monk remains unspawnable until its gameplay data
-and healing animation are specified and validated.
+The Blue and Red Monk folders contain `Idle.png` (1152x192, six frames),
+`Run.png` (768x192, four), `Heal.png` (2112x192, eleven) and
+`Heal_Effect.png` (2112x192, eleven). Phase 6C.2 verifies 192x192 full-cell
+slicing and maps Heal to Monk action presentation; Heal_Effect is a target-side
+one-shot only after HP is actually restored. PPU remains 100.
 
 The Map uses `Tree1_0` from `Assets/Terrain/Resources/Wood/Trees/Tree1.png`.
 Its visible trunk base matches `Stump 1_0` from
@@ -644,8 +643,30 @@ after safe ejection instead of guessing an asset mapping.
 ## Verified unit UI assets
 
 `Assets/UI Elements/UI Elements/Icons/Icon_06.png` depicts a shield and is used
-for the Guard button. Exact portrait-to-unit mappings in `Human Avatars` remain
-unconfirmed; use verified unit Idle sprites for selection portraits for now.
+for the Guard button. The Phase UI/UX audit confirms these exact one-sprite
+selection/production portrait mappings under
+`Assets/UI Elements/UI Elements/Human Avatars/`:
+
+| Unit | Texture | Imported sprite |
+|---|---|---|
+| Warrior | `Avatars_01.png` | `Avatars_01_0` |
+| Lancer | `Avatars_02.png` | `Avatars_02_0` |
+| Archer | `Avatars_03.png` | `Avatars_03_0` |
+| Monk | `Avatars_04.png` | `Avatars_04_0` |
+| Pawn | `Avatars_05.png` | `Avatars_05_0` |
+
+The RTS HUD uses the nine verified slices in `WoodTable.png` for its persistent
+resource panel. Their source geometry naturally assembles to 238x258 pixels,
+but the compact HUD uses a 220x160 frame with proportionally reduced borders.
+One stretched center surface sits behind the eight border pieces, so transparent
+trim margins cannot expose the battlefield as grid seams. The same continuous
+surface-plus-border construction uses `SpecialPaper.png` for selection and
+command panels. No center or edge uses repeated tiling. `WoodTable_Slots.png`
+supplies only the individually clickable command-button frame.
+`Icon_01.png`, `Icon_02.png`, `Icon_03.png` and `Icon_04.png` represent
+Population, Wood, Gold and Food. `Icon_09.png` is the AttackMove command icon.
+All listed UI textures are Sprite type, Point filtered, uncompressed, without
+mipmaps, Clamp wrapped and imported at a Max Size that preserves the source.
 
 ## Verified Tiny Swords cursors
 
@@ -908,3 +929,56 @@ Before creating animation code for an entity:
 6. Never invent an animation that does not exist.
 7. Never substitute another animation without documenting the substitution.
 8. If an expected animation does not exist, report it instead of silently using an unrelated one.
+
+## Phase 6C.2 verified Monk, Goblin, Gold Mine and TNT assets
+
+| Use | Exact path | Source / verified frames |
+| --- | --- | --- |
+| Blue/Red Monk Idle | `Assets/Units/{Blue|Red} Units/Monk/Idle.png` | 1152x192, 6 frames of 192x192 |
+| Blue/Red Monk Run | `Assets/Units/{Blue|Red} Units/Monk/Run.png` | 768x192, 4 frames of 192x192 |
+| Blue/Red Monk Heal | `Assets/Units/{Blue|Red} Units/Monk/Heal.png` | 2112x192, 11 frames of 192x192 |
+| Blue/Red Heal effect | `Assets/Units/{Blue|Red} Units/Monk/Heal_Effect.png` | 2112x192, 11 frames of 192x192 |
+| Goblin Torch | `Assets/Units/Goblins Units/Goblins_Torch/Torch_Yellow.png` | 1344x960, 7x5 grid of 192x192. Exported PNG: Idle 0-6; Run 7-12; transparent padding 13; Attack Right 14-19; padding 20; Attack Down 21-26; padding 27; Attack Up 28-33; padding 34 |
+| Goblin TNT | `Assets/Units/Goblins Units/Goblins_TNT/TNT_Red.png` | 1344x576, 7x3 grid of 192x192. Exported PNG: Idle 0-5; transparent padding 6; Run 7-12; padding 13; Throw 14-20. Dynamite is separate |
+| Dynamite | `Assets/Units/Goblins Units/Goblins_TNT/Dynamite.png` | 384x64, 6 frames of 64x64 |
+| TNT explosion | `Assets/Particle FX/Explosion_03.png` | 1728x192, 9 frames of 192x192, one-shot |
+| Gold Mine inactive | `Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Inactive.png` | 192x128, single sprite |
+| Gold Mine active | `Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Active.png` | 192x128, single sprite |
+| Gold Mine wreck | `Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Destroyed.png` | 192x128, single sprite |
+| Central plateau left stair, upper | `Assets/Terrain/Tileset/Tilemap_color2.png`, `Tilemap_color2_r4c0` | rect x=0, y=64, 64x64; PPU 64; centered pivot; descending-left upper cliff transition |
+| Central plateau left stair, lower | `Assets/Terrain/Tileset/Tilemap_color2.png`, `Tilemap_color2_r5c0` | rect x=0, y=0, 64x64; PPU 64; centered pivot; descending-left lower slope/foot |
+| Central plateau right stair, upper | `Assets/Terrain/Tileset/Tilemap_color2.png`, `Tilemap_color2_r4c3` | rect x=192, y=64, 64x64; PPU 64; centered pivot; descending-right upper cliff transition |
+| Central plateau right stair, lower | `Assets/Terrain/Tileset/Tilemap_color2.png`, `Tilemap_color2_r5c3` | rect x=192, y=0, 64x64; PPU 64; centered pivot; descending-right lower slope/foot |
+
+The official stair pieces are embedded in the 576x384 color terrain sheet even
+though no standalone Stair, Steps or Ramp filename exists. They retain the
+existing 64x64 slicing and sprite names, Point filtering, no mipmaps,
+uncompressed import and Clamp wrap. The upper/lower pair replaces the relevant
+cliff column instead of being placed over a solid wall. `Bridge_All.png` is a
+separate bridge-art sheet kept locally for possible future use; it is ignored by
+Git and has no active Gold Mine stair, scene, catalog or validator mapping.
+
+All active Phase 6C.2 textures use Sprite type, Point filtering, no mipmaps,
+uncompressed import, Clamp wrap and a Max Size at least as large as the source.
+Unit, effect and Gold Mine textures in this section use PPU 100; the terrain
+sheet and its stair slices retain terrain PPU 64. Torch has only Yellow and TNT
+only Red in the inspected pack; these are neutral Goblin presentation colors,
+not Blue/Red faction ownership. No compatible dedicated Goblin death animation
+was found, so both use the verified generic Dead/Buried project VFX.
+
+The source Aseprite timelines and the exported PNG cell indexes are different.
+`Torch_Yellow.aseprite` has timeline tags Original 0-2, Idle 3-9, Run 10-15,
+Attack Right 16-21, Attack Down 22-27 and Attack Up 28-33. The PNG omits
+Original, starts each tag on a new seven-cell row and pads six-frame rows with a
+transparent cell. `TNT_Red.aseprite` has Original 0, Idle 1-6, Run 7-12, Throw
+13-19 and Dynamite 20-25. Its gameplay PNG omits Original and Dynamite, starts
+each included tag on a new row and pads the two six-frame rows. Runtime mappings
+therefore use the exported PNG indexes in the table, never raw timeline indexes.
+
+Torch uses the verified Right, Down and Up attack rows. Left-facing attacks use
+the existing horizontal flip; diagonal requests use the nearest verified
+vertical cardinal row because the source has no separate diagonal tags. TNT has
+one verified Throw row and uses horizontal flip only. Throw plays seven frames
+at 10 FPS and releases its projectile at the start of zero-based frame 6
+(0.60 seconds), when the held explosive disappears from the hand. The generic
+Dead/Buried VFX remains responsible for death presentation.

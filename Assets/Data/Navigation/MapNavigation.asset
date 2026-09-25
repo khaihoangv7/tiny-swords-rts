@@ -1847,7 +1847,7 @@ MonoBehaviour:
     heightLevel: 0
   - gridX: 17
     gridY: 11
-    terrainType: 2
+    terrainType: 4
     heightLevel: 0
   - gridX: 18
     gridY: 11
@@ -1867,7 +1867,7 @@ MonoBehaviour:
     heightLevel: 0
   - gridX: 22
     gridY: 11
-    terrainType: 2
+    terrainType: 4
     heightLevel: 0
   - gridX: 23
     gridY: 11
@@ -2007,8 +2007,8 @@ MonoBehaviour:
     heightLevel: 0
   - gridX: 17
     gridY: 12
-    terrainType: 2
-    heightLevel: 0
+    terrainType: 4
+    heightLevel: 1
   - gridX: 18
     gridY: 12
     terrainType: 2
@@ -2027,8 +2027,8 @@ MonoBehaviour:
     heightLevel: 0
   - gridX: 22
     gridY: 12
-    terrainType: 2
-    heightLevel: 0
+    terrainType: 4
+    heightLevel: 1
   - gridX: 23
     gridY: 12
     terrainType: 2

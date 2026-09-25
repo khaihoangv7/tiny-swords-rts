@@ -136,3 +136,9 @@ and resource depletion are not observable until the faction sees the area
 again. Physical A* navigation may still use authoritative occupancy internally,
 but Commander observations and action validation must not expose that hidden
 world state. Phase 6C.1 adds no AI/RL actions, rewards or policies.
+
+Phase 6C.2 exposes Monk heal and Gold Mine entry/ejection as gameplay authority
+APIs used by human input. Future Commanders may call those APIs but receive no
+new policy, reward or direct unit-motion control in this phase. Gold Mine and
+Goblin observations must follow the same faction knowledge contract as the
+human player.

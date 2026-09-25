@@ -24,10 +24,14 @@ namespace TinyKingdom.Input
         private bool suppressNextLeftClick;
         private BuildingSite selectedBuilding;
         private CastleDropOff selectedCastle;
+        private GoldMineObjective selectedGoldMine;
+        private ResourceNode selectedResourceNode;
 
         public IReadOnlyList<UnitSelection> SelectedUnits => selectedUnits;
         public BuildingSite SelectedBuilding => selectedBuilding;
         public CastleDropOff SelectedCastle => selectedCastle;
+        public GoldMineObjective SelectedGoldMine => selectedGoldMine;
+        public ResourceNode SelectedResourceNode => selectedResourceNode;
         public Faction PlayerFaction => playerFaction;
         public event Action SelectionChanged;
 
@@ -67,6 +71,7 @@ namespace TinyKingdom.Input
 
         private void Update()
         {
+            RemoveInvalidResourceSelection();
             Mouse mouse = Mouse.current;
             if (mouse == null)
             {
@@ -158,6 +163,22 @@ namespace TinyKingdom.Input
                         SelectionChanged?.Invoke();
                         return;
                     }
+                    GoldMineObjective mine = collider.GetComponent<GoldMineObjective>();
+                    if (mine != null && CanObserveResource(mine.transform.position))
+                    {
+                        ClearSelection();
+                        selectedGoldMine = mine;
+                        SelectionChanged?.Invoke();
+                        return;
+                    }
+                    ResourceNode resource = collider.GetComponent<ResourceNode>();
+                    if (resource != null && CanSelectResource(resource))
+                    {
+                        ClearSelection();
+                        selectedResourceNode = resource;
+                        SelectionChanged?.Invoke();
+                        return;
+                    }
                 }
             }
             ApplyClickSelection(hit, additive);
@@ -214,7 +235,9 @@ namespace TinyKingdom.Input
 
         public void ClearSelection()
         {
-            bool changed = selectedUnits.Count > 0 || selectedBuilding != null || selectedCastle != null;
+            bool changed = selectedUnits.Count > 0 || selectedBuilding != null
+                || selectedCastle != null || selectedGoldMine != null
+                || selectedResourceNode != null;
             foreach (UnitSelection unit in selectedUnits)
             {
                 if (unit == null) continue;
@@ -224,6 +247,8 @@ namespace TinyKingdom.Input
             selectedUnits.Clear();
             selectedBuilding = null;
             selectedCastle = null;
+            selectedGoldMine = null;
+            selectedResourceNode = null;
             if (changed) SelectionChanged?.Invoke();
         }
 
@@ -300,6 +325,23 @@ namespace TinyKingdom.Input
                 }
             }
             if (changed) SelectionChanged?.Invoke();
+        }
+
+        private bool CanSelectResource(ResourceNode resource)
+            => resource != null && resource.isActiveAndEnabled
+                && (!resource.IsDepleted || resource.ResourceType == ResourceType.Wood)
+                && CanObserveResource(resource.transform.position);
+
+        private static bool CanObserveResource(Vector3 position)
+            => Vision.FogWorldVisibility.Instance == null
+                || Vision.FogWorldVisibility.Instance.CanObserveResource(position);
+
+        private void RemoveInvalidResourceSelection()
+        {
+            if (selectedResourceNode == null) return;
+            if (CanSelectResource(selectedResourceNode)) return;
+            selectedResourceNode = null;
+            SelectionChanged?.Invoke();
         }
 
         private void HandleUnavailable(UnitSelection unit)

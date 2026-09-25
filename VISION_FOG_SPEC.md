@@ -138,3 +138,18 @@ known-valid ground and rejected on `Unexplored` ground.
 - Terrain, cliff, tree, unit and building line-of-sight occlusion.
 - Stealth, camouflage, detection and minimap.
 - AI and Reinforcement Learning observations, actions or rewards.
+
+## Phase 6C.2 neutral objective visibility
+
+Neutral Goblins follow moving-unit presentation rules: Blue/Red sees them only
+while currently Visible and no Goblin ghost is stored. The strategic Gold Mine
+uses the building/resource memory contract. Explored cells show its last-seen
+static sprite only; current ownership, HP, occupancy, remaining Gold, Fire,
+depletion and destruction remain hidden until the location is Visible again.
+
+Goblin Torch and Goblin TNT presentation gates start hidden until the first
+`TeamVisionSystem` evaluation. The gate covers every renderer in the unit
+hierarchy, including body, animated visual, health bar and later presentation
+children. One-shot Heal/TNT effects and the Dynamite projectile evaluate current
+player visibility in their creation frame, preventing a one-frame information
+leak. Fog never disables Goblin movement, combat, regeneration or guard logic.

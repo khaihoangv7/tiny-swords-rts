@@ -24,6 +24,7 @@ namespace TinyKingdom.Vision
         public static bool CanFactionCurrentlyObservePosition(Faction observerFaction,
             Vector3 worldPosition)
         {
+            if (observerFaction == Faction.Goblin) return true;
             TeamVisionSystem vision = TeamVisionSystem.Instance;
             return vision != null && vision.IsReady
                 && vision.IsVisible(observerFaction, worldPosition);

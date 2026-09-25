@@ -38,8 +38,10 @@ namespace TinyKingdom.EditorTools
             GridCell elevated = grid.GetCell(16, 15);
             Require(!flat.CanTraverseTo(elevated),
                 "Direct movement from height 0 to height 1 was incorrectly allowed.");
-            Require(Find(grid, 15, 15, 16, 15).Count == 0,
-                "The stairless elevated region should be unreachable from flat ground.");
+            List<GridCell> elevatedDetour = Find(grid, 15, 15, 16, 15);
+            Require(elevatedDetour.Count > 0
+                && elevatedDetour.Any(cell => cell.TerrainType == TerrainType.Stairs),
+                "The elevated destination should be reachable only by routing through a stair.");
 
             Require(Find(grid, 3, 3, 0, 0).Count == 0,
                 "A Water destination should fail safely.");
@@ -54,7 +56,7 @@ namespace TinyKingdom.EditorTools
             ValidateStairsSupport();
 
             if (logSuccess)
-                Debug.Log("Phase 2 validation passed: flat path, Water, Cliff, height, occupancy and unreachable cases.");
+                Debug.Log("Phase 2 validation passed: flat path, Water, Cliff, explicit stair height transition, occupancy and unreachable cases.");
         }
 
         private static void ValidateStairsSupport()

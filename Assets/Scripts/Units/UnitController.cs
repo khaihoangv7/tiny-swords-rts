@@ -21,7 +21,8 @@ namespace TinyKingdom.Units
         public bool IsWorldParticipant { get; private set; } = true;
         public bool IsProtected { get; private set; }
         public bool IsTargetable => IsAlive && IsWorldParticipant && !IsProtected;
-        public bool IsVisionActive => IsAlive && IsWorldParticipant;
+        public bool IsVisionActive => FactionRelations.IsPlayable(faction)
+            && IsAlive && IsWorldParticipant;
         public float VisionRadius => GetComponent<HealthComponent>()?.CombatData?.VisionRadius ?? 0f;
         public Vector3 VisionPosition => transform.position;
 

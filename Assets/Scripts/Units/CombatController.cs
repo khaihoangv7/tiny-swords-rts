@@ -764,7 +764,8 @@ namespace TinyKingdom.Units
         private bool IsValidTarget(UnitController enemy)
         {
             if (combatData == null || !controller.IsAlive || !health.IsAlive || enemy == null
-                || enemy == controller || enemy.Faction == controller.Faction || !enemy.IsTargetable
+                || enemy == controller || !FactionRelations.AreHostile(controller.Faction, enemy.Faction)
+                || !enemy.IsTargetable
                 || !enemy.gameObject.activeInHierarchy)
                 return false;
             HealthComponent enemyHealth = enemy.GetComponent<HealthComponent>();

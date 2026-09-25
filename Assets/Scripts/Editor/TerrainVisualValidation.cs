@@ -40,7 +40,7 @@ namespace TinyKingdom.EditorTools
                 var cell = new Vector3Int(x, y, 0);
                 bool shoreline = x >= 2 && x <= 37 && y >= 2 && y <= 25
                     && (x == 2 || x == 37 || y == 2 || y == 25);
-                bool shadowFootprint = x >= 16 && x <= 23 && y >= 11 && y <= 18;
+                bool shadowFootprint = IsShadowCell(x, y);
 
                 TileBase foamTile = foam.GetTile(cell);
                 TileBase shadowTile = shadow.GetTile(cell);
@@ -60,7 +60,7 @@ namespace TinyKingdom.EditorTools
                     shadowCount++;
             }
 
-            Require(foamCount == 116 && shadowCount == 64,
+            Require(foamCount == 116 && shadowCount == 62,
                 "Foam or shadow tile count differs from the expected footprint.");
             Require(foam.GetComponent<TilemapCollider2D>() == null
                 && shadow.GetComponent<TilemapCollider2D>() == null,
@@ -75,7 +75,7 @@ namespace TinyKingdom.EditorTools
                 "The three Phase 3 Blue test units are missing.");
             Require(GameObject.Find("Main Camera") != null, "Main Camera is missing.");
 
-            Debug.Log("Terrain visual validation passed: 116 shoreline foam cells, 56 offset footprint shadow cells, 8 cliff-foot shadow cells, visual-only layers, 40x28 navigation and three test units.");
+            Debug.Log("Terrain visual validation passed: 116 shoreline foam cells, 56 offset footprint shadow cells, 6 cliff-foot shadow cells, two official stair openings, visual-only layers, 40x28 navigation and three test units.");
         }
 
         private static void RepairVisualEffectsIfNeeded(Tilemap foam, Tilemap shadow)
@@ -94,7 +94,7 @@ namespace TinyKingdom.EditorTools
                 var cell = new Vector3Int(x, y, 0);
                 bool shoreline = x >= 2 && x <= 37 && y >= 2 && y <= 25
                     && (x == 2 || x == 37 || y == 2 || y == 25);
-                bool shadowFootprint = x >= 16 && x <= 23 && y >= 11 && y <= 18;
+                bool shadowFootprint = IsShadowCell(x, y);
                 mismatch = foam.GetTile(cell) != (shoreline ? foamAsset : null)
                     || shadow.GetTile(cell) != (shadowFootprint ? shadowAsset : null);
             }
@@ -110,7 +110,8 @@ namespace TinyKingdom.EditorTools
 
             for (int y = 11; y <= 18; y++)
             for (int x = 16; x <= 23; x++)
-                shadow.SetTile(new Vector3Int(x, y, 0), shadowAsset);
+                if (IsShadowCell(x, y))
+                    shadow.SetTile(new Vector3Int(x, y, 0), shadowAsset);
 
             foam.RefreshAllTiles();
             shadow.RefreshAllTiles();
@@ -123,6 +124,13 @@ namespace TinyKingdom.EditorTools
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             Debug.Log("Terrain visual validation updated WaterFoam and Shadow_L1 using Unity Tilemap.SetTile, then saved the Map scene.");
+        }
+
+        private static bool IsShadowCell(int x, int y)
+        {
+            if (x < 16 || x > 23 || y < 11 || y > 18)
+                return false;
+            return y > 11 || !StrategicObjectiveMapLayout.IsConnectorColumn(x);
         }
 
         private static Tilemap GetLayer(Transform root, string name, int sortingOrder)

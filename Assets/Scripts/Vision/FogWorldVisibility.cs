@@ -78,6 +78,7 @@ namespace TinyKingdom.Vision
         private void RefreshAll()
         {
             if (vision == null) return;
+            nextRefresh = Time.unscaledTime + vision.UpdateInterval;
             foreach (UnitController unit in UnitController.AllUnits)
             {
                 if (unit == null) continue;
@@ -96,6 +97,13 @@ namespace TinyKingdom.Vision
             {
                 ResourceNode resource = resources[i];
                 if (resource != null) Gate(resource, CanObserveResource(resource.transform.position));
+            }
+            IReadOnlyList<GoldMineObjective> mines = GoldMineObjective.Active;
+            for (int i = 0; i < mines.Count; i++)
+            {
+                GoldMineObjective mine = mines[i];
+                if (mine != null) Gate(mine, (mine.HasOwner && mine.Faction == playerViewFaction)
+                    || CanObserveResource(mine.transform.position));
             }
         }
 

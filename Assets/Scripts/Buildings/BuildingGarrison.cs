@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
-    public sealed class BuildingGarrison : MonoBehaviour
+    public sealed class BuildingGarrison : MonoBehaviour, IUnitStationHost
     {
         private sealed class PendingEntry
         {
@@ -37,6 +37,7 @@ namespace TinyKingdom.Buildings
         public int MaxHP => host?.MaxHP ?? 0;
         public IReadOnlyList<UnitController> InternalOccupants => internalOccupants;
         public event Action Changed;
+        public Transform StationTransform => transform;
 
         public void Configure(IDefensiveBuildingHost owner, GridManager navigation)
         {
@@ -170,7 +171,7 @@ namespace TinyKingdom.Buildings
             return restored;
         }
 
-        internal void DepositPawnCargoOnEntry(UnitController unit)
+        public void OnUnitEnteringInternal(UnitController unit)
         {
             if (host is not CastleDropOff castle || unit == null) return;
             unit.GetComponent<PawnGatherer>()?.DepositCargoOnGarrisonEntry(castle);

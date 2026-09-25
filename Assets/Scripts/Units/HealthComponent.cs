@@ -51,6 +51,35 @@ namespace TinyKingdom.Units
             return ApplyDamage(final, guarding && final < damage);
         }
 
+        public int Heal(int amount)
+        {
+            Initialize();
+            if (!IsAlive || amount <= 0 || currentHP >= MaxHP) return 0;
+            int before = currentHP;
+            currentHP = Mathf.Min(MaxHP, currentHP + amount);
+            int restored = currentHP - before;
+            if (restored > 0) HealthChanged?.Invoke(this);
+            return restored;
+        }
+
+        public bool KillAt(Vector3 presentationPosition)
+        {
+            Initialize();
+            if (!IsAlive) return false;
+            int before = currentHP;
+            currentHP = 0;
+            DamageReceived?.Invoke(this, before, false);
+            HealthChanged?.Invoke(this);
+            Controller.MarkDead();
+            if (FogWorldVisibility.ShouldPresentDeath(Controller.Faction, presentationPosition))
+                UnitDeathVfx.Spawn(presentationPosition);
+            Died?.Invoke(this);
+            CombatDied?.Invoke(this);
+            SpriteRenderer sprite = GetComponent<SpriteRenderer>();
+            if (sprite != null) sprite.enabled = false;
+            return true;
+        }
+
         public bool ReceiveAttack(int baseDamage, UnitType attacker, AttackDelivery delivery)
             => ReceiveAttack(baseDamage, attacker, delivery, 1f, true, null);
 

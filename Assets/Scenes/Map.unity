@@ -4288,16 +4288,6 @@ Tilemap:
       m_TileObjectToInstantiateIndex: 65535
       dummyAlignment: 0
       m_AllTileFlags: 1
-  - first: {x: 17, y: 11, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 0
-      m_TileSpriteIndex: 0
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1
   - first: {x: 18, y: 11, z: 0}
     second:
       serializedVersion: 2
@@ -4329,16 +4319,6 @@ Tilemap:
       dummyAlignment: 0
       m_AllTileFlags: 1
   - first: {x: 21, y: 11, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 0
-      m_TileSpriteIndex: 0
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1
-  - first: {x: 22, y: 11, z: 0}
     second:
       serializedVersion: 2
       m_TileIndex: 0
@@ -4921,15 +4901,15 @@ Tilemap:
   m_AnimatedTiles: {}
   m_TileAssetArray:
   - serializedVersion: 2
-    m_RefCount: 64
+    m_RefCount: 62
     m_Data: {fileID: 11400000, guid: bdf6496cabb5afa4280c9705678b7cec, type: 2}
   m_TileSpriteArray:
   - serializedVersion: 2
-    m_RefCount: 64
+    m_RefCount: 62
     m_Data: {fileID: 21300000, guid: 915a3ae167f6e3b499f12ec96f71aec7, type: 3}
   m_TileMatrixArray:
   - serializedVersion: 2
-    m_RefCount: 64
+    m_RefCount: 62
     m_Data:
       e00: 1
       e01: 0
@@ -4949,7 +4929,7 @@ Tilemap:
       e33: 1
   m_TileColorArray:
   - serializedVersion: 2
-    m_RefCount: 64
+    m_RefCount: 62
     m_Data: {r: 1, g: 1, b: 1, a: 1}
   m_TileObjectToInstantiateArray: []
   m_AnimationFrameRate: 1
@@ -16357,7 +16337,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 073797afb82c5a1438f328866b10b3f0, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.Light2D
   m_ComponentVersion: 4
   m_LightType: 4
@@ -16583,8 +16563,8 @@ Tilemap:
   - first: {x: 17, y: 11, z: 0}
     second:
       serializedVersion: 2
-      m_TileIndex: 12
-      m_TileSpriteIndex: 12
+      m_TileIndex: 16
+      m_TileSpriteIndex: 16
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -16633,8 +16613,8 @@ Tilemap:
   - first: {x: 22, y: 11, z: 0}
     second:
       serializedVersion: 2
-      m_TileIndex: 12
-      m_TileSpriteIndex: 12
+      m_TileIndex: 18
+      m_TileSpriteIndex: 18
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -16663,8 +16643,8 @@ Tilemap:
   - first: {x: 17, y: 12, z: 0}
     second:
       serializedVersion: 2
-      m_TileIndex: 11
-      m_TileSpriteIndex: 11
+      m_TileIndex: 15
+      m_TileSpriteIndex: 15
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -16713,8 +16693,8 @@ Tilemap:
   - first: {x: 22, y: 12, z: 0}
     second:
       serializedVersion: 2
-      m_TileIndex: 11
-      m_TileSpriteIndex: 11
+      m_TileIndex: 17
+      m_TileSpriteIndex: 17
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -17326,10 +17306,10 @@ Tilemap:
     m_RefCount: 1
     m_Data: {fileID: 11400000, guid: 2607a43c450aa1e4e9d113f14f22c105, type: 2}
   - serializedVersion: 2
-    m_RefCount: 6
+    m_RefCount: 4
     m_Data: {fileID: 11400000, guid: 33f0aac2d4af1544f9581006008741f6, type: 2}
   - serializedVersion: 2
-    m_RefCount: 6
+    m_RefCount: 4
     m_Data: {fileID: 11400000, guid: 2ed76215dc540af4daa5a25c4ca4f7eb, type: 2}
   - serializedVersion: 2
     m_RefCount: 1
@@ -17337,6 +17317,18 @@ Tilemap:
   - serializedVersion: 2
     m_RefCount: 1
     m_Data: {fileID: 11400000, guid: f4ce4673b080c3143b3c8cc48815c149, type: 2}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: 11400000, guid: d18ce13dbaf0dc94fa1268a526376325, type: 2}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: 11400000, guid: 72a721ddc271b3c49914c7203edd44c9, type: 2}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: 11400000, guid: d0e51c7b65005704b9dcd7b9c57ba593, type: 2}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: 11400000, guid: 24078534d052f9c4994dc811f91d93eb, type: 2}
   m_TileSpriteArray:
   - serializedVersion: 2
     m_RefCount: 1
@@ -17372,10 +17364,10 @@ Tilemap:
     m_RefCount: 1
     m_Data: {fileID: 1873428726, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
   - serializedVersion: 2
-    m_RefCount: 6
+    m_RefCount: 4
     m_Data: {fileID: -399205534, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
   - serializedVersion: 2
-    m_RefCount: 6
+    m_RefCount: 4
     m_Data: {fileID: -393395862, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
   - serializedVersion: 2
     m_RefCount: 1
@@ -17383,6 +17375,18 @@ Tilemap:
   - serializedVersion: 2
     m_RefCount: 1
     m_Data: {fileID: -1298737806, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: -1349183420, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: 1936944868, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: -444044495, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
+  - serializedVersion: 2
+    m_RefCount: 1
+    m_Data: {fileID: -380242314, guid: 98673eb63967c814f935695b40b3ff69, type: 3}
   m_TileMatrixArray:
   - serializedVersion: 2
     m_RefCount: 72
@@ -17490,7 +17494,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 578a7bb2eb544cf9bab7ff386d2a617b, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.UI.SelectionSummaryUI
   selectionManager: {fileID: 2201000002}
   guardInput: {fileID: 2201000004}
@@ -17498,21 +17502,6 @@ MonoBehaviour:
   archerVisuals: {fileID: 11400000, guid: 05ea53080fdc89e4b8c637a9ed690b22, type: 2}
   lancerVisuals: {fileID: 11400000, guid: 53b536861a734f849a5337122b64b519, type: 2}
   guardIcon: {fileID: -5233972180137678507, guid: 55cd456216069644786534e5081cb00d, type: 3}
---- !u!114 &1182957595
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1182957589}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67db1a92b2cd45a7a5fe842dc2d6ac5d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.UI.SelectionDragVisual
-  fillColor: {r: 0.3, g: 1, b: 0.45, a: 0.12}
-  borderColor: {r: 0.55, g: 1, b: 0.62, a: 0.9}
-  borderWidth: 2
 --- !u!114 &1182957591
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17523,7 +17512,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
   m_IgnoreReversedGraphics: 1
   m_BlockingObjects: 0
@@ -17540,7 +17529,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
   m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
@@ -17596,6 +17585,21 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1182957595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1182957589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67db1a92b2cd45a7a5fe842dc2d6ac5d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.UI.SelectionDragVisual
+  fillColor: {r: 0.3, g: 1, b: 0.45, a: 0.12}
+  borderColor: {r: 0.55, g: 1, b: 0.62, a: 0.9}
+  borderWidth: 2
 --- !u!1001 &1225459258
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17716,7 +17720,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7d9e75f926209545b834ce9a4e2b745, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MapCameraController
   movementSpeed: 12
   zoomSpeed: 2
@@ -17728,6 +17732,8 @@ MonoBehaviour:
     y: 0
     width: 40
     height: 28
+  edgeScrollEnabled: 1
+  edgeScrollThicknessPixels: 16
 --- !u!81 &1434424448
 AudioListener:
   m_ObjectHideFlags: 0
@@ -17812,7 +17818,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -27595,7 +27601,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.UI.InputSystemUIInputModule
   m_SendPointerHoverToParent: 1
   m_MoveRepeatDelay: 0.5
@@ -27626,7 +27632,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventSystem
   m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
@@ -27690,7 +27696,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1f7e6902b8a4f319c10a2584e18a002, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Navigation.GridManager
   navigationData: {fileID: 11400000, guid: d1f7e6902b8a4f319c10a2584e18a005, type: 2}
 --- !u!114 &2101000003
@@ -27703,7 +27709,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1f7e6902b8a4f319c10a2584e18a003, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Navigation.PathfindingSystem
   gridManager: {fileID: 2101000002}
 --- !u!114 &2101000004
@@ -27716,7 +27722,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1f7e6902b8a4f319c10a2584e18a004, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Navigation.PathfindingDebug
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -27771,7 +27777,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6797a813888e4898acc513dfbe20b079, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Input.SelectionManager
   worldCamera: {fileID: 1434424449}
   playerFaction: 0
@@ -27788,7 +27794,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 328838a9d64b46f793a9e970c4fd6649, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Input.PlayerCommandController
   worldCamera: {fileID: 1434424449}
   selectionManager: {fileID: 2201000002}
@@ -27806,7 +27812,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f427d82ce0e4a9b8f59219550bc0562, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Input.GuardInputController
   selectionManager: {fileID: 2201000002}
 --- !u!114 &2201000005
@@ -27977,7 +27983,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 0
   currentState: 0
@@ -27991,10 +27997,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 3
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -28008,10 +28017,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2203000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28022,7 +28033,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   currentHP: 260
@@ -28036,10 +28047,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   projectileSprite: {fileID: 0}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2203000008
 MonoBehaviour:
@@ -28051,7 +28064,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b23b0680f2840bc9cb3cf0f0c2db1ea, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitGuard
 --- !u!114 &2203000009
 MonoBehaviour:
@@ -28063,8 +28076,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2203000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28075,7 +28089,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 85b06ff23504a4344a5e5c1cacb886fb, type: 2}
 --- !u!1 &2204000000
@@ -28188,7 +28202,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 0
   currentState: 0
@@ -28202,10 +28216,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 3
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -28219,10 +28236,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2204000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28233,7 +28252,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   currentHP: 260
@@ -28247,10 +28266,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   projectileSprite: {fileID: 0}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2204000008
 MonoBehaviour:
@@ -28262,7 +28283,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b23b0680f2840bc9cb3cf0f0c2db1ea, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitGuard
 --- !u!114 &2204000009
 MonoBehaviour:
@@ -28274,8 +28295,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2204000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28286,7 +28308,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 85b06ff23504a4344a5e5c1cacb886fb, type: 2}
 --- !u!1 &2205000000
@@ -28399,7 +28421,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 0
   currentState: 0
@@ -28413,10 +28435,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 3
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -28430,10 +28455,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2205000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28444,7 +28471,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   currentHP: 260
@@ -28458,10 +28485,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   projectileSprite: {fileID: 0}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2205000008
 MonoBehaviour:
@@ -28473,7 +28502,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b23b0680f2840bc9cb3cf0f0c2db1ea, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitGuard
 --- !u!114 &2205000009
 MonoBehaviour:
@@ -28485,8 +28514,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2205000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28497,7 +28527,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 85b06ff23504a4344a5e5c1cacb886fb, type: 2}
 --- !u!1 &2206000000
@@ -28643,7 +28673,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 1
   currentState: 0
@@ -28657,10 +28687,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 3
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -28674,10 +28707,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2207000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28688,7 +28723,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   currentHP: 260
@@ -28702,10 +28737,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   projectileSprite: {fileID: 0}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2207000008
 MonoBehaviour:
@@ -28717,7 +28754,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6b23b0680f2840bc9cb3cf0f0c2db1ea, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitGuard
 --- !u!114 &2207000009
 MonoBehaviour:
@@ -28729,8 +28766,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2207000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28741,7 +28779,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 523c86c87a24d874a906ffe25a63ac26, type: 2}
 --- !u!1 &2300000000
@@ -28886,7 +28924,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 0
   currentState: 0
@@ -28900,10 +28938,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 3
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -28917,10 +28958,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2301000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28931,7 +28974,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: 1ba883f965984ea28be5b873fb834b48, type: 2}
   currentHP: 60
@@ -28945,10 +28988,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: 1ba883f965984ea28be5b873fb834b48, type: 2}
   projectileSprite: {fileID: -4346244404228752641, guid: 5b4d2ef51cecd094593cf4f72d613477, type: 3}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2301000008
 MonoBehaviour:
@@ -28960,8 +29005,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2301000009
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28972,7 +29018,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 05ea53080fdc89e4b8c637a9ed690b22, type: 2}
 --- !u!1 &2302000000
@@ -29084,7 +29130,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8058ab524cd48359c440a44bec004d5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitController
   faction: 1
   currentState: 0
@@ -29098,10 +29144,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cc9425553b84deba87b36b775b54b35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitMovement
   movementSpeed: 2.8
   arrivalTolerance: 0.02
+  commandDestinationEpsilon: 0.2
+  separationRadius: 0.35
+  separationSpeed: 1.2
   drawPathWhenSelected: 1
   gridManager: {fileID: 2101000002}
   pathfindingSystem: {fileID: 2101000003}
@@ -29115,10 +29164,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04c9d52a437a445eafdc3bb85c3eba9e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitSelection
   clickRadiusPixels: 28
-  indicatorRadius: 0.55
+  markerWidth: 0.56
+  markerHeight: 0.2
+  markerYOffset: -0.43
 --- !u!114 &2302000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29129,7 +29180,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8c63a1df7e44f0c906d39a27acbe542, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.HealthComponent
   combatData: {fileID: 11400000, guid: 2cadc9bd488d42c390703ef1e726b42e, type: 2}
   currentHP: 125
@@ -29143,10 +29194,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9f157d2ab6348f38a718d50b6e2c3a4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.CombatController
   combatData: {fileID: 11400000, guid: 2cadc9bd488d42c390703ef1e726b42e, type: 2}
   projectileSprite: {fileID: 0}
+  projectileLaunchOffset: {x: 0.4, y: 0.1}
+  projectileArcHeight: 1.2
   repathInterval: 0.5
 --- !u!114 &2302000008
 MonoBehaviour:
@@ -29158,8 +29211,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
+  showDamageNumbers: 0
 --- !u!114 &2302000009
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29170,7 +29224,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9393f4e03aee4cc08bdf26db7772c810, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimator
   animationSet: {fileID: 11400000, guid: 9450485d6096f634299cf049c782264f, type: 2}
 --- !u!114 &2500000000
@@ -29190,9 +29244,11 @@ MonoBehaviour:
   warriorCombatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   lancerCombatData: {fileID: 11400000, guid: 2cadc9bd488d42c390703ef1e726b42e, type: 2}
   archerCombatData: {fileID: 11400000, guid: 1ba883f965984ea28be5b873fb834b48, type: 2}
+  monkCombatData: {fileID: 11400000, guid: cb88389d3ab39114b9c5b139bc704f4e, type: 2}
   blueWarriorPrefab: {fileID: 1000000000000000000, guid: 37c31cfba7a54cfba3f6cbc1eb712a6a, type: 3}
   blueLancerPrefab: {fileID: 1000000000000000000, guid: 97a3e861493c45929936382903f51fd2, type: 3}
   blueArcherPrefab: {fileID: 1000000000000000000, guid: 781de4be238d449b8f7a4d10ae5ea218, type: 3}
+  blueMonkPrefab: {fileID: 4572782470767410531, guid: 2a446f7811725d74c93da03c9d41e9d5, type: 3}
   treeStumpSprite: {fileID: 7759314080828431348, guid: 07febcaaab597c249b5e086fb3e5d9b5, type: 3}
   sheepSprite: {fileID: -6879290243380990860, guid: 536f0ab1668c7fc4b943e0c352b78909, type: 3}
   treeSprite: {fileID: 6215267202064938543, guid: 7ba676c65d3f7aa45b09df961c21bbda, type: 3}

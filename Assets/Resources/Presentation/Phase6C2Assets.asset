@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db8f7d25a7846fb44abd7629b68d7b27, type: 3}
+  m_Name: Phase6C2Assets
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Presentation.Phase6C2AssetCatalog
+  blueMonk: {fileID: 11400000, guid: b8d3f63a5cfa63045a2e90a0d945f030, type: 2}
+  redMonk: {fileID: 11400000, guid: 9fc86a763e0ab2a45aa8516cc4cf4c8a, type: 2}
+  goblinTorch: {fileID: 11400000, guid: 13652618994d86245b66114cac3e5869, type: 2}
+  goblinTnt: {fileID: 11400000, guid: 1f9f4f36c7d2e6241bf0d2127c00f94c, type: 2}
+  blueHealEffect:
+  - {fileID: -7024647307699674525, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 5961021751012434444, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 4245197819410898624, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: -4178271230150291121, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 8633989232224805090, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 3027786467292887404, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: -6516564901735614582, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 5558680185361507994, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 7906872027508097994, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: 1076212263093357779, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  - {fileID: -6975476344276479993, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
+  redHealEffect:
+  - {fileID: -7024647307699674525, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 5961021751012434444, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 4245197819410898624, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: -4178271230150291121, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 8633989232224805090, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 3027786467292887404, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: -6516564901735614582, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 5558680185361507994, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 7906872027508097994, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: 1076212263093357779, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  - {fileID: -6975476344276479993, guid: f568040395c976b46a9cdd52dcf42339, type: 3}
+  dynamite:
+  - {fileID: -4003982261762975687, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  - {fileID: -8577014525294070064, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  - {fileID: 7365162018239571399, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  - {fileID: -962947814412039851, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  - {fileID: 7958047030763748245, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  - {fileID: 7441393964542950931, guid: 3d5cc524476679349b4f22b7668b7e65, type: 3}
+  explosion03:
+  - {fileID: 6484374964891397356, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: 4922470440466835620, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: 6369427764272350081, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: -2931812291240075375, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: 2518822333835577766, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: -2389684416570394088, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: -7021396071300760605, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: -8680654366298976387, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  - {fileID: -9023725102884763727, guid: 31a5146880313494ab2cab9b5308a1dc, type: 3}
+  goldMineInactive: {fileID: 21300000, guid: c0686d93e77c3f54199fa008b056039f, type: 3}
+  goldMineActive: {fileID: 21300000, guid: 1bd8043314c14b84f890495dbf5af7b0, type: 3}
+  goldMineDestroyed: {fileID: 21300000, guid: 340f07a936b7d5c44bff633a6050ef14, type: 3}

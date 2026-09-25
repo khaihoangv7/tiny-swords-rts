@@ -27,6 +27,13 @@ namespace TinyKingdom.Input
 
         public bool IsAttackMoveTargeting => attackMovePending;
 
+        public bool BeginAttackMoveTargeting()
+        {
+            if (!MatchManager.AllowsGameplay || !HasSelectedCombatUnits()) return false;
+            attackMovePending = true;
+            return true;
+        }
+
         private void Awake()
         {
             if (worldCamera == null) worldCamera = Camera.main;
@@ -112,6 +119,9 @@ namespace TinyKingdom.Input
                     rally.TrySetRallyPoint(world);
                 return;
             }
+            HealthComponent friendlyHealTarget = FindFriendlyDamagedUnit(pointer);
+            if (friendlyHealTarget != null && IssueHealCommand(friendlyHealTarget) > 0)
+                return;
             UnitController enemy = FindEnemyAtScreenPosition(pointer);
             if (enemy != null)
                 IssueAttackCommand(enemy);
@@ -126,6 +136,8 @@ namespace TinyKingdom.Input
             }
             else if (FindFriendlyBuilding(world) is BuildingSite building)
                 IssueBuildingCommand(building);
+            else if (FindGoldMine(world) is GoldMineObjective mine)
+                IssueGoldMineCommand(mine);
             else if (FindResourceAtScreenPosition(pointer) is ResourceNode node)
                 IssueGatherCommand(node);
             else if (IssueMoveCommand(world) > 0)
@@ -151,6 +163,7 @@ namespace TinyKingdom.Input
                 CombatController combat = unit.GetComponent<CombatController>();
                 if (combat != null && combat.Attack(target))
                 {
+                    unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                     unit.GetComponent<PawnGatherer>()?.CancelJob();
                     unit.GetComponent<PawnBuilder>()?.CancelJob();
                     issued++;
@@ -175,6 +188,7 @@ namespace TinyKingdom.Input
                     || unit.Controller.Faction != selectionManager.PlayerFaction) continue;
                 CombatController combat = unit.GetComponent<CombatController>();
                 if (combat == null || !combat.Attack(target)) continue;
+                unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                 unit.GetComponent<PawnGatherer>()?.CancelJob();
                 unit.GetComponent<PawnBuilder>()?.CancelJob();
                 issued++;
@@ -244,11 +258,45 @@ namespace TinyKingdom.Input
                 unit.GetComponent<UnitStationing>()?.CancelPending();
                 if (gatherer != null && gatherer.Gather(target))
                 {
+                    unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                     unit.GetComponent<PawnBuilder>()?.CancelJob();
                     issued++;
                 }
             }
             return issued;
+        }
+
+        public int IssueGoldMineCommand(GoldMineObjective mine)
+        {
+            if (!MatchManager.AllowsGameplay || mine == null || selectionManager == null
+                || !CanPlayerObserveResource(mine.transform.position)) return 0;
+            selectionManager.CopySelectedUnits(commandUnits);
+            int issued = 0;
+            foreach (UnitSelection selected in commandUnits)
+                if (selected != null && selected.Controller.Faction == selectionManager.PlayerFaction
+                    && mine.TryEnter(selected.Controller)) issued++;
+            return issued;
+        }
+
+        public bool CanEnterGoldMineAt(Vector3 world)
+        {
+            GoldMineObjective mine = FindGoldMine(world);
+            if (mine == null || selectionManager == null
+                || !CanPlayerObserveResource(mine.transform.position)) return false;
+            foreach (UnitSelection selected in selectionManager.SelectedUnits)
+                if (selected != null && mine.CanAccept(selected.Controller))
+                    return true;
+            return false;
+        }
+
+        private GoldMineObjective FindGoldMine(Vector3 world)
+        {
+            foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
+            {
+                GoldMineObjective mine = hit.GetComponent<GoldMineObjective>();
+                if (mine != null) return mine;
+            }
+            return null;
         }
 
         private ResourceNode FindResourceAtScreenPosition(Vector2 screenPosition)
@@ -269,6 +317,31 @@ namespace TinyKingdom.Input
                 bestDistance = distance;
             }
             return best;
+        }
+
+        public int IssueHealCommand(HealthComponent target)
+        {
+            if (!MatchManager.AllowsGameplay || target == null || !target.IsAlive
+                || target.CurrentHP >= target.MaxHP || selectionManager == null) return 0;
+            UnitController ally = target.GetComponent<UnitController>();
+            if (ally == null || ally.Faction != selectionManager.PlayerFaction) return 0;
+            selectionManager.CopySelectedUnits(commandUnits);
+            int issued = 0;
+            foreach (UnitSelection unit in commandUnits)
+            {
+                MonkHealer healer = unit != null ? unit.GetComponent<MonkHealer>() : null;
+                if (healer != null && healer.AssignManual(target)) issued++;
+            }
+            return issued;
+        }
+
+        private HealthComponent FindFriendlyDamagedUnit(Vector2 screenPosition)
+        {
+            if (worldCamera == null || selectionManager == null) return null;
+            UnitSelection hit = selectionManager.FindFriendlyUnitAtScreenPosition(screenPosition);
+            HealthComponent health = hit != null ? hit.GetComponent<HealthComponent>() : null;
+            return health != null && health.IsAlive && health.CurrentHP < health.MaxHP
+                ? health : null;
         }
 
         public int IssueMoveCommand(Vector3 worldPosition)
@@ -370,6 +443,7 @@ namespace TinyKingdom.Input
                     if (!accepted)
                         continue;
 
+                    selectedUnit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                     selectedUnit.GetComponent<PawnGatherer>()?.CancelJob();
                     selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
 

@@ -46,15 +46,23 @@ phase2-path.txt
 /Assets/Units/**/*.png
 /Assets/Units/**/*.aseprite
 
+# Phase 6C.2 active gameplay art (explicit exceptions to the local-art rules)
+!/Assets/Particle FX/Explosion_03.png
+!/Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Inactive.png
+!/Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Active.png
+!/Assets/Terrain/Resources/Gold/Gold Mine/GoldMine_Destroyed.png
+!/Assets/Units/Goblins Units/Goblins_Torch/Torch_Yellow.png
+!/Assets/Units/Goblins Units/Goblins_TNT/TNT_Red.png
+!/Assets/Units/Goblins Units/Goblins_TNT/Dynamite.png
+
 # Unused local Tiny Swords content (keep on disk, exclude from repository)
-/Assets/Buildings/Goblins Building/
-/Assets/Buildings/Goblins Building.meta
-/Assets/Units/Goblins Units/
-/Assets/Units/Goblins Units.meta
-/Assets/Terrain/Resources/Gold/Gold Mine/
-/Assets/Terrain/Resources/Gold/Gold Mine.meta
 /Assets/Terrain/Tileset/Bridge_All.png
 /Assets/Terrain/Tileset/Bridge_All.png.meta
+/Assets/Buildings/Goblins Building/
+/Assets/Buildings/Goblins Building.meta
+/Assets/Units/Goblins Units/Goblins_Barrel/
+/Assets/Units/Goblins Units/Goblins_Barrel.meta
+/Assets/Units/Goblins Units/**/*.aseprite.meta
 
 # Unity template / welcome assets
 /Assets/Welcome/

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Castle
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Buildings.BuildingData
   buildingType: 0
-  maxHP: 1000
+  maxHP: 2000
   foodCost: 0
   woodCost: 0
   goldCost: 0

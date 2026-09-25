@@ -20,6 +20,7 @@ namespace TinyKingdom.Units
         private bool facingLeft;
         private const float FacingEpsilon = 0.01f;
         public SpriteRenderer VisualRenderer => visual;
+        public UnitAnimationSet AnimationSet => animationSet;
         public bool IsAttackPresentationConnected => combat == null
             || combat.HasAttackPresentationListener;
 
@@ -89,6 +90,8 @@ namespace TinyKingdom.Units
                 facingLeft = direction.x < 0f;
             Begin(chosen);
         }
+
+        public void PlayAction(Vector2 direction) => PlayAttack(direction);
 
         private void HandleState(UnitState state)
         {

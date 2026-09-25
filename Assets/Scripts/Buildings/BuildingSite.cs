@@ -37,6 +37,7 @@ namespace TinyKingdom.Buildings
         public Vector2Int Footprint => data.Footprint;
         public bool IsProductionReady => IsAlive && State == BuildingState.Completed;
         public bool IsDefenseReady => IsProductionReady;
+        public float FireThreshold => 0.70f;
         public BuildingData DefenseData => data;
         public Transform HostTransform => transform;
         public Collider2D InteractionCollider => GetComponent<Collider2D>();

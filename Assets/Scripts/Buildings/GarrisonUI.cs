@@ -1,4 +1,5 @@
 using TinyKingdom.Input;
+using TinyKingdom.Economy;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,6 +10,7 @@ namespace TinyKingdom.Buildings
     {
         private SelectionManager selection;
         private BuildingGarrison current;
+        private GoldMineObjective currentMine;
         private RectTransform panel;
         private Text status;
         private Button eject;
@@ -25,35 +27,51 @@ namespace TinyKingdom.Buildings
         {
             if (selection != null) selection.SelectionChanged -= RefreshSelection;
             if (current != null) current.Changed -= Refresh;
+            if (currentMine != null) currentMine.Changed -= Refresh;
         }
 
         private void Update()
         {
-            if (current == null && panel != null && panel.gameObject.activeSelf)
+            if (current == null && currentMine == null && panel != null && panel.gameObject.activeSelf)
                 panel.gameObject.SetActive(false);
-            else if (current != null) Refresh();
+            else if (current != null || currentMine != null) Refresh();
         }
 
         private void RefreshSelection()
         {
             if (current != null) current.Changed -= Refresh;
+            if (currentMine != null) currentMine.Changed -= Refresh;
             current = selection.SelectedBuilding != null
                 ? selection.SelectedBuilding.GetComponent<BuildingGarrison>()
                 : selection.SelectedCastle != null
                     ? selection.SelectedCastle.GetComponent<BuildingGarrison>() : null;
+            currentMine = selection.SelectedGoldMine;
             if (current != null) current.Changed += Refresh;
+            if (currentMine != null) currentMine.Changed += Refresh;
             Refresh();
         }
 
         private void Refresh()
         {
-            bool visible = current != null;
+            bool visible = current != null || currentMine != null;
             panel.gameObject.SetActive(visible);
             if (!visible) return;
-            status.text = $"HP: {Mathf.CeilToInt(current.CurrentHP)} / {current.MaxHP}"
-                + $"\nInternal Garrison: {current.InternalCount} / {current.InternalCapacity}"
-                + $"\nMounted Archers: {current.MountedCount} / {current.MountedCapacity}";
-            eject.interactable = current.InternalCount + current.MountedCount > 0;
+            if (currentMine != null)
+            {
+                status.text = $"Gold Mine - {currentMine.State}"
+                    + $" ({(currentMine.HasOwner ? currentMine.Faction.ToString() : "Neutral")})"
+                    + $"\nHP: {Mathf.CeilToInt(currentMine.CurrentHP)} / {currentMine.MaxHP}"
+                    + $"\nPawns: {currentMine.OccupantCount} / {GoldMineObjective.PawnCapacity}"
+                    + $"  Gold: {currentMine.RemainingGold}";
+                eject.interactable = currentMine.OccupantCount > 0;
+            }
+            else
+            {
+                status.text = $"HP: {Mathf.CeilToInt(current.CurrentHP)} / {current.MaxHP}"
+                    + $"\nInternal Garrison: {current.InternalCount} / {current.InternalCapacity}"
+                    + $"\nMounted Archers: {current.MountedCount} / {current.MountedCapacity}";
+                eject.interactable = current.InternalCount + current.MountedCount > 0;
+            }
         }
 
         private void Build()
@@ -70,7 +88,10 @@ namespace TinyKingdom.Buildings
             background.color = new Color(0.2f, 0.34f, 0.28f, 0.95f);
             eject = buttonRect.gameObject.AddComponent<Button>();
             eject.targetGraphic = background;
-            eject.onClick.AddListener(() => current?.EjectAll());
+            eject.onClick.AddListener(() =>
+            {
+                if (currentMine != null) currentMine.EjectAll(); else current?.EjectAll();
+            });
             Text label = Label("Label", buttonRect, new Vector2(110f, 28f), Vector2.zero);
             label.text = "Eject All";
             label.alignment = TextAnchor.MiddleCenter;

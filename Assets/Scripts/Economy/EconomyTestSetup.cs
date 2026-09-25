@@ -18,9 +18,11 @@ namespace TinyKingdom.Economy
         [SerializeField] private UnitCombatData warriorCombatData = null;
         [SerializeField] private UnitCombatData lancerCombatData = null;
         [SerializeField] private UnitCombatData archerCombatData = null;
+        [SerializeField] private UnitCombatData monkCombatData = null;
         [SerializeField] private GameObject blueWarriorPrefab = null;
         [SerializeField] private GameObject blueLancerPrefab = null;
         [SerializeField] private GameObject blueArcherPrefab = null;
+        [SerializeField] private GameObject blueMonkPrefab = null;
         [SerializeField] private Sprite treeStumpSprite = null;
         [SerializeField] private Sprite sheepSprite = null;
         [SerializeField] private Sprite treeSprite = null;
@@ -100,9 +102,7 @@ namespace TinyKingdom.Economy
             feedback.Watch(MakePawn(area.transform, "BluePawn_3", new Vector3(5.5f, 7.5f, 0f)));
 
             SelectionSummaryUI summary = FindAnyObjectByType<SelectionSummaryUI>();
-            if (summary != null)
-                summary.gameObject.AddComponent<EconomyHUD>().Configure(blue);
-            else
+            if (summary == null)
                 Debug.LogError("Phase 5A needs the existing UI Canvas for the economy HUD.", this);
 
             SelectionManager selection = FindAnyObjectByType<SelectionManager>();
@@ -129,19 +129,16 @@ namespace TinyKingdom.Economy
             BuildingPlacementController placement = commands.gameObject.AddComponent<BuildingPlacementController>();
             placement.Configure(buildingSystem, selection, navigation, Camera.main);
 
-            if (summary != null)
-                summary.gameObject.AddComponent<BuildingCommandUI>().Configure(
-                    buildingSystem, placement, selection, blue, population);
-
             if (warriorCombatData == null || lancerCombatData == null || archerCombatData == null
-                || blueWarriorPrefab == null || blueLancerPrefab == null || blueArcherPrefab == null)
+                || monkCombatData == null || blueWarriorPrefab == null || blueLancerPrefab == null
+                || blueArcherPrefab == null || blueMonkPrefab == null)
             {
                 Debug.LogError("Phase 5C1 production needs existing unit data and Blue prefabs.", this);
                 setupReady = true;
                 return;
             }
             UnitCombatData[] unitData =
-                { pawnCombatData, warriorCombatData, lancerCombatData, archerCombatData };
+                { pawnCombatData, warriorCombatData, lancerCombatData, archerCombatData, monkCombatData };
             castle.gameObject.AddComponent<UnitProductionQueue>().Configure(
                 castle, blue, population, navigation, unitData, SpawnProductionUnit);
             SetupDefense(castle, navigation);
@@ -171,13 +168,15 @@ namespace TinyKingdom.Economy
                 if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
             };
             if (summary != null)
-                summary.gameObject.AddComponent<ProductionUI>().Configure(selection,
-                    pawnAnimations.Idle[0], blueWarriorPrefab.GetComponent<SpriteRenderer>()?.sprite,
-                    blueLancerPrefab.GetComponent<SpriteRenderer>()?.sprite,
-                    blueArcherPrefab.GetComponent<SpriteRenderer>()?.sprite);
-            if (summary != null)
-                summary.gameObject.AddComponent<GarrisonUI>().Configure(selection);
+            {
+                RtsHudController hud = summary.GetComponent<RtsHudController>()
+                    ?? summary.gameObject.AddComponent<RtsHudController>();
+                hud.Configure(selection, commands,
+                    selection.GetComponent<GuardInputController>(), blue, population,
+                    buildingSystem, placement);
+            }
             TeamVisionBootstrap.Ensure(transform, navigation, selection.PlayerFaction);
+            SetupStrategicObjective(area.transform, navigation, blue, red);
 
             MatchManager match = area.AddComponent<MatchManager>();
             match.Configure(selection.PlayerFaction, 0.85f);
@@ -236,6 +235,7 @@ namespace TinyKingdom.Economy
                 UnitType.Warrior => blueWarriorPrefab,
                 UnitType.Lancer => blueLancerPrefab,
                 UnitType.Archer => blueArcherPrefab,
+                UnitType.Monk => blueMonkPrefab,
                 _ => null
             };
             if (prefab == null) return null;
@@ -250,6 +250,70 @@ namespace TinyKingdom.Economy
         private void OnDestroy()
         {
             if (hitFlashMaterial != null) Destroy(hitFlashMaterial);
+        }
+
+        private void SetupStrategicObjective(Transform parent, GridManager navigation,
+            ResourceStockpile blue, ResourceStockpile red)
+        {
+            if (navigation == null) return;
+            Vector2Int preferred = new(StrategicObjectiveMapLayout.MineOriginX,
+                StrategicObjectiveMapLayout.MineOriginY);
+            Vector2Int footprint = new(StrategicObjectiveMapLayout.MineWidth,
+                StrategicObjectiveMapLayout.MineHeight);
+            if (!TryFindOpenFootprint(navigation, preferred, footprint,
+                out Vector2Int origin))
+            {
+                Debug.LogError("Phase 6C.2 could not find a safe central Gold Mine footprint.", this);
+                return;
+            }
+            Phase6C2AssetCatalog assets = Phase6C2AssetCatalog.Load();
+            if (assets == null || assets.GoldMineInactive == null)
+            {
+                Debug.LogError("Phase 6C.2 asset catalog is missing.", this);
+                return;
+            }
+            var mineObject = new GameObject("CentralGoldMineObjective");
+            mineObject.transform.SetParent(parent, false);
+            Vector3 first = navigation.GridToWorld(origin.x, origin.y);
+            mineObject.transform.position = first + new Vector3(0.5f, 0.5f, 0f);
+            var visualRoot = new GameObject("VisualRoot");
+            visualRoot.transform.SetParent(mineObject.transform, false);
+            visualRoot.transform.localPosition = Vector3.up * GoldMineObjective.VisualGroundOffsetY;
+            visualRoot.transform.localScale = Vector3.one * GoldMineObjective.VisualScale;
+            SpriteRenderer mineVisual = MakeVisual(visualRoot.transform,
+                assets?.GoldMineInactive, true);
+            mineVisual.sortingOrder = 9;
+            BoxCollider2D mineCollider = mineObject.AddComponent<BoxCollider2D>();
+            mineCollider.size = new Vector2(1.75f, 1.25f);
+            mineCollider.offset = new Vector2(0f, 0.1f);
+            GoldMineObjective mine = mineObject.AddComponent<GoldMineObjective>();
+            mine.Configure(origin, navigation, blue, red, feedback);
+        }
+
+        private static bool TryFindOpenFootprint(GridManager navigation, Vector2Int preferred,
+            Vector2Int size, out Vector2Int origin)
+        {
+            origin = default;
+            for (int radius = 0; radius < 12; radius++)
+            for (int y = preferred.y - radius; y <= preferred.y + radius; y++)
+            for (int x = preferred.x - radius; x <= preferred.x + radius; x++)
+            {
+                if (Mathf.Max(Mathf.Abs(x - preferred.x), Mathf.Abs(y - preferred.y)) != radius)
+                    continue;
+                int height = -1; bool valid = true;
+                for (int fy = 0; fy < size.y && valid; fy++)
+                for (int fx = 0; fx < size.x; fx++)
+                {
+                    GridCell cell = navigation.GetCell(x + fx, y + fy);
+                    if (cell == null || !cell.Walkable || cell.Occupied
+                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                        || (height >= 0 && height != cell.HeightLevel)) { valid = false; break; }
+                    height = cell.HeightLevel;
+                }
+                if (!valid) continue;
+                origin = new Vector2Int(x, y); return true;
+            }
+            return false;
         }
 
         private static ResourceStockpile MakeStockpile(Transform parent, Faction faction)

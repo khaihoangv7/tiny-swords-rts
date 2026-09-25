@@ -23,6 +23,9 @@ namespace TinyKingdom.Units
         private Vector2Int commandDestinationCell;
         private Vector3? commandFinalPosition;
         private Vector3? commandPointerPosition;
+        private bool hasChaseDestination;
+        private Vector2Int chaseDestinationCell;
+        private Vector3? chaseFinalPosition;
         private Vector2 lastMovementDirection = Vector2.right;
 
         public float MovementSpeed => movementSpeed;
@@ -117,12 +120,16 @@ namespace TinyKingdom.Units
                 && destination == commandDestinationCell
                 && EquivalentPoint(finalPosition, commandFinalPosition)
                 && EquivalentPoint(commandPosition, commandPointerPosition);
-            if (equivalentCommand)
+            bool equivalentChase = chasing && hasChaseDestination
+                && activePath.HasRemainingWaypoints
+                && destination == chaseDestinationCell
+                && EquivalentPoint(finalPosition, chaseFinalPosition);
+            if (equivalentCommand || equivalentChase)
             {
-                if (!attackMove)
+                if (!chasing && !attackMove)
                     GetComponent<CombatController>()?.OnMoveIssued();
                 unitController.SetState(activePath.HasRemainingWaypoints
-                    ? UnitState.Moving : UnitState.Idle);
+                    ? (chasing ? UnitState.Chasing : UnitState.Moving) : UnitState.Idle);
                 return true;
             }
             if (!TryFindPath(destination, out List<GridCell> path))
@@ -161,10 +168,18 @@ namespace TinyKingdom.Units
             activePath.Set(worldPath, transform.position, arrivalTolerance);
             if (!chasing)
             {
+                hasChaseDestination = false;
                 hasCommandDestination = true;
                 commandDestinationCell = destination;
                 commandFinalPosition = finalPosition;
                 commandPointerPosition = commandPosition;
+            }
+            else
+            {
+                hasCommandDestination = false;
+                hasChaseDestination = true;
+                chaseDestinationCell = destination;
+                chaseFinalPosition = finalPosition;
             }
             unitController.SetState(activePath.HasRemainingWaypoints
                 ? (chasing ? UnitState.Chasing : UnitState.Moving) : UnitState.Idle);
@@ -202,6 +217,8 @@ namespace TinyKingdom.Units
             hasCommandDestination = false;
             commandFinalPosition = null;
             commandPointerPosition = null;
+            hasChaseDestination = false;
+            chaseFinalPosition = null;
             unitController ??= GetComponent<UnitController>();
             if (unitController.IsAlive)
                 unitController.SetState(UnitState.Idle);
@@ -211,6 +228,28 @@ namespace TinyKingdom.Units
         {
             suspended = value;
             if (value) activePath.Clear();
+        }
+
+        public float ApplyDeterministicKnockback(Vector3 origin, float distance)
+        {
+            ResolveNavigationReferences();
+            if (suspended || gridManager == null || distance <= 0f) return 0f;
+            Vector2 direction = (Vector2)(transform.position - origin);
+            if (direction.sqrMagnitude < 0.0001f) direction = Vector2.right;
+            direction.Normalize();
+            Vector3 start = transform.position;
+            for (int step = 10; step >= 1; step--)
+            {
+                float amount = distance * step / 10f;
+                Vector3 candidate = start + (Vector3)(direction * amount);
+                Vector2Int cellPosition = gridManager.WorldToGrid(candidate);
+                GridCell cell = gridManager.GetCell(cellPosition.x, cellPosition.y);
+                if (cell == null || !cell.Walkable || cell.Occupied) continue;
+                if (!UnitSeparation.IsSafeSegment(gridManager, start, candidate)) continue;
+                transform.position = candidate;
+                return amount;
+            }
+            return 0f;
         }
 
         public void TickMovement(float deltaTime)

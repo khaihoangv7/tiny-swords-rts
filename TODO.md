@@ -469,3 +469,104 @@ required. Phase 7, Rule-Based AI and Reinforcement Learning have not started.
 - [ ] Play Mode: verify one Sheep flash and squash/stretch per successful Food gather impact with no position drift
 - [ ] Play Mode: verify lethal damage remains immediate and Dead/Buried VFX retains priority
 - [ ] Full Fog, combat, gathering, construction, production, garrison, Rally, Match Result and clean-Console regression
+
+## Phase 6C.2 Monk, Gold Mine and Neutral Goblin Objective
+
+Status: **NOT COMPLETE** - implementation and independent Runtime/Editor compile
+checks pass with 0 errors and 0 warnings; Unity asset setup, automated validator
+and manual Play Mode validation remain required. Phase 6D, Phase 7 and RL have
+not started.
+
+- [x] Add Monk data and Monastery FIFO production: 80 HP, 1 population, speed 3, 60 Food + 60 Gold, 7 seconds
+- [x] Add deterministic same-faction auto/manual healing: +5 HP, 4-second interval, range 2, auto detection 4
+- [x] Play verified Monk Heal and Heal_Effect only on an actual successful heal
+- [x] Add explicit Goblin faction relationships without Castle, economy, population or match-result participation
+- [x] Add one Torch and one TNT guard near the central objective with deterministic guard targeting/leash
+- [x] Add Torch Warrior-baseline combat and delayed fractional 1-percent regeneration
+- [x] Add deterministic Dynamite projectile, one-shot Explosion_03, unit-only 18-damage AoE and safe 0.60 knockback
+- [x] Add neutral/owned/depleted/destroyed Gold Mine state authority with 1500 HP, 2000 Gold and 2x2 occupancy
+- [x] Add 3-Pawn internal capacity, 15 Gold per Pawn per 5 seconds, partial final payout and Eject All
+- [x] Preserve internal Pawn population; depletion ejects safely and combat destruction kills internal Pawns only
+- [x] Reuse building combat, health bar, 0.60 profile Fire, Explosion_01/02 and persistent wreck presentation
+- [x] Extend Fog visibility and last-seen memory to Gold Mine without Goblin unit ghosts or hidden-state leaks
+- [x] Increase both Main Castles from 1000 to 2000 HP while preserving normal 0.70 Fire threshold
+- [x] Remove obsolete broad Goblin/Gold Mine ignore rules and explicitly unignore active runtime textures
+- [x] Verify and document exact asset paths, dimensions, frames, tags, variants and import requirements
+- [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
+- [ ] Run `Tools > Tiny Kingdom > Prepare Phase 6C.2 Strategic Objective` in Unity after import/recompile
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 6C.2 Strategic Objective`
+- [ ] Manual Play Mode: Monk production, auto priority, manual heal, effect timing, cancellation, faction/Fog rules
+- [ ] Manual Play Mode: mine capture, 1/2/3-Pawn payout, partial depletion, safe ejection and persistent ownership
+- [ ] Manual Play Mode: enemy-owned mine attack, 60-percent Fire, internal-only Pawn death, building Explosion and wreck
+- [ ] Manual Play Mode: Torch attack/regen and TNT throw/projectile/AoE/no-friendly-fire/safe knockback/leash
+- [ ] Manual Play Mode: Gold Mine current/last-seen Fog behavior and Goblin current-visibility-only behavior
+- [ ] Manual Play Mode: Castle 2000 HP/result behavior and full combat/economy/production/navigation/UI regression
+- [ ] Confirm Unity Console has no new errors or warnings
+
+## Phase 6C.2.1 Goblin Fog, Gold Mine Access and Objective Presentation
+
+Status: **NOT COMPLETE** - focused implementation and static validation are
+prepared. Unity Editor validator and the requested manual Play Mode checks remain.
+Phase 6D, Phase 7, AI and RL have not started.
+
+- [x] Make Goblin Torch/TNT start hidden until current player vision is evaluated
+- [x] Gate the full Goblin renderer hierarchy without disabling gameplay
+- [x] Prevent creation-frame leaks from Goblin Heal, Dynamite and TNT explosion presentation
+- [x] Keep moving Goblins out of Fog last-seen memory
+- [x] Add two symmetric explicit height connectors at x=17 and x=22, y=11..12
+- [x] Preserve blocked cliff sides, eight-direction A* and no-corner-cutting rules
+- [x] Replace the incorrect `Bridge_All_0` overlays with verified Tiny Swords terrain stair pairs from `Tilemap_color2.png`
+- [x] Recompose both south cliff openings from upper/lower 64x64 stair tiles without stretching or a solid wall behind them
+- [x] Share stair cells, orientation and visual sprite names through one explicit connector definition
+- [x] Remove Phase 6C.2 catalog/runtime/validator dependencies on `Bridge_All_0` and restore its intentional Git ignore rules
+- [x] Update terrain shadow repair/validation to omit cliff-foot shadow at the two stair openings
+- [x] Increase all Gold Mine state visuals uniformly from 1.00 to 1.30 with ground correction
+- [x] Keep Gold Mine logical footprint 2x2 and collider 1.75x1.25 unchanged
+- [x] Update Gold Mine Fire scale/anchors and Explosion scale for the larger visual
+- [x] Move the two Goblin guards outside a 2.0 world-unit visual clearance
+- [x] Extend Phase 6C.2 validator for Fog gates, connectors, Blue/Red paths, cliff blocking and scale
+- [x] Audit Torch/TNT PNG dimensions and Aseprite tags; document the exported row layout separately from raw timeline indexes
+- [x] Import the complete Torch 35-cell and TNT 21-cell 192x192 grids while preserving Point, no mipmaps, uncompressed, Clamp and 100 PPU
+- [x] Remove transparent padding cells from Goblin Idle, Run, Attack and Throw animation mappings
+- [x] Map Torch Right/Down/Up attacks from verified source rows and leave TNT without invented directional rows
+- [x] Align TNT projectile release to Throw frame 6 at 0.60 seconds without changing combat balance
+- [x] Extend validation for exact slice rectangles, pivots, animation indexes, prefab animation references and runtime AnimatedVisual state
+- [ ] Run `Tools > Tiny Kingdom > Prepare Phase 6C.2 Strategic Objective` after Unity recompiles
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 6C.2 Strategic Objective` in Edit Mode and Play Mode
+- [ ] Manual Play Mode: Goblin unseen/reveal/hide/re-reveal and hidden regeneration VFX
+- [ ] Manual Play Mode: Blue/Red access, group stair traversal, cliff blocking and Goblin return path
+- [ ] Manual Play Mode: Gold Mine inactive/active/destroyed scale, Fire, Explosion and Fog ghost alignment
+- [ ] Manual Play Mode: Pawn entry, guard clearance, performance markers and clean Console
+
+## Phase UI/UX RTS HUD
+
+Status: **NOT COMPLETE** - runtime and Editor compile checks pass with 0 errors
+and 0 warnings. Unity asset preparation, automated validation and manual Play
+Mode inspection remain required. No later gameplay, AI or RL phase has started.
+
+- [x] Inspect and document WoodTable, SpecialPaper, WoodTable_Slots, resource icons and exact Human Avatar mappings
+- [x] Add one persistent lower-left WoodTable panel for Population Used/Cap, Wood, Gold and Food from authoritative data
+- [x] Add a contextual SpecialPaper selection panel for units, multi-unit summaries, buildings and resources
+- [x] Add a contextual SpecialPaper command grid for AttackMove, hold-to-Guard, Pawn builds, production and Eject All
+- [x] Reuse current command, cost, population, placement, queue and garrison gameplay APIs
+- [x] Add resource and neutral Gold Mine selection without bypassing Fog visibility rules
+- [x] Remove Goblin Torch/TNT from current runtime spawn and active validation requirements while retaining their assets/code
+- [x] Add `Tools > Tiny Kingdom > Prepare RTS HUD`
+- [x] Add `Tools > Tiny Kingdom > Validate RTS HUD`
+- [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
+- [x] Fix legacy SelectionSummary event cleanup to prevent MissingReferenceException after selecting a unit
+- [x] Diagnose the WoodTable 238x258 source geometry and remove the undersized nine-cell assembly
+- [x] Add a 1920x1080 responsive 1258x160 bottom HUD root with a shared baseline and safe margin
+- [x] Replace tiled WoodTable/SpecialPaper centers with one continuous surface plus simple border pieces
+- [x] Compact resources to 220x160, selection to 380x160 and commands to 650x160
+- [x] Reduce command buttons from 84x72 to 60x58 and use a seven-column grid
+- [x] Extend the validator for anchors, viewport bounds, panel/button sizes, continuous surfaces and raycast blocking
+- [ ] Run `Tools > Tiny Kingdom > Prepare RTS HUD` after Unity recompiles
+- [ ] Run `Tools > Tiny Kingdom > Validate RTS HUD` in Edit Mode and Play Mode
+- [ ] Manual Play Mode at 1280x720, Scale 100%: verify pixel clarity, anchors, no stretching or panel overlap
+- [ ] Manual Play Mode at 2560x1440, Scale 100%: verify pixel clarity, anchors, no stretching or panel overlap
+- [ ] Verify population/resources update live from authoritative gameplay values
+- [ ] Verify no-selection, single-unit, multi-unit, building and resource selection panel states
+- [ ] Verify unit/build/production/Eject All command availability, disabled states, hotkeys and costs
+- [ ] Verify hold-to-Guard remains active for the complete mouse hold and AttackMove retains existing behavior
+- [ ] Verify building placement, production, economy, combat, Fog, cursor, camera, Match Result and clean Console regressions

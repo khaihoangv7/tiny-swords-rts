@@ -26,6 +26,7 @@ namespace TinyKingdom.UI
         private Image guardBackground;
         private HealthComponent inspectedHealth;
         private Font font;
+        private bool subscribed;
 
         public void Configure(SelectionManager selection, GuardInputController input,
             UnitAnimationSet warrior, UnitAnimationSet archer, UnitAnimationSet lancer,
@@ -45,14 +46,35 @@ namespace TinyKingdom.UI
             if (guardInput == null) guardInput = FindAnyObjectByType<GuardInputController>();
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             BuildPanel();
-            if (selectionManager != null) selectionManager.SelectionChanged += Refresh;
+            Subscribe();
             Refresh();
         }
 
+        private void OnEnable()
+        {
+            if (panel != null) Subscribe();
+        }
+
+        private void OnDisable() => Unsubscribe();
+
         private void OnDestroy()
         {
-            if (selectionManager != null) selectionManager.SelectionChanged -= Refresh;
+            Unsubscribe();
             if (inspectedHealth != null) inspectedHealth.HealthChanged -= RefreshHealth;
+        }
+
+        private void Subscribe()
+        {
+            if (subscribed || selectionManager == null) return;
+            selectionManager.SelectionChanged += Refresh;
+            subscribed = true;
+        }
+
+        private void Unsubscribe()
+        {
+            if (!subscribed || selectionManager == null) return;
+            selectionManager.SelectionChanged -= Refresh;
+            subscribed = false;
         }
 
         private void Update()

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bb464a4b6fc4bd68bc8c2d797eb9399, type: 3}
+  m_Name: RedMonk
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimationSet
+  framesPerSecond: 10
+  attackFramesPerSecond: 10
+  frameCellSize: 192
+  visualAnchorPixels: {x: 96, y: 96}
+  idle:
+  - {fileID: 4723107735738678597, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  - {fileID: -7385789195546760866, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  - {fileID: 3234629978573100161, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  - {fileID: 6373048116405451881, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  - {fileID: 7264182050183361747, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  - {fileID: -2834552850196481573, guid: b2c3a451ffa4d6e43a3d2803784d7f00, type: 3}
+  run:
+  - {fileID: 4944230376442633554, guid: b334aee91d7b48443a79fbb11424d766, type: 3}
+  - {fileID: -2274363484027164459, guid: b334aee91d7b48443a79fbb11424d766, type: 3}
+  - {fileID: 8284087734974297348, guid: b334aee91d7b48443a79fbb11424d766, type: 3}
+  - {fileID: 5304202850863732263, guid: b334aee91d7b48443a79fbb11424d766, type: 3}
+  attack:
+  - {fileID: 2903848411162822477, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: -893675218100121079, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 2928916444087662039, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: -1398132742003509683, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 5238786112167760410, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: -2599149563224560162, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 5951998098815178954, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: -7882718956405584606, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 2725092365876084024, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 992378399082110112, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  - {fileID: 2421232261252437877, guid: f566b0fab6924584f800dfba94d2d0e8, type: 3}
+  guard: []
+  attackDown: []
+  attackDownRight: []
+  attackUp: []
+  attackUpRight: []

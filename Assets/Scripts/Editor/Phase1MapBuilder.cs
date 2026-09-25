@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TinyKingdom.Navigation;
 using TinyKingdom.Terrain;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -267,9 +268,20 @@ public static class Phase1MapBuilder
         // The cliff face occupies y=12 and y=11. A contact row at y=11 lets
         // the 80px shadow artwork extend 8px below the visible cliff foot.
         for (int x = 16; x <= 23; x++)
-            shadow.SetTile(new Vector3Int(x, 11, 0), tiles["Shadow"]);
+            if (!StrategicObjectiveMapLayout.IsConnectorColumn(x))
+                shadow.SetTile(new Vector3Int(x, 11, 0), tiles["Shadow"]);
         for (int x = 16; x <= 23; x++)
         {
+            if (StrategicObjectiveMapLayout.TryGetConnector(x,
+                out TerrainHeightConnectorDefinition connector))
+            {
+                elevated.SetTile(new Vector3Int(x, connector.UpperY, 0),
+                    tiles[connector.UpperSpriteName]);
+                elevated.SetTile(new Vector3Int(x, connector.LowerY, 0),
+                    tiles[connector.LowerSpriteName]);
+                continue;
+            }
+
             int column = x == 16 ? 5 : x == 23 ? 7 : 6;
             elevated.SetTile(new Vector3Int(x, 12, 0), tiles["Tilemap_color2_r4c" + column]);
             elevated.SetTile(new Vector3Int(x, 11, 0), tiles["Tilemap_color2_r5c" + column]);

@@ -4,6 +4,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.Vision
@@ -55,6 +56,8 @@ namespace TinyKingdom.Vision
     {
         public const float GhostAlpha = 0.72f;
         private static readonly Color GhostTint = new(0.72f, 0.76f, 0.82f, GhostAlpha);
+        private static readonly ProfilerMarker RefreshMarker =
+            new("TinyKingdom.Fog.MemoryRefresh");
         private readonly Dictionary<EntityId, BuildingMemorySnapshot>[] buildings =
         {
             new(), new()
@@ -159,6 +162,14 @@ namespace TinyKingdom.Vision
         public void RefreshMemoryNow()
         {
             if (!IsInitialized) return;
+            nextRefresh = Time.unscaledTime + vision.UpdateInterval;
+            using (RefreshMarker.Auto())
+                RefreshMemoryCore();
+        }
+
+        private void RefreshMemoryCore()
+        {
+            if (!IsInitialized) return;
             for (int i = 0; i < 2; i++)
             {
                 visibleBuildings[i].Clear();
@@ -180,8 +191,7 @@ namespace TinyKingdom.Vision
                         || vision.GetVisionState(viewer, host.HostTransform.position)
                             != VisionState.Visible) continue;
                     visibleBuildings[team].Add(id);
-                    if (host.IsAlive && TryCapture(host, component, id, out BuildingMemorySnapshot snap))
-                        buildings[team][id] = snap;
+                    if (host.IsAlive) CaptureBuilding(team, host, component, id);
                     else buildings[team].Remove(id);
                 }
             }
@@ -198,9 +208,25 @@ namespace TinyKingdom.Vision
                     if (vision.GetVisionState(viewer, node.transform.position)
                         != VisionState.Visible) continue;
                     visibleResources[team].Add(id);
-                    if (node.HasMemoryPresentation && TryCapture(node, id,
-                        out ResourceMemorySnapshot snap)) resources[team][id] = snap;
+                    if (node.HasMemoryPresentation) CaptureResource(team, node, id);
                     else resources[team].Remove(id);
+                }
+            }
+
+            IReadOnlyList<GoldMineObjective> mines = GoldMineObjective.Active;
+            for (int i = 0; i < mines.Count; i++)
+            {
+                GoldMineObjective mine = mines[i];
+                if (mine == null) continue;
+                EntityId id = mine.GetEntityId();
+                for (int team = 0; team < 2; team++)
+                {
+                    Faction viewer = TeamFaction(team);
+                    if (mine.HasOwner && mine.Faction == viewer) continue;
+                    if (vision.GetVisionState(viewer, mine.transform.position)
+                        != VisionState.Visible) continue;
+                    visibleBuildings[team].Add(id);
+                    CaptureBuilding(team, mine, mine, id);
                 }
             }
 
@@ -252,7 +278,7 @@ namespace TinyKingdom.Vision
                 bool show = vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
                     == VisionState.Explored;
                 SpriteRenderer renderer = GetGhost(buildingGhosts, item.Key,
-                    "LastSeenBuilding_" + item.Key);
+                    "LastSeenBuilding_");
                 Apply(renderer, snapshot.Sprite, snapshot.VisualPosition,
                     snapshot.VisualRotation, snapshot.VisualScale, snapshot.VisualColor,
                     snapshot.SortingLayerId, snapshot.SortingOrder, snapshot.FlipX, show);
@@ -269,7 +295,7 @@ namespace TinyKingdom.Vision
                 bool show = vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
                     == VisionState.Explored;
                 SpriteRenderer renderer = GetGhost(resourceGhosts, item.Key,
-                    "LastSeenResource_" + item.Key);
+                    "LastSeenResource_");
                 Apply(renderer, snapshot.Sprite, snapshot.VisualPosition,
                     snapshot.VisualRotation, snapshot.VisualScale, snapshot.VisualColor,
                     snapshot.SortingLayerId, snapshot.SortingOrder, snapshot.FlipX, show);
@@ -277,11 +303,11 @@ namespace TinyKingdom.Vision
         }
 
         private SpriteRenderer GetGhost(Dictionary<EntityId, SpriteRenderer> ghosts, EntityId id,
-            string objectName)
+            string objectNamePrefix)
         {
             if (ghosts.TryGetValue(id, out SpriteRenderer renderer) && renderer != null)
                 return renderer;
-            var obj = new GameObject(objectName);
+            var obj = new GameObject(objectNamePrefix + id);
             obj.transform.SetParent(ghostRoot, true);
             renderer = obj.AddComponent<SpriteRenderer>();
             ghosts[id] = renderer;
@@ -312,76 +338,94 @@ namespace TinyKingdom.Vision
             ghostRoot = root.transform;
         }
 
+        private bool CaptureBuilding(int team, IDefensiveBuildingHost host,
+            Component component, EntityId id)
+        {
+            if (!buildings[team].TryGetValue(id, out BuildingMemorySnapshot snapshot))
+            {
+                snapshot = new BuildingMemorySnapshot();
+                buildings[team].Add(id, snapshot);
+            }
+            if (TryCapture(host, component, id, snapshot)) return true;
+            buildings[team].Remove(id);
+            return false;
+        }
+
+        private bool CaptureResource(int team, ResourceNode node, EntityId id)
+        {
+            if (!resources[team].TryGetValue(id, out ResourceMemorySnapshot snapshot))
+            {
+                snapshot = new ResourceMemorySnapshot();
+                resources[team].Add(id, snapshot);
+            }
+            if (TryCapture(node, id, snapshot)) return true;
+            resources[team].Remove(id);
+            return false;
+        }
+
         private static bool TryCapture(IDefensiveBuildingHost host, Component component, EntityId id,
-            out BuildingMemorySnapshot snapshot)
+            BuildingMemorySnapshot snapshot)
         {
             SpriteRenderer visual = component is BuildingSite site
                 ? site.PresentationRenderer
                 : component is CastleDropOff castle ? castle.PresentationRenderer
                 : host.HostTransform.GetComponentInChildren<SpriteRenderer>();
-            snapshot = null;
             if (visual == null || visual.sprite == null) return false;
             float progress = component is BuildingSite building
                 ? building.ConstructionProgress : 1f;
-            snapshot = new BuildingMemorySnapshot
-            {
-                RuntimeId = id,
-                BuildingType = host.Type,
-                Faction = host.Faction,
-                LogicalPosition = host.HostTransform.position,
-                FootprintOrigin = host.FootprintOrigin,
-                Footprint = host.Footprint,
-                Sprite = visual.sprite,
-                VisualPosition = visual.transform.position,
-                VisualRotation = visual.transform.rotation,
-                VisualScale = visual.transform.lossyScale,
-                VisualColor = visual.color,
-                SortingLayerId = visual.sortingLayerID,
-                SortingOrder = visual.sortingOrder,
-                FlipX = visual.flipX,
-                Completed = host.IsProductionReady,
-                ConstructionProgress = progress,
-                HealthRatio = host.MaxHP > 0 ? Mathf.Clamp01(host.CurrentHP / host.MaxHP) : 0f
-            };
+            snapshot.RuntimeId = id;
+            snapshot.BuildingType = host.Type;
+            snapshot.Faction = host.Faction;
+            snapshot.LogicalPosition = host.HostTransform.position;
+            snapshot.FootprintOrigin = host.FootprintOrigin;
+            snapshot.Footprint = host.Footprint;
+            snapshot.Sprite = visual.sprite;
+            snapshot.VisualPosition = visual.transform.position;
+            snapshot.VisualRotation = visual.transform.rotation;
+            snapshot.VisualScale = visual.transform.lossyScale;
+            snapshot.VisualColor = visual.color;
+            snapshot.SortingLayerId = visual.sortingLayerID;
+            snapshot.SortingOrder = visual.sortingOrder;
+            snapshot.FlipX = visual.flipX;
+            snapshot.Completed = host.IsProductionReady;
+            snapshot.ConstructionProgress = progress;
+            snapshot.HealthRatio = host.MaxHP > 0
+                ? Mathf.Clamp01(host.CurrentHP / host.MaxHP) : 0f;
             return true;
         }
 
         private bool TryCapture(ResourceNode node, EntityId id,
-            out ResourceMemorySnapshot snapshot)
+            ResourceMemorySnapshot snapshot)
         {
             SpriteRenderer visual = node.PresentationRenderer;
-            snapshot = null;
             if (visual == null || visual.sprite == null) return false;
-            snapshot = new ResourceMemorySnapshot
-            {
-                RuntimeId = id,
-                ResourceType = node.ResourceType,
-                LogicalPosition = node.transform.position,
-                LogicalCell = grid.WorldToGrid(node.transform.position),
-                Sprite = visual.sprite,
-                VisualPosition = visual.transform.position,
-                VisualRotation = visual.transform.rotation,
-                VisualScale = visual.transform.lossyScale,
-                VisualColor = visual.color,
-                SortingLayerId = visual.sortingLayerID,
-                SortingOrder = visual.sortingOrder,
-                FlipX = visual.flipX,
-                RemainingRatio = node.MaximumAmount > 0
-                    ? Mathf.Clamp01((float)node.RemainingAmount / node.MaximumAmount) : 0f
-            };
+            snapshot.RuntimeId = id;
+            snapshot.ResourceType = node.ResourceType;
+            snapshot.LogicalPosition = node.transform.position;
+            snapshot.LogicalCell = grid.WorldToGrid(node.transform.position);
+            snapshot.Sprite = visual.sprite;
+            snapshot.VisualPosition = visual.transform.position;
+            snapshot.VisualRotation = visual.transform.rotation;
+            snapshot.VisualScale = visual.transform.lossyScale;
+            snapshot.VisualColor = visual.color;
+            snapshot.SortingLayerId = visual.sortingLayerID;
+            snapshot.SortingOrder = visual.sortingOrder;
+            snapshot.FlipX = visual.flipX;
+            snapshot.RemainingRatio = node.MaximumAmount > 0
+                ? Mathf.Clamp01((float)node.RemainingAmount / node.MaximumAmount) : 0f;
             return true;
         }
 
-        private static void RemoveMissingGhosts<T>(Dictionary<EntityId, SpriteRenderer> ghosts,
+        private void RemoveMissingGhosts<T>(Dictionary<EntityId, SpriteRenderer> ghosts,
             IReadOnlyDictionary<EntityId, T> snapshots)
         {
-            var missing = new List<EntityId>();
+            removal.Clear();
             foreach (KeyValuePair<EntityId, SpriteRenderer> item in ghosts)
-                if (!snapshots.ContainsKey(item.Key)) missing.Add(item.Key);
-            for (int i = 0; i < missing.Count; i++)
+                if (!snapshots.ContainsKey(item.Key)) removal.Add(item.Key);
+            for (int i = 0; i < removal.Count; i++)
             {
-                if (ghosts[missing[i]] != null) Destroy(ghosts[missing[i]].gameObject);
-                ghosts.Remove(missing[i]);
+                if (ghosts[removal[i]] != null) Destroy(ghosts[removal[i]].gameObject);
+                ghosts.Remove(removal[i]);
             }
         }
 

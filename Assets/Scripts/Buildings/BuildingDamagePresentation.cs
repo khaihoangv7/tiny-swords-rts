@@ -61,6 +61,13 @@ namespace TinyKingdom.Buildings
             1.75f, new Vector2(-0.12f, 0.04f), new Vector2(0.12f, 0.10f),
             1.25f, 0.72f);
 
+        private static readonly BuildingPresentationProfile GoldMine = new(
+            2.47f,
+            new Vector2(-0.585f, 0.13f), new Vector2(0f, 0.546f),
+            new Vector2(0.585f, 0.156f),
+            2.08f, new Vector2(-0.13f, 0.026f), new Vector2(0.13f, 0.104f),
+            1.15f, 0.6f);
+
         private static readonly BuildingPresentationProfile Large = new(
             3.2f,
             new Vector2(-1f, 0.28f), new Vector2(0f, 0.92f),
@@ -72,6 +79,7 @@ namespace TinyKingdom.Buildings
             => type switch
             {
                 BuildingType.Castle => Large,
+                BuildingType.GoldMine => GoldMine,
                 BuildingType.House or BuildingType.Tower => Small,
                 _ => Medium
             };
@@ -148,7 +156,7 @@ namespace TinyKingdom.Buildings
         {
             if (host == null || fireRoot == null || destroyed) return;
             bool shouldBurn = host.IsAlive && host.IsDefenseReady && host.MaxHP > 0
-                && host.CurrentHP / host.MaxHP < FireThreshold;
+                && host.CurrentHP / host.MaxHP < host.FireThreshold;
             burning = shouldBurn;
             if (!shouldBurn) fireRoot.SetActive(false);
         }

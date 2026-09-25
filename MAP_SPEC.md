@@ -78,7 +78,13 @@ Use a separate logical navigation grid.
 
 Units can move normally between cells at the same height.
 
-Different height levels require stairs.
+Different height levels require an explicitly configured stair.
+
+Normal movement connects cells only at the same height. A Cliff cell is
+nonwalkable and cannot authorize a transition. A Stair definition owns both a
+lower endpoint at height N and an upper endpoint at height N+1, together with
+its verified visual tile composition and orientation. Only that defined pair
+may cross between the two height levels; there is no implicit height change.
 
 Use A* pathfinding.
 
@@ -89,7 +95,17 @@ A diagonal step is valid only when both adjacent orthogonal side cells and both
 possible two-step transitions through them are traversable. This prevents
 corner cutting through Water, Cliff, occupied permanent blockers, or invalid
 height changes. A direct diagonal height change also follows the normal Stairs
-rule. Without confirmed Stairs, FlatGround cannot reach ElevatedGround.
+rule. FlatGround reaches ElevatedGround only through an explicitly configured
+`Stairs`/height-connector cell.
+
+The central objective plateau has two fair south-face connectors at x=17 and
+x=22. For each connector, y=11 is `Stairs` at height 0 and y=12 is `Stairs` at
+height 1. The shared connector definition also names the exact upper/lower
+terrain sprites, so a legal navigation transition cannot exist without its
+visible stair configuration. All remaining cliff-face cells stay blocked. Blue
+and Red therefore have separate shortest approaches to the plateau while the
+adjacent cliff sides remain non-traversable and the existing no-corner-cutting
+rule still applies.
 
 The logical grid's Occupied flag represents permanent terrain/building
 blockers. Moving or standing units do not set this flag. Living units use

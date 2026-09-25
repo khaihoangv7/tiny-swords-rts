@@ -55,6 +55,12 @@ unavailable until gameplay data exists. House and Tower have no train buttons.
 The UI only calls gameplay production APIs; timers, payment, population and
 spawn positions are controlled by the production queue.
 
+Phase 6C.2 enables Monk on the Monastery production panel with 60 Food +
+60 Gold cost. Selecting an owned Gold Mine shows state, HP, internal Pawn count
+out of 3, remaining Gold and Eject All. Right-clicking a damaged friendly unit
+with Monk selected issues manual Heal. Right-clicking a neutral or owned
+same-faction Gold Mine with Pawn selected issues the mine-entry command.
+
 ## Phase 5C2 garrison commands
 
 Right-clicking a friendly completed Tower or Castle with selected units issues
@@ -183,3 +189,45 @@ wrapped by a dedicated ground-anchored presentation transform; gameplay root,
 Shadow, SelectionRing, health bar and labels are not scaled or moved. Hit flash
 and the currently playing Idle, Run, Attack, Guard, work or Sheep animation keep
 running. Rapid hits restart one reaction from the exact stored baseline.
+
+## Phase UI/UX RTS HUD
+
+The gameplay HUD uses a 1920x1080 reference canvas, Scale With Screen Size,
+width/height match 0.5. A bottom-left anchored `RtsBottomHud` root is 1258x160
+with a 12-pixel safe margin. At matching 16:9 resolutions this becomes roughly
+839x107 at 1280x720 and 1677x213 at 2560x1440. All three sections share the
+same baseline; hiding a contextual panel never moves the resource panel.
+Arbitrary Unity Game View scaling is not an image-quality reference; visual
+checks use Game View Scale 100 percent.
+
+The WoodTable resource panel is always visible at the lower left. It reads the
+authoritative `FactionPopulation` and `ResourceStockpile` values and displays
+Population as Used/Cap followed by Wood, Gold and Food. The icons are
+`Icon_01_0` through `Icon_04_0` in that order. The panel is 220x160, resource
+icons are 28x28 and rows are 30 pixels high.
+
+The SpecialPaper selection panel appears only while a selectable object is
+selected. A single unit shows its verified avatar, type, faction, HP and current
+state; Pawn cargo is supplemental. Multiple units show counts by explicit unit
+type. Buildings show type, HP, construction state/progress, garrison counts and
+production queue/progress where available. Tree, Sheep, Gold Stone and the
+strategic Gold Mine show authoritative remaining/capacity and health data that
+the player is allowed to observe under Fog rules. This panel is 380x160; single
+portraits are 54x54, summary portraits are 28x28 and queue icons are 30x30.
+
+The SpecialPaper command panel appears only when the current selection has
+valid commands. It invokes existing gameplay APIs for AttackMove, hold-to-Guard,
+Pawn building placement, production and Eject All. Costs and unavailable states
+come from the existing data and authority checks. The UI never duplicates
+payment, population, construction, training, garrison or command authority.
+The panel is 650x160 and uses a compact seven-column grid of 60x58 buttons.
+
+WoodTable and SpecialPaper are each drawn as one continuous center surface with
+eight frame pieces over it. The center and edges use Simple stretching rather
+than Tiled repetition. This keeps the panel visually continuous, prevents
+transparent sprite trim from showing the battlefield between pieces and keeps
+the complete visible panel as one UI raycast-blocking region.
+
+During this UI/UX milestone Goblin Torch/TNT are removed from the active Map
+setup and validator requirements. Their imported assets and dormant gameplay
+code remain available for later work.

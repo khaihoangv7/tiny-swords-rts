@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a93fbf7bfe076a4298b59571d42c996, type: 3}
+  m_Name: RtsHudAssets
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.UI.RtsHudAssetCatalog
+  woodTable:
+  - {fileID: 1456634771012968291, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: -2984624457334693161, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: 7553826016581799804, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: -565612253562943241, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: 3108243940215872247, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: 3492093076585841537, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: -2246418273884473086, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: -5544660823759752318, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  - {fileID: 3887476063807763688, guid: eb5c9f75f6817fb448bf0b3c8b8d6d07, type: 3}
+  specialPaper:
+  - {fileID: -3662080559894829788, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -3528550575293366639, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -559158166968446499, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -3425989083507711834, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -7541358502943136439, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -2500842349237177605, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: 4353327290290636131, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -7738430037826034828, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  - {fileID: -4761550643975672150, guid: 8c970d01ebe4e2d4890b815ed8f34782, type: 3}
+  commandSlot: {fileID: -7444266972403259653, guid: 0511645e602af9143954640812527a5e, type: 3}
+  populationIcon: {fileID: -4769719129161285021, guid: f38b21cf8ea40b847b6934212e074f98, type: 3}
+  woodIcon: {fileID: 5700811930569161303, guid: 1d525ce6072efe7498ef0350cb6bbe66, type: 3}
+  goldIcon: {fileID: 4765518676241773232, guid: 874dcf03e2dd8c044af9b1da5d8a01f9, type: 3}
+  foodIcon: {fileID: 2690274267995810836, guid: 476fde6ee36d3a6438c9023936cafc5d, type: 3}
+  attackMoveIcon: {fileID: -1545379965880211911, guid: e0a44b2ca21aa4246ae97eef49f20e59, type: 3}
+  guardIcon: {fileID: -5233972180137678507, guid: 55cd456216069644786534e5081cb00d, type: 3}
+  warriorAvatar: {fileID: 6856901680134642022, guid: 77c6f57a0a62e80439f365f768506dc0, type: 3}
+  lancerAvatar: {fileID: 8512352412310936363, guid: c1df61e22fc10b042a8752f5e586524b, type: 3}
+  archerAvatar: {fileID: -8308548904405912246, guid: 4522a265d5a8d7946a28cf4c7268a2f6, type: 3}
+  monkAvatar: {fileID: -8705766204620832967, guid: 4c251abd59460d04f8b4db77d89f6ea8, type: 3}
+  pawnAvatar: {fileID: -1094274622770072859, guid: f8c986a25a9278b449c4120462394f5e, type: 3}

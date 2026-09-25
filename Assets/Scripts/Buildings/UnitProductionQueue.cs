@@ -47,7 +47,8 @@ namespace TinyKingdom.Buildings
                 BuildingType.Castle => unit == UnitType.Pawn,
                 BuildingType.Barracks => unit == UnitType.Warrior || unit == UnitType.Lancer,
                 BuildingType.Archery => unit == UnitType.Archer,
-                _ => false // Monk remains disabled until its gameplay data is specified.
+                BuildingType.Monastery => unit == UnitType.Monk,
+                _ => false
             };
 
         public UnitCombatData GetData(UnitType type)
@@ -103,6 +104,13 @@ namespace TinyKingdom.Buildings
 
         public string QueueSummary()
             => requests.Count == 0 ? "Empty" : string.Join(" > ", requests);
+
+        public void CopyQueue(List<UnitType> destination)
+        {
+            if (destination == null) return;
+            destination.Clear();
+            foreach (UnitType type in requests) destination.Add(type);
+        }
 
         private void OnDestroy()
         {
