@@ -67,8 +67,26 @@ namespace TinyKingdom.EditorTools
             model.Recompute(new IVisionSource[] { blueA });
             Require(model.GetState(Faction.Blue, new Vector2Int(10, 10)) == VisionState.Visible,
                 "Blue source did not reveal Blue vision.");
+            Require(model.GetState(Faction.Blue, new Vector2Int(12, 10)) == VisionState.Visible,
+                "Circular vision did not include a cardinal cell on the radius.");
+            Require(model.GetState(Faction.Blue, new Vector2Int(12, 12))
+                == VisionState.Unexplored,
+                "Vision uses a square footprint instead of Euclidean distance.");
             Require(model.GetState(Faction.Red, new Vector2Int(10, 10)) == VisionState.Unexplored,
                 "Blue source leaked into Red vision.");
+
+            var fractional = new TestSource
+            {
+                Faction = Faction.Red,
+                VisionRadius = 3.5f,
+                VisionPosition = new Vector3(10.5f, 10.5f)
+            };
+            model.Recompute(new IVisionSource[] { fractional });
+            Require(model.GetState(Faction.Red, new Vector2Int(13, 11)) == VisionState.Visible,
+                "Fractional radius 3.5 was truncated before the circle test.");
+            Require(model.GetState(Faction.Red, new Vector2Int(13, 12))
+                == VisionState.Unexplored,
+                "Fractional circular vision included a cell outside radius 3.5.");
 
             var blueB = new TestSource
             {
@@ -123,6 +141,14 @@ namespace TinyKingdom.EditorTools
             Require(renderer != null && presentation != null, "Fog presentation components are missing.");
             Require(grid != null && grid.Width == 40 && grid.Height == 28,
                 "Phase 6A requires the existing 40x28 logical grid.");
+            Require(renderer.SamplesPerCell == FogRenderer.DefaultSamplesPerCell
+                && renderer.MaskWidth == grid.Width * FogRenderer.DefaultSamplesPerCell
+                && renderer.MaskHeight == grid.Height * FogRenderer.DefaultSamplesPerCell,
+                "Fog visual mask must use the configured 4x high-resolution sampling.");
+            Require(Mathf.Approximately(renderer.FeatherWidthCells,
+                    FogRenderer.DefaultFeatherWidthCells)
+                && renderer.MaskFilterMode == FilterMode.Point,
+                "Fog visual mask feather/filter settings are invalid.");
             Require(Mathf.Approximately(system.UpdateInterval, 0.10f),
                 "Vision update interval is not 0.10 seconds.");
 
@@ -168,6 +194,14 @@ namespace TinyKingdom.EditorTools
             foreach (IVisionSource source in VisionSourceRegistry.ActiveSources)
             {
                 if (source is not BuildingVisionSource building || building == null) continue;
+                NavigationGridData navigation = grid.NavigationData;
+                Vector2Int origin = building.Host.FootprintOrigin;
+                Vector2Int size = building.Host.Footprint;
+                Vector2 expectedCenter = navigation.WorldOrigin + new Vector2(
+                    (origin.x + size.x * 0.5f) * navigation.CellSize,
+                    (origin.y + size.y * 0.5f) * navigation.CellSize);
+                Require(((Vector2)building.VisionPosition - expectedCenter).sqrMagnitude
+                    < 0.0001f, $"Building vision is not centered on its footprint: {building.name}.");
                 FogPresentationGate gate = building.GetComponent<FogPresentationGate>();
                 Require(gate != null, $"Building {building.name} has no fog presentation gate.");
                 if (building.Faction != presentation.PlayerViewFaction)

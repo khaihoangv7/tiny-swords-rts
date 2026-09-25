@@ -452,6 +452,19 @@ required. Phase 7, Rule-Based AI and Reinforcement Learning have not started.
 - [ ] Play Mode: verify Warrior and Lancer visibly complete attack clips against buildings
 - [ ] Play Mode: verify `Icon_09_0` Rally marker lifecycle and final Shadow_L1 readability
 
+### Phase 6C.1 circular Fog hotfix
+
+- [x] Confirm authoritative TeamVisionGrid already uses cell-center Euclidean radius checks with fractional radii
+- [x] Center building vision on the complete logical footprint
+- [x] Replace the 40x28 presentation texture with a reusable 160x112 circular visual mask
+- [x] Preserve separate Blue/Red visual exploration history and authoritative Fog memory rules
+- [x] Add 0.25-cell presentation feather without expanding authoritative gameplay vision
+- [x] Rebuild the mask only for dirty/quantized source changes and reuse all runtime buffers
+- [x] Extend Phase 6A and Phase 6C.1 validators for circular geometry, mask resolution and building centers
+- [ ] Run both Fog validators in Unity Play Mode
+- [ ] Play Mode: verify Pawn, Archer, Tower and Castle circles plus multi-source union and movement trails
+- [ ] Profile moving groups for Fog CPU, texture upload cost, GC allocation and FPS regression
+
 ### Phase 6C.1 health relation and impact presentation additions
 
 - [x] Resolve SmallBar and Big/Large Life Bar fill color from owner faction relative to the shared `PlayerViewFaction`
