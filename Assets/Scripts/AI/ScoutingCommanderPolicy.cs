@@ -9,11 +9,17 @@ using UnityEngine;
 
 namespace TinyKingdom.AI
 {
+    public enum ScoutSafetyState { Exploring, Retreating }
+
     [Serializable]
     public sealed class ScoutingCommanderPolicy
     {
         private static readonly ProfilerMarker FrontierSearchMarker =
             new("TinyKingdom.AI.FrontierSearch");
+        private static readonly ProfilerMarker ScoutRiskMarker =
+            new("TinyKingdom.AI.ScoutRiskEvaluation");
+        private static readonly ProfilerMarker ScoutRetreatMarker =
+            new("TinyKingdom.AI.ScoutRetreat");
         [SerializeField, Min(0.05f)] private float arrivalDistance = 0.35f;
         [SerializeField, Min(0.5f)] private float unreachableRetrySeconds = 5f;
         [SerializeField, Min(1)] private int minimumPawnsForWorkerScout = 4;
@@ -22,10 +28,18 @@ namespace TinyKingdom.AI
         private UnitController scout;
         private Vector2Int destinationCell;
         private bool hasDestination;
+        private ScoutSafetyState safetyState;
+        private string dangerReason = "None";
+        private Vector2Int retreatCell;
+        private bool hasRetreatDestination;
 
         public UnitController Scout => scout;
         public bool HasDestination => hasDestination;
         public Vector2Int DestinationCell => destinationCell;
+        public ScoutSafetyState SafetyState => safetyState;
+        public string DangerReason => dangerReason;
+        public Vector2Int RetreatCell => retreatCell;
+        public bool HasRetreatDestination => hasRetreatDestination;
 
         public int MinimumPawnsForWorkerScout => minimumPawnsForWorkerScout;
 
@@ -33,10 +47,17 @@ namespace TinyKingdom.AI
         {
             scout = null;
             hasDestination = false;
+            safetyState = ScoutSafetyState.Exploring;
+            dangerReason = "None";
+            hasRetreatDestination = false;
             blockedUntil.Clear();
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
+            => Tick(context, roles, null);
+
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
+            StrategicSafetyMap safety)
         {
             UnitController preferred = ChooseScout(context.Knowledge, roles);
             if (!IsUsableScout(context, scout)
@@ -47,6 +68,8 @@ namespace TinyKingdom.AI
                 if (IsPawn(scout) && (roles == null
                     || !roles.TryAssign(scout, CommanderPawnRole.Scout))) scout = null;
                 hasDestination = false;
+                safetyState = ScoutSafetyState.Exploring;
+                hasRetreatDestination = false;
             }
             if (scout == null) return;
 
@@ -60,19 +83,36 @@ namespace TinyKingdom.AI
                 return;
             }
 
+            if (safety != null && ShouldRetreat(scout, movement, safety))
+            {
+                BeginOrContinueRetreat(context, movement, safety);
+                return;
+            }
+            if (safetyState == ScoutSafetyState.Retreating)
+            {
+                if (movement.IsMoving) return;
+                safetyState = ScoutSafetyState.Exploring;
+                hasRetreatDestination = false;
+                dangerReason = "None";
+            }
+
             if (hasDestination)
             {
                 Vector3 destination = grid.GridToWorld(destinationCell.x, destinationCell.y);
                 bool reached = Vector2.Distance(scout.transform.position, destination)
                     <= arrivalDistance;
-                if (movement.IsMoving && !reached && IsFrontier(context, destinationCell)) return;
+                if (movement.IsMoving && !reached && IsFrontier(context, destinationCell)
+                    && (safety == null || safety.RiskAt(destinationCell,
+                        StrategicPathKind.Scout) < StrategicRisk.ForbiddenForCivilian)
+                    && (safety == null || safety.IsPathSafe(movement.CurrentPath,
+                        StrategicPathKind.Scout, movement.CurrentPathWaypointIndex))) return;
                 hasDestination = false;
             }
 
             const int maxAttemptsPerThink = 4;
             for (int attempt = 0; attempt < maxAttemptsPerThink; attempt++)
             {
-                if (!TryFindFrontier(context, scout, out Vector2Int frontier))
+                if (!TryFindFrontier(context, scout, safety, out Vector2Int frontier))
                 {
                     // Exploration is complete or every remaining frontier is on
                     // cooldown. A complete map releases the role; cooldown-only
@@ -86,7 +126,7 @@ namespace TinyKingdom.AI
                     return;
                 }
                 CommanderCommandResult result = context.Commands.TryMove(scout,
-                    grid.GridToWorld(frontier.x, frontier.y));
+                    grid.GridToWorld(frontier.x, frontier.y), safety?.ScoutTraversal);
                 if (result == CommanderCommandResult.Accepted)
                 {
                     destinationCell = frontier;
@@ -117,9 +157,10 @@ namespace TinyKingdom.AI
         }
 
         private bool TryFindFrontier(CommanderDecisionContext context, UnitController unit,
-            out Vector2Int result)
+            StrategicSafetyMap safety, out Vector2Int result)
         {
             using (FrontierSearchMarker.Auto())
+            using (ScoutRiskMarker.Auto())
             {
                 result = default;
                 TeamVisionSystem vision = context.Knowledge.TeamVision;
@@ -127,6 +168,8 @@ namespace TinyKingdom.AI
                 if (grid == null) return false;
                 bool found = false;
                 int bestUnknown = -1;
+                StrategicRisk bestRisk = StrategicRisk.ForbiddenForCivilian;
+                int bestEdgeDistance = int.MaxValue;
                 float bestDistance = float.PositiveInfinity;
 
                 for (int y = 0; y < grid.Height; y++)
@@ -139,15 +182,29 @@ namespace TinyKingdom.AI
                         || IsBlocked(cell, grid.Width, context.Time)) continue;
                     int unknown = CountUnknownNeighbors(context, cell, grid.Width, grid.Height);
                     if (unknown <= 0) continue;
+                    StrategicRisk risk = safety != null
+                        ? safety.RiskAt(cell, StrategicPathKind.Scout)
+                        : StrategicRisk.Safe;
+                    if (risk >= StrategicRisk.ForbiddenForCivilian) continue;
+                    int edgeDistance = Mathf.Min(Mathf.Min(x, grid.Width - 1 - x),
+                        Mathf.Min(y, grid.Height - 1 - y));
                     float distance = ((Vector2)(navigationCell.WorldPosition
                         - unit.transform.position)).sqrMagnitude;
-                    if (!found || unknown > bestUnknown
-                        || (unknown == bestUnknown && distance < bestDistance - 0.0001f)
-                        || (unknown == bestUnknown
+                    if (!found || risk < bestRisk
+                        || risk == bestRisk && edgeDistance < bestEdgeDistance
+                        || risk == bestRisk && edgeDistance == bestEdgeDistance
+                            && unknown > bestUnknown
+                        || risk == bestRisk && edgeDistance == bestEdgeDistance
+                            && unknown == bestUnknown
+                            && distance < bestDistance - 0.0001f
+                        || risk == bestRisk && edgeDistance == bestEdgeDistance
+                            && unknown == bestUnknown
                             && Mathf.Abs(distance - bestDistance) <= 0.0001f
-                            && (y < result.y || (y == result.y && x < result.x))))
+                            && (y < result.y || (y == result.y && x < result.x)))
                     {
                         found = true;
+                        bestRisk = risk;
+                        bestEdgeDistance = edgeDistance;
                         bestUnknown = unknown;
                         bestDistance = distance;
                         result = cell;
@@ -155,6 +212,54 @@ namespace TinyKingdom.AI
                 }
                 return found;
             }
+        }
+
+        private bool ShouldRetreat(UnitController unit, UnitMovement movement,
+            StrategicSafetyMap safety)
+        {
+            StrategicRisk current = safety.RiskAt(unit.transform.position,
+                StrategicPathKind.Scout);
+            if (current >= StrategicRisk.Dangerous)
+            {
+                dangerReason = "visible or remembered strategic danger";
+                return true;
+            }
+            if (hasDestination && safety.RiskAt(destinationCell, StrategicPathKind.Scout)
+                >= StrategicRisk.ForbiddenForCivilian)
+            {
+                dangerReason = "destination became forbidden";
+                return true;
+            }
+            if (movement.IsMoving && !safety.IsPathSafe(movement.CurrentPath,
+                StrategicPathKind.Scout, movement.CurrentPathWaypointIndex))
+            {
+                dangerReason = "route became unsafe";
+                return true;
+            }
+            return false;
+        }
+
+        private void BeginOrContinueRetreat(CommanderDecisionContext context,
+            UnitMovement movement, StrategicSafetyMap safety)
+        {
+            using var marker = ScoutRetreatMarker.Auto();
+            if (safetyState == ScoutSafetyState.Retreating && movement.IsMoving
+                && safety.IsPathSafe(movement.CurrentPath, StrategicPathKind.Scout,
+                    movement.CurrentPathWaypointIndex)) return;
+            movement.Stop();
+            hasDestination = false;
+            safetyState = ScoutSafetyState.Retreating;
+            hasRetreatDestination = false;
+            if (!safety.TryFindRetreatCell(context.Knowledge, scout.transform.position,
+                StrategicPathKind.Scout, out Vector2Int destination)) return;
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
+            if (grid == null) return;
+            if (context.Commands.TryMove(scout,
+                grid.GridToWorld(destination.x, destination.y),
+                safety.ScoutRetreatTraversal)
+                != CommanderCommandResult.Accepted) return;
+            retreatCell = destination;
+            hasRetreatDestination = true;
         }
 
         private static int CountUnknownNeighbors(CommanderDecisionContext context,

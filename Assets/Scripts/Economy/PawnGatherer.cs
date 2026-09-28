@@ -35,6 +35,8 @@ namespace TinyKingdom.Economy
         private int carriedAmount;
         private bool resourceJobActive;
         private ResourceType resourceJobType;
+        private Predicate<ResourceNode> autoRetargetEligibility;
+        private IPathTraversalPolicy strategicTraversal;
 
         public WorkerState State { get; private set; }
         public int CarryCapacity => carryCapacity;
@@ -80,6 +82,10 @@ namespace TinyKingdom.Economy
         }
 
         public bool Gather(ResourceNode node)
+            => Gather(node, null, null);
+
+        public bool Gather(ResourceNode node, Predicate<ResourceNode> retargetEligibility,
+            IPathTraversalPolicy traversalPolicy)
         {
             if (!MatchManager.AllowsGameplay || node == null || !node.IsAvailable
                 || controller == null || !controller.IsAlive)
@@ -89,6 +95,8 @@ namespace TinyKingdom.Economy
 
             movement.Stop();
             CancelJob();
+            autoRetargetEligibility = retargetEligibility;
+            strategicTraversal = traversalPolicy;
             resourceJobActive = true;
             resourceJobType = node.ResourceType;
             target = node;
@@ -113,6 +121,8 @@ namespace TinyKingdom.Economy
             impactApplied = false;
             dropOffRetry = 0f;
             resourceJobActive = false;
+            autoRetargetEligibility = null;
+            strategicTraversal = null;
         }
 
         internal bool DepositCargoOnGarrisonEntry(CastleDropOff castle)
@@ -197,10 +207,14 @@ namespace TinyKingdom.Economy
             if (target == null || !target.IsAvailable) { CancelJob(); return false; }
             ResourceInteractionSlots slots = target.GetComponent<ResourceInteractionSlots>();
             bool reserved = slots != null
-                && slots.TryReserve(controller, grid, paths, out interactionCell);
+                && slots.TryReserve(controller, grid, paths, strategicTraversal,
+                    out interactionCell);
             if (reserved)
                 interactionPosition = target.InteractionPosition(interactionCell, grid);
-            if (!reserved || !movement.TryIssueMove(interactionPosition))
+            bool moved = reserved && (strategicTraversal == null
+                ? movement.TryIssueMove(interactionPosition)
+                : movement.TryIssueStrategicMove(interactionPosition, strategicTraversal));
+            if (!moved)
             {
                 if (logFailure && logRouteFailures)
                     Debug.LogWarning($"Gather route rejected: {name} -> {target.name}. "
@@ -232,7 +246,8 @@ namespace TinyKingdom.Economy
             {
                 CastleDropOff candidate = castles[i];
                 if (!candidate.IsAvailable || candidate.Faction != controller.Faction) continue;
-                if (!candidate.TryReserve(controller, grid, paths, out Vector3 position)) continue;
+                if (!candidate.TryReserve(controller, grid, paths, strategicTraversal,
+                    out Vector3 position)) continue;
                 float distance = ((Vector2)position
                     - (Vector2)transform.position).sqrMagnitude;
                 if (distance < bestDistance)
@@ -244,7 +259,10 @@ namespace TinyKingdom.Economy
                 }
                 else candidate.Release(controller);
             }
-            if (nearest == null || !movement.TryIssueChase(bestPosition))
+            bool moved = nearest != null && (strategicTraversal == null
+                ? movement.TryIssueChase(bestPosition)
+                : movement.TryIssueStrategicChase(bestPosition, strategicTraversal));
+            if (!moved)
             {
                 if (logRouteFailures && State != WorkerState.WaitingForDropOff)
                     Debug.LogWarning($"No reachable Castle drop-off slot for {name}; waiting with cargo.", this);
@@ -315,6 +333,8 @@ namespace TinyKingdom.Economy
             foreach (ResourceNode node in ResourceNode.ActiveNodes)
             {
                 if (node == null || !node.IsAvailable || node.ResourceType != resourceJobType)
+                    continue;
+                if (autoRetargetEligibility != null && !autoRetargetEligibility(node))
                     continue;
                 float distance = ((Vector2)(node.transform.position - transform.position)).sqrMagnitude;
                 if (distance <= maximumSqr) candidates.Add(node);

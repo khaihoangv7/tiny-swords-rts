@@ -7,6 +7,8 @@ namespace TinyKingdom.Units
     [RequireComponent(typeof(UnitController))]
     public sealed class UnitMovement : MonoBehaviour
     {
+        public const float BlockedPathRepathInterval = 0.35f;
+
         [SerializeField, Min(0.01f)] private float movementSpeed = 3f;
         [SerializeField, Min(0.001f)] private float arrivalTolerance = 0.02f;
         [SerializeField, Min(0.01f)] private float commandDestinationEpsilon = 0.2f;
@@ -26,6 +28,8 @@ namespace TinyKingdom.Units
         private bool hasChaseDestination;
         private Vector2Int chaseDestinationCell;
         private Vector3? chaseFinalPosition;
+        private IPathTraversalPolicy activeTraversalPolicy;
+        private float blockedRepathCooldown;
         private Vector2 lastMovementDirection = Vector2.right;
 
         public float MovementSpeed => movementSpeed;
@@ -33,6 +37,7 @@ namespace TinyKingdom.Units
         public float SeparationRadius => Mathf.Max(0.01f, separationRadius);
         public float SeparationSpeed => Mathf.Max(0.01f, separationSpeed);
         public IReadOnlyList<Vector3> CurrentPath => activePath.Waypoints;
+        public int CurrentPathWaypointIndex => activePath.NextWaypointIndex;
         public bool IsMoving => activePath.HasRemainingWaypoints;
         public bool IsSuspended => suspended;
         public float CommandDestinationEpsilon => commandDestinationEpsilon;
@@ -79,6 +84,22 @@ namespace TinyKingdom.Units
                 destination);
         }
 
+        public bool TryIssueStrategicMove(Vector3 destination, IPathTraversalPolicy policy)
+        {
+            ResolveNavigationReferences();
+            if (gridManager == null || policy == null) return false;
+            return TryIssuePath(gridManager.WorldToGrid(destination), false, destination,
+                false, destination, policy);
+        }
+
+        public bool TryIssueStrategicChase(Vector3 destination, IPathTraversalPolicy policy)
+        {
+            ResolveNavigationReferences();
+            if (gridManager == null || policy == null) return false;
+            return TryIssuePath(gridManager.WorldToGrid(destination), true, destination,
+                false, null, policy);
+        }
+
         public bool CanIssueMove(Vector2Int destination)
         {
             unitController ??= GetComponent<UnitController>();
@@ -105,7 +126,8 @@ namespace TinyKingdom.Units
         }
 
         private bool TryIssuePath(Vector2Int destination, bool chasing, Vector3? finalPosition,
-            bool attackMove, Vector3? commandPosition)
+            bool attackMove, Vector3? commandPosition,
+            IPathTraversalPolicy traversalPolicy = null)
         {
             unitController ??= GetComponent<UnitController>();
             if (!unitController.IsAlive || suspended)
@@ -124,7 +146,7 @@ namespace TinyKingdom.Units
                 && activePath.HasRemainingWaypoints
                 && destination == chaseDestinationCell
                 && EquivalentPoint(finalPosition, chaseFinalPosition);
-            if (equivalentCommand || equivalentChase)
+            if (traversalPolicy == null && (equivalentCommand || equivalentChase))
             {
                 if (!chasing && !attackMove)
                     GetComponent<CombatController>()?.OnMoveIssued();
@@ -132,40 +154,15 @@ namespace TinyKingdom.Units
                     ? (chasing ? UnitState.Chasing : UnitState.Moving) : UnitState.Idle);
                 return true;
             }
-            if (!TryFindPath(destination, out List<GridCell> path))
+            if (!TryFindPath(destination, traversalPolicy, out List<GridCell> path))
                 return false;
 
-            GridCell destinationCell = gridManager.GetCell(destination.x, destination.y);
-
-            if (finalPosition.HasValue
-                && !UnitSeparation.IsSafeSegment(gridManager,
-                    destinationCell.WorldPosition, finalPosition.Value))
-                return false;
-
-            // A* includes the start cell. Reissuing a command while the unit is
-            // between cell centers used to insert that already-passed center as
-            // waypoint zero, producing a short backwards run before every new path.
-            var worldPath = new List<Vector3>(Mathf.Max(0, path.Count - 1));
-            for (int i = path.Count > 1 ? 1 : 0; i < path.Count; i++)
-            {
-                GridCell cell = path[i];
-                worldPath.Add(new Vector3(cell.WorldPosition.x, cell.WorldPosition.y,
-                    transform.position.z));
-            }
-            if (finalPosition.HasValue)
-            {
-                if (path.Count == 1 && UnitSeparation.IsSafeSegment(gridManager,
-                    transform.position, finalPosition.Value))
-                    worldPath.Clear();
-                else if (path.Count > 1 && UnitSeparation.IsSafeSegment(gridManager,
-                    path[path.Count - 2].WorldPosition, finalPosition.Value))
-                    worldPath.RemoveAt(worldPath.Count - 1);
-                worldPath.Add(new Vector3(finalPosition.Value.x, finalPosition.Value.y, transform.position.z));
-            }
+            if (!TrySetActivePath(path, finalPosition)) return false;
 
             if (!chasing && !attackMove)
                 GetComponent<CombatController>()?.OnMoveIssued();
-            activePath.Set(worldPath, transform.position, arrivalTolerance);
+            activeTraversalPolicy = traversalPolicy;
+            blockedRepathCooldown = 0f;
             if (!chasing)
             {
                 hasChaseDestination = false;
@@ -195,6 +192,10 @@ namespace TinyKingdom.Units
         }
 
         private bool TryFindPath(Vector2Int destination, out List<GridCell> path)
+            => TryFindPath(destination, null, out path);
+
+        private bool TryFindPath(Vector2Int destination, IPathTraversalPolicy policy,
+            out List<GridCell> path)
         {
             path = null;
             ResolveNavigationReferences();
@@ -207,7 +208,7 @@ namespace TinyKingdom.Units
                 return false;
 
             Vector2Int start = gridManager.WorldToGrid(transform.position);
-            path = pathfindingSystem.FindPath(start, destination);
+            path = pathfindingSystem.FindPath(start, destination, policy);
             return path.Count > 0;
         }
 
@@ -219,6 +220,8 @@ namespace TinyKingdom.Units
             commandPointerPosition = null;
             hasChaseDestination = false;
             chaseFinalPosition = null;
+            activeTraversalPolicy = null;
+            blockedRepathCooldown = 0f;
             unitController ??= GetComponent<UnitController>();
             if (unitController.IsAlive)
                 unitController.SetState(UnitState.Idle);
@@ -280,7 +283,9 @@ namespace TinyKingdom.Units
                     activePath.RestoreNextWaypoint(previousWaypoint);
                     desired = current;
                     completed = false;
+                    TryRepathBlockedRoute(deltaTime);
                 }
+                else blockedRepathCooldown = 0f;
             }
 
             Vector3 resolved = UnitSeparation.Apply(this, desired, deltaTime, gridManager);
@@ -296,6 +301,58 @@ namespace TinyKingdom.Units
         {
             if (state == UnitState.Dead)
                 activePath.Clear();
+        }
+
+        private void TryRepathBlockedRoute(float deltaTime)
+        {
+            if (!hasCommandDestination && !hasChaseDestination) return;
+            blockedRepathCooldown -= Mathf.Max(0f, deltaTime);
+            if (blockedRepathCooldown > 0f) return;
+            blockedRepathCooldown = BlockedPathRepathInterval;
+
+            Vector2Int destination = hasChaseDestination
+                ? chaseDestinationCell : commandDestinationCell;
+            Vector3? finalPosition = hasChaseDestination
+                ? chaseFinalPosition : commandFinalPosition;
+            if (!TryFindPath(destination, activeTraversalPolicy,
+                    out List<GridCell> replacement))
+                return;
+            if (TrySetActivePath(replacement, finalPosition))
+                blockedRepathCooldown = 0f;
+        }
+
+        private bool TrySetActivePath(IReadOnlyList<GridCell> path,
+            Vector3? finalPosition)
+        {
+            if (path == null || path.Count == 0) return false;
+            GridCell destinationCell = path[path.Count - 1];
+            if (finalPosition.HasValue
+                && !UnitSeparation.IsSafeSegment(gridManager,
+                    destinationCell.WorldPosition, finalPosition.Value))
+                return false;
+
+            // A* includes the start cell. Reissuing or rebuilding a route while
+            // between centers must not send the unit back to its previous center.
+            var worldPath = new List<Vector3>(Mathf.Max(0, path.Count - 1));
+            for (int i = path.Count > 1 ? 1 : 0; i < path.Count; i++)
+            {
+                GridCell cell = path[i];
+                worldPath.Add(new Vector3(cell.WorldPosition.x, cell.WorldPosition.y,
+                    transform.position.z));
+            }
+            if (finalPosition.HasValue)
+            {
+                if (path.Count == 1 && UnitSeparation.IsSafeSegment(gridManager,
+                    transform.position, finalPosition.Value))
+                    worldPath.Clear();
+                else if (path.Count > 1 && UnitSeparation.IsSafeSegment(gridManager,
+                    path[path.Count - 2].WorldPosition, finalPosition.Value))
+                    worldPath.RemoveAt(worldPath.Count - 1);
+                worldPath.Add(new Vector3(finalPosition.Value.x,
+                    finalPosition.Value.y, transform.position.z));
+            }
+            activePath.Set(worldPath, transform.position, arrivalTolerance);
+            return true;
         }
 
         private void ResolveNavigationReferences()

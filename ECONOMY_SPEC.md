@@ -12,8 +12,9 @@ Reachable cardinal slots are preferred; diagonal slots remain a fallback.
 The interaction point is 0.49 cell widths from the reserved cell center
 toward the node, still inside the reserved walkable cell.
 
-The provisional capacities are Tree 100 Wood, Sheep 60 Food, and Gold Rock 100
-Gold. These and the work rate require visual balance review before Phase 5B.
+Each Sheep contains 200 Food. Tree 100 Wood and base Gold Rock 100 Gold remain
+provisional capacities. Gathering timing, carry capacity and depletion behavior
+are unchanged by this Sheep capacity adjustment.
 
 One work cycle takes 1.5 seconds for Wood, Gold, and Food. The verified Axe,
 Pickaxe, and Knife work visuals each play for 0.5 seconds, independently of

@@ -57,12 +57,28 @@ same-faction sources is recomputed every 0.10 seconds.
 The current human view faction is Blue. `FogRenderer` can display either faction
 for Editor debugging without changing authoritative data.
 
-The world-space fog is one point-filtered 40x28 texture aligned with the logical
-grid:
+The world-space fog is one reusable point-filtered 160x112 presentation mask
+aligned with the existing 40x28 logical grid. It uses four visual samples per
+logical cell; gameplay grid resolution remains unchanged. Every active source is
+rasterized into the mask with Euclidean distance from each visual sample center.
+Same-faction circles are combined by maximum reveal coverage:
 
 - Visible: transparent.
 - Explored: black with alpha 135/255.
 - Unexplored: black with alpha 235/255.
+
+The visual boundary uses a narrow 0.25-cell feather. Samples inside the exact
+radius become visual exploration memory; feather-only samples do not expand
+exploration. Blue and Red keep separate visual exploration buffers. The mask is
+rebuilt at the existing 0.10-second cadence only when the quantized source set,
+position, faction or radius changes, or when authoritative vision reports a
+state change. Buffers, texture, sprite and pixel arrays are reused.
+
+Unit circles are centered on the unit world position. Building circles are
+centered on the geometric center of their complete logical footprint, including
+multi-cell Castle and Tower footprints. `TeamVisionGrid` remains the sole
+authority for visibility, targeting, memory and AI knowledge; the 160x112 mask
+is never queried by gameplay.
 
 It renders at sorting order 8, above terrain and below gameplay sprites. Friendly
 objects remain clear. Enemy units and buildings are presentation-gated and appear
@@ -170,3 +186,18 @@ hierarchy, including body, animated visual, health bar and later presentation
 children. One-shot Heal/TNT effects and the Dynamite projectile evaluate current
 player visibility in their creation frame, preventing a one-frame information
 leak. Fog never disables Goblin movement, combat, regeneration or guard logic.
+
+## Phase 7C.1A knowledge-derived strategic safety
+
+`StrategicSafetyMap` consumes only `FactionKnowledge` value observations. Current
+visible enemy Warrior, Archer and Lancer positions create temporary dynamic danger;
+that danger disappears on the first Commander refresh after vision is lost. No unit
+last-position memory is added. A Tower or Castle that was legitimately observed may
+retain a conservative danger area from its frozen building snapshot while hidden.
+An undiscovered defensive building has no entry and cannot affect risk, targeting,
+frontier ranking or path cost.
+
+Economy routes require explored cells. Scout routes may enter Unexplored space and
+therefore can discover previously unknown threats. Once a threat becomes visible,
+the legal knowledge refresh can invalidate the Scout route and trigger retreat.
+The rendered Fog texture remains presentation only and is never queried by safety.

@@ -64,6 +64,10 @@ namespace TinyKingdom.Navigation
         }
 
         public List<GridCell> FindPath(Vector2Int start, Vector2Int destination)
+            => FindPath(start, destination, null);
+
+        public List<GridCell> FindPath(Vector2Int start, Vector2Int destination,
+            IPathTraversalPolicy policy)
         {
             using (FindPathMarker.Auto())
             {
@@ -77,7 +81,7 @@ namespace TinyKingdom.Navigation
                 return AStarPathfinder.FindPath(
                     gridManager,
                     gridManager.GetCell(start.x, start.y),
-                    gridManager.GetCell(destination.x, destination.y));
+                    gridManager.GetCell(destination.x, destination.y), policy);
             }
         }
 

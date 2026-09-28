@@ -9,8 +9,8 @@ using UnityEngine;
 
 namespace TinyKingdom.AI
 {
-    // Shared gameplay authority for human/Rule-Based/future RL command sources.
-    // Phase 7A exposes only the Move and Gather actions needed by its policies.
+    // Shared gameplay authority for human, Rule-Based and future RL command sources.
+    // Each method revalidates faction ownership and current legal observations.
     public sealed class FactionCommandService : MonoBehaviour
     {
         private static readonly ProfilerMarker CommandDispatchMarker =
@@ -23,6 +23,7 @@ namespace TinyKingdom.AI
         public Faction Faction => faction;
         public FactionKnowledge Knowledge => knowledge;
         public BuildingSystem BuildingSystem => buildingSystem;
+        public bool SupportsMilitaryCommands => true;
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge)
             => Configure(owner, factionKnowledge, null);
@@ -36,6 +37,10 @@ namespace TinyKingdom.AI
         }
 
         public CommanderCommandResult TryMove(UnitController actor, Vector3 destination)
+            => TryMove(actor, destination, null);
+
+        public CommanderCommandResult TryMove(UnitController actor, Vector3 destination,
+            IPathTraversalPolicy traversalPolicy)
         {
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
@@ -44,13 +49,20 @@ namespace TinyKingdom.AI
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
             UnitMovement movement = actor.GetComponent<UnitMovement>();
             if (movement == null) return CommanderCommandResult.RejectedInvalidActor;
-            if (!movement.TryIssueMove(destination))
+            bool moved = traversalPolicy == null
+                ? movement.TryIssueMove(destination)
+                : movement.TryIssueStrategicMove(destination, traversalPolicy);
+            if (!moved)
                 return CommanderCommandResult.RejectedUnreachable;
             actor.GetComponent<PawnGatherer>()?.CancelJob();
             return CommanderCommandResult.Accepted;
         }
 
         public CommanderCommandResult TryGather(UnitController actor, ResourceNode target)
+            => TryGather(actor, target, null);
+
+        public CommanderCommandResult TryGather(UnitController actor, ResourceNode target,
+            StrategicSafetyMap safety)
         {
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
@@ -63,9 +75,39 @@ namespace TinyKingdom.AI
             if (knowledge == null || !knowledge.IsResourceVisible(target))
                 return CommanderCommandResult.RejectedNotObserved;
             if (!target.IsAvailable) return CommanderCommandResult.RejectedInvalidTarget;
-            return gatherer.Gather(target)
+            if (safety != null
+                && !safety.IsEligibleEconomicPosition(knowledge, target.transform.position))
+                return CommanderCommandResult.RejectedUnsafe;
+            return (safety == null
+                ? gatherer.Gather(target)
+                : gatherer.Gather(target,
+                    candidate => candidate != null && safety.IsEligibleEconomicPosition(
+                        knowledge, candidate.transform.position),
+                    safety.CivilianTraversal))
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;
+        }
+
+        public CommanderCommandResult TryAttack(UnitController actor, EntityId targetId)
+        {
+            using var marker = CommandDispatchMarker.Auto();
+            CommanderCommandResult actorResult = ValidateActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            HealthComponent health = actor.GetComponent<HealthComponent>();
+            UnitType type = health?.CombatData != null
+                ? health.CombatData.UnitType : UnitType.Pawn;
+            if (type is not (UnitType.Warrior or UnitType.Archer or UnitType.Lancer))
+                return CommanderCommandResult.RejectedWrongUnitType;
+            if (knowledge == null
+                || !knowledge.TryGetVisibleEnemy(targetId, out VisibleUnitObservation observed))
+                return CommanderCommandResult.RejectedNotObserved;
+
+            UnitController target = ResolveCurrentlyVisibleTarget(targetId, observed.Faction);
+            if (target == null) return CommanderCommandResult.RejectedInvalidTarget;
+            CombatController combat = actor.GetComponent<CombatController>();
+            return combat != null && combat.Attack(target)
+                ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedCommandFailed;
         }
 
         public CommanderCommandResult TryBuild(PawnBuilder builder, BuildingType type,
@@ -171,6 +213,24 @@ namespace TinyKingdom.AI
                 return CommanderCommandResult.RejectedInvalidActor;
             if (actor.Faction != faction) return CommanderCommandResult.RejectedNotOwned;
             return CommanderCommandResult.Accepted;
+        }
+
+        private UnitController ResolveCurrentlyVisibleTarget(EntityId targetId,
+            Faction observedFaction)
+        {
+            IReadOnlyList<UnitController> units = UnitController.ActiveUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController target = units[i];
+                if (target == null || !target.IsTargetable
+                    || target.Faction != observedFaction
+                    || !FactionRelations.AreHostile(faction, target.Faction)
+                    || target.GetEntityId().CompareTo(targetId) != 0) continue;
+                return knowledge.TeamVision != null
+                    && knowledge.TeamVision.IsVisible(faction, target.transform.position)
+                    ? target : null;
+            }
+            return null;
         }
 
         private bool IsFootprintExplored(Vector2Int origin, Vector2Int footprint)

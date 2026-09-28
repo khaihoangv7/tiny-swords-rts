@@ -16,6 +16,10 @@ namespace TinyKingdom.Economy
 
         public bool TryReserve(UnitController worker, GridManager grid, PathfindingSystem paths,
             out Vector2Int destination)
+            => TryReserve(worker, grid, paths, null, out destination);
+
+        public bool TryReserve(UnitController worker, GridManager grid, PathfindingSystem paths,
+            IPathTraversalPolicy traversalPolicy, out Vector2Int destination)
         {
             destination = default;
             if (worker == null || grid == null || paths == null) return false;
@@ -65,7 +69,7 @@ namespace TinyKingdom.Economy
                 }
                 if (bestIndex < 0) return false;
                 tried |= 1UL << bestIndex;
-                if (paths.FindPath(start, bestCell).Count == 0) continue;
+                if (paths.FindPath(start, bestCell, traversalPolicy).Count == 0) continue;
                 destination = bestCell;
                 reservations.Add(worker, destination);
                 return true;

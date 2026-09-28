@@ -4,6 +4,12 @@ using UnityEngine;
 
 namespace TinyKingdom.Navigation
 {
+    public interface IPathTraversalPolicy
+    {
+        bool CanEnter(GridCell cell);
+        double AdditionalCost(GridCell from, GridCell to);
+    }
+
     public static class AStarPathfinder
     {
         public static readonly double DiagonalCost = Math.Sqrt(2d);
@@ -20,11 +26,20 @@ namespace TinyKingdom.Navigation
         };
 
         public static List<GridCell> FindPath(IGridCellProvider grid, GridCell start, GridCell destination)
+            => FindPath(grid, start, destination, null);
+
+        public static List<GridCell> FindPath(IGridCellProvider grid, GridCell start,
+            GridCell destination, IPathTraversalPolicy policy)
         {
             var emptyPath = new List<GridCell>();
             if (grid == null || start == null || destination == null)
                 return emptyPath;
             if (!start.Walkable || start.Occupied || !destination.Walkable || destination.Occupied)
+                return emptyPath;
+            // The actor may already be standing in newly discovered danger. Allow
+            // the start cell so a strategic retreat can leave it, while still
+            // requiring every entered cell and the destination to be legal.
+            if (policy != null && !policy.CanEnter(destination))
                 return emptyPath;
 
             var open = new List<GridCell> { start };
@@ -50,10 +65,16 @@ namespace TinyKingdom.Navigation
                         continue;
 
                     GridCell neighbor = grid.GetCell(nextX, nextY);
-                    if (closed.Contains(neighbor) || !CanTraverseStep(grid, current, neighbor))
+                    if (closed.Contains(neighbor) || !CanTraverseStep(grid, current, neighbor)
+                        || policy != null && !policy.CanEnter(neighbor))
+                        continue;
+                    if (policy != null && IsDiagonal(current, neighbor)
+                        && (!policy.CanEnter(grid.GetCell(neighbor.GridX, current.GridY))
+                            || !policy.CanEnter(grid.GetCell(current.GridX, neighbor.GridY))))
                         continue;
 
-                    double tentativeScore = gScore[current] + StepCost(current, neighbor);
+                    double tentativeScore = gScore[current] + StepCost(current, neighbor)
+                        + (policy?.AdditionalCost(current, neighbor) ?? 0d);
                     if (gScore.TryGetValue(neighbor, out double existingScore) && tentativeScore >= existingScore)
                         continue;
 
@@ -89,6 +110,9 @@ namespace TinyKingdom.Navigation
         {
             return from.GridX != to.GridX && from.GridY != to.GridY ? DiagonalCost : 1d;
         }
+
+        private static bool IsDiagonal(GridCell from, GridCell to)
+            => from.GridX != to.GridX && from.GridY != to.GridY;
 
         private static GridCell GetLowestScore(List<GridCell> open, Dictionary<GridCell, double> fScore,
             GridCell destination)

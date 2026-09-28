@@ -4,6 +4,7 @@ using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Buildings;
 using TinyKingdom.Input;
+using TinyKingdom.Presentation;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -11,6 +12,10 @@ namespace TinyKingdom.Economy
     public sealed class CastleDropOff : MonoBehaviour, IProductionHost, IFriendlyCursorTarget,
         IDefensiveBuildingHost
     {
+        public const int NavigationSidePadding = 1;
+        private const int FootprintHalfWidth = 1;
+        private const int FootprintHeight = 2;
+
         private static readonly List<CastleDropOff> Registered = new();
         // Three positions just outside the visible front edge of the Blue Castle.
         private static readonly Vector2[] FrontSlots =
@@ -34,6 +39,11 @@ namespace TinyKingdom.Economy
         public BuildingType Type => BuildingType.Castle;
         public Vector2Int FootprintOrigin => center + new Vector2Int(-1, 0);
         public Vector2Int Footprint => new(3, 2);
+        public Vector2Int NavigationFootprintOrigin => center
+            + new Vector2Int(-FootprintHalfWidth - NavigationSidePadding, 0);
+        public Vector2Int NavigationFootprint => new(
+            FootprintHalfWidth * 2 + 1 + NavigationSidePadding * 2,
+            FootprintHeight);
         public bool IsProductionReady => registered && IsAvailable && IsAlive;
         public bool IsDefenseReady => IsProductionReady;
         public float FireThreshold => 0.70f;
@@ -43,7 +53,9 @@ namespace TinyKingdom.Economy
         public float CurrentHP => currentHP;
         public int MaxHP => defenseData != null ? defenseData.MaxHP : 0;
         public bool IsAlive => defenseData != null && currentHP > 0f;
-        public SpriteRenderer PresentationRenderer => GetComponentInChildren<SpriteRenderer>();
+        public SpriteRenderer PresentationRenderer
+            => transform.Find("VisualRoot")?.GetComponent<SpriteRenderer>()
+                ?? GetComponentInChildren<SpriteRenderer>();
         public ResourceStockpile Stockpile => stockpile;
         public float ArrivalTolerance => arrivalTolerance;
         public int ReservationCount => reservations.Count;
@@ -59,15 +71,13 @@ namespace TinyKingdom.Economy
             if (grid == null) return;
             if (defenseData != null && currentHP <= 0f) currentHP = defenseData.MaxHP;
             center = grid.WorldToGrid(transform.position);
-            // Leave the front row open for physical entry to the drop-off slots.
-            for (int y = 0; y <= 1; y++)
-            for (int x = -1; x <= 1; x++)
-                grid.SetOccupied(center.x + x, center.y + y, true);
+            SetNavigationOccupancy(true);
             registered = true;
         }
 
         private void OnEnable()
         {
+            GroundSorting.Ensure(gameObject);
             if (!Registered.Contains(this)) Registered.Add(this);
         }
 
@@ -85,6 +95,7 @@ namespace TinyKingdom.Economy
             stockpile = resources;
             defenseData = castleData;
             currentHP = castleData != null ? castleData.MaxHP : 0f;
+            BuildingSelectionPulse.Ensure(gameObject, PresentationRenderer);
             if (castleData != null)
                 (GetComponent<BuildingVisionSource>()
                     ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
@@ -95,6 +106,11 @@ namespace TinyKingdom.Economy
 
         public bool TryReserve(UnitController worker, GridManager navigation,
             PathfindingSystem paths, out Vector3 position)
+            => TryReserve(worker, navigation, paths, null, out position);
+
+        public bool TryReserve(UnitController worker, GridManager navigation,
+            PathfindingSystem paths, IPathTraversalPolicy traversalPolicy,
+            out Vector3 position)
         {
             position = default;
             if (worker == null || navigation == null || paths == null || !IsAvailable)
@@ -131,7 +147,7 @@ namespace TinyKingdom.Economy
                 }
                 if (bestIndex < 0) return false;
                 triedMask |= 1 << bestIndex;
-                if (paths.FindPath(start, bestCell).Count == 0) continue;
+                if (paths.FindPath(start, bestCell, traversalPolicy).Count == 0) continue;
                 reservations.Add(worker, bestIndex);
                 position = bestPosition;
                 return true;
@@ -170,10 +186,20 @@ namespace TinyKingdom.Economy
         public void ReleaseOccupancy()
         {
             if (!registered || grid == null) return;
-            for (int y = 0; y <= 1; y++)
-            for (int x = -1; x <= 1; x++)
-                grid.SetOccupied(center.x + x, center.y + y, false);
+            SetNavigationOccupancy(false);
             registered = false;
+        }
+
+        private void SetNavigationOccupancy(bool occupied)
+        {
+            // The gameplay footprint remains 3x2. One extra side cell on the
+            // left and right protects the wider 1.7x Castle silhouette from
+            // route clipping. The southern row remains open for drop-off and
+            // garrison entry positions.
+            int horizontal = FootprintHalfWidth + NavigationSidePadding;
+            for (int y = 0; y < FootprintHeight; y++)
+            for (int x = -horizontal; x <= horizontal; x++)
+                grid.SetOccupied(center.x + x, center.y + y, occupied);
         }
     }
 }

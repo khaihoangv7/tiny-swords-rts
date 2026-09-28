@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
+using TinyKingdom.Presentation;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace TinyKingdom.Units
 {
@@ -19,6 +21,8 @@ namespace TinyKingdom.Units
         private CombatController combat;
         private Transform originalParent;
         private IUnitStationHost pendingHost;
+        private SortingGroup sortingGroup;
+        private int originalGroupOrder = GroundSorting.WorldOrder;
 
         public UnitStationingMode Mode { get; private set; } = UnitStationingMode.World;
         public IUnitStationHost Host { get; private set; }
@@ -64,6 +68,7 @@ namespace TinyKingdom.Units
             transform.localPosition = Vector3.zero;
             foreach ((SpriteRenderer renderer, _) in spriteOrders)
                 if (renderer != null) renderer.sortingOrder = Mathf.Max(renderer.sortingOrder, 15);
+            if (sortingGroup != null) sortingGroup.sortingOrder = 15;
             combat?.SetMountedContext(true, damageMultiplier, rangeMultiplier);
             return true;
         }
@@ -80,6 +85,7 @@ namespace TinyKingdom.Units
                 if (collider != null) collider.enabled = enabled;
             foreach ((SpriteRenderer renderer, int order) in spriteOrders)
                 if (renderer != null) renderer.sortingOrder = order;
+            if (sortingGroup != null) sortingGroup.sortingOrder = originalGroupOrder;
             renderers.Clear();
             colliders.Clear();
             spriteOrders.Clear();
@@ -104,6 +110,8 @@ namespace TinyKingdom.Units
             renderers.Clear();
             colliders.Clear();
             spriteOrders.Clear();
+            TryGetComponent(out sortingGroup);
+            if (sortingGroup != null) originalGroupOrder = sortingGroup.sortingOrder;
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
                 renderers.Add((renderer, renderer.enabled));
             foreach (SpriteRenderer renderer in GetComponentsInChildren<SpriteRenderer>(true))
@@ -132,6 +140,7 @@ namespace TinyKingdom.Units
             movement ??= GetComponent<UnitMovement>();
             selection ??= GetComponent<UnitSelection>();
             combat ??= GetComponent<CombatController>();
+            if (sortingGroup == null) TryGetComponent(out sortingGroup);
         }
     }
 }

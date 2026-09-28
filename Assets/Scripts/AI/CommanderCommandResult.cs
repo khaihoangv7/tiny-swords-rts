@@ -16,6 +16,7 @@ namespace TinyKingdom.AI
         RejectedPopulationBlocked,
         RejectedQueueFull,
         RejectedConstructionActive,
+        RejectedUnsafe,
         RejectedCommandFailed
     }
 }
