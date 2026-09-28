@@ -1,5 +1,6 @@
 using TinyKingdom.Input;
 using TinyKingdom.Economy;
+using TinyKingdom.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -92,7 +93,19 @@ namespace TinyKingdom.Buildings
             {
                 if (currentMine != null) currentMine.EjectAll(); else current?.EjectAll();
             });
-            Text label = Label("Label", buttonRect, new Vector2(110f, 28f), Vector2.zero);
+            Sprite ejectIcon = RtsHudAssetCatalog.Load()?.EjectAllIcon;
+            if (ejectIcon != null)
+            {
+                RectTransform iconRect = Rect("Icon", buttonRect, new Vector2(22f, 22f));
+                iconRect.anchorMin = iconRect.anchorMax = iconRect.pivot = Vector2.zero;
+                iconRect.anchoredPosition = new Vector2(4f, 3f);
+                Image icon = iconRect.gameObject.AddComponent<Image>();
+                icon.sprite = ejectIcon;
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+            }
+            Text label = Label("Label", buttonRect, new Vector2(82f, 28f),
+                new Vector2(27f, 0f));
             label.text = "Eject All";
             label.alignment = TextAnchor.MiddleCenter;
         }

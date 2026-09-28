@@ -37,7 +37,8 @@ MonoBehaviour:
   woodIcon: {fileID: 5700811930569161303, guid: 1d525ce6072efe7498ef0350cb6bbe66, type: 3}
   goldIcon: {fileID: 4765518676241773232, guid: 874dcf03e2dd8c044af9b1da5d8a01f9, type: 3}
   foodIcon: {fileID: 2690274267995810836, guid: 476fde6ee36d3a6438c9023936cafc5d, type: 3}
-  attackMoveIcon: {fileID: -1545379965880211911, guid: e0a44b2ca21aa4246ae97eef49f20e59, type: 3}
+  attackMoveIcon: {fileID: 860910309584662230, guid: 70ec8b485d7fff741abc49accea349e5, type: 3}
+  ejectAllIcon: {fileID: -1545379965880211911, guid: e0a44b2ca21aa4246ae97eef49f20e59, type: 3}
   guardIcon: {fileID: -5233972180137678507, guid: 55cd456216069644786534e5081cb00d, type: 3}
   warriorAvatar: {fileID: 6856901680134642022, guid: 77c6f57a0a62e80439f365f768506dc0, type: 3}
   lancerAvatar: {fileID: 8512352412310936363, guid: c1df61e22fc10b042a8752f5e586524b, type: 3}

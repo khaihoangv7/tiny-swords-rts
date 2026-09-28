@@ -50,6 +50,17 @@ namespace TinyKingdom.EditorTools
                 grid.SetOccupied(1, 0, true);
                 Require(!AStarPathfinder.CanTraverseStep(grid, grid.GetCell(0, 0), grid.GetCell(1, 1)),
                     "Occupied building corner was cut diagonally.");
+                Require(UnitMovement.BlockedPathRepathInterval >= 0.2f
+                    && UnitMovement.BlockedPathRepathInterval <= 0.5f,
+                    "Blocked-route repath interval is outside the safe responsive range.");
+                Require(UnitSeparation.IsSafeSegment(grid,
+                        grid.GetCell(1, 0).WorldPosition,
+                        grid.GetCell(0, 0).WorldPosition),
+                    "A unit already overlapped by a moving blocker cannot escape its cell.");
+                Require(!UnitSeparation.IsSafeSegment(grid,
+                        grid.GetCell(0, 0).WorldPosition,
+                        grid.GetCell(1, 0).WorldPosition),
+                    "A unit can still enter a newly occupied resource cell.");
 
                 var heightCells = new List<NavigationCellData>();
                 for (int y = 0; y < 2; y++)

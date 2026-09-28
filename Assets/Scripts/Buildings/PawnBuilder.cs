@@ -9,6 +9,9 @@ namespace TinyKingdom.Buildings
     [RequireComponent(typeof(UnitController), typeof(UnitMovement))]
     public sealed class PawnBuilder : MonoBehaviour
     {
+        public const float WorkCycleSeconds = 0.8f;
+        public const float RepairImpactDelay = 0.35f;
+
         private UnitController controller;
         private UnitMovement movement;
         private BuildingSite target;
@@ -16,11 +19,13 @@ namespace TinyKingdom.Buildings
         private bool repairing;
         private bool working;
         private float visualCycle;
+        private bool repairImpactApplied;
 
         public bool HasJob => target != null;
         public bool IsWorking => working;
         public BuildingSite Target => target;
         public event Action WorkCycleStarted;
+        public event Action<BuildingSite> RepairImpact;
 
         private void Awake()
         {
@@ -52,6 +57,7 @@ namespace TinyKingdom.Buildings
             repairing = repair;
             working = false;
             visualCycle = 0f;
+            repairImpactApplied = false;
             return true;
         }
 
@@ -61,6 +67,7 @@ namespace TinyKingdom.Buildings
             target = null;
             working = false;
             visualCycle = 0f;
+            repairImpactApplied = false;
         }
 
         private void Update()
@@ -87,14 +94,24 @@ namespace TinyKingdom.Buildings
                 movement.Stop();
                 working = true;
                 visualCycle = 0f;
+                repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
             }
-            if (repairing) target.Repair(Time.deltaTime);
-            else target.AdvanceConstruction(Time.deltaTime);
             visualCycle += Time.deltaTime;
-            if (visualCycle >= 0.8f)
+            if (repairing)
             {
-                visualCycle -= 0.8f;
+                if (!repairImpactApplied && visualCycle >= RepairImpactDelay)
+                {
+                    repairImpactApplied = true;
+                    if (target.Repair(WorkCycleSeconds) > 0f)
+                        RepairImpact?.Invoke(target);
+                }
+            }
+            else target.AdvanceConstruction(Time.deltaTime);
+            if (visualCycle >= WorkCycleSeconds)
+            {
+                visualCycle -= WorkCycleSeconds;
+                repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
             }
         }

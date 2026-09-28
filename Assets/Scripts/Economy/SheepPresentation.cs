@@ -1,4 +1,5 @@
 using TinyKingdom.Navigation;
+using TinyKingdom.Units;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -95,6 +96,7 @@ namespace TinyKingdom.Economy
             if (grid == null || wanderRadius < 1f) return false;
             if (node.OccupiedCell != originCell)
             {
+                if (ContainsLivingUnit(originCell)) return false;
                 if (!node.TryMoveOccupancy(originCell, out destination)) return false;
                 renderer.flipX = destination.x < transform.position.x;
                 SetState(VisualState.Moving);
@@ -107,10 +109,22 @@ namespace TinyKingdom.Economy
                 Vector3 origin = grid.GridToWorld(originCell.x, originCell.y);
                 Vector3 candidateWorld = grid.GridToWorld(candidate.x, candidate.y);
                 if (Vector2.Distance(origin, candidateWorld) > wanderRadius
+                    || ContainsLivingUnit(candidate)
                     || !node.TryMoveOccupancy(candidate, out destination)) continue;
                 renderer.flipX = destination.x < transform.position.x;
                 SetState(VisualState.Moving);
                 return true;
+            }
+            return false;
+        }
+
+        private bool ContainsLivingUnit(Vector2Int candidate)
+        {
+            foreach (UnitController unit in UnitController.ActiveUnits)
+            {
+                if (unit != null && unit.IsAlive
+                    && grid.WorldToGrid(unit.transform.position) == candidate)
+                    return true;
             }
             return false;
         }

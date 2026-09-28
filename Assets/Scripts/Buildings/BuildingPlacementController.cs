@@ -16,6 +16,7 @@ namespace TinyKingdom.Buildings
         private SelectionManager selection;
         private GridManager grid;
         private Camera worldCamera;
+        private GameObject previewRoot;
         private SpriteRenderer preview;
         private readonly SpriteRenderer[] outline = new SpriteRenderer[4];
         private static Sprite whitePixel;
@@ -49,23 +50,25 @@ namespace TinyKingdom.Buildings
             activeVariant = variant;
             if (preview == null)
             {
-                var obj = new GameObject("BuildingPlacementPreview");
-                preview = obj.AddComponent<SpriteRenderer>();
+                previewRoot = new GameObject("BuildingPlacementPreview");
+                var visual = new GameObject("VisualRoot");
+                visual.transform.SetParent(previewRoot.transform, false);
+                preview = visual.AddComponent<SpriteRenderer>();
                 preview.sortingOrder = 30;
                 whitePixel ??= Sprite.Create(Texture2D.whiteTexture,
                     new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
                 for (int i = 0; i < outline.Length; i++)
                 {
                     var edge = new GameObject("FootprintEdge" + i);
-                    edge.transform.SetParent(obj.transform, false);
+                    edge.transform.SetParent(previewRoot.transform, false);
                     outline[i] = edge.AddComponent<SpriteRenderer>();
                     outline[i].sprite = whitePixel;
                     outline[i].sortingOrder = 31;
                 }
             }
             preview.sprite = data.GetSprite(selection.PlayerFaction, variant);
-            preview.transform.localScale = Vector3.one;
-            preview.gameObject.SetActive(true);
+            BuildingVisualPresentation.Apply(preview, data.Type, data.VisualOffset);
+            previewRoot.SetActive(true);
             return true;
         }
 
@@ -73,7 +76,7 @@ namespace TinyKingdom.Buildings
         {
             activeType = null;
             IsValidPreview = false;
-            if (preview != null) preview.gameObject.SetActive(false);
+            if (previewRoot != null) previewRoot.SetActive(false);
         }
 
         private void Update()
@@ -99,16 +102,15 @@ namespace TinyKingdom.Buildings
                 -worldCamera.transform.position.z));
             Vector2Int origin = grid.WorldToGrid(world);
             BuildingData data = system.GetData(activeType.Value);
-            preview.transform.position = grid.GridToWorld(origin.x, origin.y)
+            previewRoot.transform.position = grid.GridToWorld(origin.x, origin.y)
                 + new Vector3((data.Footprint.x - 1) * grid.NavigationData.CellSize * 0.5f,
                     (data.Footprint.y - 1) * grid.NavigationData.CellSize * 0.5f, 0f);
-            preview.transform.position += (Vector3)data.VisualOffset;
             float width = data.Footprint.x * grid.NavigationData.CellSize;
             float height = data.Footprint.y * grid.NavigationData.CellSize;
-            float left = -width * 0.5f - data.VisualOffset.x;
-            float right = width * 0.5f - data.VisualOffset.x;
-            float bottom = -height * 0.5f - data.VisualOffset.y;
-            float top = height * 0.5f - data.VisualOffset.y;
+            float left = -width * 0.5f;
+            float right = width * 0.5f;
+            float bottom = -height * 0.5f;
+            float top = height * 0.5f;
             SetEdge(0, new Vector2(0.5f * (left + right), bottom), new Vector2(width, 0.035f));
             SetEdge(1, new Vector2(0.5f * (left + right), top), new Vector2(width, 0.035f));
             SetEdge(2, new Vector2(left, 0.5f * (bottom + top)), new Vector2(0.035f, height));
@@ -152,7 +154,7 @@ namespace TinyKingdom.Buildings
 
         private void OnDestroy()
         {
-            if (preview != null) Destroy(preview.gameObject);
+            if (previewRoot != null) Destroy(previewRoot);
         }
     }
 }

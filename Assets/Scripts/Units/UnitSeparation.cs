@@ -81,26 +81,27 @@ namespace TinyKingdom.Units
         public static bool IsSafeSegment(GridManager grid, Vector3 from, Vector3 to)
         {
             if (grid == null) return false;
-            GridCell previous = CellAt(grid, from);
-            if (previous == null) return false;
+            GridCell previous = RawCellAt(grid, from);
+            if (previous == null || !previous.Walkable) return false;
             float cellSize = grid.NavigationData.CellSize;
             int segments = Mathf.Max(1, Mathf.CeilToInt(Vector2.Distance(from, to) / (cellSize * 0.2f)));
             for (int i = 1; i <= segments; i++)
             {
                 Vector3 sample = Vector3.Lerp(from, to, i / (float)segments);
-                GridCell next = CellAt(grid, sample);
-                if (next == null || (next != previous && !AStarPathfinder.CanTraverseStep(grid, previous, next)))
+                GridCell next = RawCellAt(grid, sample);
+                if (next == null || !next.Walkable
+                    || next != previous && (next.Occupied
+                        || !AStarPathfinder.CanTraverseStep(grid, previous, next)))
                     return false;
                 previous = next;
             }
             return true;
         }
 
-        private static GridCell CellAt(GridManager grid, Vector3 point)
+        private static GridCell RawCellAt(GridManager grid, Vector3 point)
         {
             Vector2Int location = grid.WorldToGrid(point);
-            GridCell cell = grid.GetCell(location.x, location.y);
-            return cell != null && cell.Walkable && !cell.Occupied ? cell : null;
+            return grid.GetCell(location.x, location.y);
         }
 
         private static Vector2 CoincidentDirection(int first, int second)

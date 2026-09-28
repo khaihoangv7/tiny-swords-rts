@@ -4,6 +4,7 @@ using TinyKingdom.Input;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Presentation;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -53,6 +54,8 @@ namespace TinyKingdom.Buildings
         public event Action DefenseHostDestroyed;
         public event Action DefenseHostHealthChanged;
 
+        private void OnEnable() => GroundSorting.Ensure(gameObject);
+
         public void Configure(BuildingData definition, Faction owner, Vector2Int gridOrigin,
             GridManager navigation, FactionPopulation ownerPopulation,
             HouseVariant variant = HouseVariant.A)
@@ -67,17 +70,19 @@ namespace TinyKingdom.Buildings
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
             transform.position = first + new Vector3((data.Footprint.x - 1) * grid.NavigationData.CellSize * 0.5f,
                 (data.Footprint.y - 1) * grid.NavigationData.CellSize * 0.5f, 0f);
-            var child = new GameObject("Visual");
+            var child = new GameObject("VisualRoot");
             child.transform.SetParent(transform, false);
-            child.transform.localPosition = data.VisualOffset;
             visual = child.AddComponent<SpriteRenderer>();
             visual.sprite = data.GetSprite(owner, variant);
             visual.sortingOrder = 9;
+            BuildingVisualPresentation.Apply(visual, data.Type, data.VisualOffset);
+            BuildingSelectionPulse.Ensure(gameObject, visual);
             visual.color = new Color(1f, 1f, 1f, 0.55f);
+            GroundSorting.Ensure(gameObject);
             MakeBar();
             (GetComponent<BuildingHealthBar>()
                 ?? gameObject.AddComponent<BuildingHealthBar>()).Configure(this,
-                    data.Footprint.y * grid.NavigationData.CellSize * 0.5f + 0.45f);
+                    BuildingVisualPresentation.TopLocalY(visual) + 0.3f);
             (GetComponent<BuildingDamagePresentation>()
                 ?? gameObject.AddComponent<BuildingDamagePresentation>()).Configure(this);
             BoxCollider2D hit = gameObject.AddComponent<BoxCollider2D>();
@@ -136,13 +141,15 @@ namespace TinyKingdom.Buildings
                 AdvanceConstruction(data.ConstructionSeconds);
         }
 
-        public void Repair(float seconds)
+        public float Repair(float seconds)
         {
-            if (!MatchManager.AllowsGameplay || !NeedsRepair) return;
+            if (!MatchManager.AllowsGameplay || !NeedsRepair) return 0f;
+            float before = currentHP;
             currentHP = Mathf.Min(data.MaxHP, currentHP + data.RepairHPPerSecond * Mathf.Max(0f, seconds));
             UpdateBar();
             Changed?.Invoke(this);
             DefenseHostHealthChanged?.Invoke();
+            return currentHP - before;
         }
 
         public void TakeDamage(float damage)
@@ -194,8 +201,8 @@ namespace TinyKingdom.Buildings
         {
             pixelSprite ??= Sprite.Create(Texture2D.whiteTexture,
                 new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
-            float healthY = data.Footprint.y * grid.NavigationData.CellSize * 0.5f + 0.45f;
-            MakeBarPair("ConstructionProgress", healthY + 0.44f,
+            float topY = BuildingVisualPresentation.TopLocalY(visual);
+            MakeBarPair("ConstructionProgress", topY + 0.3f,
                 out progressBarRoot, out progressBackground, out progressFill);
         }
 

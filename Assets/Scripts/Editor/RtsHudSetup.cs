@@ -35,7 +35,7 @@ namespace TinyKingdom.EditorTools
                 Configure(WoodTable, 9);
                 Configure(Slot, 1);
                 Configure(Paper, 9);
-                foreach (int number in new[] { 1, 2, 3, 4, 6, 9 })
+                foreach (int number in new[] { 1, 2, 3, 4, 5, 6, 9 })
                     Configure(Icons + $"Icon_{number:00}.png", 1);
                 for (int number = 1; number <= 5; number++)
                     Configure(Avatars + $"Avatars_{number:00}.png", 1);
@@ -50,7 +50,8 @@ namespace TinyKingdom.EditorTools
                 catalog.Set(Load(WoodTable), Load(Paper), First(Slot),
                     First(Icons + "Icon_01.png"), First(Icons + "Icon_02.png"),
                     First(Icons + "Icon_03.png"), First(Icons + "Icon_04.png"),
-                    First(Icons + "Icon_09.png"), First(Icons + "Icon_06.png"),
+                    First(Icons + "Icon_05.png"), First(Icons + "Icon_09.png"),
+                    First(Icons + "Icon_06.png"),
                     First(Avatars + "Avatars_01.png"),
                     First(Avatars + "Avatars_02.png"),
                     First(Avatars + "Avatars_03.png"),

@@ -8,6 +8,7 @@ namespace TinyKingdom.Buildings
     {
         BuildingData DefenseData { get; }
         Transform HostTransform { get; }
+        SpriteRenderer PresentationRenderer { get; }
         Collider2D InteractionCollider { get; }
         float CurrentHP { get; }
         int MaxHP { get; }

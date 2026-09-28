@@ -14,6 +14,7 @@ namespace TinyKingdom.UI
         [SerializeField] private Sprite goldIcon;
         [SerializeField] private Sprite foodIcon;
         [SerializeField] private Sprite attackMoveIcon;
+        [SerializeField] private Sprite ejectAllIcon;
         [SerializeField] private Sprite guardIcon;
         [SerializeField] private Sprite warriorAvatar;
         [SerializeField] private Sprite lancerAvatar;
@@ -29,10 +30,12 @@ namespace TinyKingdom.UI
         public Sprite GoldIcon => goldIcon;
         public Sprite FoodIcon => foodIcon;
         public Sprite AttackMoveIcon => attackMoveIcon;
+        public Sprite EjectAllIcon => ejectAllIcon;
         public Sprite GuardIcon => guardIcon;
         public bool IsComplete => woodTable.Length == 9 && specialPaper.Length == 9
             && commandSlot != null && populationIcon != null && woodIcon != null
             && goldIcon != null && foodIcon != null && attackMoveIcon != null
+            && ejectAllIcon != null
             && guardIcon != null && warriorAvatar != null && lancerAvatar != null
             && archerAvatar != null && monkAvatar != null && pawnAvatar != null;
 
@@ -52,7 +55,7 @@ namespace TinyKingdom.UI
 #if UNITY_EDITOR
         public void Set(Sprite[] wood, Sprite[] paper, Sprite slot,
             Sprite population, Sprite woodResource, Sprite goldResource,
-            Sprite foodResource, Sprite attackMove, Sprite guard,
+            Sprite foodResource, Sprite attackMove, Sprite ejectAll, Sprite guard,
             Sprite warrior, Sprite lancer, Sprite archer, Sprite monk, Sprite pawn)
         {
             woodTable = wood;
@@ -63,6 +66,7 @@ namespace TinyKingdom.UI
             goldIcon = goldResource;
             foodIcon = foodResource;
             attackMoveIcon = attackMove;
+            ejectAllIcon = ejectAll;
             guardIcon = guard;
             warriorAvatar = warrior;
             lancerAvatar = lancer;

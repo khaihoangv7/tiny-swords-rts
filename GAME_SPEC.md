@@ -94,6 +94,13 @@ Main source:
 
 Sheep.
 
+Each Sheep contains 200 Food.
+
+Ambient Sheep wandering must not select a logical cell currently occupied by a
+living unit. If a Sheep moves onto a previously planned route, the affected unit
+recalculates around the new occupied cell with a short throttled retry instead
+of abandoning its existing Move, AttackMove, chase or worker command.
+
 Used for:
 
 * Pawns
@@ -195,6 +202,11 @@ and Food. Work animation playback is independent of that gameplay timer;
 resource gain occurs at a configured gameplay impact time, followed by a
 recovery delay until the next cycle.
 
+Gold gathering uses a reserved adjacent navigation cell. Gold Stone 1-5 use a
+small inward interaction offset so the Pawn remains visibly close enough to the
+rock. The larger Gold Stone 6 uses an outward offset so the Pawn remains outside
+its artwork before the mining cycle begins.
+
 Move to resource
 
 → Gather
@@ -219,6 +231,19 @@ before gathering a different resource.
 ---
 
 # 8. Unit Types
+
+All gameplay unit artwork uses a presentation-only 1.3 scale on its animated
+visual child. The unit gameplay root remains `(1,1,1)`, and movement, collider,
+separation, attack range, projectile origin, selection logic and navigation do
+not derive from this visual scale. Animation frame offsets are scaled around
+their verified animation anchor so the unit's ground contact remains stable.
+Unit health bars remain unscaled and use a raised presentation anchor.
+Normal Tree and Sheep visual children use the same 1.3 world-asset scale.
+Gold Stone 1-5 use 1.4 and Gold Stone 6 uses 1.55 so the largest verified node
+has stronger visual weight. All retain their existing gameplay roots, colliders,
+occupancy and interaction slots. Terrain tiles, UI, cursors, projectiles and VFX
+retain their own established presentation scales. Buildings retain their
+separate profiles.
 
 The initial game contains:
 
@@ -549,6 +574,29 @@ Units cannot be trained if the population cap would be exceeded.
 
 # 15. Buildings
 
+Normal faction building art is rendered at presentation scale 1.7 on a
+ground-anchored visual child. The gameplay root remains scale 1.0. Logical
+footprints, construction occupancy, A* blockers, interaction slots, rally,
+drop-off and combat authority do not derive from sprite bounds. Custom-axis Y
+sorting allows a unit north of a building's ground line to pass behind upper
+roof artwork while south-side units remain in front. Health/construction bars,
+damage effects and mounted Archer anchors are positioned from the scaled visual
+but do not inherit its transform scale. Gold Mine keeps its separately tuned
+1.30 presentation scale.
+
+The Main Castle retains its authoritative 3x2 gameplay footprint and collider.
+Its wider 1.7 presentation silhouette reserves one additional navigation cell
+on each horizontal side so routes cannot clip through the visible stone edges.
+The front approach remains open for Castle drop-off and garrison entry.
+
+`Building Visual Bounds != Building Physical Footprint.` `BuildingRoot` stays
+at `(1,1,1)`; only its `VisualRoot` may use presentation scale.
+
+Clicking a selectable friendly normal building plays one presentation-only
+vertical pulse: 0.94 squash, 1.035 stretch, then recovery to its configured
+visual scale. This is intentionally gentler than the 0.84/1.12 unit damage
+reaction and does not change the building root, footprint, collider or state.
+
 The initial game contains:
 
 * Castle
@@ -785,6 +833,12 @@ Pawn receives Repair order
 → repairs over time
 
 → stops when building reaches maximum HP.
+
+Repair uses the same verified Hammer animation as construction. Its gameplay
+cycle is 0.8 seconds with an impact at 0.35 seconds. At each successful impact,
+HP is restored from the configured `RepairHPPerSecond` rate and the building
+plays the same mild ground-anchored vertical pulse used by building selection.
+Animation frames do not authorize HP restoration.
 
 Repair must consume resources only if explicitly implemented later.
 
@@ -1616,7 +1670,44 @@ Military production Rally Points use explored safe ground near Red's base. The
 Commander does not issue military attack orders in Phase 7B. Tower strategy,
 Gold Mine contest strategy, Goblins and full military behavior remain deferred.
 
-# 54. Source of Truth
+# 54. Phase 7C.1 Defensive Army Group
+
+The Red Rule-Based Commander organizes available Warrior, Archer, Lancer and Monk
+units into one defensive Army Group. Pawns, dead or stationed units and the active
+Scout are excluded. The group waits around the existing Phase 7B military staging
+area and transitions through Forming, Ready, Defending and Regrouping.
+
+The Red Main Castle footprint center anchors a provisional 9-world-unit base
+defense radius and 12-world-unit defense leash. The Commander may target only a
+currently Red-visible hostile playable unit. Priority is a unit attacking the
+Castle, another Red building, or a Red unit, followed by other hostile military
+and then a Pawn. Current visible targets remain stable until invalid, dead, hidden
+or beyond the leash.
+
+Warrior, Archer and Lancer use the normal authoritative Attack command. Monk moves
+with the group for its existing support behavior and is never issued Attack. When
+danger ends, survivors receive distributed normal Move commands back to staging.
+The Army Group never launches an offensive, attacks remembered buildings, targets
+the Blue Castle, contests the Gold Mine or enters Unexplored territory in this
+phase. Phase 7C.2 owns offensive behavior.
+
+# 55. Phase 7C.1A Strategic Safety
+
+The Red Rule-Based Commander treats `HomeEconomicRadius = 11` as the provisional
+normal operating radius around its Main Castle on the 40x28 test map. Economy
+resources must be legally known, not known depleted, inside that radius, on
+explored safe ground and reachable through safe explored cells. Economy ratios are
+targets; unavailable Food never authorizes a cross-map civilian expedition. Safe
+other resource types may be used before the Pawn remains idle/available.
+
+Knowledge-based danger comes from currently visible hostile units and legitimately
+observed current or remembered hostile buildings. Tower/Castle danger uses their
+recorded defensive range plus 1.5 world units. Visible Warrior/Archer/Lancer danger
+uses recorded attack range plus a 2.5-unit reaction buffer. Hidden units contribute
+no continuing position danger. Pawns retreat from newly unsafe work; Scouts retreat
+or route around known danger. This hotfix adds no offensive army behavior.
+
+# 55. Source of Truth
 
 This file defines gameplay rules.
 

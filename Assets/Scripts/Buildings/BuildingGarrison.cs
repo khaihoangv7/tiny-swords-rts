@@ -48,8 +48,7 @@ namespace TinyKingdom.Buildings
             mounted = GetComponent<BuildingMountedArchers>()
                 ?? gameObject.AddComponent<BuildingMountedArchers>();
             mounted.Configure(owner);
-            float baseY = owner.Footprint.y
-                * (grid != null ? grid.NavigationData.CellSize : 1f) * 0.5f + 0.45f;
+            float baseY = BuildingVisualPresentation.TopLocalY(owner.PresentationRenderer);
             BuildingPresentationProfile profile = BuildingPresentationProfiles.For(owner.Type);
             (GetComponent<BuildingGarrisonWorldCount>()
                 ?? gameObject.AddComponent<BuildingGarrisonWorldCount>())
