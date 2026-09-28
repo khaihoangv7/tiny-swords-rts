@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TinyKingdom.Audio;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
@@ -302,6 +303,19 @@ namespace TinyKingdom.Economy
                 carriedType = target.ResourceType;
                 carriedAmount += taken;
                 ResourceGathered?.Invoke(carriedType, taken);
+                GameplayAudioEvent? eventId = carriedType switch
+                {
+                    ResourceType.Gold => GameplayAudioEvent.PawnMining,
+                    ResourceType.Wood => GameplayAudioEvent.PawnChopping,
+                    _ => null
+                };
+                if (eventId.HasValue)
+                {
+                    Vector3 soundPosition = Vector3.Lerp(transform.position,
+                        target.transform.position, 0.5f);
+                    GameplayAudioService.Request(eventId.Value, soundPosition,
+                        controller.Faction);
+                }
             }
             if (!target.IsAvailable || carriedAmount >= carryCapacity || taken == 0)
             {

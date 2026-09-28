@@ -1014,3 +1014,33 @@ one verified Throw row and uses horizontal flip only. Throw plays seven frames
 at 10 FPS and releases its projectile at the start of zero-based frame 6
 (0.60 seconds), when the held explosive disappears from the hand. The generic
 Dead/Buried VFX remains responsible for death presentation.
+
+## Gameplay SFX Foundation / Initial Audio Integration
+
+The following user-provided MP3 assets are referenced directly by
+`Assets/Resources/Audio/GameplayAudioCatalog.asset`. Runtime code loads that
+catalog once and never looks up an AudioClip by filename during an action.
+
+| Audio event | Exact asset path | Authoritative gameplay trigger |
+| --- | --- | --- |
+| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3` | Successful Warrior melee damage to a unit or building |
+| LancerAttack | `Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3` | Successful Lancer melee damage to a unit or building |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_archer_attack_01.mp3` | Actual Archer projectile creation, including mounted Archer fire |
+| MonkHeal | `Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3` | A valid heal pulse that restores positive HP |
+| PawnMining | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_mining_01.mp3` | Successful Gold transfer during the existing gather impact |
+| PawnChopping | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_chopping_01.mp3` | Successful Wood transfer during the existing gather impact |
+| SheepHurt | `Assets/Audio/SFX/Economy/Food/sfx_sheep_hurt_01.mp3` | Positive Food removal from a ResourceNode with verified SheepPresentation |
+
+All seven clips retain their source MP3 content. Import uses Decompress On Load,
+preloaded audio data, background loading off and the existing source compression
+quality. Source inspection found Sheep, Archer, Lancer, Monk, Mining and Warrior
+encoded as stereo; Chopping is mono. Stereo does not prevent distance attenuation,
+but its positional image should be checked by listening in Play Mode.
+
+The supplied Chopping file is approximately 54 seconds long and its first three
+seconds contain no useful chopping impact. The catalog starts Chopping playback
+at 3.0 seconds and applies a configurable 1.25-second presentation limit per
+successful gather impact, so the useful sound plays without occupying a pooled
+source for nearly a minute. Mining, Chopping and Sheep Hurt currently use the
+reduced provisional per-event volume 0.45. Source files are unchanged.
+`PawnFoodHarvest` is reserved in the catalog without a clip.

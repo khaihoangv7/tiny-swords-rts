@@ -1746,7 +1746,32 @@ delay. Combat power estimation, strength/casualty retreat, counter-unit producti
 multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine warfare and
 special final-Castle tactics remain Phase 7C.3 work.
 
-# 57. Source of Truth
+# 57. Gameplay SFX Foundation / Initial Audio Integration
+
+Gameplay audio is presentation-only and reacts after authoritative actions. It
+must never change combat cooldowns, projectile timing, healing, gathering,
+resource depletion or AI decisions. The initial supported events are Warrior and
+Lancer successful melee attacks, Archer projectile launch, successful Monk heal,
+successful Pawn Gold/Wood gather impacts and positive Sheep resource damage.
+
+World SFX uses a fixed pool of twelve positional AudioSources. Provisional per-event
+concurrency is three for Warrior, Lancer and Archer, and two for Monk, mining,
+chopping and Sheep hurt. Master SFX volume defaults to 1.0; per-event volume,
+playback cap, concurrency and optional 0.96-1.04 pitch variation are catalog data.
+These presentation settings do not affect gameplay authority.
+
+The AudioListener remains on the Main Camera. World SFX uses full 3D spatial blend
+with linear distance rolloff: actions directly below the camera center are loudest,
+and become progressively quieter as the camera center moves away from the source.
+
+Own-faction world SFX remains audible. Enemy and neutral SFX is eligible only if
+the source position is currently visible to the local player's faction through
+TeamVisionSystem, preventing audio from revealing hidden actions through Fog.
+Food harvesting has no Pawn sound yet. Hit impacts, unit death, construction,
+building destruction, fire, command/UI, victory/defeat, ambience and music remain
+future audio work; this does not complete the full Phase 6E audio scope.
+
+# 58. Source of Truth
 
 This file defines gameplay rules.
 
