@@ -53,6 +53,14 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.OffensiveAdvance");
         private static readonly ProfilerMarker OffensiveRegroupMarker =
             new("TinyKingdom.AI.OffensiveRegroup");
+        private static readonly ProfilerMarker CombatStrengthAssessmentMarker =
+            new("TinyKingdom.AI.CombatStrengthAssessment");
+        private static readonly ProfilerMarker RetreatEvaluationMarker =
+            new("TinyKingdom.AI.RetreatEvaluation");
+        private static readonly ProfilerMarker RetreatExecutionMarker =
+            new("TinyKingdom.AI.RetreatExecution");
+        private static readonly ProfilerMarker RecoveryEvaluationMarker =
+            new("TinyKingdom.AI.RecoveryEvaluation");
 
         [SerializeField, Min(1f)] private float baseDefenseRadius = 9f;
         [SerializeField, Min(1f)] private float defenseLeashRadius = 12f;
@@ -65,6 +73,21 @@ namespace TinyKingdom.AI
         [SerializeField, Min(1f)] private float offensiveCohesionRadius = 6f;
         [SerializeField, Min(0.5f)] private float offensiveReevaluationSeconds = 3f;
         [SerializeField, Range(1, 6)] private int maximumObjectiveFailures = 3;
+        [Header("Phase 7C.3 retreat/recovery (MVP / provisional)")]
+        [SerializeField] private CombatStrengthTuning combatStrength = new();
+        [SerializeField, Min(1f)] private float combatAssessmentRadius = 9f;
+        [SerializeField, Range(0.1f, 0.9f)] private float retreatRemainingForceRatio = 0.45f;
+        [SerializeField, Range(0.1f, 0.9f)] private float retreatAverageHealthRatio = 0.35f;
+        [SerializeField, Min(1.01f)] private float retreatEnemyStrengthRatio = 1.40f;
+        [SerializeField, Range(1, 5)] private int retreatStableEvaluations = 2;
+        [SerializeField, Range(0.5f, 1f)] private float retreatCompletionFraction = 0.75f;
+        [SerializeField, Min(1f)] private float retreatCompletionTimeout = 12f;
+        [SerializeField, Min(0f)] private float minimumRecoveryDuration = 3f;
+        [SerializeField, Min(1f)] private float maximumRecoveryDuration = 10f;
+        [SerializeField, Range(0.1f, 1f)] private float recoveryAverageHealthRatio = 0.65f;
+        [SerializeField, Range(0.5f, 1f)] private float recoveryAssemblyFraction = 0.75f;
+        [SerializeField, Min(0.1f)] private float recoveryMinimumEffectiveStrength = 4f;
+        [SerializeField, Min(1f)] private float failedObjectiveCooldown = 12f;
 
         private readonly ArmyGroup army = new();
         private readonly Dictionary<UnitController, EntityId> attackIntents = new();
@@ -73,6 +96,7 @@ namespace TinyKingdom.AI
         private readonly Dictionary<UnitController, float> retryAfter = new();
         private readonly List<UnitController> operationMembers = new();
         private readonly List<UnitController> staleActors = new();
+        private readonly Dictionary<UnitController, Vector3> retreatDestinations = new();
         private bool hasCurrentThreat;
         private EntityId currentThreatId;
         private UnitType currentThreatType;
@@ -93,6 +117,27 @@ namespace TinyKingdom.AI
         private string objectiveReason = "None";
         private bool cohesionRegroup;
         private Vector3 cohesionRegroupPosition;
+        private bool campaignBaselineCaptured;
+        private int campaignStartPopulation;
+        private int campaignStartMemberCount;
+        private float campaignStartEffectiveStrength;
+        private float campaignStartAverageHealth;
+        private int campaignSurvivorCount;
+        private float remainingForceRatio = 1f;
+        private float ownEffectiveStrength;
+        private float visibleEnemyStrength;
+        private float enemyStrengthRatio;
+        private float averageArmyHealth = 1f;
+        private int visibleRelevantEnemyCount;
+        private Vector3 armyCentroid;
+        private RetreatReason currentRetreatReason;
+        private RetreatReason pendingRetreatReason;
+        private int retreatDangerEvaluations;
+        private float retreatStartTime;
+        private float retreatArrivedFraction;
+        private float recoveryStartTime;
+        private bool recoveryReady;
+        private bool resumeRecoveryAfterDefense;
 
         public ArmyGroup Army => army;
         public float BaseDefenseRadius => Mathf.Max(1f, baseDefenseRadius);
@@ -118,9 +163,59 @@ namespace TinyKingdom.AI
         public float OperationStartTime => operationStartTime;
         public int ObjectiveFailureCount => objectiveFailureCount;
         public int OffensiveParticipantCount => operationMembers.Count;
+        public CombatStrengthTuning CombatStrength
+            => combatStrength ??= new CombatStrengthTuning();
+        public float CombatAssessmentRadius
+            => combatAssessmentRadius > 0f ? combatAssessmentRadius : 9f;
+        public float RetreatRemainingForceRatio => retreatRemainingForceRatio > 0f
+            ? Mathf.Clamp01(retreatRemainingForceRatio) : 0.45f;
+        public float RetreatAverageHealthRatio => retreatAverageHealthRatio > 0f
+            ? Mathf.Clamp01(retreatAverageHealthRatio) : 0.35f;
+        public float RetreatEnemyStrengthRatio => retreatEnemyStrengthRatio > 1f
+            ? retreatEnemyStrengthRatio : 1.40f;
+        public int RetreatStableEvaluations
+            => retreatStableEvaluations > 0 ? retreatStableEvaluations : 2;
+        public float RetreatCompletionFraction => retreatCompletionFraction > 0f
+            ? Mathf.Clamp(retreatCompletionFraction, 0.5f, 1f) : 0.75f;
+        public float RetreatCompletionTimeout
+            => retreatCompletionTimeout > 0f ? retreatCompletionTimeout : 12f;
+        public float MinimumRecoveryDuration
+            => minimumRecoveryDuration > 0f ? minimumRecoveryDuration : 3f;
+        public float MaximumRecoveryDuration
+            => maximumRecoveryDuration > MinimumRecoveryDuration
+                ? maximumRecoveryDuration : Mathf.Max(10f, MinimumRecoveryDuration + 1f);
+        public float RecoveryAverageHealthRatio => recoveryAverageHealthRatio > 0f
+            ? Mathf.Clamp01(recoveryAverageHealthRatio) : 0.65f;
+        public float RecoveryAssemblyFraction => recoveryAssemblyFraction > 0f
+            ? Mathf.Clamp(recoveryAssemblyFraction, 0.5f, 1f) : 0.75f;
+        public float RecoveryMinimumEffectiveStrength
+            => recoveryMinimumEffectiveStrength > 0f ? recoveryMinimumEffectiveStrength : 4f;
+        public float FailedObjectiveCooldown
+            => failedObjectiveCooldown > 0f ? failedObjectiveCooldown : 12f;
+        public int CampaignStartPopulation => campaignStartPopulation;
+        public int CampaignStartMemberCount => campaignStartMemberCount;
+        public float CampaignStartEffectiveStrength => campaignStartEffectiveStrength;
+        public float CampaignStartAverageHealth => campaignStartAverageHealth;
+        public int CampaignSurvivorCount => campaignSurvivorCount;
+        public float RemainingForceRatio => remainingForceRatio;
+        public float OwnEffectiveStrength => ownEffectiveStrength;
+        public float VisibleRelevantEnemyStrength => visibleEnemyStrength;
+        public float EnemyStrengthRatio => enemyStrengthRatio;
+        public float AverageArmyHealth => averageArmyHealth;
+        public int VisibleRelevantEnemyCount => visibleRelevantEnemyCount;
+        public Vector3 ArmyCentroid => armyCentroid;
+        public RetreatReason CurrentRetreatReason => currentRetreatReason;
+        public float RetreatStartTime => retreatStartTime;
+        public float RetreatArrivedFraction => retreatArrivedFraction;
+        public float RecoveryStartTime => recoveryStartTime;
+        public float RecoveryDuration(float now) => army.State == ArmyGroupState.Recovering
+            ? Mathf.Max(0f, now - recoveryStartTime) : 0f;
+        public bool RecoveryReady => recoveryReady;
 
         private bool IsOffensiveState => army.State is ArmyGroupState.PreparingAttack
             or ArmyGroupState.Advancing or ArmyGroupState.Assaulting;
+        private bool IsWithdrawalState => army.State is ArmyGroupState.Retreating
+            or ArmyGroupState.Recovering;
 
         public void Tick(CommanderDecisionContext context,
             ProductionCommanderPolicy production, UnitController activeScout,
@@ -139,7 +234,7 @@ namespace TinyKingdom.AI
                 return;
             }
 
-            bool requireEmergency = IsOffensiveState;
+            bool requireEmergency = IsOffensiveState || IsWithdrawalState;
             bool retained = TryRetainCurrentThreat(context.Knowledge,
                 requireEmergency, out VisibleUnitObservation threat);
             if (retained)
@@ -149,8 +244,23 @@ namespace TinyKingdom.AI
                 retained = TrySelectThreat(context.Knowledge, requireEmergency, out threat);
             if (retained)
             {
+                if (army.State == ArmyGroupState.Retreating)
+                    retreatArrivedFraction = FractionInside(operationMembers,
+                        stagingPosition, stagingRegionRadius);
+                if (army.State == ArmyGroupState.Retreating
+                    && retreatArrivedFraction < 0.5f)
+                {
+                    TickRetreat(context, safety);
+                    return;
+                }
+                bool shouldResumeRecovery = IsWithdrawalState
+                    || resumeRecoveryAfterDefense;
                 if (IsOffensiveState)
                     CancelOffense("Base defense interrupted offense", context.Time, false);
+                else if (army.State == ArmyGroupState.Retreating)
+                    ClearCampaignForRecovery();
+                EndRetreatDirectives(army.Members);
+                resumeRecoveryAfterDefense = shouldResumeRecovery;
                 bool changed = !hasCurrentThreat
                     || currentThreatId.CompareTo(threat.RuntimeId) != 0;
                 hasCurrentThreat = true;
@@ -167,15 +277,43 @@ namespace TinyKingdom.AI
             ClearThreat();
             if (army.Members.Count == 0)
             {
-                CancelOffense("Army unavailable", context.Time, true);
-                army.SetState(ArmyGroupState.Forming);
+                if (IsOffensiveState || IsWithdrawalState || resumeRecoveryAfterDefense)
+                    EnterRecovering(context, "Army unavailable");
+                else
+                {
+                    CancelOffense("Army unavailable", context.Time, true);
+                    army.SetState(ArmyGroupState.Forming);
+                }
                 return;
             }
             if (wasDefending)
             {
-                CancelOffense("Defense resolved", context.Time, false);
-                army.SetState(ArmyGroupState.Regrouping);
-                InvalidateMoveAssignments();
+                if (resumeRecoveryAfterDefense)
+                {
+                    resumeRecoveryAfterDefense = false;
+                    recoveryStartTime = context.Time;
+                    recoveryReady = false;
+                    army.SetState(ArmyGroupState.Recovering);
+                    InvalidateMoveAssignments();
+                }
+                else
+                {
+                    CancelOffense("Defense resolved", context.Time, false);
+                    army.SetState(ArmyGroupState.Regrouping);
+                    InvalidateMoveAssignments();
+                }
+            }
+
+            if (army.State == ArmyGroupState.Retreating)
+            {
+                TickRetreat(context, safety);
+                return;
+            }
+
+            if (army.State == ArmyGroupState.Recovering)
+            {
+                TickRecovery(context);
+                return;
             }
 
             if (IsOffensiveState)
@@ -184,7 +322,11 @@ namespace TinyKingdom.AI
                 return;
             }
 
-            if (!AllMembersInsideStaging())
+            bool sufficientlyStaged = recoveryReady
+                ? FractionInside(army.Members, stagingPosition, stagingRegionRadius)
+                    >= RecoveryAssemblyFraction
+                : AllMembersInsideStaging();
+            if (!sufficientlyStaged)
             {
                 if (army.State != ArmyGroupState.Regrouping)
                     army.SetState(ArmyGroupState.Forming);
@@ -202,6 +344,7 @@ namespace TinyKingdom.AI
 
         public void Reset()
         {
+            EndRetreatDirectives(army.Members);
             army.Reset();
             attackIntents.Clear();
             moveIntents.Clear();
@@ -209,6 +352,7 @@ namespace TinyKingdom.AI
             retryAfter.Clear();
             operationMembers.Clear();
             staleActors.Clear();
+            retreatDestinations.Clear();
             hasCurrentThreat = false;
             hasBaseAnchor = false;
             hasStagingPosition = false;
@@ -222,6 +366,27 @@ namespace TinyKingdom.AI
             blockedTargetUntil = 0f;
             objectiveReason = "None";
             cohesionRegroup = false;
+            campaignBaselineCaptured = false;
+            campaignStartPopulation = 0;
+            campaignStartMemberCount = 0;
+            campaignStartEffectiveStrength = 0f;
+            campaignStartAverageHealth = 0f;
+            campaignSurvivorCount = 0;
+            remainingForceRatio = 1f;
+            ownEffectiveStrength = 0f;
+            visibleEnemyStrength = 0f;
+            enemyStrengthRatio = 0f;
+            averageArmyHealth = 1f;
+            visibleRelevantEnemyCount = 0;
+            armyCentroid = default;
+            currentRetreatReason = RetreatReason.None;
+            pendingRetreatReason = RetreatReason.None;
+            retreatDangerEvaluations = 0;
+            retreatStartTime = 0f;
+            retreatArrivedFraction = 0f;
+            recoveryStartTime = 0f;
+            recoveryReady = false;
+            resumeRecoveryAfterDefense = false;
         }
 
         private void TryBeginOffense(CommanderDecisionContext context,
@@ -247,6 +412,9 @@ namespace TinyKingdom.AI
                 operationStartTime = context.Time;
                 objectiveFailureCount = 0;
                 cohesionRegroup = false;
+                recoveryReady = false;
+                ClearCampaignBaseline();
+                currentRetreatReason = RetreatReason.None;
                 objectiveReason = "Selected " + target.Category;
                 ClearCommandIntents();
                 army.SetState(ArmyGroupState.PreparingAttack);
@@ -332,11 +500,16 @@ namespace TinyKingdom.AI
                 return;
             }
 
-            int population = PopulationOf(operationMembers);
-            if (operationMembers.Count == 0 || CountAttackers(operationMembers) == 0
-                || population < Mathf.Max(1, MinOffensiveMilitaryPopulation / 2))
+            if (operationMembers.Count == 0 || CountAttackers(operationMembers) == 0)
             {
-                FailOffense(context, "Offensive force lost");
+                EnterRecovering(context, "Campaign force unavailable");
+                return;
+            }
+
+            if (army.State is ArmyGroupState.Advancing or ArmyGroupState.Assaulting
+                && EvaluateRetreat(context))
+            {
+                BeginRetreat(context, safety, pendingRetreatReason);
                 return;
             }
 
@@ -367,6 +540,8 @@ namespace TinyKingdom.AI
                         >= MinOffensiveMilitaryPopulation))
                 {
                     cohesionRegroup = false;
+                    if (!campaignBaselineCaptured)
+                        CaptureCampaignBaseline();
                     moveIntents.Clear();
                     retryAfter.Clear();
                     army.SetState(ArmyGroupState.Advancing);
@@ -517,6 +692,303 @@ namespace TinyKingdom.AI
             else retryAfter[monk] = context.Time + commandRetrySeconds;
         }
 
+        private void CaptureCampaignBaseline()
+        {
+            CalculateOwnStrength(operationMembers, out float strength,
+                out float healthRatio, out int population, out Vector3 centroid);
+            campaignBaselineCaptured = population > 0 && operationMembers.Count > 0;
+            campaignStartPopulation = population;
+            campaignStartMemberCount = operationMembers.Count;
+            campaignStartEffectiveStrength = strength;
+            campaignStartAverageHealth = healthRatio;
+            campaignSurvivorCount = operationMembers.Count;
+            remainingForceRatio = campaignBaselineCaptured ? 1f : 0f;
+            ownEffectiveStrength = strength;
+            averageArmyHealth = healthRatio;
+            armyCentroid = centroid;
+            pendingRetreatReason = RetreatReason.None;
+            retreatDangerEvaluations = 0;
+        }
+
+        private bool EvaluateRetreat(CommanderDecisionContext context)
+        {
+            using var marker = RetreatEvaluationMarker.Auto();
+            AssessCampaignCombat(context.Knowledge);
+            if (campaignBaselineCaptured
+                && remainingForceRatio < RetreatRemainingForceRatio)
+            {
+                pendingRetreatReason = RetreatReason.HeavyCasualties;
+                retreatDangerEvaluations = RetreatStableEvaluations;
+                return true;
+            }
+
+            RetreatReason candidate = RetreatReason.None;
+            if (averageArmyHealth < RetreatAverageHealthRatio)
+                candidate = RetreatReason.LowAverageHealth;
+            else if (visibleEnemyStrength > 0f
+                && visibleEnemyStrength > ownEffectiveStrength * RetreatEnemyStrengthRatio)
+                candidate = RetreatReason.EnemyStrengthOverwhelming;
+
+            if (candidate == RetreatReason.None)
+            {
+                pendingRetreatReason = RetreatReason.None;
+                retreatDangerEvaluations = 0;
+                return false;
+            }
+            if (pendingRetreatReason == candidate) retreatDangerEvaluations++;
+            else
+            {
+                pendingRetreatReason = candidate;
+                retreatDangerEvaluations = 1;
+            }
+            return retreatDangerEvaluations >= RetreatStableEvaluations;
+        }
+
+        private void AssessCampaignCombat(FactionKnowledge knowledge)
+        {
+            using var marker = CombatStrengthAssessmentMarker.Auto();
+            CalculateOwnStrength(operationMembers, out ownEffectiveStrength,
+                out averageArmyHealth, out int population, out armyCentroid);
+            campaignSurvivorCount = operationMembers.Count;
+            remainingForceRatio = campaignBaselineCaptured && campaignStartPopulation > 0
+                ? Mathf.Clamp01((float)population / campaignStartPopulation) : 1f;
+            visibleEnemyStrength = 0f;
+            visibleRelevantEnemyCount = 0;
+            float radiusSquared = CombatAssessmentRadius * CombatAssessmentRadius;
+            IReadOnlyList<VisibleUnitObservation> units = knowledge.VisibleEnemyUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                VisibleUnitObservation item = units[i];
+                if (DistanceSquared(item.Position, armyCentroid) > radiusSquared) continue;
+                float value = CombatStrengthEvaluator.VisibleEnemyUnit(item, CombatStrength);
+                if (value <= 0f) continue;
+                visibleEnemyStrength += value;
+                visibleRelevantEnemyCount++;
+            }
+            IReadOnlyList<BuildingKnowledgeSnapshot> buildings =
+                knowledge.VisibleEnemyBuildings;
+            for (int i = 0; i < buildings.Count; i++)
+            {
+                BuildingKnowledgeSnapshot item = buildings[i];
+                if (DistanceSquared(item.LastSeenPosition, armyCentroid) > radiusSquared)
+                    continue;
+                float value = CombatStrengthEvaluator.VisibleDefensiveBuilding(
+                    item, CombatStrength);
+                if (value <= 0f) continue;
+                visibleEnemyStrength += value;
+                visibleRelevantEnemyCount++;
+            }
+            enemyStrengthRatio = ownEffectiveStrength > 0.001f
+                ? visibleEnemyStrength / ownEffectiveStrength
+                : visibleEnemyStrength > 0f ? float.PositiveInfinity : 0f;
+        }
+
+        private void CalculateOwnStrength(IReadOnlyList<UnitController> members,
+            out float strength, out float healthRatio, out int population,
+            out Vector3 centroid)
+        {
+            strength = 0f;
+            healthRatio = 0f;
+            population = 0;
+            centroid = Vector3.zero;
+            int alive = 0;
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitController member = members[i];
+                HealthComponent health = member != null
+                    ? member.GetComponent<HealthComponent>() : null;
+                if (health?.CombatData == null || !health.IsAlive) continue;
+                strength += CombatStrengthEvaluator.OwnUnit(member, CombatStrength);
+                healthRatio += CombatStrengthEvaluator.HealthRatio(
+                    health.CurrentHP, health.MaxHP);
+                population += health.CombatData.PopulationCost;
+                centroid += member.transform.position;
+                alive++;
+            }
+            healthRatio = alive > 0 ? healthRatio / alive : 0f;
+            centroid = alive > 0 ? centroid / alive : stagingPosition;
+        }
+
+        private void BeginRetreat(CommanderDecisionContext context,
+            StrategicSafetyMap safety, RetreatReason reason)
+        {
+            if (operationMembers.Count == 0)
+            {
+                EnterRecovering(context, "Campaign force unavailable");
+                return;
+            }
+            if (hasOffensiveTarget)
+            {
+                blockedTargetId = offensiveTarget.RuntimeId;
+                blockedTargetUntil = context.Time + FailedObjectiveCooldown;
+            }
+            hasOffensiveTarget = false;
+            offensiveTarget = default;
+            currentObjectivePosition = default;
+            IsOffensiveTargetVisible = false;
+            cohesionRegroup = false;
+            objectiveFailureCount = 0;
+            objectiveReason = "Retreat: " + reason;
+            currentRetreatReason = reason;
+            pendingRetreatReason = RetreatReason.None;
+            retreatDangerEvaluations = 0;
+            retreatStartTime = context.Time;
+            retreatArrivedFraction = 0f;
+            nextOffensiveEvaluationTime = context.Time + FailedObjectiveCooldown;
+            ClearCommandIntents();
+            retreatDestinations.Clear();
+            for (int i = 0; i < operationMembers.Count; i++)
+                operationMembers[i]?.GetComponent<CombatController>()?.BeginRetreat();
+            army.SetState(ArmyGroupState.Retreating);
+            BuildRetreatDestinations(context.Knowledge);
+            IssueRetreat(context, safety, true);
+        }
+
+        private void TickRetreat(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            using var marker = RetreatExecutionMarker.Auto();
+            RemoveStaleRetreatDestinations();
+            if (operationMembers.Count == 0)
+            {
+                EnterRecovering(context, "No campaign survivors");
+                return;
+            }
+            retreatArrivedFraction = FractionInside(operationMembers, stagingPosition,
+                stagingRegionRadius);
+            if (retreatArrivedFraction >= RetreatCompletionFraction
+                || context.Time - retreatStartTime >= RetreatCompletionTimeout)
+            {
+                EnterRecovering(context, "Retreat completed");
+                return;
+            }
+            BuildRetreatDestinations(context.Knowledge);
+            IssueRetreat(context, safety, false);
+        }
+
+        private void BuildRetreatDestinations(FactionKnowledge knowledge)
+        {
+            if (retreatDestinations.Count == operationMembers.Count) return;
+            retreatDestinations.Clear();
+            GridManager grid = knowledge.TeamVision?.GridManager;
+            if (grid == null) return;
+            List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
+                grid, grid.WorldToGrid(stagingPosition), operationMembers.Count, 3, true);
+            for (int i = 0; i < operationMembers.Count; i++)
+                retreatDestinations[operationMembers[i]] = i < destinations.Count
+                    ? destinations[i].WorldPosition : stagingPosition;
+        }
+
+        private void IssueRetreat(CommanderDecisionContext context,
+            StrategicSafetyMap safety, bool force)
+        {
+            for (int i = 0; i < operationMembers.Count; i++)
+            {
+                UnitController member = operationMembers[i];
+                if (!retreatDestinations.TryGetValue(member, out Vector3 destination))
+                    continue;
+                if (Vector2.Distance(member.transform.position, destination)
+                    <= destinationArrivalRadius) continue;
+                UnitMovement movement = member.GetComponent<UnitMovement>();
+                CombatController combat = member.GetComponent<CombatController>();
+                if (!force && movement != null && movement.IsMoving
+                    && combat?.Directive == CombatDirective.Retreat) continue;
+                if (context.Time < RetryTime(member)) continue;
+                context.Commands.TryRetreatMove(member, destination,
+                    safety?.ArmyTraversal);
+                retryAfter[member] = context.Time + commandRetrySeconds;
+            }
+        }
+
+        private void EnterRecovering(CommanderDecisionContext context, string reason)
+        {
+            EndRetreatDirectives(army.Members);
+            ClearCampaignForRecovery();
+            recoveryStartTime = context.Time;
+            recoveryReady = false;
+            resumeRecoveryAfterDefense = false;
+            objectiveReason = reason;
+            nextOffensiveEvaluationTime = Mathf.Max(nextOffensiveEvaluationTime,
+                context.Time + MinimumRecoveryDuration);
+            army.SetState(ArmyGroupState.Recovering);
+            InvalidateMoveAssignments();
+        }
+
+        private void TickRecovery(CommanderDecisionContext context)
+        {
+            using var marker = RecoveryEvaluationMarker.Auto();
+            CalculateOwnStrength(army.Members, out ownEffectiveStrength,
+                out averageArmyHealth, out int population, out armyCentroid);
+            visibleEnemyStrength = 0f;
+            enemyStrengthRatio = 0f;
+            visibleRelevantEnemyCount = 0;
+            float assembled = FractionInside(army.Members, stagingPosition,
+                stagingRegionRadius);
+            bool durationReady = context.Time - recoveryStartTime
+                >= MinimumRecoveryDuration;
+            bool durationFallback = context.Time - recoveryStartTime
+                >= MaximumRecoveryDuration;
+            bool forceReady = averageArmyHealth >= RecoveryAverageHealthRatio
+                || ownEffectiveStrength >= RecoveryMinimumEffectiveStrength
+                || durationFallback;
+            recoveryReady = durationReady
+                && population >= MinOffensiveMilitaryPopulation
+                && assembled >= RecoveryAssemblyFraction
+                && forceReady;
+            if (recoveryReady)
+            {
+                army.SetState(ArmyGroupState.Ready);
+                ClearCommandIntents();
+                nextOffensiveEvaluationTime = Mathf.Max(nextOffensiveEvaluationTime,
+                    context.Time + 0.5f);
+                return;
+            }
+            if (assembled < RecoveryAssemblyFraction)
+                Regroup(context, true);
+        }
+
+        private void ClearCampaignForRecovery()
+        {
+            hasOffensiveTarget = false;
+            offensiveTarget = default;
+            currentObjectivePosition = default;
+            IsOffensiveTargetVisible = false;
+            operationMembers.Clear();
+            cohesionRegroup = false;
+            objectiveFailureCount = 0;
+            retreatDestinations.Clear();
+            ClearCampaignBaseline();
+            ClearCommandIntents();
+        }
+
+        private void ClearCampaignBaseline()
+        {
+            campaignBaselineCaptured = false;
+            campaignStartPopulation = 0;
+            campaignStartMemberCount = 0;
+            campaignStartEffectiveStrength = 0f;
+            campaignStartAverageHealth = 0f;
+            campaignSurvivorCount = 0;
+            remainingForceRatio = 1f;
+            pendingRetreatReason = RetreatReason.None;
+            retreatDangerEvaluations = 0;
+        }
+
+        private static void EndRetreatDirectives(IReadOnlyList<UnitController> members)
+        {
+            for (int i = 0; i < members.Count; i++)
+                members[i]?.GetComponent<CombatController>()?.EndRetreat();
+        }
+
+        private void RemoveStaleRetreatDestinations()
+        {
+            staleActors.Clear();
+            foreach (UnitController actor in retreatDestinations.Keys)
+                if (!operationMembers.Contains(actor)) staleActors.Add(actor);
+            for (int i = 0; i < staleActors.Count; i++)
+                retreatDestinations.Remove(staleActors[i]);
+        }
+
         private bool TryRefreshObjective(FactionKnowledge knowledge,
             out BuildingKnowledgeSnapshot known)
             => knowledge.TryGetKnownEnemyBuilding(offensiveTarget.RuntimeId, out known)
@@ -544,7 +1016,7 @@ namespace TinyKingdom.AI
             if (hasOffensiveTarget)
             {
                 blockedTargetId = offensiveTarget.RuntimeId;
-                blockedTargetUntil = context.Time + offensiveReevaluationSeconds;
+                blockedTargetUntil = context.Time + FailedObjectiveCooldown;
             }
             CompleteOffense(context, reason);
         }
@@ -556,11 +1028,14 @@ namespace TinyKingdom.AI
             currentObjectivePosition = default;
             IsOffensiveTargetVisible = false;
             operationMembers.Clear();
+            retreatDestinations.Clear();
             cohesionRegroup = false;
             objectiveFailureCount = 0;
             objectiveReason = reason;
             if (cooldown)
                 nextOffensiveEvaluationTime = time + offensiveReevaluationSeconds;
+            ClearCampaignBaseline();
+            EndRetreatDirectives(army.Members);
             ClearCommandIntents();
         }
 

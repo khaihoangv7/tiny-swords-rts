@@ -12,6 +12,8 @@ namespace TinyKingdom.AI
         Advancing,
         Assaulting,
         Defending,
+        Retreating,
+        Recovering,
         Regrouping
     }
 

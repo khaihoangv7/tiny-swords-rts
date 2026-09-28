@@ -1742,9 +1742,9 @@ Monk receives support Move orders behind the operation centroid and never receiv
 Attack. The active Scout stays outside the Army Group and may continue legal
 frontier exploration. After completion or failure, survivors return to the existing
 Red staging area and wait through a provisional three-second strategic reevaluation
-delay. Combat power estimation, strength/casualty retreat, counter-unit production,
-multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine warfare and
-special final-Castle tactics remain Phase 7C.3 work.
+delay. Phase 7C.3 below adds combat power and strength/casualty retreat. Counter-unit
+production, multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine
+warfare and special final-Castle tactics remain deferred.
 
 # 57. Gameplay SFX Foundation / Initial Audio Integration
 
@@ -1771,7 +1771,40 @@ Food harvesting has no Pawn sound yet. Hit impacts, unit death, construction,
 building destruction, fire, command/UI, victory/defeat, ambience and music remain
 future audio work; this does not complete the full Phase 6E audio scope.
 
-# 58. Source of Truth
+# 58. Phase 7C.3 Combat Strength, Retreat and Recovery
+
+The Red Army strategic states are `Forming`, `Ready`, `PreparingAttack`,
+`Advancing`, `Assaulting`, `Defending`, `Retreating`, `Recovering` and
+`Regrouping`. Combat assessment runs only on the 0.50-second Commander tick during
+an active advancing/assaulting campaign.
+
+Provisional strength values are Warrior 1.00, Archer 0.75, Lancer 0.60 and Monk
+support 0.45. Unit effective strength is base value multiplied by current HP / Max
+HP. Pawn does not count. A currently visible local Tower contributes 2.00 and Castle
+3.00, health weighted. The assessment radius is 9 world units around the campaign
+centroid and uses only current Red-visible copied observations.
+
+Campaign launch records its own participant population, count, strength and average
+HP. Reinforcements do not change that baseline. Retreat triggers immediately below
+0.45 remaining campaign population, or after two consecutive evaluations below
+0.35 average HP or above a 1.40 visible-enemy/own-strength ratio. Hidden enemies,
+remote Scout contacts and hidden live defensive-building state cannot contribute.
+
+Retreat cancels the current offensive intent, applies a generic Retreat combat
+directive and sends surviving participants to distributed staging positions. It
+suppresses proactive target acquisition, retaliation and chase while units remain
+vulnerable to normal damage. Retreat completes when 75 percent of surviving
+participants are staged or after a provisional 12-second straggler timeout.
+
+Recovering requires three seconds, six military population, 75 percent staging
+cohesion, and either average HP 0.65 or effective strength 4.0. Full HP and Monk are
+not required. A ten-second ceiling releases an otherwise ready staged Army when no
+healing source exists, preventing permanent recovery deadlock. Economy, production
+and Scout continue. New units remain at Rally during retreat and join recovery at
+home. A failed retreat objective is skipped for 12 seconds before normal legal
+target selection may reconsider it.
+
+# 59. Source of Truth
 
 This file defines gameplay rules.
 

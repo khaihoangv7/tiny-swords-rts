@@ -853,7 +853,52 @@ and Profiler comparison remain required before PASS.
 - [ ] Manual: Blue human controls, 1.7x building presentation/navigation and Match End/Restart
 - [ ] Profile 0.50-second Commander tick, offensive markers, GC and path requests against Phase 7C.1
 - [ ] Confirm Unity Console has no new errors or warnings
-- [ ] Phase 7C.3 remains deferred
+
+## Phase 7C.3 - Combat Strength, Retreat and Recovery
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime /
+Editor compilation pass with 0 errors and 0 warnings. Unity Play Mode validation
+and Profiler comparison remain required before PASS.
+
+- [x] Add explicit Retreating and Recovering ArmyGroup states
+- [x] Add configurable health-weighted Warrior/Archer/Lancer and Monk support strength
+- [x] Restrict exact enemy strength to currently visible local knowledge snapshots
+- [x] Restrict visible Tower/Castle strength to the nine-unit campaign battle radius
+- [x] Capture stable campaign population, member, strength and average-HP baselines
+- [x] Keep newly produced units out of campaign survivor calculations
+- [x] Add immediate 0.45 remaining-force retreat and two-sample HP/enemy hysteresis
+- [x] Add generic CombatDirective.Retreat and validated TryRetreatMove authority
+- [x] Cancel AttackMove, proactive acquisition, retaliation and chase during retreat
+- [x] Distribute retreat destinations around the existing Rally staging point
+- [x] Deduplicate retreat movement and bound straggler waiting to 12 seconds
+- [x] Add achievable recovery without requiring full HP, regeneration or Monk
+- [x] Add a 10-second no-healing recovery ceiling to prevent permanent deadlock
+- [x] Keep economy, production and Scout independent during retreat/recovery
+- [x] Add 12-second failed-objective cooldown with legal alternative selection
+- [x] Preserve base-defense priority with withdrawal/recovery hysteresis
+- [x] Add fixed combat-strength, retreat and recovery Profiler markers
+- [x] Add optional Inspector debug fields and legal local battle-radius Gizmo
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7C.3 Commander`
+- [x] Update AI, gameplay, Fog and future RL contracts
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 7C.3 Commander` in Unity Play Mode
+- [ ] Manual: winning and small-disadvantage battles continue without panic
+- [ ] Manual: overwhelming visible local force triggers only after two evaluations
+- [ ] Manual: heavy casualties and very low average HP trigger retreat correctly
+- [ ] Manual: one injured unit or Monk loss alone does not retreat the Army
+- [ ] Manual: offensive AttackMove clears and survivors do not reacquire/chase
+- [ ] Manual: retreat destinations distribute and one straggler cannot deadlock recovery
+- [ ] Manual: hidden enemies immediately leave exact strength and remote Scout contacts do not count
+- [ ] Manual: hidden remembered Tower affects strategic risk without live HP/garrison reads
+- [ ] Manual: recovery succeeds with Monk and through reinforcement without Monk
+- [ ] Manual: new production remains staged while campaign survivors retreat
+- [ ] Manual: failed objective cooldown permits alternatives and later expires
+- [ ] Manual: defense interrupts withdrawal/recovery without command oscillation
+- [ ] Manual: Army wipe, Match End and Restart clear all temporary state
+- [ ] Manual: successful Phase 7C.2 offense and Strategic Safety remain functional
+- [ ] Manual: Blue controls, economy, construction, production, combat and Fog regressions
+- [ ] Profile Commander/strength/retreat/recovery markers, path requests, GC and FPS
+- [ ] Confirm Unity Console has no new errors or warnings
 
 ## Gameplay SFX Foundation / Initial Audio Integration
 
