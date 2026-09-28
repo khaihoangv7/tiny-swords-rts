@@ -199,3 +199,17 @@ The optional A* traversal policy remains low-level execution support. Future RL
 chooses high-level intentions and may request a safe move or gather action; it does
 not control waypoints or bypass command validation. Phase 7C.1A adds no RL package,
 observation tensor, action space, reward or training loop.
+
+## Phase 7C.2 shared offensive actions
+
+Phase 7C.2 adds validated Commander `TryAttackMove` and visible-building
+`TryAttackBuilding` actions. A future RL Commander may choose the same high-level
+concepts: regroup, AttackMove toward a known objective and Attack a currently
+visible target. It must use `FactionKnowledge` plus `FactionCommandService` and
+receives no hidden GameObject, Transform, HP or destruction event.
+
+A remembered building snapshot is a legal strategic destination only. Direct Attack
+still requires a current TeamVision-backed observation. Low-level A*, group
+destinations, target acquisition, combat timing and damage remain normal gameplay.
+Phase 7C.2 adds no ML-Agents package, tensors, rewards or training loop; detailed
+retreat and multi-squad strategy remain deferred.

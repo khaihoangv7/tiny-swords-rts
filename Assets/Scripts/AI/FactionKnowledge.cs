@@ -265,6 +265,34 @@ namespace TinyKingdom.AI
             return false;
         }
 
+        public bool TryGetVisibleEnemyBuilding(EntityId id,
+            out BuildingKnowledgeSnapshot observation)
+        {
+            for (int i = 0; i < visibleEnemyBuildings.Count; i++)
+            {
+                BuildingKnowledgeSnapshot candidate = visibleEnemyBuildings[i];
+                if (candidate.RuntimeId.CompareTo(id) != 0) continue;
+                observation = candidate;
+                return true;
+            }
+            observation = default;
+            return false;
+        }
+
+        public bool TryGetKnownEnemyBuilding(EntityId id,
+            out BuildingKnowledgeSnapshot observation)
+        {
+            for (int i = 0; i < knownEnemyBuildings.Count; i++)
+            {
+                BuildingKnowledgeSnapshot candidate = knownEnemyBuildings[i];
+                if (candidate.RuntimeId.CompareTo(id) != 0) continue;
+                observation = candidate;
+                return true;
+            }
+            observation = default;
+            return false;
+        }
+
         private ObservedThreatActivity ObserveThreatActivity(UnitController unit)
         {
             CombatController combat = unit != null ? unit.GetComponent<CombatController>() : null;

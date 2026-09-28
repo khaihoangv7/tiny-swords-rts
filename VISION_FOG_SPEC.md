@@ -201,3 +201,19 @@ Economy routes require explored cells. Scout routes may enter Unexplored space a
 therefore can discover previously unknown threats. Once a threat becomes visible,
 the legal knowledge refresh can invalidate the Scout route and trigger retreat.
 The rendered Fog texture remains presentation only and is never queried by safety.
+
+## Phase 7C.2 offensive knowledge rules
+
+An enemy building first becomes an offensive candidate only through a current
+Visible observation or its legitimate frozen `FogMemorySystem` snapshot. A hidden
+snapshot may provide an AttackMove destination. It cannot be resolved to a live
+GameObject, current HP or direct Attack target while hidden. Once Red sees that
+area again, the current observation either confirms the building or normal memory
+reconciliation removes the stale objective.
+
+Enemy units still have no persistent strategic memory. AttackMove may react to
+currently visible units through normal combat, but the Commander does not retain a
+hidden unit Transform or redirect a campaign toward a vanished unit. Army pathfinding
+may use authoritative terrain/occupancy internally and may enter Unexplored cells on
+the route to a legally known destination; hidden blocker identity is never returned
+to `FactionKnowledge`.

@@ -112,6 +112,11 @@ namespace TinyKingdom.Units
         internal bool TryIssueAttackMove(Vector2Int destination, Vector3 commandPosition)
             => TryIssuePath(destination, false, null, true, commandPosition);
 
+        internal bool TryIssueAttackMove(Vector2Int destination, Vector3 commandPosition,
+            IPathTraversalPolicy traversalPolicy)
+            => TryIssuePath(destination, false, null, true, commandPosition,
+                traversalPolicy);
+
         public bool TryIssueChase(Vector2Int destination)
         {
             return TryIssuePath(destination, true, null, false, null);

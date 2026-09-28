@@ -8,6 +8,9 @@ namespace TinyKingdom.AI
     {
         Forming,
         Ready,
+        PreparingAttack,
+        Advancing,
+        Assaulting,
         Defending,
         Regrouping
     }

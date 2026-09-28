@@ -811,3 +811,46 @@ Editor compilation pass. Unity Play Mode visual and regression validation remain
 - [ ] Verify clustered units do not trigger recurring pathfinding or Console spam around Sheep
 - [ ] Verify repeated building clicks restart one pulse and always recover to scale 1.7
 - [ ] Verify movement, combat, gathering, construction, garrison, cursor and clean Console regressions
+
+## Phase 7C.2 - Offensive Strategy, Strategic Targeting and AttackMove
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime /
+Editor compilation pass with 0 errors and 0 warnings. Unity Play Mode validation
+and Profiler comparison remain required before PASS.
+
+- [x] Extend ArmyGroup states with PreparingAttack, Advancing and Assaulting
+- [x] Configure provisional minimum offensive military population 6 and 75% assembly rule
+- [x] Snapshot operation membership so new production remains at Rally staging
+- [x] Select deterministic strategic objectives only from legal building knowledge
+- [x] Prioritize Tower, production, other useful building, then Castle with risk/distance/EntityId ties
+- [x] Keep one stable objective and ignore routine new discoveries during an active operation
+- [x] Treat hidden building memory as an AttackMove destination only
+- [x] Add current-vision-validated `TryAttackBuilding` and ownership-validated `TryAttackMove`
+- [x] Add risk-tolerant Army traversal costs without blocking assaults on Tower/Castle
+- [x] Distribute group advance destinations and deduplicate per-unit command intent
+- [x] Keep Monk support-only and active Scout outside ArmyGroup
+- [x] Keep newly produced military at staging until the next offensive
+- [x] Preserve high-priority Phase 7C.1 base-defense interruption
+- [x] Clear stale/destroyed objectives after legal re-observation and regroup survivors
+- [x] Add bounded path-failure handling and provisional 3-second reevaluation delay
+- [x] Reset objective, operation membership, retries and intent caches with Commander reset
+- [x] Add fixed OffensiveEvaluation, StrategicTargetSelection, OffensiveAdvance and OffensiveRegroup markers
+- [x] Add optional Inspector diagnostics and disabled-by-default legal target Gizmo
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7C.2 Commander`
+- [x] Update AI, gameplay, Fog and future RL contracts
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 7C.2 Commander` in Unity Play Mode
+- [ ] Manual: ready army with no known building stays staged while Scout continues
+- [ ] Manual: remembered Barracks guides AttackMove but cannot receive hidden direct Attack
+- [ ] Manual: visible objective is attacked through normal Warrior/Archer/Lancer combat
+- [ ] Manual: stale memory clears only after the area is re-revealed
+- [ ] Manual: current objective remains stable when Scout discovers another building
+- [ ] Manual: group cohesion, Monk support and no single-unit reinforcement stream
+- [ ] Manual: serious Red-base threat interrupts offense and survivors regroup
+- [ ] Manual: objective destruction, Army wipe and bounded unreachable-target handling
+- [ ] Manual: unknown Castle is never targeted; legitimately discovered Castle may be targeted
+- [ ] Manual: Scout/Pawn strategic safety, Fog anti-wallhack and no Goblin regression
+- [ ] Manual: Blue human controls, 1.7x building presentation/navigation and Match End/Restart
+- [ ] Profile 0.50-second Commander tick, offensive markers, GC and path requests against Phase 7C.1
+- [ ] Confirm Unity Console has no new errors or warnings
+- [ ] Phase 7C.3 remains deferred

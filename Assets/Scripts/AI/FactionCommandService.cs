@@ -4,6 +4,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using TinyKingdom.Vision;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -108,6 +109,44 @@ namespace TinyKingdom.AI
             return combat != null && combat.Attack(target)
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedCommandFailed;
+        }
+
+        public CommanderCommandResult TryAttackBuilding(UnitController actor,
+            EntityId targetId)
+        {
+            using var marker = CommandDispatchMarker.Auto();
+            CommanderCommandResult actorResult = ValidateCombatActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            if (knowledge == null || !knowledge.TryGetVisibleEnemyBuilding(targetId,
+                    out BuildingKnowledgeSnapshot observed))
+                return CommanderCommandResult.RejectedNotObserved;
+            BuildingCombatTarget target = ResolveCurrentlyVisibleBuilding(targetId,
+                observed.Faction);
+            if (target == null) return CommanderCommandResult.RejectedInvalidTarget;
+            CombatController combat = actor.GetComponent<CombatController>();
+            return combat != null && combat.Attack(target)
+                ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedCommandFailed;
+        }
+
+        public CommanderCommandResult TryAttackMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
+        {
+            using var marker = CommandDispatchMarker.Auto();
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.CommanderMove);
+            CommanderCommandResult actorResult = ValidateCombatActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            GridManager grid = knowledge?.TeamVision?.GridManager;
+            if (grid == null) return CommanderCommandResult.RejectedInvalidTarget;
+            Vector2Int cell = grid.WorldToGrid(destination);
+            GridCell navigation = grid.GetCell(cell.x, cell.y);
+            if (navigation == null || !navigation.Walkable || navigation.Occupied)
+                return CommanderCommandResult.RejectedInvalidTarget;
+            CombatController combat = actor.GetComponent<CombatController>();
+            return combat != null && combat.AttackMove(cell, destination, traversalPolicy)
+                ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedUnreachable;
         }
 
         public CommanderCommandResult TryBuild(PawnBuilder builder, BuildingType type,
@@ -215,6 +254,17 @@ namespace TinyKingdom.AI
             return CommanderCommandResult.Accepted;
         }
 
+        private CommanderCommandResult ValidateCombatActor(UnitController actor)
+        {
+            CommanderCommandResult result = ValidateActor(actor);
+            if (result != CommanderCommandResult.Accepted) return result;
+            UnitCombatData data = actor.GetComponent<HealthComponent>()?.CombatData;
+            return data != null && data.UnitType is UnitType.Warrior or UnitType.Archer
+                or UnitType.Lancer
+                ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedWrongUnitType;
+        }
+
         private UnitController ResolveCurrentlyVisibleTarget(EntityId targetId,
             Faction observedFaction)
         {
@@ -229,6 +279,26 @@ namespace TinyKingdom.AI
                 return knowledge.TeamVision != null
                     && knowledge.TeamVision.IsVisible(faction, target.transform.position)
                     ? target : null;
+            }
+            return null;
+        }
+
+        private BuildingCombatTarget ResolveCurrentlyVisibleBuilding(EntityId targetId,
+            Faction observedFaction)
+        {
+            IReadOnlyList<IVisionSource> sources = VisionSourceRegistry.ActiveSources;
+            for (int i = 0; i < sources.Count; i++)
+            {
+                if (sources[i] is not BuildingVisionSource source || source == null
+                    || source.Host is not Component component
+                    || source.Host == null || !source.Host.IsAlive
+                    || source.Host.Faction != observedFaction
+                    || !FactionRelations.AreHostile(faction, observedFaction)
+                    || component.GetEntityId().CompareTo(targetId) != 0) continue;
+                if (knowledge.TeamVision == null || !knowledge.TeamVision.IsVisible(
+                    faction, source.Host.HostTransform.position)) return null;
+                BuildingCombatTarget target = component.GetComponent<BuildingCombatTarget>();
+                return target != null && target.IsTargetable ? target : null;
             }
             return null;
         }
