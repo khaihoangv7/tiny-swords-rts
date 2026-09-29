@@ -11,6 +11,7 @@ namespace TinyKingdom.Economy
     public sealed class CastleDropOff : MonoBehaviour, IProductionHost, IFriendlyCursorTarget,
         IDefensiveBuildingHost
     {
+        private static readonly List<CastleDropOff> Registered = new();
         // Three positions just outside the visible front edge of the Blue Castle.
         private static readonly Vector2[] FrontSlots =
         {
@@ -28,6 +29,7 @@ namespace TinyKingdom.Economy
         private bool registered;
         private float currentHP;
 
+        public static IReadOnlyList<CastleDropOff> Active => Registered;
         public Faction Faction => faction;
         public BuildingType Type => BuildingType.Castle;
         public Vector2Int FootprintOrigin => center + new Vector2Int(-1, 0);
@@ -64,8 +66,14 @@ namespace TinyKingdom.Economy
             registered = true;
         }
 
+        private void OnEnable()
+        {
+            if (!Registered.Contains(this)) Registered.Add(this);
+        }
+
         private void OnDisable()
         {
+            Registered.Remove(this);
             reservations.Clear();
             ReleaseOccupancy();
         }
@@ -97,28 +105,38 @@ namespace TinyKingdom.Economy
                 return true;
             }
 
-            float best = float.PositiveInfinity;
-            int bestIndex = -1;
             Vector2Int start = navigation.WorldToGrid(worker.transform.position);
-            for (int i = 0; i < FrontSlots.Length; i++)
+            int triedMask = 0;
+            for (int attempt = 0; attempt < FrontSlots.Length; attempt++)
             {
-                if (reservations.ContainsValue(i)) continue;
-                Vector3 point = transform.position + (Vector3)FrontSlots[i];
-                Vector2Int cell = navigation.WorldToGrid(point);
-                GridCell destination = navigation.GetCell(cell.x, cell.y);
-                if (destination == null || !destination.Walkable || destination.Occupied
-                    || paths.FindPath(start, cell).Count == 0
-                    || !UnitSeparation.IsSafeSegment(navigation,
-                        navigation.GridToWorld(cell.x, cell.y), point)) continue;
-                float distance = ((Vector2)(point - worker.transform.position)).sqrMagnitude;
-                if (distance >= best) continue;
-                best = distance;
-                bestIndex = i;
-                position = point;
+                int bestIndex = -1;
+                Vector3 bestPosition = default;
+                Vector2Int bestCell = default;
+                float bestDistance = float.PositiveInfinity;
+                for (int i = 0; i < FrontSlots.Length; i++)
+                {
+                    if ((triedMask & (1 << i)) != 0 || reservations.ContainsValue(i)) continue;
+                    Vector3 point = transform.position + (Vector3)FrontSlots[i];
+                    Vector2Int cell = navigation.WorldToGrid(point);
+                    GridCell destination = navigation.GetCell(cell.x, cell.y);
+                    if (destination == null || !destination.Walkable || destination.Occupied
+                        || !UnitSeparation.IsSafeSegment(navigation,
+                            navigation.GridToWorld(cell.x, cell.y), point)) continue;
+                    float distance = ((Vector2)(point - worker.transform.position)).sqrMagnitude;
+                    if (bestIndex >= 0 && distance >= bestDistance) continue;
+                    bestIndex = i;
+                    bestPosition = point;
+                    bestCell = cell;
+                    bestDistance = distance;
+                }
+                if (bestIndex < 0) return false;
+                triedMask |= 1 << bestIndex;
+                if (paths.FindPath(start, bestCell).Count == 0) continue;
+                reservations.Add(worker, bestIndex);
+                position = bestPosition;
+                return true;
             }
-            if (bestIndex < 0) return false;
-            reservations.Add(worker, bestIndex);
-            return true;
+            return false;
         }
 
         public void Release(UnitController worker)

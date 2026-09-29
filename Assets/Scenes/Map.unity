@@ -165531,6 +165531,10 @@ MonoBehaviour:
   blueLancerPrefab: {fileID: 1000000000000000000, guid: 97a3e861493c45929936382903f51fd2, type: 3}
   blueArcherPrefab: {fileID: 1000000000000000000, guid: 781de4be238d449b8f7a4d10ae5ea218, type: 3}
   blueMonkPrefab: {fileID: 4572782470767410531, guid: 2a446f7811725d74c93da03c9d41e9d5, type: 3}
+  redWarriorPrefab: {fileID: 1000000000000000000, guid: e05a72bcf8d44bc9a70a956e814bc36f, type: 3}
+  redLancerPrefab: {fileID: 1000000000000000000, guid: a8e90778cf934cc58d3e4169fa9b132b, type: 3}
+  redArcherPrefab: {fileID: 1000000000000000000, guid: 8545a32c66c94f1b8c6d0286fe571c70, type: 3}
+  redMonkPrefab: {fileID: 529130889583099958, guid: dfd6bc85f4c089f48ab29f56472912b0, type: 3}
   treeStumpSprite: {fileID: 7759314080828431348, guid: 07febcaaab597c249b5e086fb3e5d9b5, type: 3}
   sheepSprite: {fileID: -6879290243380990860, guid: 536f0ab1668c7fc4b943e0c352b78909, type: 3}
   treeSprite: {fileID: 6215267202064938543, guid: 7ba676c65d3f7aa45b09df961c21bbda, type: 3}

@@ -4,6 +4,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.AI
@@ -11,8 +12,11 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class ScoutingCommanderPolicy
     {
+        private static readonly ProfilerMarker FrontierSearchMarker =
+            new("TinyKingdom.AI.FrontierSearch");
         [SerializeField, Min(0.05f)] private float arrivalDistance = 0.35f;
         [SerializeField, Min(0.5f)] private float unreachableRetrySeconds = 5f;
+        [SerializeField, Min(1)] private int minimumPawnsForWorkerScout = 4;
 
         private readonly Dictionary<int, float> blockedUntil = new();
         private UnitController scout;
@@ -23,6 +27,8 @@ namespace TinyKingdom.AI
         public bool HasDestination => hasDestination;
         public Vector2Int DestinationCell => destinationCell;
 
+        public int MinimumPawnsForWorkerScout => minimumPawnsForWorkerScout;
+
         public void Reset()
         {
             scout = null;
@@ -30,11 +36,16 @@ namespace TinyKingdom.AI
             blockedUntil.Clear();
         }
 
-        public void Tick(CommanderDecisionContext context)
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
         {
-            if (!IsUsableScout(context, scout))
+            UnitController preferred = ChooseScout(context.Knowledge, roles);
+            if (!IsUsableScout(context, scout)
+                || (preferred != null && ScoutPriority(preferred) < ScoutPriority(scout)))
             {
-                scout = ChooseScout(context.Knowledge);
+                ReleasePawnScout(roles);
+                scout = preferred;
+                if (IsPawn(scout) && (roles == null
+                    || !roles.TryAssign(scout, CommanderPawnRole.Scout))) scout = null;
                 hasDestination = false;
             }
             if (scout == null) return;
@@ -43,6 +54,7 @@ namespace TinyKingdom.AI
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (movement == null || grid == null)
             {
+                ReleasePawnScout(roles);
                 scout = null;
                 hasDestination = false;
                 return;
@@ -65,7 +77,11 @@ namespace TinyKingdom.AI
                     // Exploration is complete or every remaining frontier is on
                     // cooldown. A complete map releases the role; cooldown-only
                     // cases are reconsidered without command spam on a later tick.
-                    if (!HasAnyFrontier(context)) scout = null;
+                    if (!HasAnyFrontier(context))
+                    {
+                        ReleasePawnScout(roles);
+                        scout = null;
+                    }
                     hasDestination = false;
                     return;
                 }
@@ -103,38 +119,42 @@ namespace TinyKingdom.AI
         private bool TryFindFrontier(CommanderDecisionContext context, UnitController unit,
             out Vector2Int result)
         {
-            result = default;
-            TeamVisionSystem vision = context.Knowledge.TeamVision;
-            GridManager grid = vision != null ? vision.GridManager : null;
-            if (grid == null) return false;
-            bool found = false;
-            int bestUnknown = -1;
-            float bestDistance = float.PositiveInfinity;
-
-            for (int y = 0; y < grid.Height; y++)
-            for (int x = 0; x < grid.Width; x++)
+            using (FrontierSearchMarker.Auto())
             {
-                var cell = new Vector2Int(x, y);
-                GridCell navigationCell = grid.GetCell(x, y);
-                if (navigationCell == null || !navigationCell.Walkable
-                    || !context.Knowledge.IsCellExplored(cell)
-                    || IsBlocked(cell, grid.Width, context.Time)) continue;
-                int unknown = CountUnknownNeighbors(context, cell, grid.Width, grid.Height);
-                if (unknown <= 0) continue;
-                float distance = ((Vector2)(navigationCell.WorldPosition
-                    - unit.transform.position)).sqrMagnitude;
-                if (!found || unknown > bestUnknown
-                    || (unknown == bestUnknown && distance < bestDistance - 0.0001f)
-                    || (unknown == bestUnknown && Mathf.Abs(distance - bestDistance) <= 0.0001f
-                        && (y < result.y || (y == result.y && x < result.x))))
+                result = default;
+                TeamVisionSystem vision = context.Knowledge.TeamVision;
+                GridManager grid = vision != null ? vision.GridManager : null;
+                if (grid == null) return false;
+                bool found = false;
+                int bestUnknown = -1;
+                float bestDistance = float.PositiveInfinity;
+
+                for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
                 {
-                    found = true;
-                    bestUnknown = unknown;
-                    bestDistance = distance;
-                    result = cell;
+                    var cell = new Vector2Int(x, y);
+                    GridCell navigationCell = grid.GetCell(x, y);
+                    if (navigationCell == null || !navigationCell.Walkable
+                        || !context.Knowledge.IsCellExplored(cell)
+                        || IsBlocked(cell, grid.Width, context.Time)) continue;
+                    int unknown = CountUnknownNeighbors(context, cell, grid.Width, grid.Height);
+                    if (unknown <= 0) continue;
+                    float distance = ((Vector2)(navigationCell.WorldPosition
+                        - unit.transform.position)).sqrMagnitude;
+                    if (!found || unknown > bestUnknown
+                        || (unknown == bestUnknown && distance < bestDistance - 0.0001f)
+                        || (unknown == bestUnknown
+                            && Mathf.Abs(distance - bestDistance) <= 0.0001f
+                            && (y < result.y || (y == result.y && x < result.x))))
+                    {
+                        found = true;
+                        bestUnknown = unknown;
+                        bestDistance = distance;
+                        result = cell;
+                    }
                 }
+                return found;
             }
-            return found;
         }
 
         private static int CountUnknownNeighbors(CommanderDecisionContext context,
@@ -159,25 +179,20 @@ namespace TinyKingdom.AI
                 && CountUnknownNeighbors(context, cell, grid.Width, grid.Height) > 0;
         }
 
-        private UnitController ChooseScout(FactionKnowledge knowledge)
+        private UnitController ChooseScout(FactionKnowledge knowledge, CommanderPawnRoles roles)
         {
             UnitController best = null;
             int bestPriority = int.MaxValue;
+            int pawnCount = CountLivingPawns(knowledge);
             IReadOnlyList<UnitController> units = knowledge.OwnUnits;
             for (int i = 0; i < units.Count; i++)
             {
                 UnitController unit = units[i];
                 if (!IsAvailableCandidate(unit)) continue;
-                UnitType type = unit.GetComponent<HealthComponent>()?.CombatData?.UnitType
-                    ?? UnitType.Monk;
-                int priority = type switch
-                {
-                    UnitType.Lancer => 0,
-                    UnitType.Warrior => 1,
-                    UnitType.Archer => 2,
-                    UnitType.Pawn => 3,
-                    _ => int.MaxValue
-                };
+                int priority = ScoutPriority(unit);
+                if (priority == 3 && (pawnCount < minimumPawnsForWorkerScout
+                    || roles == null
+                    || roles.GetRole(unit) != CommanderPawnRole.Economy)) continue;
                 if (priority == int.MaxValue) continue;
                 if (best == null || priority < bestPriority
                     || (priority == bestPriority
@@ -204,6 +219,38 @@ namespace TinyKingdom.AI
             => unit != null && unit.IsAlive && unit.IsWorldParticipant
                 && unit.Faction == context.Faction
                 && unit.GetComponent<HealthComponent>()?.CombatData?.UnitType != UnitType.Monk;
+
+        private void ReleasePawnScout(CommanderPawnRoles roles)
+        {
+            if (IsPawn(scout)) roles?.Release(scout, CommanderPawnRole.Scout);
+        }
+
+        private static bool IsPawn(UnitController unit)
+            => unit != null && unit.GetComponent<PawnGatherer>() != null;
+
+        private static int CountLivingPawns(FactionKnowledge knowledge)
+        {
+            int count = 0;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+                if (IsPawn(units[i])) count++;
+            return count;
+        }
+
+        private static int ScoutPriority(UnitController unit)
+        {
+            UnitType type = unit != null
+                ? unit.GetComponent<HealthComponent>()?.CombatData?.UnitType ?? UnitType.Monk
+                : UnitType.Monk;
+            return type switch
+            {
+                UnitType.Lancer => 0,
+                UnitType.Warrior => 1,
+                UnitType.Archer => 2,
+                UnitType.Pawn => 3,
+                _ => int.MaxValue
+            };
+        }
 
         private bool IsBlocked(Vector2Int cell, int width, float time)
             => blockedUntil.TryGetValue(CellKey(cell, width), out float until) && time < until;

@@ -19,6 +19,9 @@ namespace TinyKingdom.Buildings
         private Faction owner;
         public event Action<BuildingSite> BuildingPlaced;
 
+        public Faction Owner => owner;
+        public GridManager Grid => grid;
+
         public bool IsReady => grid != null && paths != null && stockpile != null
             && HasValidData(BuildingType.House)
             && HasValidData(BuildingType.Barracks)
@@ -212,29 +215,48 @@ namespace TinyKingdom.Buildings
             point = default;
             if (grid == null || paths == null) return false;
             Vector2Int start = grid.WorldToGrid(pawn.transform.position);
-            float best = float.PositiveInfinity;
-            bool found = false;
             int footprintHeight = grid.GetCell(origin.x, origin.y).HeightLevel;
-            for (int y = -1; y <= data.Footprint.y; y++)
-            for (int x = -1; x <= data.Footprint.x; x++)
+            int slotCount = data.Footprint.x * 2 + data.Footprint.y * 2;
+            ulong tried = 0UL;
+            for (int attempt = 0; attempt < slotCount && attempt < 64; attempt++)
             {
-                // Edge-adjacent cells only; no diagonal interaction through corners.
-                bool edge = (x == -1 || x == data.Footprint.x) && y >= 0 && y < data.Footprint.y
-                    || (y == -1 || y == data.Footprint.y) && x >= 0 && x < data.Footprint.x;
-                if (!edge) continue;
-                Vector2Int target = origin + new Vector2Int(x, y);
-                GridCell cell = grid.GetCell(target.x, target.y);
-                if (cell == null || !cell.Walkable || cell.Occupied
-                    || cell.HeightLevel != footprintHeight
-                    || paths.FindPath(start, target).Count == 0) continue;
-                Vector3 candidate = cell.WorldPosition;
-                float distance = ((Vector2)(candidate - pawn.transform.position)).sqrMagnitude;
-                if (distance >= best) continue;
-                best = distance;
-                point = candidate;
-                found = true;
+                int bestIndex = -1;
+                Vector2Int bestTarget = default;
+                Vector3 bestPoint = default;
+                float bestDistance = float.PositiveInfinity;
+                int index = 0;
+                for (int y = -1; y <= data.Footprint.y; y++)
+                for (int x = -1; x <= data.Footprint.x; x++)
+                {
+                    // Edge-adjacent cells only; no diagonal interaction through corners.
+                    bool edge = (x == -1 || x == data.Footprint.x)
+                            && y >= 0 && y < data.Footprint.y
+                        || (y == -1 || y == data.Footprint.y)
+                            && x >= 0 && x < data.Footprint.x;
+                    if (!edge) continue;
+                    int candidateIndex = index++;
+                    if (candidateIndex >= 64) continue;
+                    if ((tried & (1UL << candidateIndex)) != 0) continue;
+                    Vector2Int target = origin + new Vector2Int(x, y);
+                    GridCell cell = grid.GetCell(target.x, target.y);
+                    if (cell == null || !cell.Walkable || cell.Occupied
+                        || cell.HeightLevel != footprintHeight) continue;
+                    Vector3 candidatePoint = cell.WorldPosition;
+                    float distance = ((Vector2)(candidatePoint
+                        - pawn.transform.position)).sqrMagnitude;
+                    if (bestIndex >= 0 && distance >= bestDistance) continue;
+                    bestIndex = candidateIndex;
+                    bestTarget = target;
+                    bestPoint = candidatePoint;
+                    bestDistance = distance;
+                }
+                if (bestIndex < 0) return false;
+                tried |= 1UL << bestIndex;
+                if (paths.FindPath(start, bestTarget).Count == 0) continue;
+                point = bestPoint;
+                return true;
             }
-            return found;
+            return false;
         }
 
         private void SetFootprint(Vector2Int origin, Vector2Int size, bool occupied)

@@ -26,6 +26,7 @@ namespace TinyKingdom.Buildings
         private int nextDestinationIndex;
 
         public bool HasRallyPoint { get; private set; }
+        public IProductionHost ProductionHost => owner;
         public Vector2Int RallyCell => rallyCell;
         public Vector3 RallyWorldPosition => grid != null
             ? grid.GridToWorld(rallyCell.x, rallyCell.y) : transform.position;
@@ -74,11 +75,13 @@ namespace TinyKingdom.Buildings
         }
 
         public bool CanSetRallyPoint(Vector3 worldPosition)
+            => selection != null && CanSetRallyPoint(selection.PlayerFaction, worldPosition);
+
+        public bool CanSetRallyPoint(Faction issuingFaction, Vector3 worldPosition)
         {
             if (!MatchManager.AllowsGameplay || owner == null || ownerComponent == null
-                || grid == null
-                || paths == null || selection == null
-                || !owner.IsProductionReady || owner.Faction != selection.PlayerFaction)
+                || grid == null || paths == null || !owner.IsProductionReady
+                || owner.Faction != issuingFaction)
                 return false;
 
             Vector2Int destination = grid.WorldToGrid(worldPosition);
@@ -98,8 +101,11 @@ namespace TinyKingdom.Buildings
         }
 
         public bool TrySetRallyPoint(Vector3 worldPosition)
+            => selection != null && TrySetRallyPoint(selection.PlayerFaction, worldPosition);
+
+        public bool TrySetRallyPoint(Faction issuingFaction, Vector3 worldPosition)
         {
-            if (!CanSetRallyPoint(worldPosition)) return false;
+            if (!CanSetRallyPoint(issuingFaction, worldPosition)) return false;
             rallyCell = grid.WorldToGrid(worldPosition);
             HasRallyPoint = true;
             nextDestinationIndex = 0;

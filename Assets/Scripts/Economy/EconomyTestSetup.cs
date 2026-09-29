@@ -8,6 +8,7 @@ using TinyKingdom.Vision;
 using TinyKingdom.Match;
 using TinyKingdom.Terrain;
 using TinyKingdom.AI;
+using TinyKingdom.Debugging;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -27,6 +28,10 @@ namespace TinyKingdom.Economy
         [SerializeField] private GameObject blueLancerPrefab = null;
         [SerializeField] private GameObject blueArcherPrefab = null;
         [SerializeField] private GameObject blueMonkPrefab = null;
+        [SerializeField] private GameObject redWarriorPrefab = null;
+        [SerializeField] private GameObject redLancerPrefab = null;
+        [SerializeField] private GameObject redArcherPrefab = null;
+        [SerializeField] private GameObject redMonkPrefab = null;
         [SerializeField] private Sprite treeStumpSprite = null;
         [SerializeField] private Sprite sheepSprite = null;
         [SerializeField] private Sprite treeSprite = null;
@@ -197,21 +202,27 @@ namespace TinyKingdom.Economy
 
             if (warriorCombatData == null || lancerCombatData == null || archerCombatData == null
                 || monkCombatData == null || blueWarriorPrefab == null || blueLancerPrefab == null
-                || blueArcherPrefab == null || blueMonkPrefab == null)
+                || blueArcherPrefab == null || blueMonkPrefab == null
+                || redWarriorPrefab == null || redLancerPrefab == null
+                || redArcherPrefab == null || redMonkPrefab == null)
             {
-                Debug.LogError("Phase 5C1 production needs existing unit data and Blue prefabs.", this);
+                Debug.LogError("Phase 7B production needs existing unit data and Blue/Red prefabs.", this);
                 setupReady = true;
                 return;
             }
             UnitCombatData[] unitData =
                 { pawnCombatData, warriorCombatData, lancerCombatData, archerCombatData, monkCombatData };
             castle.gameObject.AddComponent<UnitProductionQueue>().Configure(
-                castle, blue, population, navigation, unitData, SpawnProductionUnit);
+                castle, blue, population, navigation, unitData,
+                (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
             SetupDefense(castle, navigation);
             CastleDropOff redCastle = MakeCastle(area.transform, red,
                 battlefieldLayout != null ? (Vector3)battlefieldLayout.redCastle
                     : new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
             SetupDefense(redCastle, navigation);
+            redCastle.gameObject.AddComponent<UnitProductionQueue>().Configure(
+                redCastle, red, redPopulation, navigation, unitData,
+                (type, position) => SpawnProductionUnit(Faction.Red, type, position));
             if (battlefieldLayout == null)
             {
                 MakePawn(area.transform, "RedPawn_1", new Vector3(33.5f, 7.5f, 0f),
@@ -241,7 +252,19 @@ namespace TinyKingdom.Economy
                 if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
                     || site.Type == BuildingType.Monastery)
                     site.gameObject.AddComponent<UnitProductionQueue>().Configure(
-                        site, blue, population, navigation, unitData, SpawnProductionUnit);
+                        site, blue, population, navigation, unitData,
+                        (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
+                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
+            };
+            BuildingSystem redBuildingSystem = area.AddComponent<BuildingSystem>();
+            redBuildingSystem.Configure(navigation, red, redPopulation, buildings);
+            redBuildingSystem.BuildingPlaced += site =>
+            {
+                if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
+                    || site.Type == BuildingType.Monastery)
+                    site.gameObject.AddComponent<UnitProductionQueue>().Configure(
+                        site, red, redPopulation, navigation, unitData,
+                        (type, position) => SpawnProductionUnit(Faction.Red, type, position));
                 if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
             };
             if (summary != null)
@@ -260,11 +283,15 @@ namespace TinyKingdom.Economy
             match.Configure(selection.PlayerFaction, 0.85f);
             if (!match.RegisterMainCastle(castle) || !match.RegisterMainCastle(redCastle))
                 Debug.LogError("Phase 6C could not register both Main Castles.", this);
-            SetupRedCommander(area.transform, red, redPopulation, teamVision);
+            SetupRedCommander(area.transform, red, redPopulation, teamVision,
+                redBuildingSystem);
             MatchResultAssetCatalog resultAssets = MatchResultAssetCatalog.Load();
             if (summary != null)
+            {
                 summary.gameObject.AddComponent<MatchResultUI>().Configure(
                     match, selection, resultAssets);
+                FpsCounter.Ensure(summary.transform);
+            }
             else Debug.LogError("Phase 6C needs the existing screen-space UI Canvas.", this);
             setupReady = true;
         }
@@ -298,29 +325,34 @@ namespace TinyKingdom.Economy
                     healthBarLeft, healthBarMiddle, healthBarRight, healthBarFill);
         }
 
-        private UnitController SpawnProductionUnit(UnitType type, Vector3 position)
+        private UnitController SpawnProductionUnit(Faction faction, UnitType type,
+            Vector3 position)
         {
             if (areaTransform == null) return null;
             if (type == UnitType.Pawn)
             {
                 PawnGatherer pawn = MakePawn(areaTransform,
-                    "BluePawn_Produced_" + ++producedCount, position,
-                    Faction.Blue, pawnAnimations);
-                feedback.Watch(pawn);
+                    faction + "Pawn_Produced_" + ++producedCount, position,
+                    faction, faction == Faction.Red ? redPawnAnimations : pawnAnimations);
+                if (faction == Faction.Blue) feedback.Watch(pawn);
                 DecorateHealth(pawn.GetComponent<HealthComponent>());
                 return pawn.GetComponent<UnitController>();
             }
-            GameObject prefab = type switch
+            GameObject prefab = (faction, type) switch
             {
-                UnitType.Warrior => blueWarriorPrefab,
-                UnitType.Lancer => blueLancerPrefab,
-                UnitType.Archer => blueArcherPrefab,
-                UnitType.Monk => blueMonkPrefab,
+                (Faction.Blue, UnitType.Warrior) => blueWarriorPrefab,
+                (Faction.Blue, UnitType.Lancer) => blueLancerPrefab,
+                (Faction.Blue, UnitType.Archer) => blueArcherPrefab,
+                (Faction.Blue, UnitType.Monk) => blueMonkPrefab,
+                (Faction.Red, UnitType.Warrior) => redWarriorPrefab,
+                (Faction.Red, UnitType.Lancer) => redLancerPrefab,
+                (Faction.Red, UnitType.Archer) => redArcherPrefab,
+                (Faction.Red, UnitType.Monk) => redMonkPrefab,
                 _ => null
             };
             if (prefab == null) return null;
             GameObject instance = Instantiate(prefab, position, Quaternion.identity, areaTransform);
-            instance.name = "Blue" + type + "_Produced_" + ++producedCount;
+            instance.name = faction + type.ToString() + "_Produced_" + ++producedCount;
             UnitController unit = instance.GetComponent<UnitController>();
             if (unit == null) { Destroy(instance); return null; }
             DecorateHealth(instance.GetComponent<HealthComponent>());
@@ -474,17 +506,9 @@ namespace TinyKingdom.Economy
             BuildingCombatTarget target = component.GetComponent<BuildingCombatTarget>()
                 ?? component.gameObject.AddComponent<BuildingCombatTarget>();
             target.Configure(host);
-            CombatController archer = blueArcherPrefab.GetComponent<CombatController>();
-            if (host.Faction == Faction.Red)
-            {
-                foreach (CombatController candidate in FindObjectsByType<CombatController>())
-                    if (candidate.GetComponent<UnitController>()?.Faction == Faction.Red
-                        && candidate.CombatData?.UnitType == UnitType.Archer)
-                    {
-                        archer = candidate;
-                        break;
-                    }
-            }
+            GameObject archerPrefab = host.Faction == Faction.Red
+                ? redArcherPrefab : blueArcherPrefab;
+            CombatController archer = archerPrefab.GetComponent<CombatController>();
             BuildingDefense defense = component.GetComponent<BuildingDefense>()
                 ?? component.gameObject.AddComponent<BuildingDefense>();
             defense.Configure(host, garrison, archer.ProjectileSprite,
@@ -563,7 +587,8 @@ namespace TinyKingdom.Economy
         }
 
         private static void SetupRedCommander(Transform parent, ResourceStockpile redStockpile,
-            FactionPopulation redPopulation, TeamVisionSystem vision)
+            FactionPopulation redPopulation, TeamVisionSystem vision,
+            BuildingSystem redBuildingSystem)
         {
             if (vision == null || FogMemorySystem.Instance == null)
             {
@@ -576,7 +601,7 @@ namespace TinyKingdom.Economy
             knowledge.Configure(Faction.Red, vision, FogMemorySystem.Instance,
                 redStockpile, redPopulation);
             FactionCommandService commands = root.AddComponent<FactionCommandService>();
-            commands.Configure(Faction.Red, knowledge);
+            commands.Configure(Faction.Red, knowledge, redBuildingSystem);
             RuleBasedCommander commander = root.AddComponent<RuleBasedCommander>();
             commander.Configure(Faction.Red, knowledge, commands, 0.50f);
         }

@@ -1,13 +1,56 @@
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.Navigation
 {
+    public enum PathfindingRequestSource
+    {
+        Gameplay,
+        CommanderMove,
+        CommanderGather,
+        CommanderBuild,
+        CommanderRally
+    }
+
     public sealed class PathfindingSystem : MonoBehaviour
     {
+        private static readonly ProfilerMarker FindPathMarker =
+            new("TinyKingdom.Pathfinding.FindPath");
+        [System.ThreadStatic] private static PathfindingRequestSource currentSource;
+        private static readonly long[] RequestsBySource = new long[5];
+
+        public readonly struct RequestSourceScope : System.IDisposable
+        {
+            private readonly PathfindingRequestSource previous;
+
+            internal RequestSourceScope(PathfindingRequestSource source)
+            {
+                previous = currentSource;
+                currentSource = source;
+            }
+
+            public void Dispose() => currentSource = previous;
+        }
+
         [SerializeField] private GridManager gridManager;
 
         public GridManager GridManager => gridManager;
+        public static long TotalRequests { get; private set; }
+
+        public static RequestSourceScope TrackCommanderRequest(
+            PathfindingRequestSource source) => new(source);
+
+        public static long GetRequestCount(PathfindingRequestSource source)
+            => RequestsBySource[(int)source];
+
+        public static void ResetPerformanceCounters()
+        {
+#if UNITY_EDITOR || UNITY_INCLUDE_INSTRUMENTATION
+            TotalRequests = 0;
+            System.Array.Clear(RequestsBySource, 0, RequestsBySource.Length);
+#endif
+        }
 
         private void Awake()
         {
@@ -22,13 +65,20 @@ namespace TinyKingdom.Navigation
 
         public List<GridCell> FindPath(Vector2Int start, Vector2Int destination)
         {
-            if (gridManager == null)
-                return new List<GridCell>();
+            using (FindPathMarker.Auto())
+            {
+#if UNITY_EDITOR || UNITY_INCLUDE_INSTRUMENTATION
+                TotalRequests++;
+                RequestsBySource[(int)currentSource]++;
+#endif
+                if (gridManager == null)
+                    return new List<GridCell>();
 
-            return AStarPathfinder.FindPath(
-                gridManager,
-                gridManager.GetCell(start.x, start.y),
-                gridManager.GetCell(destination.x, destination.y));
+                return AStarPathfinder.FindPath(
+                    gridManager,
+                    gridManager.GetCell(start.x, start.y),
+                    gridManager.GetCell(destination.x, destination.y));
+            }
         }
 
         public List<Vector3> FindWorldPath(Vector3 startWorldPosition, Vector3 destinationWorldPosition)

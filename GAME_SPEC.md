@@ -1600,7 +1600,26 @@ The Commander stops issuing commands outside `MatchState.Playing`. Construction,
 production, military strategy, Gold Mine contest logic, Goblin AI and RL remain
 deferred. Detailed contracts are in `AI_SPEC.md`.
 
-# 53. Source of Truth
+# 53. Phase 7B Rule-Based Development
+
+The Red Rule-Based Commander may construct Houses, one Barracks, one Archery and
+one Monastery, train units through normal production queues and set Rally Points.
+It uses the existing authoritative `BuildingData`, `UnitCombatData`,
+`BuildingSystem`, `FactionPopulation` and `UnitProductionQueue` values.
+
+The Phase 7B configurable targets are six Pawns and eight non-Pawn military
+population. Effective free population includes reserved queue population. House
+construction is requested at two or fewer effective free slots; its normal +5
+population bonus applies only on gameplay completion. The AI keeps one strategic
+construction project and one desired queued item per producer at a time.
+
+The starter military composition targets three Warriors, two Archers, two
+Lancers and one Monk, counting living plus queued units and limiting Monk to one.
+Military production Rally Points use explored safe ground near Red's base. The
+Commander does not issue military attack orders in Phase 7B. Tower strategy,
+Gold Mine contest strategy, Goblins and full military behavior remain deferred.
+
+# 54. Source of Truth
 
 This file defines gameplay rules.
 

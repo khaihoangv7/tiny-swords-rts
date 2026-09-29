@@ -18,6 +18,7 @@ namespace TinyKingdom.Economy
         [SerializeField, Min(1)] private int amountPerGather = 1;
         [SerializeField, Range(0.05f, 0.3f)] private float resourceArrivalTolerance = 0.10f;
         [SerializeField, Min(0f)] private float autoResourceSearchRadius = 6f;
+        [SerializeField] private bool logRouteFailures = false;
 
         private UnitController controller;
         private UnitMovement movement;
@@ -201,7 +202,7 @@ namespace TinyKingdom.Economy
                 interactionPosition = target.InteractionPosition(interactionCell, grid);
             if (!reserved || !movement.TryIssueMove(interactionPosition))
             {
-                if (logFailure)
+                if (logFailure && logRouteFailures)
                     Debug.LogWarning($"Gather route rejected: {name} -> {target.name}. "
                         + "Check the resource collider, interaction slots, and navigation.", this);
                 slots?.Release(controller);
@@ -226,8 +227,10 @@ namespace TinyKingdom.Economy
             CastleDropOff nearest = null;
             Vector3 bestPosition = default;
             float bestDistance = float.PositiveInfinity;
-            foreach (CastleDropOff candidate in FindObjectsByType<CastleDropOff>())
+            IReadOnlyList<CastleDropOff> castles = CastleDropOff.Active;
+            for (int i = 0; i < castles.Count; i++)
             {
+                CastleDropOff candidate = castles[i];
                 if (!candidate.IsAvailable || candidate.Faction != controller.Faction) continue;
                 if (!candidate.TryReserve(controller, grid, paths, out Vector3 position)) continue;
                 float distance = ((Vector2)position
@@ -243,7 +246,7 @@ namespace TinyKingdom.Economy
             }
             if (nearest == null || !movement.TryIssueChase(bestPosition))
             {
-                if (State != WorkerState.WaitingForDropOff)
+                if (logRouteFailures && State != WorkerState.WaitingForDropOff)
                     Debug.LogWarning($"No reachable Castle drop-off slot for {name}; waiting with cargo.", this);
                 if (nearest != null) nearest.Release(controller);
                 State = WorkerState.WaitingForDropOff;

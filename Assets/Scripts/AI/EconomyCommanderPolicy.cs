@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.AI
@@ -10,6 +11,8 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class EconomyCommanderPolicy
     {
+        private static readonly ProfilerMarker ResourceTargetSearchMarker =
+            new("TinyKingdom.AI.ResourceTargetSearch");
         private static readonly Vector2Int[] RememberedApproachOffsets =
         {
             new(0, -1), new(-1, 0), new(1, 0), new(0, 1),
@@ -53,10 +56,10 @@ namespace TinyKingdom.AI
             FoodAssignments = WoodAssignments = GoldAssignments = 0;
         }
 
-        public void Tick(CommanderDecisionContext context, UnitController reservedScout)
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
         {
-            CollectWorkers(context.Knowledge, reservedScout);
-            PruneAssignments(context, reservedScout);
+            CollectWorkers(context.Knowledge, roles);
+            PruneAssignments(context, roles);
             CountAssignments();
             DesiredCounts(workers.Count, out int food, out int wood, out int gold);
 
@@ -70,29 +73,31 @@ namespace TinyKingdom.AI
             }
         }
 
-        private void CollectWorkers(FactionKnowledge knowledge, UnitController reservedScout)
+        private void CollectWorkers(FactionKnowledge knowledge, CommanderPawnRoles roles)
         {
             workers.Clear();
             IReadOnlyList<UnitController> units = knowledge.OwnUnits;
             for (int i = 0; i < units.Count; i++)
             {
                 UnitController unit = units[i];
-                if (unit == null || unit == reservedScout || !unit.IsAlive
-                    || unit.GetComponent<PawnGatherer>() == null) continue;
+                if (unit == null || !unit.IsAlive || unit.GetComponent<PawnGatherer>() == null
+                    || roles == null
+                    || roles.GetRole(unit) != CommanderPawnRole.Economy) continue;
                 workers.Add(unit);
             }
             workers.Sort(CompareUnits);
         }
 
         private void PruneAssignments(CommanderDecisionContext context,
-            UnitController reservedScout)
+            CommanderPawnRoles roles)
         {
             removals.Clear();
             foreach (KeyValuePair<UnitController, WorkerAssignment> item in assignments)
             {
                 UnitController worker = item.Key;
-                if (worker == null || worker == reservedScout || !worker.IsAlive
-                    || worker.Faction != context.Faction)
+                if (worker == null || !worker.IsAlive || worker.Faction != context.Faction
+                    || roles == null
+                    || roles.GetRole(worker) != CommanderPawnRole.Economy)
                 {
                     removals.Add(worker);
                     continue;
@@ -134,41 +139,44 @@ namespace TinyKingdom.AI
         private bool TryAssign(CommanderDecisionContext context, UnitController worker,
             ResourceType type)
         {
-            ResourceNode best = FindBestVisible(context, worker, type);
-            while (best != null)
+            using (ResourceTargetSearchMarker.Auto())
             {
-                EntityId id = best.GetEntityId();
-                CommanderCommandResult result = context.Commands.TryGather(worker, best);
-                if (result == CommanderCommandResult.Accepted)
+                ResourceNode best = FindBestVisible(context, worker, type);
+                while (best != null)
                 {
-                    assignments[worker] = new WorkerAssignment
+                    EntityId id = best.GetEntityId();
+                    CommanderCommandResult result = context.Commands.TryGather(worker, best);
+                    if (result == CommanderCommandResult.Accepted)
                     {
-                        Type = type,
-                        TargetId = id,
-                        LastKnownPosition = best.transform.position,
-                        Mode = AssignmentMode.Gathering
-                    };
-                    return true;
+                        assignments[worker] = new WorkerAssignment
+                        {
+                            Type = type,
+                            TargetId = id,
+                            LastKnownPosition = best.transform.position,
+                            Mode = AssignmentMode.Gathering
+                        };
+                        return true;
+                    }
+                    Block(id, context.Time);
+                    best = FindBestVisible(context, worker, type);
                 }
-                Block(id, context.Time);
-                best = FindBestVisible(context, worker, type);
-            }
 
-            if (!TryFindRemembered(context, worker, type,
-                out ResourceKnowledgeSnapshot remembered)) return false;
-            if (!TryMoveNearRemembered(context, worker, remembered))
-            {
-                Block(remembered.RuntimeId, context.Time);
-                return false;
+                if (!TryFindRemembered(context, worker, type,
+                    out ResourceKnowledgeSnapshot remembered)) return false;
+                if (!TryMoveNearRemembered(context, worker, remembered))
+                {
+                    Block(remembered.RuntimeId, context.Time);
+                    return false;
+                }
+                assignments[worker] = new WorkerAssignment
+                {
+                    Type = type,
+                    TargetId = remembered.RuntimeId,
+                    LastKnownPosition = remembered.LastSeenPosition,
+                    Mode = AssignmentMode.SeekingMemory
+                };
+                return true;
             }
-            assignments[worker] = new WorkerAssignment
-            {
-                Type = type,
-                TargetId = remembered.RuntimeId,
-                LastKnownPosition = remembered.LastSeenPosition,
-                Mode = AssignmentMode.SeekingMemory
-            };
-            return true;
         }
 
         private static bool TryMoveNearRemembered(CommanderDecisionContext context,

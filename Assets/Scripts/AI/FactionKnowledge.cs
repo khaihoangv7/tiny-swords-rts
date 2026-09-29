@@ -120,7 +120,8 @@ namespace TinyKingdom.AI
             ? 100f * ExploredCellCount / TotalCellCount : 0f;
         public bool IsReady => FactionRelations.IsPlayable(faction)
             && teamVision != null && teamVision.IsReady && fogMemory != null
-            && fogMemory.IsInitialized && stockpile != null && stockpile.Faction == faction;
+            && fogMemory.IsInitialized && stockpile != null && stockpile.Faction == faction
+            && population != null && population.Faction == faction;
 
         public void Configure(Faction owner, TeamVisionSystem vision, FogMemorySystem memory,
             ResourceStockpile resources, FactionPopulation factionPopulation)

@@ -156,3 +156,18 @@ RL does not get an omniscient observation path, direct transform/resource mutati
 or mouse simulation by default. Invalid RL actions will receive the same structured
 command rejection results. Phase 7A adds no ML-Agents package, reward function,
 training loop or RL action policy.
+
+## Phase 7B shared build and production actions
+
+Phase 7B extends `FactionCommandService` with validated Build, resume
+construction, Train and Rally actions. Rule-Based AI and a future RL Commander
+must use these same calls. Rejections distinguish invalid ownership/actors,
+unknown or invalid placement, unreachable sites, insufficient resources,
+population blocks, full queues and stopped match state without exposing hidden
+blocker identity.
+
+Pawn Economy, Scout and Builder roles are Commander-side action ownership. A
+future RL policy may choose high-level build or production intent, while normal
+gameplay still owns pathfinding, construction progress, payment, population
+reservation, FIFO training, spawning and Rally movement. Phase 7B adds no RL
+observations, rewards, ML-Agents dependency or training loop.

@@ -10,14 +10,29 @@ namespace TinyKingdom.AI
     [DefaultExecutionOrder(100)]
     public sealed class RuleBasedCommander : MonoBehaviour, ICommander
     {
-        private static readonly ProfilerMarker ThinkMarker =
-            new("TinyKingdom.AI.RuleBasedCommander.Think");
+        private static readonly ProfilerMarker CommanderTickMarker =
+            new("TinyKingdom.AI.CommanderTick");
+        private static readonly ProfilerMarker KnowledgeRefreshMarker =
+            new("TinyKingdom.AI.KnowledgeRefresh");
+        private static readonly ProfilerMarker RoleSyncMarker =
+            new("TinyKingdom.AI.RoleSync");
+        private static readonly ProfilerMarker BuildingPolicyMarker =
+            new("TinyKingdom.AI.BuildingPolicy");
+        private static readonly ProfilerMarker ProductionPolicyMarker =
+            new("TinyKingdom.AI.ProductionPolicy");
+        private static readonly ProfilerMarker ScoutingPolicyMarker =
+            new("TinyKingdom.AI.ScoutingPolicy");
+        private static readonly ProfilerMarker EconomyPolicyMarker =
+            new("TinyKingdom.AI.EconomyPolicy");
 
         [SerializeField] private Faction faction = Faction.Red;
         [SerializeField] private bool commanderEnabled = true;
         [SerializeField, Min(0.1f)] private float thinkInterval = 0.50f;
         [SerializeField] private FactionKnowledge knowledge;
         [SerializeField] private FactionCommandService commandService;
+        [SerializeField] private CommanderPawnRoles pawnRoles = new();
+        [SerializeField] private BuildingCommanderPolicy buildingPolicy = new();
+        [SerializeField] private ProductionCommanderPolicy productionPolicy = new();
         [SerializeField] private EconomyCommanderPolicy economyPolicy = new();
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
         [SerializeField] private bool drawScoutGizmo = false;
@@ -35,6 +50,17 @@ namespace TinyKingdom.AI
         [SerializeField] private int debugExploredCells;
         [SerializeField] private int debugVisibleEnemyUnits;
         [SerializeField] private int debugKnownEnemyBuildings;
+        [SerializeField] private int debugPawnCount;
+        [SerializeField] private int debugPawnTarget;
+        [SerializeField] private int debugMilitaryPopulation;
+        [SerializeField] private int debugMilitaryTarget;
+        [SerializeField] private int debugEffectiveFreePopulation;
+        [SerializeField] private string debugPlannedBuilding;
+        [SerializeField] private UnitController debugBuilder;
+        [SerializeField] private Vector2Int debugBuildCell;
+        [SerializeField] private int debugCompletedCoreInfrastructure;
+        [SerializeField] private string debugProductionDecision;
+        [SerializeField] private Vector2Int debugRallyStagingCell;
 
         private float nextThinkTime;
 
@@ -46,6 +72,9 @@ namespace TinyKingdom.AI
         public FactionCommandService CommandService => commandService;
         public EconomyCommanderPolicy EconomyPolicy => economyPolicy;
         public ScoutingCommanderPolicy ScoutingPolicy => scoutingPolicy;
+        public CommanderPawnRoles PawnRoles => pawnRoles;
+        public BuildingCommanderPolicy BuildingPolicy => buildingPolicy;
+        public ProductionCommanderPolicy ProductionPolicy => productionPolicy;
         public UnitController CurrentScout => scoutingPolicy?.Scout;
         public bool IsConfigured => FactionRelations.IsPlayable(faction) && knowledge != null
             && commandService != null && knowledge.Faction == faction
@@ -70,6 +99,9 @@ namespace TinyKingdom.AI
         {
             economyPolicy?.Reset();
             scoutingPolicy?.Reset();
+            buildingPolicy?.Reset(pawnRoles);
+            productionPolicy?.Reset();
+            pawnRoles?.Reset();
             ThinkTick = 0;
         }
 
@@ -87,11 +119,20 @@ namespace TinyKingdom.AI
             if (!commanderEnabled || context.Faction != faction
                 || MatchManager.Instance == null
                 || MatchManager.Instance.State != MatchState.Playing) return;
-            using (ThinkMarker.Auto())
+            using (CommanderTickMarker.Auto())
             {
-                context.Knowledge.Refresh();
-                scoutingPolicy.Tick(context);
-                economyPolicy.Tick(context, scoutingPolicy.Scout);
+                using (KnowledgeRefreshMarker.Auto())
+                    context.Knowledge.Refresh();
+                using (RoleSyncMarker.Auto())
+                    pawnRoles.Synchronize(context.Knowledge);
+                using (BuildingPolicyMarker.Auto())
+                    buildingPolicy.Tick(context, pawnRoles);
+                using (ProductionPolicyMarker.Auto())
+                    productionPolicy.Tick(context);
+                using (ScoutingPolicyMarker.Auto())
+                    scoutingPolicy.Tick(context, pawnRoles);
+                using (EconomyPolicyMarker.Auto())
+                    economyPolicy.Tick(context, pawnRoles);
                 ThinkTick++;
                 if (exposeRuntimeDebug) RefreshDebug();
             }
@@ -119,6 +160,20 @@ namespace TinyKingdom.AI
             debugExploredCells = knowledge.ExploredCellCount;
             debugVisibleEnemyUnits = knowledge.VisibleEnemyUnits.Count;
             debugKnownEnemyBuildings = knowledge.KnownEnemyBuildings.Count;
+            debugPawnCount = productionPolicy.LivingPawnCount;
+            debugPawnTarget = productionPolicy.TargetPawnCount;
+            debugMilitaryPopulation = productionPolicy.MilitaryPopulation
+                + productionPolicy.QueuedMilitaryPopulation;
+            debugMilitaryTarget = productionPolicy.TargetMilitaryPopulation;
+            debugEffectiveFreePopulation = productionPolicy.EffectiveFreePopulation;
+            debugPlannedBuilding = buildingPolicy.PlannedBuilding?.ToString() ?? "None";
+            debugBuilder = buildingPolicy.CurrentBuilder;
+            debugBuildCell = buildingPolicy.CurrentBuildCell;
+            debugCompletedCoreInfrastructure = buildingPolicy.CompletedCoreInfrastructure;
+            debugProductionDecision = productionPolicy.ActiveProductionDecision?.ToString()
+                ?? "None";
+            debugRallyStagingCell = productionPolicy.HasRallyStagingCell
+                ? productionPolicy.RallyStagingCell : new Vector2Int(-1, -1);
         }
 
         private void OnDrawGizmosSelected()
