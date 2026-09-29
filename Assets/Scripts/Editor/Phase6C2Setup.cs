@@ -311,40 +311,7 @@ namespace TinyKingdom.EditorTools
             if (elevated == null || shadow == null)
                 throw new InvalidOperationException("Map terrain Tilemaps are missing.");
 
-            Transform obsolete = grid.Find("Decorations/GoldMineHeightConnectors");
-            if (obsolete == null)
-                obsolete = map.transform.Find("GoldMineHeightConnectors");
-            if (obsolete != null)
-                UnityEngine.Object.DestroyImmediate(obsolete.gameObject);
-
-            Tile shadowTile = AssetDatabase.LoadAssetAtPath<Tile>(
-                "Assets/Tiles/Shadows/Shadow.asset");
-            if (shadowTile == null)
-                throw new InvalidOperationException("Shadow terrain Tile is missing.");
-
-            for (int x = 16; x <= 23; x++)
-            {
-                int column = x == 16 ? 5 : x == 23 ? 7 : 6;
-                SetTerrainTile(elevated, x, 12, $"Tilemap_color2_r4c{column}");
-                SetTerrainTile(elevated, x, 11, $"Tilemap_color2_r5c{column}");
-                shadow.SetTile(new Vector3Int(x, 11, 0), shadowTile);
-            }
-
-            for (int i = 0; i < StrategicObjectiveMapLayout.ConnectorCount; i++)
-            {
-                TerrainHeightConnectorDefinition connector =
-                    StrategicObjectiveMapLayout.GetConnector(i);
-                SetTerrainTile(elevated, connector.GridX, connector.UpperY,
-                    connector.UpperSpriteName);
-                SetTerrainTile(elevated, connector.GridX, connector.LowerY,
-                    connector.LowerSpriteName);
-                shadow.SetTile(new Vector3Int(connector.GridX, connector.LowerY, 0), null);
-            }
-
-            elevated.RefreshAllTiles();
-            shadow.RefreshAllTiles();
-            EditorUtility.SetDirty(elevated);
-            EditorUtility.SetDirty(shadow);
+            BattlefieldTerrainPainter.Paint(grid);
         }
 
         private static void SetTerrainTile(Tilemap tilemap, int x, int y, string spriteName)

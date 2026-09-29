@@ -1,49 +1,37 @@
 fileFormatVersion: 2
-guid: deada551c5214f1e9c2a000000000001
+guid: 0c3080f4b0c81f6478471de6008657a1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 510210000000000001
-    second: Dead_0
+      213: 6682738439518977790
+    second: Ground_0
   - first:
-      213: 510210000000000002
-    second: Dead_1
+      213: -562605217060080129
+    second: Ground_1
   - first:
-      213: 510210000000000003
-    second: Dead_2
+      213: -4970410492042351176
+    second: Ground_2
   - first:
-      213: 510210000000000004
-    second: Dead_3
+      213: -5930158604282628446
+    second: Ground_3
   - first:
-      213: 510210000000000005
-    second: Dead_4
+      213: -4233739483619845583
+    second: Ground_4
   - first:
-      213: 510210000000000006
-    second: Dead_5
+      213: -6551456632857933372
+    second: Ground_5
   - first:
-      213: 510210000000000007
-    second: Dead_6
+      213: 4717279005209572468
+    second: Ground_6
   - first:
-      213: 510210000000000008
-    second: Dead_7
+      213: -232304020389510235
+    second: Ground_7
   - first:
-      213: 510210000000000009
-    second: Dead_8
+      213: -2542073858232844238
+    second: Ground_8
   - first:
-      213: 510210000000000010
-    second: Dead_9
-  - first:
-      213: 510210000000000011
-    second: Dead_10
-  - first:
-      213: 510210000000000012
-    second: Dead_11
-  - first:
-      213: 510210000000000013
-    second: Dead_12
-  - first:
-      213: 510210000000000014
-    second: Dead_13
+      213: 4362130248060910229
+    second: Ground_9
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -73,10 +61,10 @@ TextureImporter:
   cubemapConvolution: 0
   seamlessCubemap: 0
   textureFormat: 1
-  maxTextureSize: 1024
+  maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -92,7 +80,7 @@ TextureImporter:
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 0
+  spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationMethod: 0
@@ -113,10 +101,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -126,10 +114,10 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
     buildTarget: Standalone
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -139,10 +127,10 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
     buildTarget: WebGL
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -154,309 +142,221 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Dead_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000001
-      internalID: 510210000000000001
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_1
-      rect:
-        serializedVersion: 2
-        x: 128
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000002
-      internalID: 510210000000000002
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_2
-      rect:
-        serializedVersion: 2
-        x: 256
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000003
-      internalID: 510210000000000003
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_3
-      rect:
-        serializedVersion: 2
-        x: 384
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000004
-      internalID: 510210000000000004
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_4
-      rect:
-        serializedVersion: 2
-        x: 512
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000005
-      internalID: 510210000000000005
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_5
-      rect:
-        serializedVersion: 2
-        x: 640
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000006
-      internalID: 510210000000000006
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_6
-      rect:
-        serializedVersion: 2
-        x: 768
-        y: 128
-        width: 128
-        height: 128
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00000000000000000000000000000007
-      internalID: 510210000000000007
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Dead_7
+      name: Ground_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 128
-        height: 128
+        width: 257
+        height: 256
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 00000000000000000000000000000008
-      internalID: 510210000000000008
+      spriteID: efe706e343bddbc50800000000000000
+      internalID: 6682738439518977790
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_8
+      name: Ground_1
       rect:
         serializedVersion: 2
-        x: 128
-        y: 0
-        width: 128
-        height: 128
+        x: 270
+        y: 199
+        width: 15
+        height: 9
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 00000000000000000000000000000009
-      internalID: 510210000000000009
+      spriteID: ff53a5039893138f0800000000000000
+      internalID: -562605217060080129
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_9
+      name: Ground_2
       rect:
         serializedVersion: 2
-        x: 256
-        y: 0
-        width: 128
-        height: 128
+        x: 290
+        y: 206
+        width: 11
+        height: 8
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0000000000000000000000000000000a
-      internalID: 510210000000000010
+      spriteID: 8bde0f9edfd850bb0800000000000000
+      internalID: -4970410492042351176
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_10
+      name: Ground_3
       rect:
         serializedVersion: 2
-        x: 384
+        x: 319
         y: 0
-        width: 128
-        height: 128
+        width: 258
+        height: 256
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0000000000000000000000000000000b
-      internalID: 510210000000000011
+      spriteID: 2a6f1023b28d3bda0800000000000000
+      internalID: -5930158604282628446
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_11
+      name: Ground_4
       rect:
         serializedVersion: 2
-        x: 512
-        y: 0
-        width: 128
-        height: 128
+        x: 607
+        y: 198
+        width: 10
+        height: 8
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0000000000000000000000000000000c
-      internalID: 510210000000000012
+      spriteID: 13a1b47fe5cbe35c0800000000000000
+      internalID: -4233739483619845583
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_12
+      name: Ground_5
       rect:
         serializedVersion: 2
-        x: 640
-        y: 0
-        width: 128
-        height: 128
+        x: 626
+        y: 199
+        width: 11
+        height: 8
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0000000000000000000000000000000d
-      internalID: 510210000000000013
+      spriteID: 4c9402d47ec8415a0800000000000000
+      internalID: -6551456632857933372
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dead_13
+      name: Ground_6
       rect:
         serializedVersion: 2
-        x: 768
-        y: 0
-        width: 128
-        height: 128
+        x: 257
+        y: 191
+        width: 18
+        height: 10
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0000000000000000000000000000000e
-      internalID: 510210000000000014
+      spriteID: 474bce31344277140800000000000000
+      internalID: 4717279005209572468
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_7
+      rect:
+        serializedVersion: 2
+        x: 284
+        y: 191
+        width: 33
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a3c9c869b0b6ccf0800000000000000
+      internalID: -232304020389510235
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_8
+      rect:
+        serializedVersion: 2
+        x: 577
+        y: 191
+        width: 61
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 230893f5b4db8bcd0800000000000000
+      internalID: -2542073858232844238
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ground_9
+      rect:
+        serializedVersion: 2
+        x: 601
+        y: 199
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 59a38ab5956698c30800000000000000
+      internalID: 4362130248060910229
       vertices: []
       indices: 
       edges: []
@@ -475,20 +375,16 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Dead_0: 510210000000000001
-      Dead_1: 510210000000000002
-      Dead_10: 510210000000000011
-      Dead_11: 510210000000000012
-      Dead_12: 510210000000000013
-      Dead_13: 510210000000000014
-      Dead_2: 510210000000000003
-      Dead_3: 510210000000000004
-      Dead_4: 510210000000000005
-      Dead_5: 510210000000000006
-      Dead_6: 510210000000000007
-      Dead_7: 510210000000000008
-      Dead_8: 510210000000000009
-      Dead_9: 510210000000000010
+      Ground_0: 6682738439518977790
+      Ground_1: -562605217060080129
+      Ground_2: -4970410492042351176
+      Ground_3: -5930158604282628446
+      Ground_4: -4233739483619845583
+      Ground_5: -6551456632857933372
+      Ground_6: 4717279005209572468
+      Ground_7: -232304020389510235
+      Ground_8: -2542073858232844238
+      Ground_9: 4362130248060910229
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

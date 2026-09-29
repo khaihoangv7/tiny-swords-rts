@@ -85,7 +85,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -99,7 +99,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 64
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -125,7 +125,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -163,375 +163,353 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Water Rocks_04_0
+      name: Water Rocks_04_Ambient_00
       rect:
         serializedVersion: 2
-        x: 5
-        y: 11
-        width: 53
-        height: 40
+        x: 0
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: a440e12433e62c530800000000000000
-      internalID: 3873779795923698762
+      spriteID: 2ba91fdc1f5eeb0478f7b5257ad80db8
+      internalID: -564110849
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_1
+      name: Water Rocks_04_Ambient_01
       rect:
         serializedVersion: 2
-        x: 68
-        y: 9
-        width: 54
-        height: 42
+        x: 64
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: f898cd99a3d95ca30800000000000000
-      internalID: 4234963899626850703
+      spriteID: f780936a01fef27438bd17948a0886f9
+      internalID: 244955164
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_2
+      name: Water Rocks_04_Ambient_02
       rect:
         serializedVersion: 2
-        x: 132
-        y: 9
-        width: 55
-        height: 42
+        x: 128
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: ef02ce56024326360800000000000000
-      internalID: 7161343671226081534
+      spriteID: 5c352a5ba8ed1e94b917ac074e42757c
+      internalID: -1319260320
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_3
+      name: Water Rocks_04_Ambient_03
       rect:
         serializedVersion: 2
-        x: 194
-        y: 9
-        width: 57
-        height: 42
+        x: 192
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 488b7891165c7c490800000000000000
-      internalID: -7725989614899971964
+      spriteID: 2983efe3dbd56e24f96bd2a3a4b35f39
+      internalID: -1209689298
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_4
+      name: Water Rocks_04_Ambient_04
       rect:
         serializedVersion: 2
-        x: 258
-        y: 9
-        width: 59
-        height: 42
+        x: 256
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: f1d6c4243ee4ce660800000000000000
-      internalID: 7416389424349211935
+      spriteID: bb3c211cccf004543a1dc324de9d33cf
+      internalID: -1299050551
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_5
+      name: Water Rocks_04_Ambient_05
       rect:
         serializedVersion: 2
-        x: 321
-        y: 9
-        width: 59
-        height: 42
+        x: 320
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: a3c151d24d8cd01c0800000000000000
-      internalID: -4535748436077241286
+      spriteID: 4ee60163e7d05bf458ae9159ce7aa699
+      internalID: -242042281
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_6
+      name: Water Rocks_04_Ambient_06
       rect:
         serializedVersion: 2
-        x: 383
-        y: 6
-        width: 65
-        height: 45
+        x: 384
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 0e0b5aa3b397203d0800000000000000
-      internalID: -3241895486459367200
+      spriteID: eb6ea3a67ecbc4645a8a2a937a10d9b1
+      internalID: 1599984879
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_7
+      name: Water Rocks_04_Ambient_07
       rect:
         serializedVersion: 2
         x: 448
-        y: 6
-        width: 63
-        height: 45
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: b2257db0cfdaef4f0800000000000000
-      internalID: -793005186328604117
+      spriteID: 18d2c6392d8ecdf4b80c1d6f1d439e00
+      internalID: 1455332009
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_8
+      name: Water Rocks_04_Ambient_08
       rect:
         serializedVersion: 2
-        x: 511
-        y: 4
-        width: 65
-        height: 47
+        x: 512
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: c955cb8edd044bda0800000000000000
-      internalID: -5930043487503493732
+      spriteID: 0f78c634b5eca4044bff97552bf9d472
+      internalID: 9234861
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_9
+      name: Water Rocks_04_Ambient_09
       rect:
         serializedVersion: 2
-        x: 575
-        y: 6
-        width: 66
-        height: 45
+        x: 576
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 8efcb59a22b265cf0800000000000000
-      internalID: -263976100284346392
+      spriteID: 9b827999398b1a14d8524f4c3572599a
+      internalID: 1976094724
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_10
+      name: Water Rocks_04_Ambient_10
       rect:
         serializedVersion: 2
-        x: 639
-        y: 6
-        width: 66
-        height: 45
+        x: 640
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 8ee11cc12dbec2e60800000000000000
-      internalID: 7938979530805419752
+      spriteID: cf4bc8142d609a446b3e1ff001835f9b
+      internalID: -1389557920
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_11
+      name: Water Rocks_04_Ambient_11
       rect:
         serializedVersion: 2
         x: 704
-        y: 7
-        width: 65
-        height: 44
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 50295f0ac7000af90800000000000000
-      internalID: -6944550090128911867
+      spriteID: 4b9365cacec962545b68e76eb739964d
+      internalID: 1247629314
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_12
+      name: Water Rocks_04_Ambient_12
       rect:
         serializedVersion: 2
         x: 768
-        y: 9
-        width: 60
-        height: 42
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: d6c29297f55397940800000000000000
-      internalID: 5294321521121635437
+      spriteID: d3743eee4f419fc449ecbb789b92b05a
+      internalID: 86775488
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_13
+      name: Water Rocks_04_Ambient_13
       rect:
         serializedVersion: 2
-        x: 826
-        y: 19
-        width: 7
-        height: 8
+        x: 832
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 97ec30a41063aa2a0800000000000000
-      internalID: -6725503714359783815
+      spriteID: 8fedabb627f33b04193a5c6bdad16e1a
+      internalID: -890440710
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_14
+      name: Water Rocks_04_Ambient_14
       rect:
         serializedVersion: 2
-        x: 833
-        y: 10
-        width: 57
-        height: 41
+        x: 896
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: fd1ad14d606acf340800000000000000
-      internalID: 4898973042930983391
+      spriteID: 4ef34542578ad7e428f3b6a2845d13c2
+      internalID: 313967211
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Water Rocks_04_15
+      name: Water Rocks_04_Ambient_15
       rect:
         serializedVersion: 2
-        x: 894
-        y: 10
-        width: 60
-        height: 41
+        x: 960
+        y: 0
+        width: 64
+        height: 64
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 375814008a5b083d0800000000000000
-      internalID: -3206363201524365965
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Water Rocks_04_16
-      rect:
-        serializedVersion: 2
-        x: 965
-        y: 13
-        width: 52
-        height: 38
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 61102ad381bf9da10800000000000000
-      internalID: 1934853596464152854
+      spriteID: a7f59746a4fe17641868a23281d4d8f3
+      internalID: 1411207517
       vertices: []
       indices: 
       edges: []
@@ -540,7 +518,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 0e6326a32b4e05d4189ed6c45f7da548
     internalID: 0
     vertices: []
     indices: 
@@ -550,23 +528,22 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Water Rocks_04_0: 3873779795923698762
-      Water Rocks_04_1: 4234963899626850703
-      Water Rocks_04_10: 7938979530805419752
-      Water Rocks_04_11: -6944550090128911867
-      Water Rocks_04_12: 5294321521121635437
-      Water Rocks_04_13: -6725503714359783815
-      Water Rocks_04_14: 4898973042930983391
-      Water Rocks_04_15: -3206363201524365965
-      Water Rocks_04_16: 1934853596464152854
-      Water Rocks_04_2: 7161343671226081534
-      Water Rocks_04_3: -7725989614899971964
-      Water Rocks_04_4: 7416389424349211935
-      Water Rocks_04_5: -4535748436077241286
-      Water Rocks_04_6: -3241895486459367200
-      Water Rocks_04_7: -793005186328604117
-      Water Rocks_04_8: -5930043487503493732
-      Water Rocks_04_9: -263976100284346392
+      Water Rocks_04_Ambient_00: -564110849
+      Water Rocks_04_Ambient_01: 244955164
+      Water Rocks_04_Ambient_02: -1319260320
+      Water Rocks_04_Ambient_03: -1209689298
+      Water Rocks_04_Ambient_04: -1299050551
+      Water Rocks_04_Ambient_05: -242042281
+      Water Rocks_04_Ambient_06: 1599984879
+      Water Rocks_04_Ambient_07: 1455332009
+      Water Rocks_04_Ambient_08: 9234861
+      Water Rocks_04_Ambient_09: 1976094724
+      Water Rocks_04_Ambient_10: -1389557920
+      Water Rocks_04_Ambient_11: 1247629314
+      Water Rocks_04_Ambient_12: 86775488
+      Water Rocks_04_Ambient_13: -890440710
+      Water Rocks_04_Ambient_14: 313967211
+      Water Rocks_04_Ambient_15: 1411207517
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

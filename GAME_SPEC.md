@@ -1248,10 +1248,13 @@ active and destroyed states. A dedicated visual root adds a +0.17 world-unit Y
 ground-contact correction; the authoritative 2x2 footprint and 1.75x1.25
 interaction collider remain unchanged. Its enlarged Fire presentation uses
 scale 2.47 with anchors (-0.585, 0.13), (0, 0.546), (0.585, 0.156). Its building
-Explosion scale is 2.08. Two official Tiny Swords terrain stair assemblies
-replace the corresponding south cliff columns and provide fair access from
-both sides without permitting arbitrary cliff traversal. Each visible stair and
-its logical height transition come from one shared connector definition.
+Explosion scale is 2.08. The current 60x44 map places the Gold Mine on flat
+central ground, with its 2x2 footprint beginning at (29,21). Both main Castles
+stand on height-2 upper courts (12x8), nested within spacious 16x13 height-1
+terraces. Each base has two independent side routes, each with two ramp flights.
+Single cliff rows are separated by a walkable landing. Each visible Castle ramp and its exact logical height
+transition come from one shared connector definition. Sheep graze above and
+below the Castle land instead of occupying its construction area.
 
 Goblin is a neutral hostile faction outside match-result, economy and population
 systems. One Torch and one TNT guard the primary mine. Torch uses Warrior

@@ -6,6 +6,7 @@ using TinyKingdom.Input;
 using TinyKingdom.Presentation;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
+using TinyKingdom.Terrain;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -13,6 +14,7 @@ namespace TinyKingdom.Economy
     // Phase 5A test content. It is attached only to the Map scene.
     public sealed class EconomyTestSetup : MonoBehaviour
     {
+        [SerializeField] private BattlefieldLayout battlefieldLayout;
         [SerializeField] private PawnAnimationSet pawnAnimations = null;
         [SerializeField] private UnitCombatData pawnCombatData = null;
         [SerializeField] private UnitCombatData warriorCombatData = null;
@@ -74,9 +76,38 @@ namespace TinyKingdom.Economy
                 Debug.LogError("Phase 5C2.1 presentation catalog is missing. "
                     + "Allow the Editor asset setup to finish importing.", this);
             CastleDropOff castle = MakeCastle(area.transform, blue,
-                new Vector3(4.5f, 10.5f, 0f), castleData, Faction.Blue);
+                battlefieldLayout != null ? (Vector3)battlefieldLayout.blueCastle
+                    : new Vector3(4.5f, 10.5f, 0f), castleData, Faction.Blue);
             feedback.Watch(castle);
 
+            if (battlefieldLayout != null)
+            {
+                foreach (BattlefieldResource resource in battlefieldLayout.resources)
+                {
+                    int i = resource.variant;
+                    bool wood = resource.type == ResourceType.Wood;
+                    bool gold = resource.type == ResourceType.Gold;
+                    MakeNode(area.transform, resource.name, resource.type,
+                        wood ? economyConfig.TreeCapacity : gold
+                            ? economyConfig.GetGoldStoneCapacity(i) : economyConfig.SheepCapacity,
+                        resource.position, wood ? presentation?.Tree(i) ?? treeSprite
+                            : gold ? presentation?.Gold(i) ?? goldSprite
+                            : First(presentation?.SheepIdle) ?? sheepSprite,
+                        wood ? 1.5f : 0.65f,
+                        wood ? presentation?.Stump(i) ?? treeStumpSprite : null,
+                        gold ? presentation?.GoldHighlight(i) : null,
+                        wood ? presentation?.TreeFrames(i) : null);
+                }
+                for (int i = 0; i < battlefieldLayout.bluePawns.Length; i++)
+                    feedback.Watch(MakePawn(area.transform, "BluePawn_" + (i + 1),
+                        battlefieldLayout.bluePawns[i]));
+                for (int i = 0; i < battlefieldLayout.redPawns.Length; i++)
+                    MakePawn(area.transform, "RedPawn_" + (i + 1),
+                        battlefieldLayout.redPawns[i], Faction.Red,
+                        battlefieldLayout.redPawnAnimations);
+            }
+            else
+            {
             for (int i = 0; i < 4; i++)
                 MakeNode(area.transform, $"Tree_{i + 1}", ResourceType.Wood,
                     economyConfig.TreeCapacity, new Vector3(3.5f + i * 2f, 14.5f, 0f),
@@ -100,6 +131,7 @@ namespace TinyKingdom.Economy
             feedback.Watch(MakePawn(area.transform, "BluePawn_1", new Vector3(3.5f, 7.5f, 0f)));
             feedback.Watch(MakePawn(area.transform, "BluePawn_2", new Vector3(4.5f, 7.5f, 0f)));
             feedback.Watch(MakePawn(area.transform, "BluePawn_3", new Vector3(5.5f, 7.5f, 0f)));
+            }
 
             SelectionSummaryUI summary = FindAnyObjectByType<SelectionSummaryUI>();
             if (summary == null)
@@ -143,11 +175,18 @@ namespace TinyKingdom.Economy
                 castle, blue, population, navigation, unitData, SpawnProductionUnit);
             SetupDefense(castle, navigation);
             CastleDropOff redCastle = MakeCastle(area.transform, red,
-                new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
+                battlefieldLayout != null ? (Vector3)battlefieldLayout.redCastle
+                    : new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
             SetupDefense(redCastle, navigation);
+            if (battlefieldLayout != null)
+            {
+                var redPopulationObject = new GameObject("RedPopulation");
+                redPopulationObject.transform.SetParent(area.transform, false);
+                redPopulationObject.AddComponent<FactionPopulation>().Configure(Faction.Red, 10);
+            }
             BuildingData towerData = System.Array.Find(buildings,
                 item => item != null && item.Type == BuildingType.Tower);
-            if (TryFindOpenBuildingOrigin(towerData, navigation,
+            if (battlefieldLayout == null && TryFindOpenBuildingOrigin(towerData, navigation,
                 new Vector2Int(31, 18), out Vector2Int redTowerOrigin))
             {
                 var redTowerObject = new GameObject("RedTowerDefenseTarget");
@@ -158,7 +197,8 @@ namespace TinyKingdom.Economy
                 redTower.CompleteImmediatelyForTestSetup();
                 SetupDefense(redTower, navigation);
             }
-            else Debug.LogWarning("No safe Map position found for the Red Tower defense target.", this);
+            else if (battlefieldLayout == null)
+                Debug.LogWarning("No safe Map position found for the Red Tower defense target.", this);
             buildingSystem.BuildingPlaced += site =>
             {
                 if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
@@ -282,7 +322,7 @@ namespace TinyKingdom.Economy
             visualRoot.transform.localScale = Vector3.one * GoldMineObjective.VisualScale;
             SpriteRenderer mineVisual = MakeVisual(visualRoot.transform,
                 assets?.GoldMineInactive, true);
-            mineVisual.sortingOrder = 9;
+            mineVisual.sortingOrder = 10;
             BoxCollider2D mineCollider = mineObject.AddComponent<BoxCollider2D>();
             mineCollider.size = new Vector2(1.75f, 1.25f);
             mineCollider.offset = new Vector2(0f, 0.1f);
@@ -459,15 +499,17 @@ namespace TinyKingdom.Economy
         private static Sprite First(Sprite[] sprites)
             => sprites != null && sprites.Length > 0 ? sprites[0] : null;
 
-        private PawnGatherer MakePawn(Transform parent, string name, Vector3 position)
+        private PawnGatherer MakePawn(Transform parent, string name, Vector3 position,
+            Faction faction = Faction.Blue, PawnAnimationSet animations = null)
         {
+            animations ??= pawnAnimations;
             var obj = new GameObject(name);
             obj.transform.SetParent(parent, false);
             obj.transform.position = position;
             SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
-            renderer.sprite = pawnAnimations.Idle[0];
+            renderer.sprite = animations.Idle[0];
             renderer.sortingOrder = 10;
-            obj.AddComponent<UnitController>().Configure(Faction.Blue);
+            obj.AddComponent<UnitController>().Configure(faction);
             obj.AddComponent<HealthComponent>().Configure(pawnCombatData);
             obj.AddComponent<UnitMovement>();
             obj.AddComponent<UnitSelection>().ConfigureMarkerYOffset(-0.35f);
@@ -476,7 +518,7 @@ namespace TinyKingdom.Economy
                 economyConfig.GatherImpactDelay, economyConfig.AmountPerStep);
             obj.AddComponent<CombatController>().Configure(pawnCombatData);
             obj.AddComponent<PawnBuilder>();
-            obj.AddComponent<PawnVisual>().Configure(pawnAnimations);
+            obj.AddComponent<PawnVisual>().Configure(animations);
             return gatherer;
         }
 

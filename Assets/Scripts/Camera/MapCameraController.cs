@@ -7,8 +7,8 @@ public sealed class MapCameraController : MonoBehaviour
     [SerializeField, Min(0f)] private float movementSpeed = 12f;
     [SerializeField, Min(0.1f)] private float zoomSpeed = 2f;
     [SerializeField, Min(0.1f)] private float minimumZoom = 5f;
-    [SerializeField, Min(0.1f)] private float maximumZoom = 14f;
-    [SerializeField] private Rect playableBounds = new Rect(0f, 0f, 40f, 28f);
+    [SerializeField, Min(0.1f)] private float maximumZoom = TinyKingdom.Terrain.BattlefieldLayout.Height * .5f;
+    [SerializeField] private Rect playableBounds = new Rect(0f, 0f, TinyKingdom.Terrain.BattlefieldLayout.Width, TinyKingdom.Terrain.BattlefieldLayout.Height);
     [SerializeField] private bool edgeScrollEnabled = true;
     [SerializeField, Min(1f)] private float edgeScrollThicknessPixels = 16f;
 

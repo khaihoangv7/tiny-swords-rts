@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TinyKingdom.Vision
 {
-    // A single point-filtered 40x28 world-space texture; no per-cell Update methods.
+    // A single point-filtered world-space texture matching the logical grid; no per-cell Update methods.
     public sealed class FogRenderer : MonoBehaviour
     {
         [SerializeField] private Faction displayedFaction = Faction.Blue;

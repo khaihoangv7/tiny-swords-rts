@@ -1,5 +1,92 @@
 # Tiny Kingdom RL — Asset Manifest
 
+## Two Kingdoms battlefield composition (September 2026)
+
+### Lush island decorations — verified source mapping
+
+The native `Terrain/Decorations/Rubber Duck/Rubber duck.png` is 96x32:
+three horizontal 32x32 frames. Its Aseprite source confirms a 32x32 canvas,
+three frames at 100 ms each. The previous automatic slicing incorrectly
+split one ripple into a fourth sprite. Import the three complete fixed cells,
+centered at 64 PPU, Point/uncompressed/Clamp/no mipmaps. Map them to the
+ambient floating state only, looping at 10 FPS. Ducks are decorative water
+animals, not food resources, units, blockers or vision sources.
+
+All four `Rocks in the Water/Water Rocks_01..04.png` strips were inspected:
+each is 1024x64 with sixteen 64x64 frames showing water ripples around a
+stationary rock. Import fixed centered cells at 64 PPU and loop at 10 FPS.
+`AmbientSpriteLoop` only changes the SpriteRenderer sprite; it never moves
+objects or changes navigation, resources or combat.
+
+All eight `Clouds/Clouds_01..08.png` are complete 576x256 illustrations,
+not animation strips. Import each as one static Sprite, preserving detached
+wisps and the painted shadow. The September 27 revision enlarges these same
+whole sprites (1.1 scale, or 1.8 for small variants 03/08) and translates them
+with a slow sinusoidal back-and-forth drift. This is procedural ambient motion,
+not an invented sprite-sheet animation. Sixteen clouds stay inside map bounds;
+two light clouds cross the ponds and others drift over coastal/interior groves.
+Clouds have no collider, vision, navigation or gameplay authority.
+The four ordinary Rock sprites are static, decorative boulders: larger ones
+stay at the shoreline; smaller stones sit beside forest edges and away from
+the main travel lane and Castle construction areas.
+
+The expanded battlefield is 60x44 cells with two tiered Castle bases and a
+flat central mine. Castle bases now have a 16x13 lower terrace at height 1 and
+a nested 12x8 upper terrace at height 2, with two ascent routes per faction.
+Each route uses two native ramp flights, one per height boundary. Each cliff uses the native
+finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
+omitted, eliminating the doubled visible face. Side ramps retain the verified
+64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching Color3 and
+explicit logical endpoints. The two finished cliff rows are separated by a
+walkable lower landing, never stacked into one wall. The mine remains flat.
+
+Sheep retain the verified Idle/Grass mapping. There are 73: twelve above and
+twelve below each Castle plateau, twelve neutral Sheep, and four at each base's
+lower outer corners, plus five on Blue's upper court.
+Each base uses four existing Tree variants: two at the
+lower terrace's northern rim (height 1) and two at the
+southern corners of the lower terrace.
+Blue additionally uses two native dark Tree1 pines on each tier, retaining the
+existing Tree1/Stump1 mapping. Four edge clusters each contain three static
+Bushe3_0 grass tufts (the inspected dark spiky bush). They render at order 8,
+above both terrace surfaces and below resource visuals, with no colliders.
+The upper court has one large Gold Stone 5 (catalog index 4) and one small
+Gold Stone 2 (index 1), both inspected from their native PNGs. They retain their
+existing matched highlights and resource capacities. Construction space and
+both entrances remain clear. Dense woodland
+uses the same four verified Tree/Stump pairs as real resource nodes. Only the
+verified ambient Duck and water-rock animations described above are added;
+no gameplay animation, recoloring or AI-created artwork is introduced.
+
+The supplied local Free Pack was visually inspected, including all terrain color
+sheets, four trees, four bushes, four rocks, four water-rock sheets, eight clouds,
+the Blue/Red Castle pair and Red Pawn Idle/Run. Existing gameplay animation
+mappings below are retained. No sprite is AI-generated or recolored.
+
+* `Tilemap_color1` supplies the main island, `color3` Castle plateaus and bright meadow
+  patches, `color4` the flat mine clearing and
+  approach paths, and `color5` cool coastal vegetation. All are 64x64 tiles.
+* `Terrain/Decorations/Bushes/Bushe1.png` through `Bushe4.png`: first imported
+  sprite only, static ground cover. No new animation mapping.
+* `Terrain/Decorations/Rocks/Rock1.png` through `Rock4.png`: static coastal
+  boulders on nonwalkable water/shore fringe, away from travel corridors.
+* `Terrain/Decorations/Rocks in the Water/Water Rocks_01.png` through `_04.png`:
+  sixteen fixed 64x64 frames, looping ambient water ripples at 10 FPS; no collider.
+* `Terrain/Decorations/Clouds/Clouds_01.png` through `Clouds_08.png`: full PNG single
+  sprites at 64 PPU (automatic slicing had separated their tiny wisps), 16
+  enlarged drifting clouds including two translucent pond clouds.
+* All four verified Tree/paired Stump variants and all six Gold Stone variants
+  are real resource nodes, using the existing capacities and animations.
+* Blue/Red `Buildings/.../Castle.png` are the two gameplay headquarters. Other
+  building sprites stay available through the existing construction UI; placing
+  free starting production buildings would conflict with the starting rules.
+* The Red Pawn animation set maps each Blue Pawn sprite to the same named
+  imported sprite in the verified Red counterpart sheet. Idle has 8 frames,
+  Run 6; existing work/carry/hammer frame ordering and timers are retained.
+* `BattlefieldScenePreview` uses these same sprites to show the authored layout
+  outside Play Mode. It is hidden before gameplay and stripped from builds.
+
+
 ## Purpose
 
 This file defines how Tiny Swords visual assets correspond to gameplay entities and gameplay states.

@@ -79,7 +79,7 @@ namespace TinyKingdom.Buildings
                 if (cell == null || cell.Occupied
                     || (cell.TerrainType != TerrainType.FlatGround
                         && cell.TerrainType != TerrainType.ElevatedGround)
-                    || cell.HeightLevel != TerrainRules.DefaultHeight(cell.TerrainType)
+                    // Use the authored level: elevated courts can be higher than level 1.
                     || (height >= 0 && cell.HeightLevel != height)) return false;
                 height = cell.HeightLevel;
             }

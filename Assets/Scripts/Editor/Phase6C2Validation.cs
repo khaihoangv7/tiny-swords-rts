@@ -190,44 +190,7 @@ namespace TinyKingdom.EditorTools
 
         private static void ValidateStrategicObjectiveTerrain()
         {
-            GameObject map = GameObject.Find("Map");
-            Transform grid = map != null ? map.transform.Find("Grid") : null;
-            Tilemap elevated = grid != null
-                ? grid.Find("ElevatedGround_L1")?.GetComponent<Tilemap>() : null;
-            Tilemap shadow = grid != null
-                ? grid.Find("Shadow_L1")?.GetComponent<Tilemap>() : null;
-            Require(elevated != null && shadow != null,
-                "Map terrain Tilemaps are missing.");
-            Require(GameObject.Find("GoldMineHeightConnectors") == null,
-                "Obsolete Bridge_All connector objects are still present. Run Prepare again.");
-
-            for (int i = 0; i < StrategicObjectiveMapLayout.ConnectorCount; i++)
-            {
-                TerrainHeightConnectorDefinition connector =
-                    StrategicObjectiveMapLayout.GetConnector(i);
-                Require(i == 0
-                        ? connector.GridX == StrategicObjectiveMapLayout.LeftConnectorX
-                            && connector.Orientation == TerrainStairOrientation.DescendsLeft
-                        : connector.GridX == StrategicObjectiveMapLayout.RightConnectorX
-                            && connector.Orientation == TerrainStairOrientation.DescendsRight,
-                    "Gold Mine stair side/orientation mapping is incorrect.");
-                ValidateStairTile(elevated, connector.GridX, connector.UpperY,
-                    connector.UpperSpriteName, true, connector.Orientation);
-                ValidateStairTile(elevated, connector.GridX, connector.LowerY,
-                    connector.LowerSpriteName, false, connector.Orientation);
-                Require(shadow.GetTile(new Vector3Int(connector.GridX,
-                    connector.LowerY, 0)) == null,
-                    $"Cliff-foot shadow still closes stair opening at ({connector.GridX}, {connector.LowerY}).");
-                Require(shadow.GetTile(new Vector3Int(connector.GridX,
-                    connector.UpperY, 0)) != null,
-                    $"Raised-platform offset shadow is missing at ({connector.GridX}, {connector.UpperY}).");
-            }
-
-            string[] dependencies = AssetDatabase.GetDependencies(
-                "Assets/Scenes/Map.unity", true);
-            Require(!dependencies.Any(path => path.Replace('\\', '/').EndsWith(
-                    "/Bridge_All.png", StringComparison.OrdinalIgnoreCase)),
-                "Map scene still depends on Bridge_All; it is not a terrain stair asset.");
+            BattlefieldMapValidation.ValidateTerraces();
         }
 
         private static void ValidateStairTile(Tilemap tilemap, int x, int y,
@@ -253,102 +216,8 @@ namespace TinyKingdom.EditorTools
 
         private static void ValidateStrategicObjectiveNavigation()
         {
-            NavigationGridData data = AssetDatabase.LoadAssetAtPath<NavigationGridData>(
-                Phase2NavigationBuilder.DataPath);
-            Require(data != null, "MapNavigation data is missing.");
-            for (int i = 0; i < StrategicObjectiveMapLayout.ConnectorCount; i++)
-            {
-                TerrainHeightConnectorDefinition connector =
-                    StrategicObjectiveMapLayout.GetConnector(i);
-                Require(data.TryGetCellData(connector.GridX, connector.LowerY,
-                    out NavigationCellData lower)
-                    && lower.terrainType == TerrainType.Stairs && lower.heightLevel == 0,
-                    $"Lower connector cell ({connector.GridX}, {connector.LowerY}) is invalid.");
-                Require(data.TryGetCellData(connector.GridX, connector.UpperY,
-                    out NavigationCellData upper)
-                    && upper.terrainType == TerrainType.Stairs && upper.heightLevel == 1,
-                    $"Upper connector cell ({connector.GridX}, {connector.UpperY}) is invalid.");
-            }
-
-            var grid = new NavigationDataGrid(data);
-            List<GridCell> blue = AStarPathfinder.FindPath(grid,
-                grid.GetCell(8, 8), grid.GetCell(18, 13));
-            List<GridCell> red = AStarPathfinder.FindPath(grid,
-                grid.GetCell(31, 20), grid.GetCell(21, 13));
-            Require(blue.Count > 0 && UsesConnector(blue,
-                    StrategicObjectiveMapLayout.LeftConnectorX),
-                "Blue-side path does not reach the plateau through its legal connector.");
-            Require(red.Count > 0 && UsesConnector(red,
-                    StrategicObjectiveMapLayout.RightConnectorX),
-                "Red-side path does not reach the plateau through its legal connector.");
-            List<GridCell> blueReturn = AStarPathfinder.FindPath(grid,
-                grid.GetCell(18, 13), grid.GetCell(8, 8));
-            List<GridCell> redReturn = AStarPathfinder.FindPath(grid,
-                grid.GetCell(21, 13), grid.GetCell(31, 20));
-            Require(blueReturn.Count > 0 && UsesConnector(blueReturn,
-                    StrategicObjectiveMapLayout.LeftConnectorX),
-                "Blue-side reverse path does not leave through its legal stair.");
-            Require(redReturn.Count > 0 && UsesConnector(redReturn,
-                    StrategicObjectiveMapLayout.RightConnectorX),
-                "Red-side reverse path does not leave through its legal stair.");
-            Require(!AStarPathfinder.CanTraverseStep(grid,
-                    grid.GetCell(15, 13), grid.GetCell(16, 13)),
-                "A unit can still climb the west cliff without a connector.");
-            Require(!AStarPathfinder.CanTraverseStep(grid,
-                    grid.GetCell(16, 10), grid.GetCell(17, 11)),
-                "A diagonal move can corner-cut into the left connector through a cliff.");
-            foreach (int cliffX in new[] { 16, 18, 21, 23 })
-            {
-                GridCell lowerCliff = grid.GetCell(cliffX,
-                    StrategicObjectiveMapLayout.ConnectorLowerY);
-                GridCell upperCliff = grid.GetCell(cliffX,
-                    StrategicObjectiveMapLayout.ConnectorUpperY);
-                Require(lowerCliff.TerrainType == TerrainType.Cliff
-                    && upperCliff.TerrainType == TerrainType.Cliff
-                    && !AStarPathfinder.CanTraverseStep(grid, lowerCliff, upperCliff),
-                    $"Neighboring cliff column x={cliffX} became a hidden height connector.");
-            }
-
-            for (int y = 0; y < grid.Height; y++)
-            for (int x = 0; x < grid.Width; x++)
-            {
-                GridCell from = grid.GetCell(x, y);
-                foreach (Vector2Int direction in new[]
-                {
-                    Vector2Int.right, Vector2Int.up
-                })
-                {
-                    GridCell to = grid.GetCell(x + direction.x, y + direction.y);
-                    if (to == null || Mathf.Abs(from.HeightLevel - to.HeightLevel) != 1
-                        || !AStarPathfinder.CanTraverseStep(grid, from, to))
-                        continue;
-                    Require(IsConfiguredTransition(from, to),
-                        $"Traversable height transition ({from.GridX},{from.GridY}) -> "
-                        + $"({to.GridX},{to.GridY}) has no matching visible stair definition.");
-                }
-            }
+            BattlefieldMapValidation.ValidateTerraces();
         }
-
-        private static bool IsConfiguredTransition(GridCell a, GridCell b)
-        {
-            for (int i = 0; i < StrategicObjectiveMapLayout.ConnectorCount; i++)
-            {
-                TerrainHeightConnectorDefinition connector =
-                    StrategicObjectiveMapLayout.GetConnector(i);
-                bool forward = a.GridX == connector.GridX && a.GridY == connector.LowerY
-                    && b.GridX == connector.GridX && b.GridY == connector.UpperY;
-                bool reverse = b.GridX == connector.GridX && b.GridY == connector.LowerY
-                    && a.GridX == connector.GridX && a.GridY == connector.UpperY;
-                if (forward || reverse) return true;
-            }
-            return false;
-        }
-
-        private static bool UsesConnector(IEnumerable<GridCell> path, int x)
-            => path.Any(cell => cell.GridX == x
-                && cell.GridY == StrategicObjectiveMapLayout.ConnectorLowerY)
-                && path.Any(cell => cell.GridX == x
-                && cell.GridY == StrategicObjectiveMapLayout.ConnectorUpperY);
 
         private static UnitCombatData LoadData(string name)
         {
