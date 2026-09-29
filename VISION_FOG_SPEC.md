@@ -57,12 +57,28 @@ same-faction sources is recomputed every 0.10 seconds.
 The current human view faction is Blue. `FogRenderer` can display either faction
 for Editor debugging without changing authoritative data.
 
-The world-space fog is one point-filtered 40x28 texture aligned with the logical
-grid:
+The world-space fog is one reusable point-filtered 160x112 presentation mask
+aligned with the existing 40x28 logical grid. It uses four visual samples per
+logical cell; gameplay grid resolution remains unchanged. Every active source is
+rasterized into the mask with Euclidean distance from each visual sample center.
+Same-faction circles are combined by maximum reveal coverage:
 
 - Visible: transparent.
 - Explored: black with alpha 135/255.
 - Unexplored: black with alpha 235/255.
+
+The visual boundary uses a narrow 0.25-cell feather. Samples inside the exact
+radius become visual exploration memory; feather-only samples do not expand
+exploration. Blue and Red keep separate visual exploration buffers. The mask is
+rebuilt at the existing 0.10-second cadence only when the quantized source set,
+position, faction or radius changes, or when authoritative vision reports a
+state change. Buffers, texture, sprite and pixel arrays are reused.
+
+Unit circles are centered on the unit world position. Building circles are
+centered on the geometric center of their complete logical footprint, including
+multi-cell Castle and Tower footprints. `TeamVisionGrid` remains the sole
+authority for visibility, targeting, memory and AI knowledge; the 160x112 mask
+is never queried by gameplay.
 
 It renders at sorting order 8, above terrain and below gameplay sprites. Friendly
 objects remain clear. Enemy units and buildings are presentation-gated and appear

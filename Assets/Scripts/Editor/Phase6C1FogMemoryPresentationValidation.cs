@@ -36,6 +36,13 @@ namespace TinyKingdom.EditorTools
                 "Exactly one initialized two-faction FogMemorySystem is required.");
             Require(PlayerViewRelation.PlayerViewFaction == memories[0].PlayerViewFaction,
                 "Shared health-bar faction relation does not match Fog player view.");
+            FogRenderer fogRenderer = UnityEngine.Object.FindAnyObjectByType<FogRenderer>();
+            Require(fogRenderer != null
+                && fogRenderer.SamplesPerCell == FogRenderer.DefaultSamplesPerCell
+                && fogRenderer.MaskWidth == 160 && fogRenderer.MaskHeight == 112
+                && Mathf.Approximately(fogRenderer.FeatherWidthCells,
+                    FogRenderer.DefaultFeatherWidthCells),
+                "Phase 6C.1 requires the 4x circular 160x112 visual Fog mask.");
 
             CastleDropOff[] castles = UnityEngine.Object.FindObjectsByType<CastleDropOff>();
             Require(castles.Length == 2, "Blue and Red Main Castles are required.");
@@ -141,8 +148,9 @@ namespace TinyKingdom.EditorTools
             Debug.Log("Phase 6C.1 automated validation passed: 14-frame Dead/Buried VFX, "
                 + "Warrior/Lancer attack presentation connection, Castle Rally, one verified "
                 + "Icon_09 Rally marker per host, two-faction Fog memory, non-interactive "
-                + "building/resource ghosts, relation-colored health fills, unit/Sheep "
-                + "squash-stretch wiring and darker Shadow_L1. Manual visual and hidden-state "
+                + "building/resource ghosts, 4x circular visual Fog mask, relation-colored "
+                + "health fills, unit/Sheep squash-stretch wiring and darker Shadow_L1. "
+                + "Manual visual and hidden-state "
                 + "tests remain required.");
         }
 
