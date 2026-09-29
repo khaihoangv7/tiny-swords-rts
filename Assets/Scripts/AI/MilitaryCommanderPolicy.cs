@@ -9,6 +9,35 @@ using UnityEngine;
 
 namespace TinyKingdom.AI
 {
+    public enum StrategicTargetCategory
+    {
+        DefensiveBuilding,
+        MilitaryBuilding,
+        EconomicBuilding,
+        MainCastle
+    }
+
+    public readonly struct OffensiveTargetSnapshot
+    {
+        public OffensiveTargetSnapshot(EntityId id, BuildingType type, Faction faction,
+            Vector3 position, StrategicTargetCategory category, bool visible)
+        {
+            RuntimeId = id;
+            BuildingType = type;
+            Faction = faction;
+            LastKnownPosition = position;
+            Category = category;
+            WasVisibleWhenSelected = visible;
+        }
+
+        public EntityId RuntimeId { get; }
+        public BuildingType BuildingType { get; }
+        public Faction Faction { get; }
+        public Vector3 LastKnownPosition { get; }
+        public StrategicTargetCategory Category { get; }
+        public bool WasVisibleWhenSelected { get; }
+    }
+
     [Serializable]
     public sealed class MilitaryCommanderPolicy
     {
@@ -16,17 +45,33 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.ThreatEvaluation");
         private static readonly ProfilerMarker ArmyRegroupMarker =
             new("TinyKingdom.AI.ArmyRegroup");
+        private static readonly ProfilerMarker OffensiveEvaluationMarker =
+            new("TinyKingdom.AI.OffensiveEvaluation");
+        private static readonly ProfilerMarker TargetSelectionMarker =
+            new("TinyKingdom.AI.StrategicTargetSelection");
+        private static readonly ProfilerMarker OffensiveAdvanceMarker =
+            new("TinyKingdom.AI.OffensiveAdvance");
+        private static readonly ProfilerMarker OffensiveRegroupMarker =
+            new("TinyKingdom.AI.OffensiveRegroup");
 
         [SerializeField, Min(1f)] private float baseDefenseRadius = 9f;
         [SerializeField, Min(1f)] private float defenseLeashRadius = 12f;
         [SerializeField, Min(0.5f)] private float stagingRegionRadius = 3f;
         [SerializeField, Min(0.1f)] private float destinationArrivalRadius = 0.45f;
         [SerializeField, Min(0.5f)] private float commandRetrySeconds = 1.5f;
+        [Header("Phase 7C.2 offense (MVP / provisional)")]
+        [SerializeField, Min(1)] private int minOffensiveMilitaryPopulation = 6;
+        [SerializeField, Range(0.5f, 1f)] private float assembledFraction = 0.75f;
+        [SerializeField, Min(1f)] private float offensiveCohesionRadius = 6f;
+        [SerializeField, Min(0.5f)] private float offensiveReevaluationSeconds = 3f;
+        [SerializeField, Range(1, 6)] private int maximumObjectiveFailures = 3;
 
         private readonly ArmyGroup army = new();
         private readonly Dictionary<UnitController, EntityId> attackIntents = new();
         private readonly Dictionary<UnitController, Vector3> moveIntents = new();
+        private readonly Dictionary<UnitController, Vector3> attackMoveIntents = new();
         private readonly Dictionary<UnitController, float> retryAfter = new();
+        private readonly List<UnitController> operationMembers = new();
         private readonly List<UnitController> staleActors = new();
         private bool hasCurrentThreat;
         private EntityId currentThreatId;
@@ -37,10 +82,24 @@ namespace TinyKingdom.AI
         private bool hasStagingPosition;
         private Vector3 stagingPosition;
         private int assignmentMembershipVersion = -1;
+        private bool hasOffensiveTarget;
+        private OffensiveTargetSnapshot offensiveTarget;
+        private Vector3 currentObjectivePosition;
+        private float operationStartTime;
+        private float nextOffensiveEvaluationTime;
+        private int objectiveFailureCount;
+        private EntityId blockedTargetId;
+        private float blockedTargetUntil;
+        private string objectiveReason = "None";
+        private bool cohesionRegroup;
+        private Vector3 cohesionRegroupPosition;
 
         public ArmyGroup Army => army;
         public float BaseDefenseRadius => Mathf.Max(1f, baseDefenseRadius);
         public float DefenseLeashRadius => Mathf.Max(BaseDefenseRadius, defenseLeashRadius);
+        public int MinOffensiveMilitaryPopulation
+            => Mathf.Max(1, minOffensiveMilitaryPopulation);
+        public float AssembledFraction => Mathf.Clamp(assembledFraction, 0.5f, 1f);
         public bool HasBaseAnchor => hasBaseAnchor;
         public Vector3 BaseAnchor => baseAnchor;
         public bool HasStagingPosition => hasStagingPosition;
@@ -50,40 +109,55 @@ namespace TinyKingdom.AI
         public UnitType CurrentThreatType => currentThreatType;
         public Vector3 CurrentThreatPosition => currentThreatPosition;
         public int VisibleThreatCount { get; private set; }
+        public int AvailableMilitaryPopulation => PopulationOf(army.Members);
+        public bool HasOffensiveTarget => hasOffensiveTarget;
+        public OffensiveTargetSnapshot OffensiveTarget => offensiveTarget;
+        public Vector3 CurrentObjectivePosition => currentObjectivePosition;
+        public bool IsOffensiveTargetVisible { get; private set; }
+        public string ObjectiveReason => objectiveReason;
+        public float OperationStartTime => operationStartTime;
+        public int ObjectiveFailureCount => objectiveFailureCount;
+        public int OffensiveParticipantCount => operationMembers.Count;
+
+        private bool IsOffensiveState => army.State is ArmyGroupState.PreparingAttack
+            or ArmyGroupState.Advancing or ArmyGroupState.Assaulting;
 
         public void Tick(CommanderDecisionContext context,
-            ProductionCommanderPolicy production, UnitController activeScout)
+            ProductionCommanderPolicy production, UnitController activeScout,
+            StrategicSafetyMap safety)
         {
             army.Synchronize(context.Knowledge, activeScout);
             RemoveStaleIntents();
+            RemoveStaleOperationMembers();
             RefreshAnchorAndStaging(context.Knowledge, production);
             VisibleThreatCount = 0;
             if (!hasBaseAnchor || !hasStagingPosition)
             {
                 ClearThreat();
+                CancelOffense("Missing base or staging", context.Time, false);
                 army.SetState(ArmyGroupState.Forming);
                 return;
             }
 
+            bool requireEmergency = IsOffensiveState;
             bool retained = TryRetainCurrentThreat(context.Knowledge,
-                out VisibleUnitObservation threat);
+                requireEmergency, out VisibleUnitObservation threat);
             if (retained)
-                VisibleThreatCount = CountVisibleDefenseThreats(context.Knowledge);
-            if (!retained) retained = TrySelectThreat(context.Knowledge, out threat);
+                VisibleThreatCount = CountVisibleDefenseThreats(context.Knowledge,
+                    requireEmergency);
+            if (!retained)
+                retained = TrySelectThreat(context.Knowledge, requireEmergency, out threat);
             if (retained)
             {
+                if (IsOffensiveState)
+                    CancelOffense("Base defense interrupted offense", context.Time, false);
                 bool changed = !hasCurrentThreat
                     || currentThreatId.CompareTo(threat.RuntimeId) != 0;
                 hasCurrentThreat = true;
                 currentThreatId = threat.RuntimeId;
                 currentThreatType = threat.UnitType;
                 currentThreatPosition = threat.Position;
-                if (changed)
-                {
-                    attackIntents.Clear();
-                    moveIntents.Clear();
-                    retryAfter.Clear();
-                }
+                if (changed) ClearCommandIntents();
                 army.SetState(ArmyGroupState.Defending);
                 Defend(context, threat);
                 return;
@@ -93,24 +167,37 @@ namespace TinyKingdom.AI
             ClearThreat();
             if (army.Members.Count == 0)
             {
+                CancelOffense("Army unavailable", context.Time, true);
                 army.SetState(ArmyGroupState.Forming);
                 return;
             }
             if (wasDefending)
             {
+                CancelOffense("Defense resolved", context.Time, false);
                 army.SetState(ArmyGroupState.Regrouping);
                 InvalidateMoveAssignments();
             }
-            if (AllMembersInsideStaging())
+
+            if (IsOffensiveState)
             {
-                army.SetState(ArmyGroupState.Ready);
-                moveIntents.Clear();
-                retryAfter.Clear();
+                TickOffense(context, safety);
                 return;
             }
-            if (army.State != ArmyGroupState.Regrouping)
-                army.SetState(ArmyGroupState.Forming);
-            Regroup(context, army.State == ArmyGroupState.Regrouping);
+
+            if (!AllMembersInsideStaging())
+            {
+                if (army.State != ArmyGroupState.Regrouping)
+                    army.SetState(ArmyGroupState.Forming);
+                Regroup(context, army.State == ArmyGroupState.Regrouping);
+                return;
+            }
+
+            army.SetState(ArmyGroupState.Ready);
+            moveIntents.Clear();
+            retryAfter.Clear();
+            if (context.Time >= nextOffensiveEvaluationTime
+                && AvailableMilitaryPopulation >= MinOffensiveMilitaryPopulation)
+                TryBeginOffense(context, safety);
         }
 
         public void Reset()
@@ -118,27 +205,378 @@ namespace TinyKingdom.AI
             army.Reset();
             attackIntents.Clear();
             moveIntents.Clear();
+            attackMoveIntents.Clear();
             retryAfter.Clear();
+            operationMembers.Clear();
             staleActors.Clear();
             hasCurrentThreat = false;
             hasBaseAnchor = false;
             hasStagingPosition = false;
+            hasOffensiveTarget = false;
+            IsOffensiveTargetVisible = false;
             VisibleThreatCount = 0;
             assignmentMembershipVersion = -1;
+            operationStartTime = nextOffensiveEvaluationTime = 0f;
+            objectiveFailureCount = 0;
+            blockedTargetId = default;
+            blockedTargetUntil = 0f;
+            objectiveReason = "None";
+            cohesionRegroup = false;
+        }
+
+        private void TryBeginOffense(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            using (OffensiveEvaluationMarker.Auto())
+            {
+                if (!TrySelectOffensiveTarget(context, safety,
+                        out OffensiveTargetSnapshot target))
+                {
+                    objectiveReason = "No legally known strategic target";
+                    nextOffensiveEvaluationTime = context.Time + 1f;
+                    return;
+                }
+                hasOffensiveTarget = true;
+                offensiveTarget = target;
+                currentObjectivePosition = target.LastKnownPosition;
+                IsOffensiveTargetVisible = context.Knowledge
+                    .TryGetVisibleEnemyBuilding(target.RuntimeId, out _);
+                operationMembers.Clear();
+                for (int i = 0; i < army.Members.Count; i++)
+                    operationMembers.Add(army.Members[i]);
+                operationStartTime = context.Time;
+                objectiveFailureCount = 0;
+                cohesionRegroup = false;
+                objectiveReason = "Selected " + target.Category;
+                ClearCommandIntents();
+                army.SetState(ArmyGroupState.PreparingAttack);
+                TickPreparingAttack(context, safety);
+            }
+        }
+
+        private bool TrySelectOffensiveTarget(CommanderDecisionContext context,
+            StrategicSafetyMap safety, out OffensiveTargetSnapshot result)
+        {
+            using (TargetSelectionMarker.Auto())
+            {
+                result = default;
+                bool found = false;
+                int bestPriority = int.MaxValue;
+                int bestVisibility = int.MaxValue;
+                int bestRisk = int.MaxValue;
+                float bestDistance = float.PositiveInfinity;
+                IReadOnlyList<BuildingKnowledgeSnapshot> known =
+                    context.Knowledge.KnownEnemyBuildings;
+                for (int i = 0; i < known.Count; i++)
+                {
+                    BuildingKnowledgeSnapshot item = known[i];
+                    if (!FactionRelations.AreHostile(context.Faction, item.Faction)
+                        || !item.WasCompleted || item.LastSeenHealthRatio <= 0f
+                        || item.BuildingType == BuildingType.GoldMine
+                        || context.Time < blockedTargetUntil
+                            && item.RuntimeId.CompareTo(blockedTargetId) == 0)
+                        continue;
+                    StrategicTargetCategory category = CategoryOf(item.BuildingType);
+                    int priority = PriorityOf(category);
+                    bool visible = context.Knowledge.TryGetVisibleEnemyBuilding(
+                        item.RuntimeId, out _);
+                    int visibility = visible ? 0 : 1;
+                    int risk = safety != null
+                        ? (int)safety.RiskAt(item.LastSeenPosition,
+                            StrategicPathKind.Army) : 0;
+                    float distance = DistanceSquared(item.LastSeenPosition,
+                        stagingPosition);
+                    if (!found || priority < bestPriority
+                        || priority == bestPriority && visibility < bestVisibility
+                        || priority == bestPriority && visibility == bestVisibility
+                            && risk < bestRisk
+                        || priority == bestPriority && visibility == bestVisibility
+                            && risk == bestRisk
+                            && distance < bestDistance - 0.0001f
+                        || priority == bestPriority && visibility == bestVisibility
+                            && risk == bestRisk
+                            && Mathf.Abs(distance - bestDistance) <= 0.0001f
+                            && item.RuntimeId.CompareTo(result.RuntimeId) < 0)
+                    {
+                        found = true;
+                        bestPriority = priority;
+                        bestVisibility = visibility;
+                        bestRisk = risk;
+                        bestDistance = distance;
+                        result = new OffensiveTargetSnapshot(item.RuntimeId,
+                            item.BuildingType, item.Faction, item.LastSeenPosition,
+                            category, visible);
+                    }
+                }
+                return found;
+            }
+        }
+
+        private void TickOffense(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            if (!hasOffensiveTarget || !TryRefreshObjective(context.Knowledge,
+                    out BuildingKnowledgeSnapshot known))
+            {
+                CompleteOffense(context, "Objective resolved or stale");
+                return;
+            }
+            currentObjectivePosition = known.LastSeenPosition;
+            IsOffensiveTargetVisible = context.Knowledge.TryGetVisibleEnemyBuilding(
+                offensiveTarget.RuntimeId, out BuildingKnowledgeSnapshot visible);
+            if (IsOffensiveTargetVisible)
+                currentObjectivePosition = visible.LastSeenPosition;
+            else if (IsObjectiveAreaVisible(context.Knowledge))
+            {
+                CompleteOffense(context, "Remembered objective area cleared");
+                return;
+            }
+
+            int population = PopulationOf(operationMembers);
+            if (operationMembers.Count == 0 || CountAttackers(operationMembers) == 0
+                || population < Mathf.Max(1, MinOffensiveMilitaryPopulation / 2))
+            {
+                FailOffense(context, "Offensive force lost");
+                return;
+            }
+
+            switch (army.State)
+            {
+                case ArmyGroupState.PreparingAttack:
+                    TickPreparingAttack(context, safety);
+                    break;
+                case ArmyGroupState.Advancing:
+                    TickAdvance(context, safety);
+                    break;
+                case ArmyGroupState.Assaulting:
+                    TickAssault(context, safety);
+                    break;
+            }
+        }
+
+        private void TickPreparingAttack(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            using (OffensiveRegroupMarker.Auto())
+            {
+                Vector3 assembly = cohesionRegroup ? cohesionRegroupPosition
+                    : stagingPosition;
+                if (FractionInside(operationMembers, assembly, stagingRegionRadius)
+                    >= AssembledFraction
+                    && (cohesionRegroup || PopulationOf(operationMembers)
+                        >= MinOffensiveMilitaryPopulation))
+                {
+                    cohesionRegroup = false;
+                    moveIntents.Clear();
+                    retryAfter.Clear();
+                    army.SetState(ArmyGroupState.Advancing);
+                    IssueAdvance(context, safety, true);
+                    return;
+                }
+                RegroupMembers(context, operationMembers, assembly, true,
+                    safety?.ArmyTraversal);
+            }
+        }
+
+        private void TickAdvance(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            using (OffensiveAdvanceMarker.Auto())
+            {
+                if (IsOffensiveTargetVisible)
+                {
+                    attackMoveIntents.Clear();
+                    army.SetState(ArmyGroupState.Assaulting);
+                    objectiveReason = "Visible objective assault";
+                    TickAssault(context, safety);
+                    return;
+                }
+                if (IsSeverelyFragmented(out Vector3 centroid))
+                {
+                    cohesionRegroup = true;
+                    cohesionRegroupPosition = centroid;
+                    ClearCommandIntents();
+                    army.SetState(ArmyGroupState.PreparingAttack);
+                    objectiveReason = "Cohesion regroup";
+                    TickPreparingAttack(context, safety);
+                    return;
+                }
+                IssueAdvance(context, safety, false);
+            }
+        }
+
+        private void IssueAdvance(CommanderDecisionContext context,
+            StrategicSafetyMap safety, bool force)
+        {
+            EnsureOffensiveDestinations(context.Knowledge);
+            int attempted = 0;
+            int accepted = 0;
+            int failed = 0;
+            for (int i = 0; i < operationMembers.Count; i++)
+            {
+                UnitController member = operationMembers[i];
+                if (IsMonk(member))
+                {
+                    SupportOffense(context, member, safety);
+                    continue;
+                }
+                if (!attackMoveIntents.TryGetValue(member, out Vector3 destination))
+                    continue;
+                CombatController combat = member.GetComponent<CombatController>();
+                if (!force && combat != null
+                    && (combat.HasAttackMoveOrder || combat.Target != null)) continue;
+                if (context.Time < RetryTime(member)) continue;
+                attempted++;
+                CommanderCommandResult result = context.Commands.TryAttackMove(member,
+                    destination, safety?.ArmyTraversal);
+                if (result == CommanderCommandResult.Accepted)
+                {
+                    attackMoveIntents[member] = destination;
+                    moveIntents.Remove(member);
+                    accepted++;
+                }
+                else
+                {
+                    retryAfter[member] = context.Time + commandRetrySeconds;
+                    if (result == CommanderCommandResult.RejectedUnreachable
+                        || result == CommanderCommandResult.RejectedInvalidTarget) failed++;
+                }
+            }
+            if (attempted > 0 && accepted == 0 && failed > 0)
+            {
+                objectiveFailureCount++;
+                if (objectiveFailureCount >= maximumObjectiveFailures)
+                    FailOffense(context, "Objective route repeatedly failed");
+            }
+            else if (accepted > 0) objectiveFailureCount = 0;
+        }
+
+        private void TickAssault(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            if (!IsOffensiveTargetVisible)
+            {
+                attackIntents.Clear();
+                army.SetState(ArmyGroupState.Advancing);
+                objectiveReason = "Advance to remembered objective";
+                IssueAdvance(context, safety, true);
+                return;
+            }
+            for (int i = 0; i < operationMembers.Count; i++)
+            {
+                UnitController member = operationMembers[i];
+                if (IsMonk(member))
+                {
+                    SupportOffense(context, member, safety);
+                    continue;
+                }
+                CombatController combat = member.GetComponent<CombatController>();
+                if (combat?.BuildingTarget != null
+                    && combat.BuildingTarget.GetEntityId().CompareTo(
+                        offensiveTarget.RuntimeId) == 0)
+                {
+                    attackIntents[member] = offensiveTarget.RuntimeId;
+                    continue;
+                }
+                if (context.Time < RetryTime(member)) continue;
+                CommanderCommandResult result = context.Commands.TryAttackBuilding(member,
+                    offensiveTarget.RuntimeId);
+                if (result == CommanderCommandResult.Accepted)
+                {
+                    attackIntents[member] = offensiveTarget.RuntimeId;
+                    attackMoveIntents.Remove(member);
+                }
+                else retryAfter[member] = context.Time + commandRetrySeconds;
+            }
+        }
+
+        private void SupportOffense(CommanderDecisionContext context,
+            UnitController monk, StrategicSafetyMap safety)
+        {
+            Vector3 centroid = OperationCentroid();
+            Vector2 away = (Vector2)(centroid - currentObjectivePosition);
+            if (away.sqrMagnitude < 0.001f) away = Vector2.left;
+            Vector3 desired = centroid + (Vector3)(away.normalized * 1.5f);
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
+            if (grid == null) return;
+            Vector2Int cell = grid.WorldToGrid(desired);
+            List<GridCell> choices = DestinationDistributor.FindNearbyDestinations(
+                grid, cell, 1, 3, true);
+            if (choices.Count == 0) return;
+            desired = choices[0].WorldPosition;
+            UnitMovement movement = monk.GetComponent<UnitMovement>();
+            if (Vector2.Distance(monk.transform.position, desired)
+                    <= destinationArrivalRadius
+                || movement != null && movement.IsMoving
+                    && moveIntents.TryGetValue(monk, out Vector3 existing)
+                    && Vector2.Distance(existing, desired) <= 0.5f
+                || context.Time < RetryTime(monk)) return;
+            CommanderCommandResult result = context.Commands.TryMove(monk, desired,
+                safety?.ArmyTraversal);
+            if (result == CommanderCommandResult.Accepted) moveIntents[monk] = desired;
+            else retryAfter[monk] = context.Time + commandRetrySeconds;
+        }
+
+        private bool TryRefreshObjective(FactionKnowledge knowledge,
+            out BuildingKnowledgeSnapshot known)
+            => knowledge.TryGetKnownEnemyBuilding(offensiveTarget.RuntimeId, out known)
+                && known.Faction == offensiveTarget.Faction
+                && known.BuildingType == offensiveTarget.BuildingType
+                && known.WasCompleted && known.LastSeenHealthRatio > 0f;
+
+        private bool IsObjectiveAreaVisible(FactionKnowledge knowledge)
+        {
+            GridManager grid = knowledge.TeamVision?.GridManager;
+            return grid != null && knowledge.IsCellVisible(
+                grid.WorldToGrid(currentObjectivePosition));
+        }
+
+        private void CompleteOffense(CommanderDecisionContext context, string reason)
+        {
+            CancelOffense(reason, context.Time, true);
+            army.SetState(ArmyGroupState.Regrouping);
+            InvalidateMoveAssignments();
+            Regroup(context, true);
+        }
+
+        private void FailOffense(CommanderDecisionContext context, string reason)
+        {
+            if (hasOffensiveTarget)
+            {
+                blockedTargetId = offensiveTarget.RuntimeId;
+                blockedTargetUntil = context.Time + offensiveReevaluationSeconds;
+            }
+            CompleteOffense(context, reason);
+        }
+
+        private void CancelOffense(string reason, float time, bool cooldown)
+        {
+            hasOffensiveTarget = false;
+            offensiveTarget = default;
+            currentObjectivePosition = default;
+            IsOffensiveTargetVisible = false;
+            operationMembers.Clear();
+            cohesionRegroup = false;
+            objectiveFailureCount = 0;
+            objectiveReason = reason;
+            if (cooldown)
+                nextOffensiveEvaluationTime = time + offensiveReevaluationSeconds;
+            ClearCommandIntents();
         }
 
         private bool TryRetainCurrentThreat(FactionKnowledge knowledge,
-            out VisibleUnitObservation threat)
+            bool requireEmergency, out VisibleUnitObservation threat)
         {
             threat = default;
             return hasCurrentThreat
                 && knowledge.TryGetVisibleEnemy(currentThreatId, out threat)
                 && IsSupportedThreat(threat)
+                && (!requireEmergency || IsDefenseEmergency(threat))
                 && DistanceSquared(threat.Position, baseAnchor)
                     <= DefenseLeashRadius * DefenseLeashRadius;
         }
 
-        private bool TrySelectThreat(FactionKnowledge knowledge,
+        private bool TrySelectThreat(FactionKnowledge knowledge, bool requireEmergency,
             out VisibleUnitObservation best)
         {
             using (ThreatEvaluationMarker.Auto())
@@ -151,7 +589,8 @@ namespace TinyKingdom.AI
                 for (int i = 0; i < visible.Count; i++)
                 {
                     VisibleUnitObservation candidate = visible[i];
-                    if (!IsSupportedThreat(candidate)) continue;
+                    if (!IsSupportedThreat(candidate)
+                        || requireEmergency && !IsDefenseEmergency(candidate)) continue;
                     float distance = DistanceSquared(candidate.Position, baseAnchor);
                     if (distance > radiusSquared) continue;
                     VisibleThreatCount++;
@@ -173,10 +612,9 @@ namespace TinyKingdom.AI
             for (int i = 0; i < members.Count; i++)
             {
                 UnitController member = members[i];
-                UnitType? type = member.GetComponent<HealthComponent>()?.CombatData?.UnitType;
-                if (type == UnitType.Monk)
+                if (IsMonk(member))
                 {
-                    SupportArmy(context, member, threat.Position);
+                    SupportDefense(context, member, threat.Position);
                     continue;
                 }
                 CombatController combat = member.GetComponent<CombatController>();
@@ -198,18 +636,20 @@ namespace TinyKingdom.AI
             }
         }
 
-        private int CountVisibleDefenseThreats(FactionKnowledge knowledge)
+        private int CountVisibleDefenseThreats(FactionKnowledge knowledge,
+            bool requireEmergency)
         {
             int count = 0;
             float radiusSquared = BaseDefenseRadius * BaseDefenseRadius;
             IReadOnlyList<VisibleUnitObservation> visible = knowledge.VisibleEnemyUnits;
             for (int i = 0; i < visible.Count; i++)
                 if (IsSupportedThreat(visible[i])
+                    && (!requireEmergency || IsDefenseEmergency(visible[i]))
                     && DistanceSquared(visible[i].Position, baseAnchor) <= radiusSquared) count++;
             return count;
         }
 
-        private void SupportArmy(CommanderDecisionContext context, UnitController monk,
+        private void SupportDefense(CommanderDecisionContext context, UnitController monk,
             Vector3 threatPosition)
         {
             UnitMovement movement = monk.GetComponent<UnitMovement>();
@@ -237,22 +677,47 @@ namespace TinyKingdom.AI
             using (ArmyRegroupMarker.Auto())
             {
                 EnsureMoveAssignments(context.Knowledge);
-                IReadOnlyList<UnitController> members = army.Members;
-                for (int i = 0; i < members.Count; i++)
-                {
-                    UnitController member = members[i];
-                    if (!moveIntents.TryGetValue(member, out Vector3 destination)) continue;
-                    if (Vector2.Distance(member.transform.position, destination)
-                        <= destinationArrivalRadius) continue;
-                    UnitMovement movement = member.GetComponent<UnitMovement>();
-                    if (!interruptCombat && movement != null && movement.IsMoving) continue;
-                    if (interruptCombat && movement != null && movement.IsMoving
-                        && member.CurrentState == UnitState.Moving) continue;
-                    if (context.Time < RetryTime(member)) continue;
-                    CommanderCommandResult result = context.Commands.TryMove(member, destination);
-                    if (result != CommanderCommandResult.Accepted)
-                        retryAfter[member] = context.Time + commandRetrySeconds;
-                }
+                IssueMoveAssignments(context, army.Members, interruptCombat, null);
+            }
+        }
+
+        private void RegroupMembers(CommanderDecisionContext context,
+            IReadOnlyList<UnitController> members, Vector3 center, bool interruptCombat,
+            IPathTraversalPolicy traversalPolicy)
+        {
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
+            if (grid == null) return;
+            if (moveIntents.Count != members.Count)
+            {
+                moveIntents.Clear();
+                List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
+                    grid, grid.WorldToGrid(center), members.Count, 4, true);
+                int count = Mathf.Min(destinations.Count, members.Count);
+                for (int i = 0; i < count; i++)
+                    moveIntents[members[i]] = destinations[i].WorldPosition;
+            }
+            IssueMoveAssignments(context, members, interruptCombat, traversalPolicy);
+        }
+
+        private void IssueMoveAssignments(CommanderDecisionContext context,
+            IReadOnlyList<UnitController> members, bool interruptCombat,
+            IPathTraversalPolicy traversalPolicy)
+        {
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitController member = members[i];
+                if (!moveIntents.TryGetValue(member, out Vector3 destination)) continue;
+                if (Vector2.Distance(member.transform.position, destination)
+                    <= destinationArrivalRadius) continue;
+                UnitMovement movement = member.GetComponent<UnitMovement>();
+                if (!interruptCombat && movement != null && movement.IsMoving) continue;
+                if (interruptCombat && movement != null && movement.IsMoving
+                    && member.CurrentState == UnitState.Moving) continue;
+                if (context.Time < RetryTime(member)) continue;
+                CommanderCommandResult result = context.Commands.TryMove(member,
+                    destination, traversalPolicy);
+                if (result != CommanderCommandResult.Accepted)
+                    retryAfter[member] = context.Time + commandRetrySeconds;
             }
         }
 
@@ -270,6 +735,24 @@ namespace TinyKingdom.AI
             for (int i = 0; i < count; i++)
                 moveIntents[army.Members[i]] = destinations[i].WorldPosition;
             assignmentMembershipVersion = army.MembershipVersion;
+        }
+
+        private void EnsureOffensiveDestinations(FactionKnowledge knowledge)
+        {
+            if (attackMoveIntents.Count == CountAttackers(operationMembers)) return;
+            attackMoveIntents.Clear();
+            GridManager grid = knowledge.TeamVision?.GridManager;
+            if (grid == null) return;
+            int attackers = CountAttackers(operationMembers);
+            List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
+                grid, grid.WorldToGrid(currentObjectivePosition), attackers, 6, true);
+            int index = 0;
+            for (int i = 0; i < operationMembers.Count && index < destinations.Count; i++)
+            {
+                UnitController member = operationMembers[i];
+                if (IsMonk(member)) continue;
+                attackMoveIntents[member] = destinations[index++].WorldPosition;
+            }
         }
 
         private void RefreshAnchorAndStaging(FactionKnowledge knowledge,
@@ -308,29 +791,57 @@ namespace TinyKingdom.AI
         }
 
         private bool AllMembersInsideStaging()
+            => FractionInside(army.Members, stagingPosition, stagingRegionRadius) >= 0.999f;
+
+        private bool IsSeverelyFragmented(out Vector3 centroid)
         {
-            float radiusSquared = stagingRegionRadius * stagingRegionRadius;
-            IReadOnlyList<UnitController> members = army.Members;
+            centroid = OperationCentroid();
+            if (operationMembers.Count < 3) return false;
+            return FractionInside(operationMembers, centroid, offensiveCohesionRadius) < 0.5f;
+        }
+
+        private Vector3 OperationCentroid()
+        {
+            if (operationMembers.Count == 0) return stagingPosition;
+            Vector3 total = Vector3.zero;
+            for (int i = 0; i < operationMembers.Count; i++)
+                total += operationMembers[i].transform.position;
+            return total / operationMembers.Count;
+        }
+
+        private static float FractionInside(IReadOnlyList<UnitController> members,
+            Vector3 center, float radius)
+        {
+            if (members.Count == 0) return 0f;
+            int inside = 0;
+            float radiusSquared = radius * radius;
             for (int i = 0; i < members.Count; i++)
-                if (DistanceSquared(members[i].transform.position, stagingPosition)
-                    > radiusSquared) return false;
-            return members.Count > 0;
+                if (DistanceSquared(members[i].transform.position, center)
+                    <= radiusSquared) inside++;
+            return (float)inside / members.Count;
         }
 
         private void RemoveStaleIntents()
         {
+            RemoveStaleKeys(attackIntents);
+            RemoveStaleKeys(moveIntents);
+            RemoveStaleKeys(attackMoveIntents);
+            RemoveStaleKeys(retryAfter);
+        }
+
+        private void RemoveStaleKeys<T>(Dictionary<UnitController, T> dictionary)
+        {
             staleActors.Clear();
-            foreach (UnitController actor in attackIntents.Keys)
+            foreach (UnitController actor in dictionary.Keys)
                 if (!ContainsMember(actor)) staleActors.Add(actor);
-            for (int i = 0; i < staleActors.Count; i++) attackIntents.Remove(staleActors[i]);
-            staleActors.Clear();
-            foreach (UnitController actor in moveIntents.Keys)
-                if (!ContainsMember(actor)) staleActors.Add(actor);
-            for (int i = 0; i < staleActors.Count; i++) moveIntents.Remove(staleActors[i]);
-            staleActors.Clear();
-            foreach (UnitController actor in retryAfter.Keys)
-                if (!ContainsMember(actor)) staleActors.Add(actor);
-            for (int i = 0; i < staleActors.Count; i++) retryAfter.Remove(staleActors[i]);
+            for (int i = 0; i < staleActors.Count; i++)
+                dictionary.Remove(staleActors[i]);
+        }
+
+        private void RemoveStaleOperationMembers()
+        {
+            for (int i = operationMembers.Count - 1; i >= 0; i--)
+                if (!ContainsMember(operationMembers[i])) operationMembers.RemoveAt(i);
         }
 
         private bool ContainsMember(UnitController actor)
@@ -347,7 +858,16 @@ namespace TinyKingdom.AI
             currentThreatId = default;
             currentThreatType = default;
             currentThreatPosition = default;
+            if (!IsOffensiveState) attackIntents.Clear();
+        }
+
+        private void ClearCommandIntents()
+        {
             attackIntents.Clear();
+            moveIntents.Clear();
+            attackMoveIntents.Clear();
+            retryAfter.Clear();
+            assignmentMembershipVersion = -1;
         }
 
         private void InvalidateMoveAssignments()
@@ -364,6 +884,10 @@ namespace TinyKingdom.AI
             => FactionRelations.IsPlayable(threat.Faction)
                 && threat.UnitType is UnitType.Pawn or UnitType.Warrior or UnitType.Archer
                     or UnitType.Lancer or UnitType.Monk;
+
+        private static bool IsDefenseEmergency(VisibleUnitObservation threat)
+            => threat.ThreatActivity != ObservedThreatActivity.None
+                || threat.UnitType is UnitType.Warrior or UnitType.Archer or UnitType.Lancer;
 
         private static bool IsHigherPriority(VisibleUnitObservation candidate,
             float candidateDistance, VisibleUnitObservation current, float currentDistance)
@@ -384,6 +908,48 @@ namespace TinyKingdom.AI
                 ObservedThreatActivity.AttackingUnit => 2,
                 _ => threat.UnitType == UnitType.Pawn ? 4 : 3
             };
+
+        private static StrategicTargetCategory CategoryOf(BuildingType type)
+            => type switch
+            {
+                BuildingType.Tower => StrategicTargetCategory.DefensiveBuilding,
+                BuildingType.Barracks or BuildingType.Archery or BuildingType.Monastery
+                    => StrategicTargetCategory.MilitaryBuilding,
+                BuildingType.Castle => StrategicTargetCategory.MainCastle,
+                _ => StrategicTargetCategory.EconomicBuilding
+            };
+
+        private static int PriorityOf(StrategicTargetCategory category)
+            => category switch
+            {
+                StrategicTargetCategory.DefensiveBuilding => 0,
+                StrategicTargetCategory.MilitaryBuilding => 1,
+                StrategicTargetCategory.EconomicBuilding => 2,
+                _ => 3
+            };
+
+        private static int PopulationOf(IReadOnlyList<UnitController> members)
+        {
+            int total = 0;
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitCombatData data = members[i]
+                    ?.GetComponent<HealthComponent>()?.CombatData;
+                if (data != null) total += data.PopulationCost;
+            }
+            return total;
+        }
+
+        private static int CountAttackers(IReadOnlyList<UnitController> members)
+        {
+            int count = 0;
+            for (int i = 0; i < members.Count; i++)
+                if (!IsMonk(members[i])) count++;
+            return count;
+        }
+
+        private static bool IsMonk(UnitController unit)
+            => unit?.GetComponent<HealthComponent>()?.CombatData?.UnitType == UnitType.Monk;
 
         private static float DistanceSquared(Vector3 first, Vector3 second)
             => ((Vector2)(first - second)).sqrMagnitude;

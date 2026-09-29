@@ -256,3 +256,40 @@ No second pathfinder or offensive action is introduced. Fixed markers include
 `TinyKingdom.AI.StrategicSafety`, `TinyKingdom.AI.SafeResourceSearch`,
 `TinyKingdom.AI.ScoutRiskEvaluation`, `TinyKingdom.AI.ScoutRetreat` and
 `TinyKingdom.AI.CivilianRetreat`.
+
+## Phase 7C.2 offensive strategy
+
+`MilitaryCommanderPolicy` extends the single Army Group with `PreparingAttack`,
+`Advancing` and `Assaulting`. A normal operation requires six living available
+military population and one legally known enemy building. Seventy-five percent of
+the snapshotted operation members must assemble around the existing staging point.
+The snapshot prevents newly produced units from streaming individually across the
+map; they remain at Rally staging for the next operation.
+
+`OffensiveTargetSnapshot` is value-only: EntityId, type, faction, frozen position
+and category. Candidates come only from `FactionKnowledge.KnownEnemyBuildings`.
+Priority is Tower, production building, other building and Castle, followed by
+Army-profile risk, squared distance and EntityId. Selection performs no per-target
+A*. Once selected, the objective is stable; later Scout discoveries do not redirect
+the active operation.
+
+Remembered buildings authorize AttackMove toward the frozen area. They never
+authorize direct Attack. Only `FactionCommandService.TryAttackBuilding` may resolve
+the live target, and only after current building observation plus TeamVision
+validation. When a remembered area becomes Visible without that EntityId, the
+objective is stale and clears. Completion, bounded route failure, Army loss or a
+base-defense interrupt enters Regrouping and applies a short reevaluation delay.
+
+Group advance uses distributed destinations and `TryAttackMove`, retaining one
+intent per participant. Commands are reissued only for a state/objective change,
+unexpected Idle/failure or a resumed advance after combat. Normal CombatController
+owns acquisition, cooldowns, projectiles, melee slots and damage. The Army traversal
+profile treats known defenses as costs rather than civilian forbidden cells. Monk
+uses Move to a support point behind the group centroid; Scout remains separate.
+
+Fixed markers are `TinyKingdom.AI.OffensiveEvaluation`,
+`TinyKingdom.AI.StrategicTargetSelection`, `TinyKingdom.AI.OffensiveAdvance` and
+`TinyKingdom.AI.OffensiveRegroup`. The Commander tick remains 0.50 seconds. Phase
+7C.3 retains strength-based retreat, casualty rules, counter composition, multiple
+squads, tactical micro, advanced Monk positioning, Gold Mine warfare and special
+Castle assault planning.

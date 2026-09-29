@@ -1710,7 +1710,46 @@ uses recorded attack range plus a 2.5-unit reaction buffer. Hidden units contrib
 no continuing position danger. Pawns retreat from newly unsafe work; Scouts retreat
 or route around known danger. This hotfix adds no offensive army behavior.
 
-# 55. Source of Truth
+# 56. Phase 7C.2 Offensive Strategy
+
+The Red Rule-Based Commander may begin one offensive only after its living,
+available, non-Scout and non-garrisoned Army Group reaches the provisional
+`MinOffensiveMilitaryPopulation = 6`. At least 75 percent of the operation's
+members must assemble in the existing military Rally staging region before launch.
+Queued units do not count. Units produced after an operation starts remain at the
+base staging area and join a later offensive.
+
+The strategic states are `Forming`, `Ready`, `PreparingAttack`, `Advancing`,
+`Assaulting`, `Defending` and `Regrouping`. A serious currently visible threat to
+the Red base interrupts PreparingAttack, Advancing or Assaulting. The operation is
+cancelled, normal Phase 7C.1 defense runs, and survivors regroup before a later
+fresh evaluation.
+
+Strategic objectives come only from Red `FactionKnowledge`: currently visible
+enemy buildings or frozen last-seen building snapshots. A remembered hidden
+building supplies a destination for normal authoritative AttackMove; it is never a
+direct Attack target. `FactionCommandService.TryAttackBuilding` resolves a live
+building only after the EntityId is in current Red-visible building observations
+and TeamVision confirms visibility again. Re-revealing an empty remembered area
+clears that stale objective.
+
+Target selection is deterministic: known Tower, known Barracks/Archery/Monastery,
+other useful known building, then known Main Castle; risk, squared staging distance
+and EntityId break ties. A selected objective persists until confirmed gone,
+invalid, repeatedly unreachable or interrupted by defense. The army uses distributed
+AttackMove destinations, command intent deduplication and a bounded failure retry.
+It may cross known Tower/Castle danger with an Army risk profile; those regions are
+costly rather than forbidden. Local AttackMove combat remains authoritative.
+
+Monk receives support Move orders behind the operation centroid and never receives
+Attack. The active Scout stays outside the Army Group and may continue legal
+frontier exploration. After completion or failure, survivors return to the existing
+Red staging area and wait through a provisional three-second strategic reevaluation
+delay. Combat power estimation, strength/casualty retreat, counter-unit production,
+multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine warfare and
+special final-Castle tactics remain Phase 7C.3 work.
+
+# 57. Source of Truth
 
 This file defines gameplay rules.
 

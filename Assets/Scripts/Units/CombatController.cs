@@ -36,6 +36,8 @@ namespace TinyKingdom.Units
         private bool rangedShotPending;
         private CombatOrder order;
         private Vector2Int attackMoveDestination;
+        private Vector3 attackMoveCommandPosition;
+        private IPathTraversalPolicy attackMoveTraversalPolicy;
         private Vector3 autoEngagementOrigin;
         private Vector3 idleDefenseOrigin;
         private bool hasIdleDefenseOrigin;
@@ -146,19 +148,27 @@ namespace TinyKingdom.Units
         }
 
         public bool AttackMove(Vector2Int destination)
-            => AttackMove(destination, null);
+            => AttackMove(destination, null, null);
 
         public bool AttackMove(Vector2Int destination, Vector3 commandPosition)
-            => AttackMove(destination, (Vector3?)commandPosition);
+            => AttackMove(destination, commandPosition, null);
 
-        private bool AttackMove(Vector2Int destination, Vector3? commandPosition)
+        public bool AttackMove(Vector2Int destination, Vector3 commandPosition,
+            IPathTraversalPolicy traversalPolicy)
+            => AttackMove(destination, (Vector3?)commandPosition, traversalPolicy);
+
+        private bool AttackMove(Vector2Int destination, Vector3? commandPosition,
+            IPathTraversalPolicy traversalPolicy)
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
             if (stationedInternal || mounted || !controller.IsAlive) return false;
             GetComponent<UnitStationing>()?.CancelPending();
-            bool issued = commandPosition.HasValue
-                ? movement.TryIssueAttackMove(destination, commandPosition.Value)
+            bool issued = commandPosition.HasValue && traversalPolicy != null
+                ? movement.TryIssueAttackMove(destination, commandPosition.Value,
+                    traversalPolicy)
+                : commandPosition.HasValue
+                    ? movement.TryIssueAttackMove(destination, commandPosition.Value)
                 : movement.TryIssueAttackMove(destination);
             if (!issued) return false;
             ClearTarget();
@@ -166,6 +176,11 @@ namespace TinyKingdom.Units
             order = movement.IsMoving ? CombatOrder.AttackMove : CombatOrder.Idle;
             hasIdleDefenseOrigin = false;
             attackMoveDestination = destination;
+            attackMoveCommandPosition = commandPosition
+                ?? (movement.GridManager != null
+                    ? movement.GridManager.GridToWorld(destination.x, destination.y)
+                    : transform.position);
+            attackMoveTraversalPolicy = traversalPolicy;
             suppressedAutoTarget = null;
             acquisitionRemaining = 0f;
             return true;
@@ -179,6 +194,7 @@ namespace TinyKingdom.Units
             order = CombatOrder.Move;
             hasIdleDefenseOrigin = false;
             suppressedAutoTarget = null;
+            attackMoveTraversalPolicy = null;
             // UnitMovement replaces or coalesces the path immediately after this
             // callback. Clearing it here made equivalent rapid commands tear down
             // an otherwise valid route.
@@ -191,6 +207,7 @@ namespace TinyKingdom.Units
             order = CombatOrder.Idle;
             hasIdleDefenseOrigin = false;
             suppressedAutoTarget = null;
+            attackMoveTraversalPolicy = null;
             movement ??= GetComponent<UnitMovement>();
             movement.Stop();
         }
@@ -757,7 +774,11 @@ namespace TinyKingdom.Units
 
         private void ResumeAttackMove()
         {
-            if (!movement.TryIssueAttackMove(attackMoveDestination) || !movement.IsMoving)
+            bool issued = attackMoveTraversalPolicy != null
+                ? movement.TryIssueAttackMove(attackMoveDestination,
+                    attackMoveCommandPosition, attackMoveTraversalPolicy)
+                : movement.TryIssueAttackMove(attackMoveDestination);
+            if (!issued || !movement.IsMoving)
                 order = CombatOrder.Idle;
         }
 

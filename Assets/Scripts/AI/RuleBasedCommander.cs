@@ -76,6 +76,15 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugDefenseLeashRadius;
         [SerializeField] private Vector3 debugMilitaryStagingPosition;
         [SerializeField] private int debugVisibleThreats;
+        [SerializeField] private int debugOffensiveReadyPopulation;
+        [SerializeField] private int debugMinOffensivePopulation;
+        [SerializeField] private string debugOffensiveTargetType;
+        [SerializeField] private string debugOffensiveTargetId;
+        [SerializeField] private Vector3 debugOffensiveTargetPosition;
+        [SerializeField] private bool debugOffensiveTargetVisible;
+        [SerializeField] private string debugOffensiveReason;
+        [SerializeField] private float debugOffensiveStartTime;
+        [SerializeField] private int debugOffensiveFailures;
         [SerializeField] private int debugKnownStaticDangers;
         [SerializeField] private int debugVisibleDynamicDangers;
         [SerializeField] private string debugScoutSafetyState;
@@ -159,7 +168,8 @@ namespace TinyKingdom.AI
                 using (ScoutingPolicyMarker.Auto())
                     scoutingPolicy.Tick(context, pawnRoles, strategicSafety);
                 using (MilitaryPolicyMarker.Auto())
-                    militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout);
+                    militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
+                        strategicSafety);
                 using (EconomyPolicyMarker.Auto())
                     economyPolicy.Tick(context, pawnRoles, strategicSafety);
                 ThinkTick++;
@@ -215,6 +225,18 @@ namespace TinyKingdom.AI
             debugMilitaryStagingPosition = militaryPolicy.HasStagingPosition
                 ? militaryPolicy.StagingPosition : Vector3.zero;
             debugVisibleThreats = militaryPolicy.VisibleThreatCount;
+            debugOffensiveReadyPopulation = militaryPolicy.AvailableMilitaryPopulation;
+            debugMinOffensivePopulation = militaryPolicy.MinOffensiveMilitaryPopulation;
+            debugOffensiveTargetType = militaryPolicy.HasOffensiveTarget
+                ? militaryPolicy.OffensiveTarget.BuildingType.ToString() : "None";
+            debugOffensiveTargetId = militaryPolicy.HasOffensiveTarget
+                ? militaryPolicy.OffensiveTarget.RuntimeId.ToString() : "None";
+            debugOffensiveTargetPosition = militaryPolicy.HasOffensiveTarget
+                ? militaryPolicy.CurrentObjectivePosition : Vector3.zero;
+            debugOffensiveTargetVisible = militaryPolicy.IsOffensiveTargetVisible;
+            debugOffensiveReason = militaryPolicy.ObjectiveReason;
+            debugOffensiveStartTime = militaryPolicy.OperationStartTime;
+            debugOffensiveFailures = militaryPolicy.ObjectiveFailureCount;
             debugKnownStaticDangers = strategicSafety.KnownStaticDangerCount;
             debugVisibleDynamicDangers = strategicSafety.VisibleDynamicThreatCount;
             debugScoutSafetyState = scoutingPolicy.SafetyState.ToString();
@@ -256,6 +278,15 @@ namespace TinyKingdom.AI
                 {
                     Gizmos.color = Color.magenta;
                     Gizmos.DrawWireSphere(militaryPolicy.CurrentThreatPosition, 0.5f);
+                }
+                if (militaryPolicy.HasOffensiveTarget)
+                {
+                    Gizmos.color = militaryPolicy.IsOffensiveTargetVisible
+                        ? Color.red : new Color(1f, 0.65f, 0f, 0.8f);
+                    Gizmos.DrawWireSphere(militaryPolicy.CurrentObjectivePosition, 0.65f);
+                    if (militaryPolicy.HasStagingPosition)
+                        Gizmos.DrawLine(militaryPolicy.StagingPosition,
+                            militaryPolicy.CurrentObjectivePosition);
                 }
             }
             if (drawStrategicSafetyGizmos && strategicSafety != null

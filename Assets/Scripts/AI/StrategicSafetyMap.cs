@@ -19,7 +19,8 @@ namespace TinyKingdom.AI
     public enum StrategicPathKind
     {
         Civilian,
-        Scout
+        Scout,
+        Army
     }
 
     // A reusable, knowledge-only AI decision aid. It never changes gameplay
@@ -37,6 +38,7 @@ namespace TinyKingdom.AI
 
         private byte[] civilianRisk = Array.Empty<byte>();
         private byte[] scoutRisk = Array.Empty<byte>();
+        private byte[] armyRisk = Array.Empty<byte>();
         private byte[] explored = Array.Empty<byte>();
         private GridManager grid;
         private int width;
@@ -47,6 +49,7 @@ namespace TinyKingdom.AI
         private readonly StrategicTraversalPolicy scoutTraversal;
         private readonly StrategicTraversalPolicy civilianRetreatTraversal;
         private readonly StrategicTraversalPolicy scoutRetreatTraversal;
+        private readonly StrategicTraversalPolicy armyTraversal;
 
         public StrategicSafetyMap()
         {
@@ -58,6 +61,8 @@ namespace TinyKingdom.AI
                 StrategicPathKind.Civilian, true);
             scoutRetreatTraversal = new StrategicTraversalPolicy(this,
                 StrategicPathKind.Scout, true);
+            armyTraversal = new StrategicTraversalPolicy(this,
+                StrategicPathKind.Army, false);
         }
 
         public float HomeEconomicRadius => homeEconomicRadius;
@@ -70,6 +75,7 @@ namespace TinyKingdom.AI
         public IPathTraversalPolicy CivilianRetreatTraversal
             => civilianRetreatTraversal;
         public IPathTraversalPolicy ScoutRetreatTraversal => scoutRetreatTraversal;
+        public IPathTraversalPolicy ArmyTraversal => armyTraversal;
 
         public void Reset()
         {
@@ -80,6 +86,7 @@ namespace TinyKingdom.AI
             VisibleDynamicThreatCount = 0;
             if (civilianRisk.Length > 0) Array.Clear(civilianRisk, 0, civilianRisk.Length);
             if (scoutRisk.Length > 0) Array.Clear(scoutRisk, 0, scoutRisk.Length);
+            if (armyRisk.Length > 0) Array.Clear(armyRisk, 0, armyRisk.Length);
             if (explored.Length > 0) Array.Clear(explored, 0, explored.Length);
         }
 
@@ -101,6 +108,7 @@ namespace TinyKingdom.AI
             lastSignature = signature;
             Array.Clear(civilianRisk, 0, civilianRisk.Length);
             Array.Clear(scoutRisk, 0, scoutRisk.Length);
+            Array.Clear(armyRisk, 0, armyRisk.Length);
             for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 explored[y * width + x] = knowledge.IsCellExplored(
@@ -120,17 +128,20 @@ namespace TinyKingdom.AI
                         + DefensiveSafetyMargin;
                     Rasterize(item.LastSeenPosition, defenseRadius,
                         StrategicRisk.ForbiddenForCivilian,
-                        StrategicRisk.ForbiddenForCivilian);
+                        StrategicRisk.ForbiddenForCivilian,
+                        StrategicRisk.Dangerous);
                     Rasterize(item.LastSeenPosition,
                         defenseRadius + EnemyBaseOuterBuffer,
-                        StrategicRisk.Dangerous, StrategicRisk.Risky);
+                        StrategicRisk.Dangerous, StrategicRisk.Risky,
+                        StrategicRisk.Risky);
                     KnownStaticDangerCount++;
                 }
                 else if (item.BuildingType is BuildingType.Barracks
                     or BuildingType.Archery or BuildingType.Monastery)
                 {
                     Rasterize(item.LastSeenPosition, 3.5f,
-                        StrategicRisk.Risky, StrategicRisk.Risky);
+                        StrategicRisk.Risky, StrategicRisk.Risky,
+                        StrategicRisk.Risky);
                     KnownStaticDangerCount++;
                 }
             }
@@ -144,18 +155,21 @@ namespace TinyKingdom.AI
                     float radius = Mathf.Max(1f, item.AttackRange)
                         + MilitaryReactionBuffer;
                     Rasterize(item.Position, radius,
-                        StrategicRisk.ForbiddenForCivilian, StrategicRisk.Dangerous);
+                        StrategicRisk.ForbiddenForCivilian, StrategicRisk.Dangerous,
+                        StrategicRisk.Dangerous);
                     VisibleDynamicThreatCount++;
                 }
                 else if (item.UnitType == UnitType.Monk)
                 {
                     Rasterize(item.Position, 3f,
-                        StrategicRisk.Dangerous, StrategicRisk.Risky);
+                        StrategicRisk.Dangerous, StrategicRisk.Risky,
+                        StrategicRisk.Risky);
                     VisibleDynamicThreatCount++;
                 }
                 else if (item.UnitType == UnitType.Pawn)
                     Rasterize(item.Position, 1.5f,
-                        StrategicRisk.Risky, StrategicRisk.Safe);
+                        StrategicRisk.Risky, StrategicRisk.Safe,
+                        StrategicRisk.Safe);
             }
         }
 
@@ -170,7 +184,12 @@ namespace TinyKingdom.AI
         {
             if (grid == null || !grid.IsInsideGrid(cell.x, cell.y))
                 return StrategicRisk.ForbiddenForCivilian;
-            byte[] buffer = kind == StrategicPathKind.Civilian ? civilianRisk : scoutRisk;
+            byte[] buffer = kind switch
+            {
+                StrategicPathKind.Civilian => civilianRisk,
+                StrategicPathKind.Scout => scoutRisk,
+                _ => armyRisk
+            };
             return (StrategicRisk)buffer[cell.y * width + cell.x];
         }
 
@@ -235,11 +254,13 @@ namespace TinyKingdom.AI
         {
             grid = candidate;
             if (width == grid.Width && height == grid.Height
-                && civilianRisk.Length == width * height) return;
+                && civilianRisk.Length == width * height
+                && armyRisk.Length == width * height) return;
             width = grid.Width;
             height = grid.Height;
             civilianRisk = new byte[width * height];
             scoutRisk = new byte[width * height];
+            armyRisk = new byte[width * height];
             explored = new byte[width * height];
             initialized = false;
         }
@@ -295,7 +316,7 @@ namespace TinyKingdom.AI
         }
 
         private void Rasterize(Vector3 center, float radius, StrategicRisk civilian,
-            StrategicRisk scout)
+            StrategicRisk scout, StrategicRisk army)
         {
             if (grid == null || radius <= 0f) return;
             Vector2Int min = grid.WorldToGrid(center - new Vector3(radius, radius));
@@ -309,6 +330,7 @@ namespace TinyKingdom.AI
                 int index = y * width + x;
                 civilianRisk[index] = Math.Max(civilianRisk[index], (byte)civilian);
                 scoutRisk[index] = Math.Max(scoutRisk[index], (byte)scout);
+                armyRisk[index] = Math.Max(armyRisk[index], (byte)army);
             }
         }
 
@@ -356,8 +378,20 @@ namespace TinyKingdom.AI
                     };
                 return risk switch
                 {
-                    StrategicRisk.Risky => kind == StrategicPathKind.Scout ? 4d : 8d,
-                    StrategicRisk.Dangerous => kind == StrategicPathKind.Scout ? 25d : 1000d,
+                    StrategicRisk.Risky => kind switch
+                    {
+                        StrategicPathKind.Scout => 4d,
+                        StrategicPathKind.Army => 2d,
+                        _ => 8d
+                    },
+                    StrategicRisk.Dangerous => kind switch
+                    {
+                        StrategicPathKind.Scout => 25d,
+                        StrategicPathKind.Army => 8d,
+                        _ => 1000d
+                    },
+                    StrategicRisk.ForbiddenForCivilian => kind == StrategicPathKind.Army
+                        ? 18d : 0d,
                     _ => 0d
                 };
             }
