@@ -122,6 +122,18 @@ and remain clear of resources, buildings and units. Water, Cliff, Stairs and
 footprints spanning height boundaries are invalid. A selected Pawn must have
 a route to an adjacent work cell at the building's height.
 
+The Main Castle keeps its 3x2 gameplay footprint. Because its approved 1.7
+presentation artwork extends beyond that footprint horizontally, its runtime
+navigation occupancy adds one side-clearance cell on both the left and right.
+The southern approach stays open for the existing drop-off and garrison slots.
+
+Mobile neutral resources such as Sheep may change their occupied logical cell.
+If this invalidates an active unit route, `UnitMovement` requests a replacement
+A* route no more frequently than once per 0.35 seconds while blocked. Sheep do
+not choose a wander destination currently containing a living unit. A unit
+already caught inside a newly occupied start cell may leave that cell, but no
+unit may enter another occupied cell.
+
 ---
 
 ## First Map

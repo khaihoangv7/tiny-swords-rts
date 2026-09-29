@@ -146,7 +146,7 @@ The next gameplay phase has not begun.
 Status: **PASS** — user completed manual Unity Play Mode validation; Console had no errors.
 
 - [x] Read GAME_SPEC.md economy values; Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off
-- [x] Store the 1.5-second gather cycle and provisional Sheep/Tree/Gold capacities 60/100/100 in Phase5AEconomy ScriptableObject
+- [x] Store the 1.5-second gather cycle and Sheep/Tree/base Gold capacities 200/100/100 in Phase5AEconomy ScriptableObject (Tree/base Gold remain provisional)
 - [x] Separate Blue and Red ResourceStockpile, explicit ResourceType, deterministic ResourceNode depletion
 - [x] PawnGatherer capability uses existing UnitMovement and A*; cargo, return, deposit and command interruption implemented
 - [x] Per-target reachable interaction reservations for resource nodes and Castle
@@ -677,3 +677,137 @@ and Profiler inspection remain required before PASS.
 - [ ] Manual Play Mode: verify all Blue human gameplay and Phase 7A behavior remain functional
 - [ ] Profiler: verify 0.50-second think, event-driven placement search and no continuous GC/path spam
 - [ ] Confirm Unity Console has no new errors or recurring AI rejection warnings
+
+## Phase 7C.1 - Military Commander Foundation: Defense and Regroup
+
+Status: **NOT COMPLETE** - implementation and documentation are prepared.
+Runtime/Editor compilation, Play Mode validator, manual behavior tests and
+Profiler comparison are still required before PASS.
+
+- [x] Add one incremental Red `ArmyGroup` with Forming / Ready / Defending / Regrouping states
+- [x] Include Warrior, Archer, Lancer and Monk; exclude Pawn, dead, stationed and active Scout units
+- [x] Add `MilitaryCommanderPolicy` to the existing 0.50-second Commander pipeline
+- [x] Reuse the Red Castle footprint center as base anchor and Phase 7B Rally staging cell
+- [x] Configure provisional BaseDefenseRadius 9 and DefenseLeashRadius 12
+- [x] Copy visible enemy combat activity into reference-free legal observations
+- [x] Add deterministic defense priority, stable current target and leash/lost-vision clearing
+- [x] Add authoritative `FactionCommandService.TryAttack` with ownership and current-vision validation
+- [x] Use normal combat for Warrior/Archer/Lancer and Move-only support for Monk
+- [x] Distribute regroup destinations around staging and deduplicate Attack/Move intent
+- [x] Preserve Scout role separation, Phase 7A economy and Phase 7B build/production policies
+- [x] Add fixed MilitaryPolicy, ThreatEvaluation and ArmyRegroup Profiler markers
+- [x] Add optional Inspector debug data and disabled-by-default defense Gizmos
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7C.1 Commander`
+- [x] Document defensive scope and future RL command sharing
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run `Tools > Tiny Kingdom > Validate Phase 7C.1 Commander` in Play Mode
+- [ ] Manual Play Mode: verify produced military gathers at staging and becomes Ready
+- [ ] Manual Play Mode: verify no response before Blue attacker enters legitimate Red vision
+- [ ] Manual Play Mode: verify one visible Warrior triggers defense and death triggers regroup
+- [ ] Manual Play Mode: verify retreat beyond leash and lost vision stop strategic pursuit
+- [ ] Manual Play Mode: verify building/Pawn attackers receive correct defense priority
+- [ ] Manual Play Mode: verify 2-3 attackers do not cause target or command thrashing
+- [ ] Manual Play Mode: verify Monk follows/supports without receiving Attack
+- [ ] Manual Play Mode: verify active military Scout remains outside ArmyGroup
+- [ ] Manual Play Mode: verify discovered Blue Castle never triggers offensive movement
+- [ ] Manual Play Mode: verify match end/restart clear target, membership and intent caches
+- [ ] Manual Play Mode: verify Blue selection, commands, economy, production and combat regressions
+- [ ] Profile Commander/Military markers, GC and path requests against Phase 7B baseline
+- [ ] Confirm Goblins remain disabled and Unity Console is clean
+
+## Phase 7C.1A - Strategic Safety Hotfix
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime /
+Editor compilation are complete. Unity Play Mode validation and performance
+comparison remain required before PASS.
+
+- [x] Diagnose both cross-map sources: Economy resource selection and Pawn same-type chaining
+- [x] Diagnose Scout frontier ranking/path persistence without risk awareness
+- [x] Add reusable legal-knowledge-only `StrategicSafetyMap` with reused 40x28 buffers
+- [x] Configure provisional HomeEconomicRadius 11 around Red Main Castle
+- [x] Derive remembered Tower/Castle danger from recorded defense range plus 1.5 margin
+- [x] Add current-visible Warrior/Archer/Lancer danger with 2.5 reaction buffer
+- [x] Remove dynamic unit danger immediately when the unit leaves legal Red vision
+- [x] Require Red economy targets and routes to remain known, explored, local and safe
+- [x] Add safe alternate resource fallback without forcing exact 40/35/25 ratios
+- [x] Pass optional AI eligibility/traversal policy through Pawn same-type resource chaining
+- [x] Preserve the original human Gather and default A* APIs
+- [x] Add civilian retreat and pause Builders only when their own site becomes unsafe
+- [x] Allow retreat routes to escape an overlapping danger zone while keeping the destination Safe
+- [x] Add Scout Exploring/Retreating state and deterministic risk/perimeter frontier ranking
+- [x] Extend existing A* with optional AI traversal cost/entry policy
+- [x] Add fixed StrategicSafety, SafeResourceSearch, ScoutRiskEvaluation, ScoutRetreat and CivilianRetreat markers
+- [x] Add optional Inspector safety state and disabled-by-default safety Gizmos
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7C.1A Strategic Safety`
+- [x] Update AI, gameplay, Fog knowledge and future RL contracts
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run Phase 7C.1 and Phase 7C.1A validators in Unity Play Mode
+- [ ] Manual: deplete local Red Sheep and verify no cross-map Food expedition
+- [ ] Manual: verify safe Wood/Gold fallback and no command spam when local Food is unavailable
+- [ ] Manual: verify known Tower memory excludes nearby resources; unknown Tower remains unknown
+- [ ] Manual: verify Pawn cancels unsafe Gather and retreats from a newly visible Blue army
+- [ ] Manual: verify Scout retreats on Tower/Castle/army discovery, then explores another perimeter
+- [ ] Manual: verify hidden enemy-unit danger disappears and no hidden Transform is tracked
+- [ ] Manual: verify Builder pauses only when its construction area becomes dangerous
+- [ ] Manual: verify Blue Gather chaining, Move, Build and manual scouting remain unchanged
+- [ ] Profile 0.50-second ticks, strategic markers, path request count, GC and FPS against Phase 7C.1
+- [ ] Confirm no offensive orders, Goblins remain disabled and Unity Console is clean
+
+## Building Presentation + Footprint + Command Icon Hotfix
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime /
+Editor compilation pass. Unity asset refresh, automated Play Mode validation and
+manual presentation/regression checks remain required.
+
+- [x] Map AttackMove to verified `Icon_05_0`
+- [x] Map all Eject All command entries to verified `Icon_09_0`
+- [x] Preserve Point, uncompressed, no-mipmap import for the newly used Icon_05
+- [x] Scale normal Blue/Red faction building visuals to 1.7 from a ground anchor
+- [x] Keep gameplay roots at scale 1.0 and preserve all explicit logical footprints
+- [x] Correct Castle interaction collider from 3x2.6 to its authoritative 3x2 footprint
+- [x] Keep preview art at final visual size while its border shows the logical footprint
+- [x] Add Y-axis ground sorting for units/buildings without per-frame sorting work
+- [x] Move health/progress/count UI, Fire, Explosion and mounted Archer anchors with the enlarged art
+- [x] Preserve Gold Mine independent 1.30 presentation tuning
+- [x] Add `Tools > Tiny Kingdom > Validate Building Presentation Hotfix`
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run `Prepare RTS HUD`, then the hotfix validator in Edit Mode and Play Mode
+- [ ] Verify AttackMove Icon_05 and Eject All Icon_09 on Castle, Tower and Gold Mine
+- [ ] Verify each building preview/final art match, bars/VFX align and no completion size pop occurs
+- [ ] Verify units route only around logical footprints and pass behind upper building artwork
+- [ ] Verify construction, repair, garrison, mounted Archers, rally, drop-off, Fog memory and clean Console
+
+## Unit Scale + Resource Selection + Building Click Polish
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime /
+Editor compilation pass. Unity Play Mode visual and regression validation remain.
+
+- [x] Scale animated unit, Tree and Sheep visuals to 1.3 without scaling gameplay roots
+- [x] Scale Gold Stone 1-5 to 1.4 and Gold Stone 6 to 1.55 without changing gameplay roots
+- [x] Keep Gold Stone 1-5 mining positions close while using extra outward clearance for Gold Stone 6
+- [x] Add one navigation-clearance cell to each horizontal side of the 1.7x Main Castle art
+- [x] Prevent Sheep wandering into cells currently occupied by living units
+- [x] Recalculate active routes when moving Sheep invalidate a future waypoint, throttled to 0.35 seconds
+- [x] Allow a unit already caught in a newly occupied start cell to exit without allowing entry into blockers
+- [x] Preserve verified animation anchors across Idle, Run, Attack, Guard and work frames
+- [x] Raise the unscaled unit health-bar anchor from 0.78 to 1.01
+- [x] Scale unit selection-ring geometry and ground offset by 1.3 to restore foot alignment
+- [x] Add green ground-selection rings for Tree, Gold Stone, Sheep and Gold Mine
+- [x] Hide resource rings when selection clears, becomes invalid or leaves presentation
+- [x] Add a ground-anchored building click pulse with mild 0.94/1.035 vertical deformation
+- [x] Keep building click pulse independent from HP, construction and damage timing
+- [x] Reuse the verified Hammer animation for repair and pulse the building on each successful 0.35-second repair impact
+- [x] Add `Tools > Tiny Kingdom > Validate Selection And Unit Scale Polish`
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Run the new validator in Edit Mode and Play Mode
+- [ ] Verify Blue/Red Pawn, Warrior, Archer, Lancer and Monk visuals at 1.3 across all states
+- [ ] Verify Tree and Sheep at 1.3, Gold Stone 1-5 at 1.4 and Gold Stone 6 at 1.55 without collider/occupancy changes
+- [ ] Verify selection rings for live and depleted-selectable resources under Fog transitions
+- [ ] Verify Pawns remain outside all six Gold Stone visuals while mining from cardinal and diagonal slots
+- [ ] Verify Gold Stone 1-5 Pawns stand close, Gold Stone 6 Pawns stay outside, and all mining animations face the node
+- [ ] Damage each constructible building and verify every successful Hammer repair impact triggers one mild pulse
+- [ ] Verify units route around both visible Main Castle side edges while drop-off/garrison entry still works
+- [ ] Verify Move, AttackMove, chase and worker routes detour around Sheep that wander onto the original path
+- [ ] Verify clustered units do not trigger recurring pathfinding or Console spam around Sheep
+- [ ] Verify repeated building clicks restart one pulse and always recover to scale 1.7
+- [ ] Verify movement, combat, gathering, construction, garrison, cursor and clean Console regressions

@@ -547,7 +547,8 @@ etc.). The imported Run Hammer `_5` was a separate 27x30 fragment of logical
 frame `_4` within the same 192-pixel column. Its bounds were merged into `_4`;
 the animation uses `_0`, `_1`, `_2`, `_3`, `_4`, `_6` in that order. The other
 Hammer slices were preserved. Construction and repair timing are controlled by
-gameplay code.
+gameplay code. Repair uses a 0.8-second gameplay cycle with its successful
+impact at 0.35 seconds; that semantic impact triggers the mild building pulse.
 
 ### Phase 5C1 building and resource additions
 
@@ -751,9 +752,33 @@ surface-plus-border construction uses `SpecialPaper.png` for selection and
 command panels. No center or edge uses repeated tiling. `WoodTable_Slots.png`
 supplies only the individually clickable command-button frame.
 `Icon_01.png`, `Icon_02.png`, `Icon_03.png` and `Icon_04.png` represent
-Population, Wood, Gold and Food. `Icon_09.png` is the AttackMove command icon.
+Population, Wood, Gold and Food. The command correction maps `Icon_05_0`
+(`Assets/UI Elements/UI Elements/Icons/Icon_05.png`) to AttackMove and
+`Icon_09_0` (`Assets/UI Elements/UI Elements/Icons/Icon_09.png`) to Eject All.
+`Icon_09_0` remains the previously approved Rally world marker as well.
 All listed UI textures are Sprite type, Point filtered, uncompressed, without
 mipmaps, Clamp wrapped and imported at a Max Size that preserves the source.
+
+Normal Blue/Red House variants, Barracks, Archery, Monastery, Tower and Castle
+use a presentation-only 1.7 scale. Their imported center pivots and existing
+sprite slicing remain unchanged. The visual child is shifted upward from the
+sprite lower bound so its original ground contact stays fixed. Logical
+`BuildingData` footprints remain House/Tower 2x2, Barracks/Archery/Monastery
+3x3 and Castle 3x2. The Gold Mine remains independently tuned at 1.30 and is
+excluded from this common faction-building scale.
+
+Pawn, Warrior, Archer, Lancer, Monk and any enabled Goblin unit continue using
+their verified animation sheets, slicing, PPU and frame order. Runtime
+`AnimatedVisual` children now use a common presentation scale of 1.3; no source
+texture, sprite metadata, gameplay root or collider is rescaled. Per-frame
+alignment offsets are multiplied by the same factor to retain the established
+animation ground anchor.
+
+Tree and Sheep visual children use the 1.3 presentation scale. Gold Stone 1-5
+use 1.4, while Gold Stone 6 uses 1.55. Their verified sprites, animation frames,
+PPU, root positions, colliders and logical occupancy remain unchanged. Building
+assets are excluded and continue using their dedicated 1.7 profile or the Gold
+Mine's dedicated 1.30 profile.
 
 ## Verified Tiny Swords cursors
 

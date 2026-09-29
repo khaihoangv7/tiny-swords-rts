@@ -133,7 +133,8 @@ namespace TinyKingdom.Economy
                 MakeNode(area.transform, $"Gold_{i + 1}", ResourceType.Gold,
                     economyConfig.GetGoldStoneCapacity(i), position,
                     presentation?.Gold(i) ?? goldSprite, 0.65f, null,
-                    presentation?.GoldHighlight(i));
+                    presentation?.GoldHighlight(i), null,
+                    i == 5 ? 1.55f : 1.4f);
             }
 
             // A mirrored, faction-neutral resource cluster gives Red only the
@@ -157,7 +158,8 @@ namespace TinyKingdom.Economy
                 MakeNode(area.transform, $"RedGold_{i + 1}", ResourceType.Gold,
                     economyConfig.GetGoldStoneCapacity(i), position,
                     presentation?.Gold(i) ?? goldSprite, 0.65f, null,
-                    presentation?.GoldHighlight(i));
+                    presentation?.GoldHighlight(i), null,
+                    i == 5 ? 1.55f : 1.4f);
             }
 
             feedback.Watch(MakePawn(area.transform, "BluePawn_1",
@@ -443,10 +445,15 @@ namespace TinyKingdom.Economy
             var obj = new GameObject(faction + "CastleDropOff");
             obj.transform.SetParent(parent, false);
             obj.transform.position = position;
-            MakeVisual(obj.transform, castleData.GetSprite(faction), true);
+            SpriteRenderer visual = MakeVisual(obj.transform,
+                castleData.GetSprite(faction), true);
+            visual.gameObject.name = "VisualRoot";
+            BuildingVisualPresentation.Apply(visual, BuildingType.Castle,
+                visual.transform.localPosition);
+            GroundSorting.Ensure(obj);
             BoxCollider2D collider = obj.AddComponent<BoxCollider2D>();
-            collider.size = new Vector2(3f, 2.6f);
-            collider.offset = new Vector2(0f, 0.4f);
+            collider.size = new Vector2(3f, 2f);
+            collider.offset = new Vector2(0f, 0.5f);
             CastleDropOff castle = obj.AddComponent<CastleDropOff>();
             castle.Configure(faction, stockpile, castleData);
             return castle;
@@ -523,19 +530,23 @@ namespace TinyKingdom.Economy
                 component.gameObject.AddComponent<BuildingDamagePresentation>().Configure(host);
             if (host.Type == BuildingType.Castle
                 && component.GetComponent<BuildingHealthBar>() == null)
-                component.gameObject.AddComponent<BuildingHealthBar>().Configure(host, 1.45f);
+                component.gameObject.AddComponent<BuildingHealthBar>().Configure(host,
+                    BuildingVisualPresentation.TopLocalY(host.PresentationRenderer) + 0.3f);
         }
 
         private void MakeNode(Transform parent, string name, ResourceType type,
             int capacity, Vector3 position, Sprite sprite, float clickSize,
             Sprite depletedSprite = null, Sprite[] highlightFrames = null,
-            Sprite[] ambientFrames = null)
+            Sprite[] ambientFrames = null,
+            float visualScale = UnitVisualPresentation.Scale)
         {
             var obj = new GameObject(name);
             obj.transform.SetParent(parent, false);
             obj.transform.position = position;
             SpriteRenderer renderer = MakeVisual(obj.transform, sprite,
                 type != ResourceType.Wood);
+            UnitVisualPresentation.ApplyAlignedScale(renderer,
+                renderer.transform.localPosition, visualScale);
             var collider = obj.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(clickSize, type == ResourceType.Wood ? 2f : clickSize);
             collider.offset = type == ResourceType.Wood ? new Vector2(0f, 0.9f) : Vector2.zero;
@@ -543,7 +554,7 @@ namespace TinyKingdom.Economy
             if (type == ResourceType.Food)
                 obj.AddComponent<ResourceHarvestFlash>().Configure(renderer);
             ResourceNode node = obj.AddComponent<ResourceNode>();
-            node.Configure(type, capacity, renderer, depletedSprite);
+            node.Configure(type, capacity, renderer, depletedSprite, visualScale);
             if (type == ResourceType.Food)
             {
                 if (presentation != null)

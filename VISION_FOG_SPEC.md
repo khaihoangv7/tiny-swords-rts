@@ -186,3 +186,18 @@ hierarchy, including body, animated visual, health bar and later presentation
 children. One-shot Heal/TNT effects and the Dynamite projectile evaluate current
 player visibility in their creation frame, preventing a one-frame information
 leak. Fog never disables Goblin movement, combat, regeneration or guard logic.
+
+## Phase 7C.1A knowledge-derived strategic safety
+
+`StrategicSafetyMap` consumes only `FactionKnowledge` value observations. Current
+visible enemy Warrior, Archer and Lancer positions create temporary dynamic danger;
+that danger disappears on the first Commander refresh after vision is lost. No unit
+last-position memory is added. A Tower or Castle that was legitimately observed may
+retain a conservative danger area from its frozen building snapshot while hidden.
+An undiscovered defensive building has no entry and cannot affect risk, targeting,
+frontier ranking or path cost.
+
+Economy routes require explored cells. Scout routes may enter Unexplored space and
+therefore can discover previously unknown threats. Once a threat becomes visible,
+the legal knowledge refresh can invalidate the Scout route and trigger retreat.
+The rendered Fog texture remains presentation only and is never queried by safety.

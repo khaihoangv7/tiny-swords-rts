@@ -23,7 +23,7 @@ namespace TinyKingdom.Units
         public UnitController Controller => unitController != null ? unitController : unitController = GetComponent<UnitController>();
         public UnitMovement Movement => unitMovement != null ? unitMovement : unitMovement = GetComponent<UnitMovement>();
         public float ClickRadiusPixels => clickRadiusPixels;
-        public float MarkerYOffset => markerYOffset;
+        public float MarkerYOffset => markerYOffset * UnitVisualPresentation.Scale;
         public bool IsSelected { get; private set; }
         public bool IsWorldSelectable { get; private set; } = true;
         public event Action<UnitSelection> BecameUnavailable;
@@ -82,8 +82,7 @@ namespace TinyKingdom.Units
         public void ConfigureMarkerYOffset(float offset)
         {
             markerYOffset = offset;
-            if (selectionIndicator != null)
-                selectionIndicator.transform.localPosition = new Vector3(0f, offset, 0f);
+            RefreshIndicatorGeometry();
         }
 
         private void HandleStateChanged(UnitState state)
@@ -99,7 +98,6 @@ namespace TinyKingdom.Units
         {
             var indicatorObject = new GameObject("SelectionIndicator");
             indicatorObject.transform.SetParent(transform, false);
-            indicatorObject.transform.localPosition = new Vector3(0f, markerYOffset, 0f);
             selectionIndicator = indicatorObject.AddComponent<LineRenderer>();
             selectionIndicator.useWorldSpace = false;
             selectionIndicator.loop = true;
@@ -113,12 +111,21 @@ namespace TinyKingdom.Units
             indicatorMaterial.color = new Color(0.2f, 1f, 0.25f, 0.95f);
             selectionIndicator.sharedMaterial = indicatorMaterial;
 
+            RefreshIndicatorGeometry();
+        }
+
+        private void RefreshIndicatorGeometry()
+        {
+            if (selectionIndicator == null) return;
+            float scale = UnitVisualPresentation.Scale;
+            selectionIndicator.transform.localPosition = new Vector3(
+                0f, markerYOffset * scale, 0f);
             for (int i = 0; i < selectionIndicator.positionCount; i++)
             {
                 float angle = i * Mathf.PI * 2f / selectionIndicator.positionCount;
                 selectionIndicator.SetPosition(i,
-                    new Vector3(Mathf.Cos(angle) * markerWidth * 0.5f,
-                        Mathf.Sin(angle) * markerHeight * 0.5f, 0f));
+                    new Vector3(Mathf.Cos(angle) * markerWidth * scale * 0.5f,
+                        Mathf.Sin(angle) * markerHeight * scale * 0.5f, 0f));
             }
         }
     }

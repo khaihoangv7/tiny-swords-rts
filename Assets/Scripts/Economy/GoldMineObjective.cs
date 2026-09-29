@@ -49,6 +49,7 @@ namespace TinyKingdom.Economy
         private float incomeRemaining = IncomeSeconds;
         private GoldMineState state = GoldMineState.Neutral;
         private Vector2Int origin;
+        private ResourceSelectionIndicator selectionIndicator;
 
         public static IReadOnlyList<GoldMineObjective> Active => active;
         public GoldMineState State => state;
@@ -62,11 +63,13 @@ namespace TinyKingdom.Economy
         public bool IsProductionReady => false;
         public BuildingData DefenseData => data;
         public Transform HostTransform => transform;
+        public SpriteRenderer PresentationRenderer => visual;
         public Transform StationTransform => transform;
         public Collider2D InteractionCollider => interaction;
         public float CurrentHP => currentHP;
         public int MaxHP => MaximumHP;
         public bool IsAlive => state != GoldMineState.Destroyed && currentHP > 0;
+        public bool IsSelected => selectionIndicator != null && selectionIndicator.IsSelected;
         public bool IsDefenseReady => state == GoldMineState.Owned && IsAlive;
         public float FireThreshold => FireThresholdRatio;
         public event Action DefenseHostDestroyed;
@@ -83,7 +86,11 @@ namespace TinyKingdom.Economy
             currentHP = MaximumHP; remainingGold = MaximumGold; state = GoldMineState.Neutral;
             hasOwner = false; incomeRemaining = IncomeSeconds;
             visual = GetComponentInChildren<SpriteRenderer>();
+            GroundSorting.Ensure(gameObject);
             interaction = GetComponent<Collider2D>();
+            if (!TryGetComponent(out selectionIndicator))
+                selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();
+            selectionIndicator.Configure(1.7f, 0.5f, -0.65f);
             SetVisual(assets?.GoldMineInactive);
             for (int y = 0; y < Footprint.y; y++)
             for (int x = 0; x < Footprint.x; x++) grid?.SetOccupied(origin.x + x, origin.y + y, true);
@@ -97,8 +104,15 @@ namespace TinyKingdom.Economy
                 ?? gameObject.AddComponent<BuildingGarrisonWorldCount>()).Configure(this, 1.45f);
         }
 
-        private void OnEnable() { if (!active.Contains(this)) active.Add(this); }
+        private void OnEnable()
+        {
+            GroundSorting.Ensure(gameObject);
+            if (!active.Contains(this)) active.Add(this);
+        }
         private void OnDisable() => active.Remove(this);
+
+        public void SetSelected(bool selected)
+            => selectionIndicator?.SetSelected(selected && IsAlive);
 
         private void Update()
         {

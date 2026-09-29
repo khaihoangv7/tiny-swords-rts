@@ -29,6 +29,7 @@ namespace TinyKingdom.Vision
         public bool Completed { get; internal set; }
         public float ConstructionProgress { get; internal set; }
         public float HealthRatio { get; internal set; }
+        public float DefensiveAttackRange { get; internal set; }
     }
 
     [Serializable]
@@ -382,9 +383,12 @@ namespace TinyKingdom.Vision
             snapshot.FootprintOrigin = host.FootprintOrigin;
             snapshot.Footprint = host.Footprint;
             snapshot.Sprite = visual.sprite;
-            snapshot.VisualPosition = visual.transform.position;
+            BuildingSelectionPulse pulse = component.GetComponent<BuildingSelectionPulse>();
+            snapshot.VisualPosition = pulse != null && pulse.IsConfigured
+                ? pulse.StableWorldPosition : visual.transform.position;
             snapshot.VisualRotation = visual.transform.rotation;
-            snapshot.VisualScale = visual.transform.lossyScale;
+            snapshot.VisualScale = pulse != null && pulse.IsConfigured
+                ? pulse.StableLossyScale : visual.transform.lossyScale;
             snapshot.VisualColor = visual.color;
             snapshot.SortingLayerId = visual.sortingLayerID;
             snapshot.SortingOrder = visual.sortingOrder;
@@ -393,6 +397,8 @@ namespace TinyKingdom.Vision
             snapshot.ConstructionProgress = progress;
             snapshot.HealthRatio = host.MaxHP > 0
                 ? Mathf.Clamp01(host.CurrentHP / host.MaxHP) : 0f;
+            snapshot.DefensiveAttackRange = host.DefenseData != null
+                ? host.DefenseData.DefensiveAttackRange : 0f;
             return true;
         }
 

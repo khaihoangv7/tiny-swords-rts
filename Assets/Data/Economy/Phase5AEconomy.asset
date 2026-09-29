@@ -15,7 +15,7 @@ MonoBehaviour:
   gatherSecondsPerUnit: 1.5
   gatherImpactDelay: 0.45
   amountPerStep: 1
-  sheepCapacity: 60
+  sheepCapacity: 200
   treeCapacity: 100
   goldCapacity: 100
   goldStoneCapacities:

@@ -22,6 +22,8 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.ProductionPolicy");
         private static readonly ProfilerMarker ScoutingPolicyMarker =
             new("TinyKingdom.AI.ScoutingPolicy");
+        private static readonly ProfilerMarker MilitaryPolicyMarker =
+            new("TinyKingdom.AI.MilitaryPolicy");
         private static readonly ProfilerMarker EconomyPolicyMarker =
             new("TinyKingdom.AI.EconomyPolicy");
 
@@ -35,7 +37,11 @@ namespace TinyKingdom.AI
         [SerializeField] private ProductionCommanderPolicy productionPolicy = new();
         [SerializeField] private EconomyCommanderPolicy economyPolicy = new();
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
+        [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
+        [SerializeField] private StrategicSafetyMap strategicSafety = new();
         [SerializeField] private bool drawScoutGizmo = false;
+        [SerializeField] private bool drawMilitaryGizmos = false;
+        [SerializeField] private bool drawStrategicSafetyGizmos = false;
         [Header("Runtime debug (disabled by default)")]
         [SerializeField] private bool exposeRuntimeDebug = false;
         [SerializeField] private ulong debugThinkTick;
@@ -61,6 +67,20 @@ namespace TinyKingdom.AI
         [SerializeField] private int debugCompletedCoreInfrastructure;
         [SerializeField] private string debugProductionDecision;
         [SerializeField] private Vector2Int debugRallyStagingCell;
+        [SerializeField] private ArmyGroupState debugArmyState;
+        [SerializeField] private int debugArmyMemberCount;
+        [SerializeField] private string debugCurrentThreatId;
+        [SerializeField] private UnitType debugCurrentThreatType;
+        [SerializeField] private Vector3 debugCurrentThreatPosition;
+        [SerializeField] private float debugBaseDefenseRadius;
+        [SerializeField] private float debugDefenseLeashRadius;
+        [SerializeField] private Vector3 debugMilitaryStagingPosition;
+        [SerializeField] private int debugVisibleThreats;
+        [SerializeField] private int debugKnownStaticDangers;
+        [SerializeField] private int debugVisibleDynamicDangers;
+        [SerializeField] private string debugScoutSafetyState;
+        [SerializeField] private string debugScoutDangerReason;
+        [SerializeField] private Vector2Int debugScoutRetreatCell;
 
         private float nextThinkTime;
 
@@ -75,6 +95,8 @@ namespace TinyKingdom.AI
         public CommanderPawnRoles PawnRoles => pawnRoles;
         public BuildingCommanderPolicy BuildingPolicy => buildingPolicy;
         public ProductionCommanderPolicy ProductionPolicy => productionPolicy;
+        public MilitaryCommanderPolicy MilitaryPolicy => militaryPolicy;
+        public StrategicSafetyMap StrategicSafety => strategicSafety;
         public UnitController CurrentScout => scoutingPolicy?.Scout;
         public bool IsConfigured => FactionRelations.IsPlayable(faction) && knowledge != null
             && commandService != null && knowledge.Faction == faction
@@ -92,6 +114,8 @@ namespace TinyKingdom.AI
 
         private void OnEnable()
         {
+            militaryPolicy ??= new MilitaryCommanderPolicy();
+            strategicSafety ??= new StrategicSafetyMap();
             nextThinkTime = Time.time;
         }
 
@@ -101,6 +125,8 @@ namespace TinyKingdom.AI
             scoutingPolicy?.Reset();
             buildingPolicy?.Reset(pawnRoles);
             productionPolicy?.Reset();
+            militaryPolicy?.Reset();
+            strategicSafety?.Reset();
             pawnRoles?.Reset();
             ThinkTick = 0;
         }
@@ -123,16 +149,19 @@ namespace TinyKingdom.AI
             {
                 using (KnowledgeRefreshMarker.Auto())
                     context.Knowledge.Refresh();
+                strategicSafety.Refresh(context.Knowledge);
                 using (RoleSyncMarker.Auto())
                     pawnRoles.Synchronize(context.Knowledge);
                 using (BuildingPolicyMarker.Auto())
-                    buildingPolicy.Tick(context, pawnRoles);
+                    buildingPolicy.Tick(context, pawnRoles, strategicSafety);
                 using (ProductionPolicyMarker.Auto())
                     productionPolicy.Tick(context);
                 using (ScoutingPolicyMarker.Auto())
-                    scoutingPolicy.Tick(context, pawnRoles);
+                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety);
+                using (MilitaryPolicyMarker.Auto())
+                    militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout);
                 using (EconomyPolicyMarker.Auto())
-                    economyPolicy.Tick(context, pawnRoles);
+                    economyPolicy.Tick(context, pawnRoles, strategicSafety);
                 ThinkTick++;
                 if (exposeRuntimeDebug) RefreshDebug();
             }
@@ -174,19 +203,76 @@ namespace TinyKingdom.AI
                 ?? "None";
             debugRallyStagingCell = productionPolicy.HasRallyStagingCell
                 ? productionPolicy.RallyStagingCell : new Vector2Int(-1, -1);
+            debugArmyState = militaryPolicy.Army.State;
+            debugArmyMemberCount = militaryPolicy.Army.Members.Count;
+            debugCurrentThreatId = militaryPolicy.HasCurrentThreat
+                ? militaryPolicy.CurrentThreatId.ToString() : "None";
+            debugCurrentThreatType = militaryPolicy.CurrentThreatType;
+            debugCurrentThreatPosition = militaryPolicy.HasCurrentThreat
+                ? militaryPolicy.CurrentThreatPosition : Vector3.zero;
+            debugBaseDefenseRadius = militaryPolicy.BaseDefenseRadius;
+            debugDefenseLeashRadius = militaryPolicy.DefenseLeashRadius;
+            debugMilitaryStagingPosition = militaryPolicy.HasStagingPosition
+                ? militaryPolicy.StagingPosition : Vector3.zero;
+            debugVisibleThreats = militaryPolicy.VisibleThreatCount;
+            debugKnownStaticDangers = strategicSafety.KnownStaticDangerCount;
+            debugVisibleDynamicDangers = strategicSafety.VisibleDynamicThreatCount;
+            debugScoutSafetyState = scoutingPolicy.SafetyState.ToString();
+            debugScoutDangerReason = scoutingPolicy.DangerReason;
+            debugScoutRetreatCell = scoutingPolicy.HasRetreatDestination
+                ? scoutingPolicy.RetreatCell : new Vector2Int(-1, -1);
         }
 
         private void OnDrawGizmosSelected()
         {
 #if UNITY_EDITOR
-            if (!drawScoutGizmo || scoutingPolicy == null || !scoutingPolicy.HasDestination
-                || knowledge == null || knowledge.TeamVision?.GridManager == null) return;
-            Vector2Int cell = scoutingPolicy.DestinationCell;
-            Vector3 position = knowledge.TeamVision.GridManager.GridToWorld(cell.x, cell.y);
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(position, 0.35f);
-            if (scoutingPolicy.Scout != null)
-                Gizmos.DrawLine(scoutingPolicy.Scout.transform.position, position);
+            if (knowledge == null || knowledge.TeamVision?.GridManager == null) return;
+            if (drawScoutGizmo && scoutingPolicy != null && scoutingPolicy.HasDestination)
+            {
+                Vector2Int cell = scoutingPolicy.DestinationCell;
+                Vector3 position = knowledge.TeamVision.GridManager.GridToWorld(cell.x, cell.y);
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(position, 0.35f);
+                if (scoutingPolicy.Scout != null)
+                    Gizmos.DrawLine(scoutingPolicy.Scout.transform.position, position);
+            }
+            if (drawMilitaryGizmos && militaryPolicy != null)
+            {
+                if (militaryPolicy.HasBaseAnchor)
+                {
+                    Gizmos.color = new Color(1f, 0.25f, 0.1f, 0.8f);
+                    Gizmos.DrawWireSphere(militaryPolicy.BaseAnchor,
+                        militaryPolicy.BaseDefenseRadius);
+                    Gizmos.color = new Color(1f, 0.65f, 0.1f, 0.6f);
+                    Gizmos.DrawWireSphere(militaryPolicy.BaseAnchor,
+                        militaryPolicy.DefenseLeashRadius);
+                }
+                if (militaryPolicy.HasStagingPosition)
+                {
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawWireSphere(militaryPolicy.StagingPosition, 0.4f);
+                }
+                if (militaryPolicy.HasCurrentThreat)
+                {
+                    Gizmos.color = Color.magenta;
+                    Gizmos.DrawWireSphere(militaryPolicy.CurrentThreatPosition, 0.5f);
+                }
+            }
+            if (drawStrategicSafetyGizmos && strategicSafety != null
+                && strategicSafety.HasHomeAnchor)
+            {
+                Gizmos.color = new Color(0.1f, 0.9f, 0.3f, 0.75f);
+                Gizmos.DrawWireSphere(strategicSafety.HomeAnchor,
+                    strategicSafety.HomeEconomicRadius);
+                if (scoutingPolicy != null && scoutingPolicy.HasRetreatDestination)
+                {
+                    Vector2Int cell = scoutingPolicy.RetreatCell;
+                    Vector3 position = knowledge.TeamVision.GridManager.GridToWorld(
+                        cell.x, cell.y);
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawWireSphere(position, 0.4f);
+                }
+            }
 #endif
         }
     }

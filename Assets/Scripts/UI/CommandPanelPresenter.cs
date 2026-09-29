@@ -216,7 +216,7 @@ namespace TinyKingdom.UI
             }
             BuildingGarrison garrison = host.GetComponent<BuildingGarrison>();
             if (garrison != null)
-                ConfigureClick(shown++, null, "Eject All", "",
+                ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay
                         && garrison.InternalCount + garrison.MountedCount > 0,
                     () => garrison.EjectAll());
@@ -227,7 +227,7 @@ namespace TinyKingdom.UI
         {
             bool friendly = mine.HasOwner && mine.Faction == selection.PlayerFaction;
             if (friendly)
-                ConfigureClick(shown++, assets.GoldIcon, "Eject All", "",
+                ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay && mine.OccupantCount > 0,
                     () => mine.EjectAll());
             return shown;

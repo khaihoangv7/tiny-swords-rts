@@ -2,6 +2,24 @@ using UnityEngine;
 
 namespace TinyKingdom.Units
 {
+    public static class UnitVisualPresentation
+    {
+        public const float Scale = 1.3f;
+
+        public static void ApplyAlignedScale(SpriteRenderer renderer, Vector2 alignedOffset)
+            => ApplyAlignedScale(renderer, alignedOffset, Scale);
+
+        public static void ApplyAlignedScale(SpriteRenderer renderer, Vector2 alignedOffset,
+            float presentationScale)
+        {
+            if (renderer == null) return;
+            float scale = Mathf.Max(0.01f, presentationScale);
+            renderer.transform.localScale = new Vector3(scale, scale, 1f);
+            renderer.transform.localPosition = new Vector3(
+                alignedOffset.x * scale, alignedOffset.y * scale, 0f);
+        }
+    }
+
     [RequireComponent(typeof(UnitController), typeof(SpriteRenderer))]
     public sealed class UnitAnimator : MonoBehaviour
     {
@@ -159,7 +177,7 @@ namespace TinyKingdom.Units
             Vector2 offset = (new Vector2(x, y) - animationSet.VisualAnchorPixels)
                 / sprite.pixelsPerUnit;
             if (flip) offset.x = -offset.x;
-            visual.transform.localPosition = new Vector3(offset.x, offset.y, 0f);
+            UnitVisualPresentation.ApplyAlignedScale(visual, offset);
         }
     }
 }

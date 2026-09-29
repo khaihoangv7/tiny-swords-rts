@@ -93,14 +93,15 @@ to economy work.
 
 The Commander issues commands only in `MatchState.Playing`. Scene reload naturally
 recreates knowledge, worker assignments, scout state and cooldowns. Optional runtime
-Inspector counters and the scout gizmo are disabled by default. Profiling uses the
+Inspector counters and optional scout/defense gizmos are disabled by default. Profiling uses the
 `TinyKingdom.AI.CommanderTick` marker and fixed child markers for knowledge, roles,
-building, production, scouting, economy, command dispatch and A*.
+building, production, scouting, military, economy, command dispatch and A*.
 
 ## Future phases
 
 Phase 7B adds the construction and production policies documented below. Phase
-7C may add military strategy. A future `RLCommander` must receive the same legal
+7C.1 adds only the defensive military policy documented below; Phase 7C.2 retains
+offensive strategy. A future `RLCommander` must receive the same legal
 `FactionKnowledge` and use the same `FactionCommandService`; it receives no
 hidden-information exception.
 
@@ -164,3 +165,94 @@ preflight immediately before authoritative `BuildingSystem.TryBuild`. Pawn
 drop-off discovery uses the live Castle registry instead of a scene-wide query.
 These changes preserve authoritative movement and placement checks while avoiding
 repeated path searches for candidates that cannot win the deterministic ranking.
+
+## Phase 7C.1 defensive military Commander
+
+Phase 7C.1 adds one `MilitaryCommanderPolicy` and one primary `ArmyGroup` for Red.
+The group incrementally tracks living, world-participating Warrior, Archer, Lancer
+and Monk units. Pawns, dead units, internal or mounted units and the active Phase 7A
+Scout are excluded. A released Scout may join on a later Commander tick.
+
+The group has four strategic states: `Forming`, `Ready`, `Defending` and
+`Regrouping`. Forming and Regrouping reuse the Phase 7B military Rally staging cell
+and distribute members over nearby valid navigation cells. Existing movement and
+A* remain authoritative. Stable per-unit intents prevent the same Attack or Move
+from being issued every 0.50-second decision tick.
+
+The Red Castle footprint center is the base anchor. The provisional MVP
+`BaseDefenseRadius` is 9 world units and `DefenseLeashRadius` is 12. Only hostile
+playable-unit snapshots currently present in `FactionKnowledge.VisibleEnemyUnits`
+can become strategic threats. `FactionKnowledge` copies visible combat activity
+as value data: attacking Castle, another building, or a unit. It stores no target
+reference. Priority is attacker of Castle, attacker of a building, attacker of an
+own unit, other military, then Pawn; ties use squared distance to the Castle and
+stable EntityId. The current target remains stable while visible and inside the
+leash.
+
+`FactionCommandService.TryAttack` accepts an observed EntityId, revalidates match
+state, ownership, combat-capable unit type and current TeamVision, then calls the
+normal `CombatController.Attack`. The policy never receives the live enemy object.
+Warrior, Archer and Lancer focus the selected defensive threat. Monk receives only
+normal Move orders to a safe support location and keeps its existing auto-heal;
+it is never issued Attack.
+
+When the target dies, leaves current Red vision or crosses the leash, the policy
+selects another visible threat inside the base radius or enters Regrouping. A
+normal Move to distributed staging cells clears the prior explicit pursuit. Once
+survivors are inside the staging region, the group becomes Ready and waits. It
+never selects remembered buildings, Blue Castle, resources or unexplored cells as
+an objective and never performs an offensive AttackMove.
+
+The policy stops with the existing Commander outside `MatchState.Playing`, and
+Reset clears membership, target and intent caches. Fixed Profiler markers are
+`TinyKingdom.AI.MilitaryPolicy`, `TinyKingdom.AI.ThreatEvaluation` and
+`TinyKingdom.AI.ArmyRegroup`. Phase 7C.2 retains all offensive strategy, Gold Mine
+strategy, strength-based retreat, multi-squad tactics and counter-production.
+
+## Phase 7C.1A strategic safety hotfix
+
+`StrategicSafetyMap` is a reusable AI decision aid rebuilt on the existing
+0.50-second Commander tick only when relevant legal knowledge changes. It reuses
+40x28 risk/exploration buffers and derives danger only from the Red Castle anchor,
+currently visible enemy-unit value observations, and visible or remembered enemy
+building snapshots. Hidden units contribute no danger after leaving vision;
+undiscovered buildings never contribute danger.
+
+Normal Red economy uses a provisional `HomeEconomicRadius` of 11 world units around
+the Red Castle. A resource must be legally known, non-depleted according to current
+or last-seen knowledge, inside this radius, on explored safe ground and reachable by
+an explored safe route. The 40/35/25 ratios remain targets. If the desired type has
+no eligible target, the worker tries other safe types by largest remaining target
+deficit with stable enum ties, then remains available. AI-issued Gather jobs pass
+the same eligibility and
+traversal policy into Pawn same-type chaining; the original human Gather API remains
+unchanged.
+
+Tower and Castle exclusion radii use the remembered authoritative defensive range
+plus a provisional 1.5-unit margin. Their surrounding three-unit base buffer is
+dangerous to civilians and costly for scouts. Visible Warrior, Archer and Lancer
+danger uses observed attack range plus a 2.5-unit reaction buffer. Overlapping
+regions naturally represent visible groups. A threatened economy Pawn cancels the
+unsafe job and retreats toward an explored safe cell near its Castle. A Builder is
+interrupted only when its own construction site becomes dangerous.
+
+Scout state is `Exploring` or `Retreating`. Frontier ranking is deterministic:
+lower known risk, then nearer map perimeter, then greater unexplored-neighbor gain,
+then travel distance and cell coordinates. Safe useful destinations are retained.
+New danger invalidates an unsafe destination or route and selects an explored safe
+retreat cell. Lancer, Warrior, Archer, Pawn priority and Monk exclusion remain.
+
+Retreat uses a separate explored-cell traversal policy. It may cross the minimum
+number of currently dangerous cells needed to leave an already-overlapping danger
+zone, with very high Risky/Dangerous/Forbidden costs, while the retreat destination
+must still be Safe. This prevents a Pawn or Scout already surrounded by a newly
+revealed threat radius from freezing because every immediate neighbor is forbidden
+for normal work/exploration.
+
+The existing A* accepts an optional `IPathTraversalPolicy`. Default player and
+gameplay calls pass no policy. Civilian AI forbids unexplored and severe-danger
+cells; Scout AI adds costs around known risk and forbids known defensive cores.
+No second pathfinder or offensive action is introduced. Fixed markers include
+`TinyKingdom.AI.StrategicSafety`, `TinyKingdom.AI.SafeResourceSearch`,
+`TinyKingdom.AI.ScoutRiskEvaluation`, `TinyKingdom.AI.ScoutRetreat` and
+`TinyKingdom.AI.CivilianRetreat`.

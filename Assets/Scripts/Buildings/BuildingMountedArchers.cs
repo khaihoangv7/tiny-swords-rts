@@ -24,7 +24,9 @@ namespace TinyKingdom.Buildings
             {
                 var anchor = new GameObject("MountedArcherAnchor" + i).transform;
                 anchor.SetParent(owner.HostTransform, false);
-                anchor.localPosition = i < offsets.Length ? offsets[i] : Vector2.zero;
+                Vector2 offset = i < offsets.Length ? offsets[i] : Vector2.zero;
+                anchor.localPosition = BuildingVisualPresentation.ScalePointFromGround(
+                    owner.PresentationRenderer, owner.Type, offset);
                 anchors.Add(anchor);
             }
         }

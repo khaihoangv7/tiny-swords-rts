@@ -9,7 +9,7 @@ namespace TinyKingdom.Economy
         [SerializeField, Min(0.01f)] private float gatherSecondsPerUnit = 1.5f;
         [SerializeField, Min(0f)] private float gatherImpactDelay = 0.45f;
         [SerializeField, Min(1)] private int amountPerStep = 1;
-        [SerializeField, Min(1)] private int sheepCapacity = 60;
+        [SerializeField, Min(1)] private int sheepCapacity = 200;
         [SerializeField, Min(1)] private int treeCapacity = 100;
         [SerializeField, Min(1)] private int goldCapacity = 100;
         [SerializeField] private int[] goldStoneCapacities = { 100, 150, 250, 300, 400, 500 };

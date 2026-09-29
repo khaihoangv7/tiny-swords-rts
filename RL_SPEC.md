@@ -171,3 +171,31 @@ future RL policy may choose high-level build or production intent, while normal
 gameplay still owns pathfinding, construction progress, payment, population
 reservation, FIFO training, spawning and Rally movement. Phase 7B adds no RL
 observations, rewards, ML-Agents dependency or training loop.
+
+## Phase 7C.1 shared defensive combat action
+
+Phase 7C.1 adds validated `FactionCommandService.TryAttack(actor, observedEntityId)`.
+A future RL Commander must use the same API. The service resolves the target only
+after the EntityId is present in the faction's current visible-unit observations
+and TeamVision still confirms visibility. The Rule-Based military policy stores
+only copied threat values and EntityId, never a hidden live target reference.
+
+Army membership, base defense and regroup are strategic policy. Normal
+`CombatController`, `UnitMovement`, A*, unit separation and Monk auto-heal remain
+low-level gameplay. Phase 7C.1 adds no RL package, training loop, reward changes or
+offensive RL action. Future defensive RL observations must use the same visible
+threat snapshots and must not infer targets from hidden transforms or Fog visuals.
+
+## Phase 7C.1A shared legal safety features
+
+`StrategicSafetyMap` derives reusable risk cells from the same faction-observable
+`FactionKnowledge` available to the Rule-Based Commander. A future RL Commander may
+receive equivalent derived risk features, but cannot receive undiscovered building
+positions or hidden-unit positions. Remembered Tower/Castle danger is allowed only
+because it comes from frozen legal building snapshots; dynamic unit danger exists
+only during current visibility.
+
+The optional A* traversal policy remains low-level execution support. Future RL
+chooses high-level intentions and may request a safe move or gather action; it does
+not control waypoints or bypass command validation. Phase 7C.1A adds no RL package,
+observation tensor, action space, reward or training loop.

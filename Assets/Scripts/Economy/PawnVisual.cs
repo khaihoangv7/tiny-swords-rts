@@ -53,6 +53,7 @@ namespace TinyKingdom.Economy
             if (gatherer != null) gatherer.WorkCycleStarted += OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed += OnAttackPerformed;
             if (builder != null) builder.WorkCycleStarted += OnBuildCycleStarted;
+            if (builder != null) builder.RepairImpact += OnRepairImpact;
         }
 
         private void OnDestroy()
@@ -60,6 +61,7 @@ namespace TinyKingdom.Economy
             if (gatherer != null) gatherer.WorkCycleStarted -= OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed -= OnAttackPerformed;
             if (builder != null) builder.WorkCycleStarted -= OnBuildCycleStarted;
+            if (builder != null) builder.RepairImpact -= OnRepairImpact;
         }
 
         private void Update()
@@ -125,6 +127,12 @@ namespace TinyKingdom.Economy
             FaceTowards(builder?.Target != null
                 ? builder.Target.transform.position - transform.position : Vector2.zero);
             Begin(animationSet.Hammer, false);
+        }
+
+        private static void OnRepairImpact(BuildingSite site)
+        {
+            if (site != null && site.TryGetComponent(out BuildingSelectionPulse pulse))
+                pulse.Trigger();
         }
 
         private void ChooseStateVisual(bool force)
@@ -216,7 +224,7 @@ namespace TinyKingdom.Economy
             float y = sprite.rect.y + sprite.pivot.y;
             Vector2 offset = (new Vector2(x, y) - new Vector2(96f, 96f)) / sprite.pixelsPerUnit;
             if (facingLeft) offset.x = -offset.x;
-            visual.transform.localPosition = new Vector3(offset.x, offset.y, 0f);
+            UnitVisualPresentation.ApplyAlignedScale(visual, offset);
         }
     }
 }

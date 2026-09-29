@@ -1,6 +1,32 @@
 using System;
 using System.Collections.Generic;
+using TinyKingdom.Presentation;
 using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace TinyKingdom.Presentation
+{
+    // One ground-position sorting group per gameplay root lets sprites overlap
+    // naturally without changing gameplay positions or updating every frame.
+    public static class GroundSorting
+    {
+        public const int WorldOrder = 10;
+
+        public static SortingGroup Ensure(GameObject root)
+        {
+            if (root == null) return null;
+            if (!root.TryGetComponent(out SortingGroup group))
+                group = root.AddComponent<SortingGroup>();
+            if (group == null)
+            {
+                Debug.LogError($"Could not attach SortingGroup to {root.name}.", root);
+                return null;
+            }
+            group.sortingOrder = WorldOrder;
+            return group;
+        }
+    }
+}
 
 namespace TinyKingdom.Units
 {
@@ -28,6 +54,7 @@ namespace TinyKingdom.Units
 
         private void OnEnable()
         {
+            GroundSorting.Ensure(gameObject);
             if (IsAlive && !RegisteredUnits.Contains(this)) RegisteredUnits.Add(this);
             if (IsAlive && IsWorldParticipant && !RegisteredWorldUnits.Contains(this))
                 RegisteredWorldUnits.Add(this);

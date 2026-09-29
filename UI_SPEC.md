@@ -74,6 +74,24 @@ Selecting Tower shows `Internal Garrison: current / 2` and
 are represented through the host panel and are not world selectable while
 protected. Production UI remains available when Castle is selected.
 
+Selecting a currently observable Tree, Gold Stone, Sheep or Gold Mine displays
+the same green elliptical ground-selection language used for units. The ring is
+presentation-only, follows Fog presentation, hides when selection is cleared or
+invalidated, and has no collider, raycast, occupancy or gameplay authority.
+
+Unit selection ellipses scale their width, height and authored ground offset by
+the 1.3 unit presentation factor. The ellipse remains a sibling of the animated
+visual, so animation and damage deformation cannot pull it away from the feet.
+
+Selecting a friendly House, Barracks, Archery, Monastery, Tower or Castle plays
+a brief vertical squash/stretch on building artwork. It has no command,
+selection, health or construction authority and preserves the artwork's normal
+ground anchor and configured 1.7 scale after recovery.
+
+A successful Pawn repair impact reuses this mild vertical pulse. The pulse is
+triggered by the authoritative repair timer at the Hammer impact, not by an
+animation frame, and does not alter repair amount or building gameplay state.
+
 When a Pawn carrying resources physically completes internal entry into the
 friendly main Castle, the existing Castle drop-off transaction runs before the
 Pawn is hidden, including normal resource `+amount` feedback. A cancelled
@@ -221,6 +239,9 @@ Pawn building placement, production and Eject All. Costs and unavailable states
 come from the existing data and authority checks. The UI never duplicates
 payment, population, construction, training, garrison or command authority.
 The panel is 650x160 and uses a compact seven-column grid of 60x58 buttons.
+AttackMove uses verified `Icon_05_0`. Eject All uses verified `Icon_09_0` for
+Castle, Tower and owned Gold Mine command entries; the legacy compact garrison
+button shows the same icon without changing its command behavior.
 
 WoodTable and SpecialPaper are each drawn as one continuous center surface with
 eight frame pieces over it. The center and edges use Simple stretching rather

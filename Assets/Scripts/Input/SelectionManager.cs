@@ -152,6 +152,8 @@ namespace TinyKingdom.Input
                     {
                         ClearSelection();
                         selectedBuilding = building;
+                        BuildingSelectionPulse.Ensure(building.gameObject,
+                            building.PresentationRenderer)?.Trigger();
                         SelectionChanged?.Invoke();
                         return;
                     }
@@ -160,6 +162,8 @@ namespace TinyKingdom.Input
                     {
                         ClearSelection();
                         selectedCastle = castle;
+                        BuildingSelectionPulse.Ensure(castle.gameObject,
+                            castle.PresentationRenderer)?.Trigger();
                         SelectionChanged?.Invoke();
                         return;
                     }
@@ -168,6 +172,7 @@ namespace TinyKingdom.Input
                     {
                         ClearSelection();
                         selectedGoldMine = mine;
+                        mine.SetSelected(true);
                         SelectionChanged?.Invoke();
                         return;
                     }
@@ -176,6 +181,7 @@ namespace TinyKingdom.Input
                     {
                         ClearSelection();
                         selectedResourceNode = resource;
+                        resource.SetSelected(true);
                         SelectionChanged?.Invoke();
                         return;
                     }
@@ -245,6 +251,8 @@ namespace TinyKingdom.Input
                 unit.SetSelected(false);
             }
             selectedUnits.Clear();
+            if (selectedGoldMine != null) selectedGoldMine.SetSelected(false);
+            if (selectedResourceNode != null) selectedResourceNode.SetSelected(false);
             selectedBuilding = null;
             selectedCastle = null;
             selectedGoldMine = null;
@@ -340,6 +348,7 @@ namespace TinyKingdom.Input
         {
             if (selectedResourceNode == null) return;
             if (CanSelectResource(selectedResourceNode)) return;
+            selectedResourceNode.SetSelected(false);
             selectedResourceNode = null;
             SelectionChanged?.Invoke();
         }

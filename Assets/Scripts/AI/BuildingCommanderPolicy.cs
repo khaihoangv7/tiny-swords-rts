@@ -56,9 +56,13 @@ namespace TinyKingdom.AI
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
+            => Tick(context, roles, null);
+
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
+            StrategicSafetyMap safety)
         {
             RefreshInfrastructure(context.Knowledge);
-            if (MaintainActiveProject(context, roles)) return;
+            if (MaintainActiveProject(context, roles, safety)) return;
 
             BuildingType? need = ChooseNeed(context.Knowledge);
             if (!need.HasValue)
@@ -98,7 +102,9 @@ namespace TinyKingdom.AI
                 while (candidateIndex < candidates.Count && attempts < attemptsPerThink)
                 {
                     Vector2Int origin = candidates[candidateIndex++];
-                    if (!IsPolicyCandidate(context.Knowledge, data, origin)) continue;
+                    if (!IsPolicyCandidate(context.Knowledge, data, origin)
+                        || !IsFootprintSafe(context.Knowledge, data, origin, safety))
+                        continue;
                     attempts++;
                     roles.TryAssign(chosen, CommanderPawnRole.Builder);
                     CommanderCommandResult result = context.Commands.TryBuild(
@@ -125,12 +131,23 @@ namespace TinyKingdom.AI
         }
 
         private bool MaintainActiveProject(CommanderDecisionContext context,
-            CommanderPawnRoles roles)
+            CommanderPawnRoles roles, StrategicSafetyMap safety)
         {
             if (activeSite == null) activeSite = FindExistingProject(context.Knowledge);
             if (activeSite == null) return false;
             plannedBuilding = activeSite.Type;
             currentBuildCell = activeSite.Origin;
+
+            if (safety != null && IsActiveProjectUnsafe(activeSite, safety))
+            {
+                UnitController unsafeBuilder = builder;
+                unsafeBuilder?.GetComponent<PawnBuilder>()?.CancelJob();
+                unsafeBuilder?.GetComponent<UnitMovement>()?.Stop();
+                ReleaseBuilder(roles);
+                // The paused site is preserved. Economy policy runs later in the
+                // same Commander tick and retreats the now-economy Pawn if needed.
+                return true;
+            }
 
             if (!activeSite.IsAlive)
             {
@@ -163,6 +180,32 @@ namespace TinyKingdom.AI
                 replacement.GetComponent<PawnBuilder>(), activeSite);
             if (result == CommanderCommandResult.Accepted) builder = replacement;
             else roles.Release(replacement, CommanderPawnRole.Builder);
+            return true;
+        }
+
+        private static bool IsActiveProjectUnsafe(BuildingSite site,
+            StrategicSafetyMap safety)
+        {
+            if (site == null || safety == null) return false;
+            for (int y = 0; y < site.Footprint.y; y++)
+            for (int x = 0; x < site.Footprint.x; x++)
+                if (safety.RiskAt(site.Origin + new Vector2Int(x, y),
+                    StrategicPathKind.Civilian) >= StrategicRisk.Dangerous)
+                    return true;
+            return false;
+        }
+
+        private static bool IsFootprintSafe(FactionKnowledge knowledge, BuildingData data,
+            Vector2Int origin, StrategicSafetyMap safety)
+        {
+            if (safety == null) return true;
+            GridManager grid = knowledge.TeamVision?.GridManager;
+            if (grid == null) return false;
+            for (int y = 0; y < data.Footprint.y; y++)
+            for (int x = 0; x < data.Footprint.x; x++)
+                if (safety.RiskAt(origin + new Vector2Int(x, y),
+                    StrategicPathKind.Civilian) >= StrategicRisk.Dangerous)
+                    return false;
             return true;
         }
 

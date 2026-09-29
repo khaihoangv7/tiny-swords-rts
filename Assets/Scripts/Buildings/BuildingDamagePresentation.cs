@@ -1,3 +1,4 @@
+using System.Collections;
 using TinyKingdom.Presentation;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
@@ -5,6 +6,148 @@ using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
+    [DisallowMultipleComponent]
+    public sealed class BuildingSelectionPulse : MonoBehaviour
+    {
+        public const float SquashScaleY = 0.94f;
+        public const float StretchScaleY = 1.035f;
+        public const float SquashDuration = 0.055f;
+        public const float StretchDuration = 0.065f;
+        public const float RecoverDuration = 0.08f;
+
+        private SpriteRenderer visual;
+        private Vector3 basePosition;
+        private Vector3 baseScale;
+        private Coroutine active;
+
+        public bool IsConfigured => visual != null;
+        public SpriteRenderer Visual => visual;
+        public Vector3 StableWorldPosition => visual != null && visual.transform.parent != null
+            ? visual.transform.parent.TransformPoint(basePosition)
+            : visual != null ? visual.transform.position : transform.position;
+        public Vector3 StableLossyScale => visual != null && visual.transform.parent != null
+            ? Vector3.Scale(visual.transform.parent.lossyScale, baseScale)
+            : baseScale;
+
+        public static BuildingSelectionPulse Ensure(GameObject root,
+            SpriteRenderer renderer)
+        {
+            if (root == null || renderer == null) return null;
+            if (!root.TryGetComponent(out BuildingSelectionPulse pulse))
+                pulse = root.AddComponent<BuildingSelectionPulse>();
+            if (!pulse.IsConfigured || pulse.Visual != renderer)
+                pulse.Configure(renderer);
+            return pulse;
+        }
+
+        public void Configure(SpriteRenderer renderer)
+        {
+            if (renderer == null) return;
+            StopAndReset();
+            visual = renderer;
+            basePosition = renderer.transform.localPosition;
+            baseScale = renderer.transform.localScale;
+            Apply(1f);
+        }
+
+        public void Trigger()
+        {
+            if (!isActiveAndEnabled || visual == null) return;
+            if (active != null) StopCoroutine(active);
+            Apply(1f);
+            active = StartCoroutine(Play());
+        }
+
+        private IEnumerator Play()
+        {
+            yield return Animate(1f, SquashScaleY, SquashDuration);
+            yield return Animate(SquashScaleY, StretchScaleY, StretchDuration);
+            yield return Animate(StretchScaleY, 1f, RecoverDuration);
+            Apply(1f);
+            active = null;
+        }
+
+        private IEnumerator Animate(float from, float to, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                Apply(Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration)));
+                yield return null;
+            }
+            Apply(to);
+        }
+
+        private void Apply(float factor)
+        {
+            if (visual == null) return;
+            float bottomOffset = visual.sprite != null
+                ? visual.sprite.bounds.min.y * baseScale.y : 0f;
+            visual.transform.localScale = new Vector3(baseScale.x,
+                baseScale.y * factor, baseScale.z);
+            visual.transform.localPosition = new Vector3(basePosition.x,
+                basePosition.y + bottomOffset * (1f - factor), basePosition.z);
+        }
+
+        private void OnDisable() => StopAndReset();
+
+        private void StopAndReset()
+        {
+            if (active != null)
+            {
+                StopCoroutine(active);
+                active = null;
+            }
+            if (visual == null) return;
+            visual.transform.localPosition = basePosition;
+            visual.transform.localScale = baseScale;
+        }
+    }
+
+    // Presentation-only scale and ground anchoring. Logical footprints, colliders,
+    // interaction slots and navigation occupancy remain on the gameplay root.
+    public static class BuildingVisualPresentation
+    {
+        public const float NormalBuildingScale = 1.7f;
+
+        public static float ScaleFor(BuildingType type)
+            => type == BuildingType.GoldMine ? 1f : NormalBuildingScale;
+
+        public static void Apply(SpriteRenderer renderer, BuildingType type,
+            Vector2 baseOffset)
+        {
+            if (renderer == null || renderer.sprite == null) return;
+            float scale = ScaleFor(type);
+            float anchoredY = baseOffset.y
+                + (1f - scale) * renderer.sprite.bounds.min.y;
+            renderer.transform.localPosition = new Vector3(
+                baseOffset.x, anchoredY, renderer.transform.localPosition.z);
+            renderer.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        public static float TopLocalY(SpriteRenderer renderer)
+        {
+            if (renderer == null || renderer.sprite == null) return 0f;
+            return renderer.transform.localPosition.y
+                + renderer.sprite.bounds.max.y * Mathf.Abs(renderer.transform.localScale.y);
+        }
+
+        public static Vector2 ScalePointFromGround(SpriteRenderer renderer,
+            BuildingType type, Vector2 originalPoint)
+        {
+            if (renderer == null || renderer.sprite == null
+                || type == BuildingType.GoldMine) return originalPoint;
+            float scale = ScaleFor(type);
+            float centerX = renderer.transform.localPosition.x;
+            float bottom = renderer.transform.localPosition.y
+                + renderer.sprite.bounds.min.y * Mathf.Abs(renderer.transform.localScale.y);
+            return new Vector2(
+                centerX + (originalPoint.x - centerX) * scale,
+                bottom + (originalPoint.y - bottom) * scale);
+        }
+    }
+
     public readonly struct BuildingPresentationProfile
     {
         private readonly Vector2 fireAnchor0;
@@ -143,9 +286,11 @@ namespace TinyKingdom.Buildings
             {
                 var emitter = new GameObject("Fire_0" + (i + 1));
                 emitter.transform.SetParent(fireRoot.transform, false);
-                Vector2 anchor = profile.FireAnchor(i);
+                Vector2 anchor = BuildingVisualPresentation.ScalePointFromGround(
+                    host.PresentationRenderer, host.Type, profile.FireAnchor(i));
                 emitter.transform.localPosition = new Vector3(anchor.x, anchor.y, -0.05f);
-                emitter.transform.localScale = Vector3.one * profile.FireScale;
+                emitter.transform.localScale = Vector3.one * profile.FireScale
+                    * BuildingVisualPresentation.ScaleFor(host.Type);
                 fires[i] = emitter.AddComponent<SpriteLoopPlayer>();
                 fires[i].Configure(sources[i], FramesPerSecond, 17, i * 0.07f);
             }
@@ -218,7 +363,8 @@ namespace TinyKingdom.Buildings
             BuildingPresentationProfile profile = BuildingPresentationProfiles.For(type);
             var root = new GameObject("BuildingExplosionVfx");
             root.transform.position = new Vector3(position.x, position.y, -0.1f);
-            root.transform.localScale = Vector3.one * profile.ExplosionScale;
+            root.transform.localScale = Vector3.one * profile.ExplosionScale
+                * BuildingVisualPresentation.ScaleFor(type);
             BuildingExplosionVfx effect = root.AddComponent<BuildingExplosionVfx>();
             effect.faction = owner;
             effect.Configure(source, profile);

@@ -16,6 +16,7 @@ namespace TinyKingdom.Buildings
         private float flashRemaining;
 
         public Faction Faction => host.Faction;
+        public BuildingType Type => host != null ? host.Type : default;
         public bool IsAlive => host != null && host.IsAlive;
         public bool IsTargetable => IsAlive && host.IsDefenseReady;
         public Transform TargetTransform => host.HostTransform;

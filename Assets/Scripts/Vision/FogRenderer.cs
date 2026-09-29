@@ -73,7 +73,7 @@ namespace TinyKingdom.Vision
 
         public void RefreshNow()
         {
-            if (grid == null || grid.NavigationData == null || texture == null) return;
+            if (grid == null || grid.NavigationData == null || !EnsureBuffers()) return;
             using (RefreshMarker.Auto())
             {
                 RasterizeSources();
@@ -192,7 +192,7 @@ namespace TinyKingdom.Vision
 
         private void RenderDisplayedFaction()
         {
-            if (texture == null || pixels == null) return;
+            if (!EnsureBuffers()) return;
             int team = TeamIndex(displayedFaction);
             byte[] coverage = revealCoverage[team];
             bool[] explored = exploredSamples[team];
@@ -204,6 +204,31 @@ namespace TinyKingdom.Vision
             }
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
+        }
+
+        private bool EnsureBuffers()
+        {
+            if (texture == null) return false;
+            maskWidth = texture.width;
+            maskHeight = texture.height;
+            int count = maskWidth * maskHeight;
+            if (pixels == null || pixels.Length != count)
+                pixels = new Color32[count];
+            if (revealCoverage == null || revealCoverage.Length != FactionCount)
+                revealCoverage = NewFactionArrays<byte>(count);
+            else
+                for (int faction = 0; faction < FactionCount; faction++)
+                    if (revealCoverage[faction] == null
+                        || revealCoverage[faction].Length != count)
+                        revealCoverage[faction] = new byte[count];
+            if (exploredSamples == null || exploredSamples.Length != FactionCount)
+                exploredSamples = NewFactionArrays<bool>(count);
+            else
+                for (int faction = 0; faction < FactionCount; faction++)
+                    if (exploredSamples[faction] == null
+                        || exploredSamples[faction].Length != count)
+                        exploredSamples[faction] = new bool[count];
+            return true;
         }
 
         private ulong CalculateSourceSignature()
