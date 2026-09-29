@@ -8,6 +8,12 @@ using UnityEngine;
 
 namespace TinyKingdom.Units
 {
+    public enum CombatDirective
+    {
+        Normal,
+        Retreat
+    }
+
     [RequireComponent(typeof(UnitController), typeof(UnitMovement), typeof(HealthComponent))]
     public sealed class CombatController : MonoBehaviour
     {
@@ -52,6 +58,7 @@ namespace TinyKingdom.Units
         private bool stoppedForMatchEnd;
         private float mountedDamageMultiplier = 1f;
         private float mountedRangeMultiplier = 1f;
+        private CombatDirective directive;
 
         public UnitController Target => target;
         public BuildingCombatTarget BuildingTarget => buildingTarget;
@@ -66,6 +73,7 @@ namespace TinyKingdom.Units
             : combatData.AttackRange * (mounted ? mountedRangeMultiplier : 1f);
         public float EffectiveDamageMultiplier => mounted ? mountedDamageMultiplier : 1f;
         public bool IsRetaliating => retaliationTarget;
+        public CombatDirective Directive => directive;
         public bool HasAttackPresentationListener => AttackPerformed != null;
 
         private void Awake()
@@ -106,6 +114,7 @@ namespace TinyKingdom.Units
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
+            directive = CombatDirective.Normal;
             if (stationedInternal || mounted) return false;
             GetComponent<UnitStationing>()?.CancelPending();
             if (!CanAcquireThroughTeamVision(enemy))
@@ -133,6 +142,7 @@ namespace TinyKingdom.Units
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
+            directive = CombatDirective.Normal;
             if (stationedInternal || mounted || enemy == null || !enemy.IsTargetable
                 || enemy.Faction == controller.Faction
                 || !CombatVisibility.CanFactionCurrentlyObserveTarget(
@@ -163,6 +173,7 @@ namespace TinyKingdom.Units
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
+            directive = CombatDirective.Normal;
             if (stationedInternal || mounted || !controller.IsAlive) return false;
             GetComponent<UnitStationing>()?.CancelPending();
             bool issued = commandPosition.HasValue && traversalPolicy != null
@@ -190,6 +201,7 @@ namespace TinyKingdom.Units
         // Called only after a normal Move path has been validated.
         public void OnMoveIssued()
         {
+            directive = CombatDirective.Normal;
             ClearTarget();
             ClearBuildingTarget();
             order = CombatOrder.Move;
@@ -203,6 +215,7 @@ namespace TinyKingdom.Units
 
         public void StopCombat()
         {
+            directive = CombatDirective.Normal;
             ClearTarget();
             ClearBuildingTarget();
             order = CombatOrder.Idle;
@@ -217,7 +230,8 @@ namespace TinyKingdom.Units
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
-            if (combatData == null || !combatData.CanRetaliateWhenDamaged
+            if (directive == CombatDirective.Retreat
+                || combatData == null || !combatData.CanRetaliateWhenDamaged
                 || !controller.IsAlive || stationedInternal || mounted
                 || controller.CurrentState == UnitState.Guarding
                 || order is CombatOrder.ExplicitAttack or CombatOrder.Move
@@ -283,7 +297,8 @@ namespace TinyKingdom.Units
                 if ((order == CombatOrder.Move || order == CombatOrder.Returning
                     || order == CombatOrder.AttackMove) && !movement.IsMoving)
                     order = CombatOrder.Idle;
-                if (combatData != null && combatData.AutoAcquireTargets
+                if (directive != CombatDirective.Retreat
+                    && combatData != null && combatData.AutoAcquireTargets
                     && (order == CombatOrder.Idle || order == CombatOrder.AttackMove)
                     && acquisitionRemaining <= 0f)
                 {
@@ -766,7 +781,8 @@ namespace TinyKingdom.Units
 
         private bool TryAcquireImmediately()
         {
-            if (combatData == null || !combatData.AutoAcquireTargets) return false;
+            if (directive == CombatDirective.Retreat
+                || combatData == null || !combatData.AutoAcquireTargets) return false;
             acquisitionRemaining = combatData != null
                 ? Mathf.Max(0.05f, combatData.AcquisitionInterval) : 0.25f;
             UnitController nearest = FindNearestAutoTarget();
@@ -777,6 +793,11 @@ namespace TinyKingdom.Units
 
         private void ResumeAttackMove()
         {
+            if (directive == CombatDirective.Retreat)
+            {
+                order = CombatOrder.Move;
+                return;
+            }
             bool issued = attackMoveTraversalPolicy != null
                 ? movement.TryIssueAttackMove(attackMoveDestination,
                     attackMoveCommandPosition, attackMoveTraversalPolicy)
@@ -890,6 +911,35 @@ namespace TinyKingdom.Units
             controller ??= GetComponent<UnitController>();
             movement ??= GetComponent<UnitMovement>();
             health ??= GetComponent<HealthComponent>();
+        }
+
+        public void BeginRetreat()
+        {
+            ResolveReferences();
+            ClearTarget();
+            ClearBuildingTarget();
+            directive = CombatDirective.Retreat;
+            order = CombatOrder.Move;
+            hasIdleDefenseOrigin = false;
+            suppressedAutoTarget = null;
+            attackMoveTraversalPolicy = null;
+            movement.Stop();
+        }
+
+        public void ConfirmRetreatMovement()
+        {
+            directive = CombatDirective.Retreat;
+            order = CombatOrder.Move;
+            hasIdleDefenseOrigin = false;
+            suppressedAutoTarget = null;
+            attackMoveTraversalPolicy = null;
+        }
+
+        public void EndRetreat()
+        {
+            if (directive != CombatDirective.Retreat) return;
+            directive = CombatDirective.Normal;
+            acquisitionRemaining = 0f;
         }
 
         private void HandleTargetDeath(HealthComponent deadTarget)

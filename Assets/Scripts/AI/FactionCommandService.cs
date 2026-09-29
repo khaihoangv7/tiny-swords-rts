@@ -25,6 +25,7 @@ namespace TinyKingdom.AI
         public FactionKnowledge Knowledge => knowledge;
         public BuildingSystem BuildingSystem => buildingSystem;
         public bool SupportsMilitaryCommands => true;
+        public bool SupportsRetreatCommands => true;
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge)
             => Configure(owner, factionKnowledge, null);
@@ -55,6 +56,28 @@ namespace TinyKingdom.AI
                 : movement.TryIssueStrategicMove(destination, traversalPolicy);
             if (!moved)
                 return CommanderCommandResult.RejectedUnreachable;
+            actor.GetComponent<PawnGatherer>()?.CancelJob();
+            return CommanderCommandResult.Accepted;
+        }
+
+        public CommanderCommandResult TryRetreatMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
+        {
+            using var marker = CommandDispatchMarker.Auto();
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.CommanderMove);
+            CommanderCommandResult actorResult = ValidateActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            UnitMovement movement = actor.GetComponent<UnitMovement>();
+            CombatController combat = actor.GetComponent<CombatController>();
+            if (movement == null || combat == null)
+                return CommanderCommandResult.RejectedInvalidActor;
+            combat.BeginRetreat();
+            bool moved = traversalPolicy == null
+                ? movement.TryIssueMove(destination)
+                : movement.TryIssueStrategicMove(destination, traversalPolicy);
+            if (!moved) return CommanderCommandResult.RejectedUnreachable;
+            combat.ConfirmRetreatMovement();
             actor.GetComponent<PawnGatherer>()?.CancelJob();
             return CommanderCommandResult.Accepted;
         }

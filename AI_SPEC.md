@@ -290,6 +290,64 @@ uses Move to a support point behind the group centroid; Scout remains separate.
 Fixed markers are `TinyKingdom.AI.OffensiveEvaluation`,
 `TinyKingdom.AI.StrategicTargetSelection`, `TinyKingdom.AI.OffensiveAdvance` and
 `TinyKingdom.AI.OffensiveRegroup`. The Commander tick remains 0.50 seconds. Phase
-7C.3 retains strength-based retreat, casualty rules, counter composition, multiple
-squads, tactical micro, advanced Monk positioning, Gold Mine warfare and special
-Castle assault planning.
+7C.3 retains counter composition, multiple squads, tactical micro, advanced Monk
+positioning, Gold Mine warfare and special Castle assault planning.
+
+## Phase 7C.3 combat strength, retreat and recovery
+
+The single Army Group adds `Retreating` and `Recovering`. The complete strategic
+flow is Forming -> Ready -> PreparingAttack -> Advancing -> Assaulting, with
+Defending able to interrupt legitimate base emergencies. A losing Advancing or
+Assaulting campaign enters Retreating, completes its movement home, then enters
+Recovering. Recovery returns to Ready for a later normal Phase 7C.2 evaluation;
+it never launches a new offensive in the same evaluation.
+
+`CombatStrengthTuning` uses provisional relative values: Warrior 1.00, Archer
+0.75, Lancer 0.60 and Monk support 0.45. Effective unit strength is base value
+times clamped current-HP ratio. Pawn is excluded. Visible Tower and Castle add
+2.00 and 3.00 respectively, also health weighted. This preserves the current
+balance fact that one Warrior is stronger than one Lancer while treating Monk as
+support rather than direct damage.
+
+Exact enemy strength is derived only from copied `FactionKnowledge` observations
+inside a provisional nine-unit radius of the current campaign centroid. Hidden
+units immediately contribute zero. A Scout seeing enemies elsewhere cannot affect
+the main battle. Only currently visible Tower/Castle snapshots contribute exact
+building strength; hidden remembered defenses remain route/target risk through
+`StrategicSafetyMap` and never expose live HP or garrison state.
+
+At the actual PreparingAttack -> Advancing transition, the policy records starting
+campaign population, member count, effective strength and average HP. The current
+casualty ratio uses only surviving members of that snapshot, so reinforcements at
+Rally cannot improve it. Heavy casualties below 0.45 retreat immediately. Average
+HP below 0.35 or relevant visible enemy strength above 1.40 times own strength must
+persist for two Commander evaluations. Minor cohesion loss still uses local regroup.
+
+Retreat clears offensive target and AttackMove intent without deleting legal
+building memory. `FactionCommandService.TryRetreatMove` applies the generic
+`CombatDirective.Retreat` and distributes survivors around the existing staging
+point. The directive suppresses new passive acquisition, retaliation and long
+chase while preserving normal damage received; Phase 7C.3 chooses movement priority
+instead of self-defense micro. Commands are retained while movement progresses and
+retried only after failure or unexpected Idle. Seventy-five percent of surviving
+participants reaching staging completes retreat; a provisional 12-second timeout
+prevents one stuck survivor from blocking recovery.
+
+Recovering keeps economy, production, construction and Scout policies running.
+Readiness requires at least six military population, 75 percent staged, at least
+three seconds recovery time, and either average HP 0.65 or effective strength 4.0.
+It does not require full HP or a living Monk, so fresh production can recover an
+army without regeneration. A provisional ten-second recovery ceiling permits a
+staged six-population Army to leave recovery even when no healing source exists,
+preventing an injured no-Monk force from deadlocking forever. Units produced during
+retreat remain at Rally and join only after survivors return. A recent
+failed/retreated objective cools down for 12 seconds; another legal objective may
+be chosen meanwhile.
+
+An emergency near the Red base can interrupt Recovering immediately. A Retreating
+army finishes the distant part of withdrawal first and may defend once at least
+half of its survivors are back; after that defense it resumes recovery. Reset and
+Match End clear campaign members, baselines, directives, hysteresis, cooldowns and
+destinations. Fixed markers are `TinyKingdom.AI.CombatStrengthAssessment`,
+`TinyKingdom.AI.RetreatEvaluation`, `TinyKingdom.AI.RetreatExecution` and
+`TinyKingdom.AI.RecoveryEvaluation`.

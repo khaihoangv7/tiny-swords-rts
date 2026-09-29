@@ -85,6 +85,22 @@ namespace TinyKingdom.AI
         [SerializeField] private string debugOffensiveReason;
         [SerializeField] private float debugOffensiveStartTime;
         [SerializeField] private int debugOffensiveFailures;
+        [SerializeField] private int debugCampaignStartPopulation;
+        [SerializeField] private int debugCampaignStartMemberCount;
+        [SerializeField] private float debugCampaignStartStrength;
+        [SerializeField] private int debugCampaignSurvivors;
+        [SerializeField] private float debugRemainingForceRatio;
+        [SerializeField] private float debugOwnEffectiveStrength;
+        [SerializeField] private float debugVisibleEnemyStrength;
+        [SerializeField] private float debugEnemyOwnStrengthRatio;
+        [SerializeField] private float debugAverageArmyHealth;
+        [SerializeField] private int debugRelevantVisibleEnemies;
+        [SerializeField] private Vector3 debugArmyCentroid;
+        [SerializeField] private string debugRetreatReason;
+        [SerializeField] private float debugRetreatStartTime;
+        [SerializeField] private float debugRetreatArrivedFraction;
+        [SerializeField] private float debugRecoveryDuration;
+        [SerializeField] private bool debugRecoveryReady;
         [SerializeField] private int debugKnownStaticDangers;
         [SerializeField] private int debugVisibleDynamicDangers;
         [SerializeField] private string debugScoutSafetyState;
@@ -237,6 +253,22 @@ namespace TinyKingdom.AI
             debugOffensiveReason = militaryPolicy.ObjectiveReason;
             debugOffensiveStartTime = militaryPolicy.OperationStartTime;
             debugOffensiveFailures = militaryPolicy.ObjectiveFailureCount;
+            debugCampaignStartPopulation = militaryPolicy.CampaignStartPopulation;
+            debugCampaignStartMemberCount = militaryPolicy.CampaignStartMemberCount;
+            debugCampaignStartStrength = militaryPolicy.CampaignStartEffectiveStrength;
+            debugCampaignSurvivors = militaryPolicy.CampaignSurvivorCount;
+            debugRemainingForceRatio = militaryPolicy.RemainingForceRatio;
+            debugOwnEffectiveStrength = militaryPolicy.OwnEffectiveStrength;
+            debugVisibleEnemyStrength = militaryPolicy.VisibleRelevantEnemyStrength;
+            debugEnemyOwnStrengthRatio = militaryPolicy.EnemyStrengthRatio;
+            debugAverageArmyHealth = militaryPolicy.AverageArmyHealth;
+            debugRelevantVisibleEnemies = militaryPolicy.VisibleRelevantEnemyCount;
+            debugArmyCentroid = militaryPolicy.ArmyCentroid;
+            debugRetreatReason = militaryPolicy.CurrentRetreatReason.ToString();
+            debugRetreatStartTime = militaryPolicy.RetreatStartTime;
+            debugRetreatArrivedFraction = militaryPolicy.RetreatArrivedFraction;
+            debugRecoveryDuration = militaryPolicy.RecoveryDuration(Time.time);
+            debugRecoveryReady = militaryPolicy.RecoveryReady;
             debugKnownStaticDangers = strategicSafety.KnownStaticDangerCount;
             debugVisibleDynamicDangers = strategicSafety.VisibleDynamicThreatCount;
             debugScoutSafetyState = scoutingPolicy.SafetyState.ToString();
@@ -287,6 +319,13 @@ namespace TinyKingdom.AI
                     if (militaryPolicy.HasStagingPosition)
                         Gizmos.DrawLine(militaryPolicy.StagingPosition,
                             militaryPolicy.CurrentObjectivePosition);
+                }
+                if (militaryPolicy.Army.State is ArmyGroupState.Advancing
+                    or ArmyGroupState.Assaulting or ArmyGroupState.Retreating)
+                {
+                    Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.45f);
+                    Gizmos.DrawWireSphere(militaryPolicy.ArmyCentroid,
+                        militaryPolicy.CombatAssessmentRadius);
                 }
             }
             if (drawStrategicSafetyGizmos && strategicSafety != null

@@ -217,3 +217,18 @@ hidden unit Transform or redirect a campaign toward a vanished unit. Army pathfi
 may use authoritative terrain/occupancy internally and may enter Unexplored cells on
 the route to a legally known destination; hidden blocker identity is never returned
 to `FactionKnowledge`.
+
+## Phase 7C.3 combat assessment visibility rules
+
+Combat strength consumes only the current `FactionKnowledge.VisibleEnemyUnits` and
+`VisibleEnemyBuildings` value snapshots. A visible hostile unit contributes only
+while it is within nine world units of the active Army campaign centroid. It stops
+contributing on the first knowledge refresh after leaving Red vision. Enemy units
+seen by a remote Scout do not affect the main Army outside that local radius, and no
+last-known unit position is introduced.
+
+Only a currently visible Tower or Castle may contribute its observed health-weighted
+defensive value to exact battle strength. A hidden remembered Tower/Castle may still
+affect legal strategic target selection and `StrategicSafetyMap` route costs, but
+combat assessment does not resolve its live object, current HP, garrison, damage or
+destruction state. Undiscovered enemies have no influence on retreat decisions.

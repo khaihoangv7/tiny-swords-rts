@@ -211,5 +211,19 @@ receives no hidden GameObject, Transform, HP or destruction event.
 A remembered building snapshot is a legal strategic destination only. Direct Attack
 still requires a current TeamVision-backed observation. Low-level A*, group
 destinations, target acquisition, combat timing and damage remain normal gameplay.
-Phase 7C.2 adds no ML-Agents package, tensors, rewards or training loop; detailed
-retreat and multi-squad strategy remain deferred.
+Phase 7C.2 adds no ML-Agents package, tensors, rewards or training loop. Retreat is
+defined by the following Phase 7C.3 contract; multi-squad strategy remains deferred.
+
+## Phase 7C.3 shared retreat action and future observations
+
+Phase 7C.3 adds the shared validated `FactionCommandService.TryRetreatMove` action
+and generic `CombatDirective.Retreat`. Rule-Based AI uses it now; a future RL
+Commander may choose the same high-level Retreat intent without controlling paths,
+waypoints, target acquisition or individual attacks.
+
+Potential future observations include own effective Army strength, average HP,
+campaign remaining-force ratio, staging cohesion and locally relevant currently
+visible enemy strength. These values must use the same `FactionKnowledge` legality:
+hidden enemy units contribute nothing, remote Scout observations outside the battle
+radius contribute nothing, and hidden building live state is unavailable. Phase
+7C.3 adds no ML-Agents package, tensor, reward, training loop or RL policy.
