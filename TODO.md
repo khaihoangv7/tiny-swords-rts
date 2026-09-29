@@ -854,3 +854,35 @@ and Profiler comparison remain required before PASS.
 - [ ] Profile 0.50-second Commander tick, offensive markers, GC and path requests against Phase 7C.1
 - [ ] Confirm Unity Console has no new errors or warnings
 - [ ] Phase 7C.3 remains deferred
+
+## Gameplay SFX Foundation / Initial Audio Integration
+
+Status: **NOT COMPLETE** - implementation and data setup are present. Unity asset
+refresh, Edit/Play Mode validator runs and manual listening/Fog regression tests
+remain required before PASS. This is not the full Phase 6E audio phase.
+
+- [x] Add a serialized GameplayAudioCatalog with seven verified clip references
+- [x] Add a persistent GameplayAudioService with a fixed 12-source world SFX pool
+- [x] Add per-event volume, concurrency, playback cap and optional subtle pitch tuning
+- [x] Add SfxVolume with default 1.0 for future settings/mixer integration
+- [x] Trigger Warrior/Lancer only after successful melee damage
+- [x] Trigger Archer at actual projectile creation
+- [x] Trigger Monk only after positive HP restoration
+- [x] Trigger mining/chopping only after positive resource transfer
+- [x] Trigger SheepHurt only for positive Food removal on verified Sheep resources
+- [x] Suppress hidden enemy/neutral world SFX through current TeamVision visibility
+- [x] Stop and reset pooled sources on Match End and scene reload
+- [x] Preserve one existing Main Camera AudioListener and add no listener
+- [x] Add `Tools > Tiny Kingdom > Prepare Gameplay Audio`
+- [x] Add `Tools > Tiny Kingdom > Validate Gameplay Audio`
+- [x] Reduce Mining, Chopping and Sheep Hurt volume to provisional 0.45
+- [x] Skip the silent first 3.0 seconds of the supplied Chopping clip
+- [x] Use Main Camera centered linear distance attenuation for world SFX
+- [ ] Refresh assets and run Prepare/Validate in Unity Edit Mode
+- [ ] Run Validate again in Play Mode and confirm one service/listener and valid pool
+- [ ] Manually verify each of the seven action triggers and no travel/command sound
+- [ ] Tune volume/playback caps after listening to the supplied long action clips
+- [ ] Verify hidden Red combat and hidden Sheep damage produce no audio leak
+- [ ] Verify camera distance attenuation, multi-unit concurrency and economy load
+- [ ] Verify Match End/Restart, Blue controls, Red AI, Fog and clean Console
+- [ ] Add Pawn Food, impacts, death, building, UI/result, ambience and music later

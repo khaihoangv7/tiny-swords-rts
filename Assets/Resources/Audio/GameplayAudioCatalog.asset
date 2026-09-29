@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3e9d74c2b4a4f1bbd680a23c8d10e03, type: 3}
+  m_Name: GameplayAudioCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Audio.GameplayAudioCatalog
+  cues:
+  - eventId: 0
+    clip: {fileID: 8300000, guid: e0a822901eed0f94d8ece2638213856f, type: 3}
+    volume: 0.8
+    maxConcurrent: 3
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0.8
+  - eventId: 1
+    clip: {fileID: 8300000, guid: a235c4d34dfaa644f9bcd513ae81f4e5, type: 3}
+    volume: 0.8
+    maxConcurrent: 3
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 1.25
+  - eventId: 2
+    clip: {fileID: 8300000, guid: 001481c845ada704fbdc48bc9d3ad993, type: 3}
+    volume: 0.75
+    maxConcurrent: 3
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 1.25
+  - eventId: 3
+    clip: {fileID: 8300000, guid: 3d134f033589e0b4ebaa1e392a0bcba2, type: 3}
+    volume: 0.75
+    maxConcurrent: 2
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 1.5
+  - eventId: 4
+    clip: {fileID: 8300000, guid: a3313071e64420d4682b1d499f9e7330, type: 3}
+    volume: 0.45
+    maxConcurrent: 2
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 1.25
+  - eventId: 5
+    clip: {fileID: 8300000, guid: 3d48a7961ddfddb41a22d5de494ec510, type: 3}
+    volume: 0.45
+    maxConcurrent: 2
+    duplicateCooldown: 0
+    startTimeSeconds: 3
+    maxPlaybackSeconds: 1.25
+  - eventId: 6
+    clip: {fileID: 0}
+    volume: 0.65
+    maxConcurrent: 2
+    duplicateCooldown: 0
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 7
+    clip: {fileID: 8300000, guid: 0e56d9b0afde22d4daf040d398a0cf5a, type: 3}
+    volume: 0.45
+    maxConcurrent: 2
+    duplicateCooldown: 0.15
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0.8
+  poolSize: 12
+  spatialBlend: 1
+  minDistance: 10
+  maxDistance: 32
+  pitchVariation: 1
+  minimumPitch: 0.96
+  maximumPitch: 1.04

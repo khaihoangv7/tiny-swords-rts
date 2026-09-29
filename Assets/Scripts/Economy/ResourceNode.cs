@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TinyKingdom.Audio;
 using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
 using TinyKingdom.Units;
@@ -75,6 +76,7 @@ namespace TinyKingdom.Economy
         public const float LargeGoldInteractionOffsetFactor = -0.22f;
 
         private static readonly List<ResourceNode> registeredNodes = new();
+        private static int nextAudioSourceKey;
         [SerializeField] private ResourceType resourceType;
         [SerializeField, Min(1)] private int maximumAmount = 100;
         [SerializeField, Min(0)] private int remainingAmount = 100;
@@ -86,6 +88,7 @@ namespace TinyKingdom.Economy
         private bool centerVisualY;
         private float presentationScale = UnitVisualPresentation.Scale;
         private ResourceSelectionIndicator selectionIndicator;
+        private int audioSourceKey;
 
         public static IReadOnlyList<ResourceNode> ActiveNodes => registeredNodes;
         public ResourceType ResourceType => resourceType;
@@ -102,6 +105,7 @@ namespace TinyKingdom.Economy
 
         private void OnEnable()
         {
+            if (audioSourceKey == 0) audioSourceKey = ++nextAudioSourceKey;
             EnsureSelectionIndicator();
             if (!registeredNodes.Contains(this)) registeredNodes.Add(this);
         }
@@ -177,7 +181,12 @@ namespace TinyKingdom.Economy
                 ? GetComponent<ResourceHarvestFlash>() : null;
             if (taken > 0) flash?.Play(IsDepleted);
             if (taken > 0 && resourceType == ResourceType.Food)
+            {
                 GetComponent<HitSquashStretchPresentation>()?.Trigger();
+                if (GetComponent<SheepPresentation>() != null)
+                    GameplayAudioService.Request(GameplayAudioEvent.SheepHurt,
+                        transform.position, null, audioSourceKey);
+            }
             if (taken > 0 && resourceType == ResourceType.Gold)
                 GetComponent<GoldHarvestHighlight>()?.Play();
             if (IsDepleted)

@@ -1,3 +1,4 @@
+using TinyKingdom.Audio;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
 using UnityEngine;
@@ -78,6 +79,8 @@ namespace TinyKingdom.Units
             int restored = target.Heal(HealAmount);
             if (restored <= 0) return;
             cooldown = HealInterval;
+            GameplayAudioService.Request(GameplayAudioEvent.MonkHeal,
+                target.transform.position, controller.Faction);
             Vector2 direction = target.transform.position - transform.position;
             animator?.PlayAction(direction);
             OneShotSpriteVfx.Spawn("Heal_Effect", target.transform.position,

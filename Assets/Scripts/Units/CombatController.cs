@@ -1,4 +1,5 @@
 using System;
+using TinyKingdom.Audio;
 using TinyKingdom.Navigation;
 using TinyKingdom.Buildings;
 using TinyKingdom.Vision;
@@ -397,9 +398,10 @@ namespace TinyKingdom.Units
                     attackCooldown = combatData.AttackInterval;
                     Vector2 direction = target.transform.position - transform.position;
                     AttackPerformed?.Invoke(direction);
-                    targetHealth.ReceiveAttack(combatData.BaseDamage,
+                    bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
                         combatData.UnitType, combatData.AttackDelivery, 1f, true,
                         controller);
+                    if (damaged) PlayMeleeAttackSound();
                 }
                 return;
             }
@@ -581,8 +583,9 @@ namespace TinyKingdom.Units
                     Vector3 attackDirection = buildingTarget.AttackPresentationPoint(
                         transform.position) - transform.position;
                     AttackPerformed?.Invoke(attackDirection);
-                    buildingTarget.ReceiveAttack(combatData.BaseDamage, combatData.UnitType,
-                        combatData.AttackDelivery);
+                    bool damaged = buildingTarget.ReceiveAttack(combatData.BaseDamage,
+                        combatData.UnitType, combatData.AttackDelivery);
+                    if (damaged) PlayMeleeAttackSound();
                 }
                 return;
             }
@@ -827,6 +830,7 @@ namespace TinyKingdom.Units
                 combatData.UnitType, combatData.ProjectileSpeed, projectileArcHeight,
                 sourceMultiplier, true, controller);
             LastProjectile = projectile;
+            PlayArcherAttackSound();
         }
 
         private void LaunchBuildingProjectile()
@@ -843,6 +847,27 @@ namespace TinyKingdom.Units
                 combatData.UnitType, combatData.ProjectileSpeed, projectileArcHeight, 1f, true,
                 controller);
             LastProjectile = projectile;
+            PlayArcherAttackSound();
+        }
+
+        private void PlayMeleeAttackSound()
+        {
+            GameplayAudioEvent? eventId = combatData.UnitType switch
+            {
+                UnitType.Warrior => GameplayAudioEvent.WarriorAttack,
+                UnitType.Lancer => GameplayAudioEvent.LancerAttack,
+                _ => null
+            };
+            if (eventId.HasValue)
+                GameplayAudioService.Request(eventId.Value, transform.position,
+                    controller.Faction);
+        }
+
+        private void PlayArcherAttackSound()
+        {
+            if (combatData.UnitType == UnitType.Archer)
+                GameplayAudioService.Request(GameplayAudioEvent.ArcherAttack,
+                    transform.position, controller.Faction);
         }
 
         public void SetStationedInternal(bool value)
