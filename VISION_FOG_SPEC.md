@@ -137,7 +137,24 @@ known-valid ground and rejected on `Unexplored` ground.
 
 - Terrain, cliff, tree, unit and building line-of-sight occlusion.
 - Stealth, camouflage, detection and minimap.
-- AI and Reinforcement Learning observations, actions or rewards.
+- Reinforcement Learning rewards and policies.
+
+## Phase 7A Commander knowledge
+
+`FactionKnowledge` is the observation boundary for Red Rule-Based Commander and
+future RL Commander implementations. It combines authoritative own-faction state
+with Red `TeamVisionSystem` and `FogMemorySystem` data.
+
+The current enemy-unit list is rebuilt on every 0.50-second Commander refresh and
+contains only units in Red Visible cells. A unit leaving vision is removed and no
+live reference or last-known position remains. Building and resource memory is
+copied into value snapshots. Hidden damage, destruction, repair, production,
+movement and depletion cannot change those copies until Red sees the location again.
+
+Scouting reads only Visible/Explored/Unexplored cell states. It selects explored
+frontier cells adjacent to Unexplored space and does not receive hidden enemy or
+resource coordinates. A* remains authoritative internally without exposing the
+identity or state of hidden blockers.
 
 ## Phase 6C.2 neutral objective visibility
 

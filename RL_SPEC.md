@@ -142,3 +142,17 @@ APIs used by human input. Future Commanders may call those APIs but receive no
 new policy, reward or direct unit-motion control in this phase. Gold Mine and
 Goblin observations must follow the same faction knowledge contract as the
 human player.
+
+## Phase 7A shared Commander contract
+
+Phase 7A introduces `ICommander`, `CommanderDecisionContext`, `FactionKnowledge`
+and `FactionCommandService`. The Rule-Based Commander receives own authoritative
+state, currently visible enemy units and copied last-seen building/resource values.
+It receives no hidden live enemy reference. Its only current actions are validated
+Move and Gather commands.
+
+A future `RLCommander` must use the same knowledge legality and command authority.
+RL does not get an omniscient observation path, direct transform/resource mutation
+or mouse simulation by default. Invalid RL actions will receive the same structured
+command rejection results. Phase 7A adds no ML-Agents package, reward function,
+training loop or RL action policy.

@@ -1580,7 +1580,27 @@ lethal gameplay death remains immediate. Each successful Sheep Food transfer
 triggers the same deformation alongside the existing harvest flash without
 turning gathering into combat damage.
 
-# 52. Source of Truth
+# 52. Phase 7A Rule-Based Commander Foundation
+
+Red is controlled by one Rule-Based Commander while Blue remains human-controlled.
+The Phase 7A Commander only balances Pawn gathering and assigns one scout. Its
+default worker targets are Food 40%, Wood 35% and Gold 25%, with deterministic
+small-roster allocations of 1/1/1 for three workers and 2/1/1 for four workers.
+An active Pawn scout is excluded from economy counts.
+
+Commander decisions run every 0.50 seconds and use `FactionKnowledge`. Own-faction
+state is authoritative. Enemy units exist in observations only while currently
+Visible. Buildings and resources may persist only as copied last-seen snapshots;
+hidden live state and live object references are unavailable. Scouting chooses Red
+exploration frontiers with priority Lancer, Warrior, Archer, Pawn and never Monk.
+
+All AI actions use `FactionCommandService`. Phase 7A exposes Move and Gather and
+enforces match state, ownership, actor, visibility and reachability validation.
+The Commander stops issuing commands outside `MatchState.Playing`. Construction,
+production, military strategy, Gold Mine contest logic, Goblin AI and RL remain
+deferred. Detailed contracts are in `AI_SPEC.md`.
+
+# 53. Source of Truth
 
 This file defines gameplay rules.
 

@@ -165521,6 +165521,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Economy.EconomyTestSetup
   battlefieldLayout: {fileID: 11400000, guid: b414dda1aeb6b45458cbad17ffdfeede, type: 2}
   pawnAnimations: {fileID: 11400000, guid: e74099dee5084d11a59126fb6a34f458, type: 2}
+  redPawnAnimations: {fileID: 11400000, guid: f0bfd6436a20c4347b69b5a2581334d6, type: 2}
   pawnCombatData: {fileID: 11400000, guid: ffff99dd512c4033a1264670a9f8bb0d, type: 2}
   warriorCombatData: {fileID: 11400000, guid: d10c42fe3ab2486e9db0591734bc65f2, type: 2}
   lancerCombatData: {fileID: 11400000, guid: 2cadc9bd488d42c390703ef1e726b42e, type: 2}
