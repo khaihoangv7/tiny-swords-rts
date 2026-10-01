@@ -378,6 +378,138 @@ namespace TinyKingdom.EditorTools
                     " Run again in Play Mode for runtime object checks."));
         }
 
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.4 Interaction Polish")]
+        public static void RunPhase6D4InteractionPolish()
+        {
+            PawnAnimationSet bluePawn = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>(
+                "Assets/UnitAnimations/BluePawn.asset");
+            PawnAnimationSet redPawn = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>(
+                "Assets/UnitAnimations/RedPawn.asset");
+            Require(bluePawn != null && bluePawn.Hammer.Length > 1,
+                "Blue Pawn Hammer animation mapping is missing.");
+            Require(redPawn != null && redPawn.Hammer.Length > 1,
+                "Red Pawn Hammer animation mapping is missing.");
+            PresentationAssetCatalog presentation = PresentationAssetCatalog.Load();
+            Require(presentation != null && presentation.SheepIdle.Length == 6
+                && presentation.SheepGrass.Length == 12
+                && presentation.SheepMove.Length == 4
+                && presentation.SheepIdle.Concat(presentation.SheepGrass)
+                    .Concat(presentation.SheepMove).All(frame => frame != null
+                        && frame.rect.width is >= 47f and <= 49f
+                        && frame.rect.height is >= 42f and <= 49f),
+                "Verified Sheep animation frames or their expected trimmed bounds changed.");
+
+            GameCursorController cursor = UnityEngine.Object.FindAnyObjectByType<GameCursorController>();
+            Require(cursor != null, "GameCursorController is missing from the active scene.");
+            SerializedProperty hand = new SerializedObject(cursor).FindProperty("handCursor");
+            Require(hand?.objectReferenceValue != null, "GameCursorController Hand cursor is missing.");
+            SerializedObject cursorData = new(cursor);
+            Require(cursorData.FindProperty("defaultHotspot").vector2Value == new Vector2(22f, 17f)
+                && cursorData.FindProperty("handHotspot").vector2Value == new Vector2(24f, 18f)
+                && cursorData.FindProperty("forbiddenHotspot").vector2Value == new Vector2(32f, 31f),
+                "Cursor hotspots no longer match the verified 64x64 cursor artwork.");
+            Require(UnityEngine.Object.FindAnyObjectByType<SelectionManager>() != null,
+                "SelectionManager is missing from the active scene.");
+            Require(cursor.HoverQueryUsesTriggers,
+                "Cursor overlap query must include pointer-only trigger hit areas.");
+            Require(PawnBuilder.InteractionArrivalTolerance >= 0.2f,
+                "Builder arrival tolerance is not compatible with terminal separation offset.");
+
+            if (Application.isPlaying)
+            {
+                foreach (CastleDropOff castle in CastleDropOff.Active)
+                    ValidateSelectionHitArea(castle, castle.PresentationRenderer,
+                        castle.GetComponent<BoxCollider2D>(), "Castle");
+
+                int sheepCount = 0;
+                int treeCount = 0;
+                foreach (ResourceNode resource in ResourceNode.ActiveNodes)
+                {
+                    if (resource == null) continue;
+                    ValidateSelectionHitArea(resource, resource.PresentationRenderer,
+                        resource.GetComponent<BoxCollider2D>(), resource.ResourceType.ToString());
+                    WorldSelectionHitArea resourceArea = resource
+                        .GetComponentInChildren<WorldSelectionHitArea>(true);
+                    if (resource.ResourceType == ResourceType.Food)
+                        Require(resourceArea != null && Mathf.Approximately(
+                            resourceArea.SelectionPadding, ResourceNode.SheepSelectionPadding)
+                            && resourceArea.SelectionPadding is >= 0.05f and <= 0.12f,
+                            $"{resource.name}: Sheep selection padding is missing or excessive.");
+                    else Require(resourceArea != null
+                            && Mathf.Approximately(resourceArea.SelectionPadding, 0f),
+                        $"{resource.name}: Sheep-only selection padding leaked to another resource.");
+                    Require(cursor.HoverQueryIncludesLayer(resource.gameObject.layer),
+                        $"{resource.name}: resource layer is excluded from cursor overlap query.");
+                    if (resource.ResourceType == ResourceType.Food) sheepCount++;
+                    if (resource.ResourceType == ResourceType.Wood) treeCount++;
+                }
+                Require(sheepCount > 0, "No runtime Sheep resource exists for hit-area validation.");
+                Require(treeCount > 0, "No runtime Tree resource exists for hit-area validation.");
+
+                foreach (GoldMineObjective mine in GoldMineObjective.Active)
+                    ValidateSelectionHitArea(mine, mine.PresentationRenderer,
+                        mine.GetComponent<BoxCollider2D>(), "Gold Mine");
+
+                foreach (BuildingSite site in UnityEngine.Object.FindObjectsByType<BuildingSite>())
+                    ValidateSelectionHitArea(site, site.PresentationRenderer,
+                        site.GetComponent<BoxCollider2D>(), site.Type.ToString());
+
+                var pawnVisuals = new System.Collections.Generic.HashSet<SpriteRenderer>();
+                foreach (UnitController unit in UnitController.AllUnits)
+                {
+                    if (unit?.GetComponent<HealthComponent>()?.CombatData?.UnitType
+                        != UnitType.Pawn) continue;
+                    PawnBuilder builder = unit.GetComponent<PawnBuilder>();
+                    PawnVisual visual = unit.GetComponent<PawnVisual>();
+                    Require(builder != null && visual != null && visual.AnimationSet != null
+                        && visual.AnimationSet.Hammer.Length > 1,
+                        $"{unit.name}: Pawn construction presentation is incomplete.");
+                    Require(!builder.IsWorking || visual.IsBuildAnimationActive,
+                        $"{unit.name}: active builder is not looping its Hammer animation.");
+                    Require(visual.VisualRenderer != null
+                        && visual.VisualRenderer.transform.parent == unit.transform
+                        && pawnVisuals.Add(visual.VisualRenderer),
+                        $"{unit.name}: PawnVisual does not own an independent visual renderer.");
+                    if (builder.HasJob)
+                        Debug.Log($"Builder {unit.name}#{unit.GetEntityId()}: "
+                            + $"site={builder.Target?.name}, slot={builder.InteractionPosition}, "
+                            + $"distance={builder.DistanceToInteraction:F3}, "
+                            + $"atSlot={builder.IsAtInteraction}, working={builder.IsWorking}, "
+                            + $"contributor={builder.IsWorking}, visual={visual.CurrentAnimationName}, "
+                            + $"frame={visual.CurrentFrameIndex}, normalized={visual.CurrentFrameNormalizedTime:F2}, "
+                            + $"loop={visual.IsLooping}, repairing={builder.IsRepairing}, "
+                            + $"movement={unit.CurrentState}, moving={unit.GetComponent<UnitMovement>()?.IsMoving}");
+                }
+
+                foreach (BuildingSite site in UnityEngine.Object.FindObjectsByType<BuildingSite>())
+                    Require(site.ReservedBuilderSlotCount >= site.ActiveBuilderCount,
+                        $"{site.name}: assigned builders do not all own interaction slots.");
+            }
+
+            Debug.Log("Phase 6D.4 interaction polish validation passed: sprite-bound query-only "
+                + "selection areas, unchanged gameplay colliders, Hand cursor assignment and "
+                + "continuous active-builder Hammer presentation verified."
+                + (Application.isPlaying ? " Runtime objects verified." :
+                    " Run again in Play Mode for runtime hit-area and active-builder checks."));
+        }
+
+        private static void ValidateSelectionHitArea(Component target, SpriteRenderer visual,
+            BoxCollider2D gameplayCollider, string label)
+        {
+            WorldSelectionHitArea area = target != null
+                ? target.GetComponentInChildren<WorldSelectionHitArea>(true) : null;
+            Require(area != null && area.TargetRoot == target.transform
+                && area.HitCollider != null && area.HitCollider.enabled
+                && area.HitCollider.isTrigger,
+                $"{target?.name}: {label} query-only selection hit area is missing.");
+            Require(area.gameObject.layer == target.gameObject.layer,
+                $"{target?.name}: {label} selection hit area is on the wrong layer.");
+            Require(gameplayCollider != null && !gameplayCollider.isTrigger,
+                $"{target?.name}: {label} gameplay collider was replaced or changed to a trigger.");
+            Require(area.Covers(visual),
+                $"{target?.name}: {label} selection hit area does not cover its visual bounds.");
+        }
+
         private static void Check(string path, int expectedWidth, int expectedHeight,
             int expectedSprites)
         {

@@ -1826,7 +1826,33 @@ and Scout continue. New units remain at Rally during retreat and join recovery a
 home. A failed retreat objective is skipped for 12 seconds before normal legal
 target selection may reconsider it.
 
-# 59. Source of Truth
+# 59. Phase 6D.4 Interaction Presentation
+
+Normal cursor presentation resolves an observable selectable entity before ground
+movement validity when no explicit target mode is active. Sheep, Trees, Gold
+resources, Gold Mine and buildings may use sprite-bound trigger colliders solely
+for pointer queries. Resource hit areas are derived by converting the current
+SpriteRenderer world bounds into the hit-area transform's local collider space and
+are resynchronized when animated resource frames change. Sheep alone adds a small,
+symmetrical 0.08-world-unit pointer padding around those visual bounds so cursor
+hotspot placement remains usable at visible wool/body edge pixels. Existing gameplay
+colliders, logical footprints, grid occupancy, pathfinding blockers, interaction
+slots and combat targeting remain authoritative. UI blocking, Placement and
+AttackMove retain higher cursor priority. Fog-hidden objects never produce
+selectable hover feedback.
+
+Every assigned Pawn becomes an active construction contributor only after reaching
+its reserved interaction position and entering `PawnBuilder.IsWorking`. All active
+contributors loop the verified Hammer animation; walking or waiting builders do
+not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
+that UnitSeparation may apply when a path completes at a reserved slot; builders
+still require movement completion and their own valid reservation before working.
+Construction progress continues to be added by the existing PawnBuilder gameplay
+update and never by animation frames or events. Builder removal, death,
+reassignment and completion stop the presentation through the existing job state.
+Repair continues to use the same working animation and authoritative repair impact.
+
+# 60. Source of Truth
 
 This file defines gameplay rules.
 

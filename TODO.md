@@ -618,6 +618,51 @@ and manual visual tests remain required before PASS.
 - [ ] Manual Play Mode: verify placement/AttackMove override, Fog anti-leak and UI-over-world cursor behavior
 - [ ] Manual Play Mode: verify Blue controls, Red AI, buildings and Console remain regression-free
 
+## Phase 6D.4 - Interaction Cursor and Multi-Builder Animation Polish
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime/
+Editor compile checks pass with 0 errors and 0 warnings. Unity validator and manual
+Play Mode tests remain required before PASS.
+
+- [x] Diagnose Castle/Gold false Forbidden states as sprite coverage falling outside root colliders
+- [x] Diagnose Sheep remainder as animated frame/pivot changes leaving its initial hit area stale
+- [x] Diagnose Tree remainder as Wood being omitted from authoritative ResourceNode hit-area setup
+- [x] Resolve normal observable entity hover before raw ground movement validity
+- [x] Preserve UI > Placement/AttackMove > normal selectable hover > terrain priority
+- [x] Add sprite-bound trigger-only `SelectionHitArea` without changing gameplay colliders
+- [x] Add selection coverage to Sheep, every Tree variant, Gold resources, Gold Mine, Castle and constructed buildings
+- [x] Convert current world sprite bounds into SelectionHitArea local collider space
+- [x] Resynchronize animated Sheep/Tree hit areas after presentation frame changes
+- [x] Use a reusable non-alloc cursor overlap buffer with trigger and all-layer coverage
+- [x] Verify cursor hotspots remain 22/17 Default, 24/18 Hand and 32/31 Forbidden before 1.5x scaling
+- [x] Add a small symmetric 0.08-world-unit Sheep-only selection padding for visible edge pixels
+- [x] Keep padding out of gameplay collider, gather range, slots, navigation and resource rules
+- [x] Resolve selection and contextual commands through the hit-area target root
+- [x] Preserve Fog/resource observability and friendly-building faction checks
+- [x] Remove the incomplete diagnosis that only the 0.5-second/0.8-second visual cadence caused the multi-builder bug
+- [x] Diagnose secondary IdleHammer as terminal UnitSeparation displacement exceeding PawnBuilder's former 0.1 arrival check
+- [x] Align builder arrival with a small 0.2 terminal tolerance while still requiring movement completion and a reserved slot
+- [x] Loop verified Hammer frames while each Pawn's authoritative `IsWorking` state is true
+- [x] Preserve RunHammer during approach and IdleHammer before active participation
+- [x] Preserve construction progress, duration, interaction slots and work-cycle SFX
+- [x] Stop Hammer presentation through existing leave/death/reassignment/completion lifecycle
+- [x] Preserve repair Hammer animation and authoritative repair impact
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.4 Interaction Polish`
+- [x] Run independent Runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run Phase 6D.4 validator in Edit Mode and Play Mode
+- [ ] Manual: Pawn selected, Sheep lower/center/upper/left/right visible artwork shows Hand
+- [ ] Manual: Pawn selected, Tree trunk/center/top/left/right canopy shows Hand for every variant
+- [ ] Manual: right-click through Sheep/Tree expanded hit areas resolves normal Gather command
+- [ ] Manual: Pawn selected, every Gold variant center/upper artwork shows Hand
+- [ ] Manual: Castle center/left/right visible artwork shows Hand; just outside returns terrain cursor
+- [ ] Manual: UI blocking, Placement, AttackMove and Fog-hidden object cursor priority
+- [ ] Manual: one, two and three-plus builders all report AtSlot/IsWorking/contributor/Hammer after reaching distinct slots
+- [ ] Manual: staggered arrival, Move-away, death and late join update animation independently
+- [ ] Manual: all builders stop on completion and repair animation still works
+- [ ] Compare construction duration before/after with equal builder count
+- [ ] Verify gathering, Castle drop-off, building placement, combat, Red AI and audio regressions
+- [ ] Confirm Unity Console has no new errors or warnings
+
 ## Phase 7A - Rule-Based Commander Foundation
 
 Status: **PASS** - manual Play Mode validation, Phase 7A validation, Profiler

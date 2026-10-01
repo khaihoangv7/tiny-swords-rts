@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
+using TinyKingdom.Input;
 using TinyKingdom.Units;
 using UnityEngine;
 
@@ -73,6 +74,7 @@ namespace TinyKingdom.Economy
         public const float DefaultInteractionOffsetFactor = 0.49f;
         public const float GoldInteractionOffsetFactor = 0.20f;
         public const float LargeGoldInteractionOffsetFactor = -0.22f;
+        public const float SheepSelectionPadding = 0.08f;
 
         private static readonly List<ResourceNode> registeredNodes = new();
         [SerializeField] private ResourceType resourceType;
@@ -86,6 +88,7 @@ namespace TinyKingdom.Economy
         private bool centerVisualY;
         private float presentationScale = UnitVisualPresentation.Scale;
         private ResourceSelectionIndicator selectionIndicator;
+        private WorldSelectionHitArea selectionHitArea;
 
         public static IReadOnlyList<ResourceNode> ActiveNodes => registeredNodes;
         public ResourceType ResourceType => resourceType;
@@ -103,6 +106,7 @@ namespace TinyKingdom.Economy
         private void OnEnable()
         {
             EnsureSelectionIndicator();
+            EnsureSelectionHitArea();
             if (!registeredNodes.Contains(this)) registeredNodes.Add(this);
         }
 
@@ -142,6 +146,7 @@ namespace TinyKingdom.Economy
             };
             selectionIndicator.Configure(width * presentationScale,
                 height * presentationScale, y);
+            EnsureSelectionHitArea();
         }
 
         public void SetSelected(bool selected)
@@ -207,6 +212,8 @@ namespace TinyKingdom.Economy
                     / sprite.pixelsPerUnit);
             UnitVisualPresentation.ApplyAlignedScale(visual, alignedOffset,
                 presentationScale);
+            EnsureSelectionHitArea();
+            selectionHitArea?.SyncToVisual(visual);
         }
 
         public bool TryMoveOccupancy(Vector2Int destination, out Vector3 worldPosition)
@@ -254,6 +261,15 @@ namespace TinyKingdom.Economy
                 selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();
             if (!selectionIndicator.IsConfigured)
                 selectionIndicator.Configure(0.7f, 0.24f, -0.35f);
+        }
+
+        private void EnsureSelectionHitArea()
+        {
+            if (visual == null) return;
+            float padding = resourceType == ResourceType.Food ? SheepSelectionPadding : 0f;
+            if (selectionHitArea == null)
+                selectionHitArea = WorldSelectionHitArea.Ensure(this, visual, padding);
+            else selectionHitArea.SetSelectionPadding(padding, visual);
         }
     }
 }

@@ -92,6 +92,7 @@ namespace TinyKingdom.Economy
                 selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();
             selectionIndicator.Configure(3.4f, 1f, -0.65f);
             SetVisual(assets?.GoldMineInactive);
+            WorldSelectionHitArea.Ensure(this, visual);
             for (int y = 0; y < Footprint.y; y++)
             for (int x = 0; x < Footprint.x; x++) grid?.SetOccupied(origin.x + x, origin.y + y, true);
             (GetComponent<BuildingCombatTarget>() ?? gameObject.AddComponent<BuildingCombatTarget>())

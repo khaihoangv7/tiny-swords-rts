@@ -161,7 +161,11 @@ namespace TinyKingdom.UI
         private void Refresh()
         {
             if (root == null || selection == null) return;
-            PrepareViews();
+            if (!PrepareViews())
+            {
+                root.gameObject.SetActive(false);
+                return;
+            }
             int shown = 0;
             if (selection.SelectedUnits.Count > 0)
                 shown = ShowUnitCommands(shown);
@@ -268,10 +272,55 @@ namespace TinyKingdom.UI
             return shown;
         }
 
-        private void PrepareViews()
+        private bool PrepareViews()
         {
+            if (!ViewsAreBound() && !TryRebindViews()) return false;
             foreach (ActionView view in views)
                 view.Button.onClick.RemoveAllListeners();
+            return true;
+        }
+
+        private bool ViewsAreBound()
+        {
+            foreach (ActionView view in views)
+                if (view == null || view.Button == null || view.Background == null
+                    || view.Icon == null || view.Label == null || view.Hotkey == null
+                    || view.GuardHold == null || view.Tooltip == null)
+                    return false;
+            return true;
+        }
+
+        // Unity can preserve the generated HUD hierarchy across a script/domain reload
+        // while the non-serialized ActionView wrappers are recreated. Rebind those
+        // wrappers to the existing controls instead of duplicating the HUD.
+        private bool TryRebindViews()
+        {
+            if (root == null) return false;
+            for (int i = 0; i < views.Length; i++)
+            {
+                Transform action = root.Find("Action" + i);
+                if (action == null) return false;
+                Transform iconObject = action.Find("Icon");
+                Transform labelObject = action.Find("Label");
+                Transform hotkeyObject = action.Find("Hotkey");
+                var rebound = new ActionView
+                {
+                    Button = action.GetComponent<Button>(),
+                    Background = action.GetComponent<Image>(),
+                    Icon = iconObject != null ? iconObject.GetComponent<Image>() : null,
+                    Label = labelObject != null ? labelObject.GetComponent<Text>() : null,
+                    Hotkey = hotkeyObject != null ? hotkeyObject.GetComponent<Text>() : null,
+                    GuardHold = action.GetComponent<GuardButtonHold>(),
+                    Tooltip = action.GetComponent<CommandTooltipTrigger>()
+                };
+                if (rebound.Button == null || rebound.Background == null
+                    || rebound.Icon == null || rebound.Label == null
+                    || rebound.Hotkey == null || rebound.GuardHold == null
+                    || rebound.Tooltip == null)
+                    return false;
+                views[i] = rebound;
+            }
+            return true;
         }
 
         private void HideUnusedViews(int shown)

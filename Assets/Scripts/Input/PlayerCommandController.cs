@@ -293,7 +293,7 @@ namespace TinyKingdom.Input
         {
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                GoldMineObjective mine = hit.GetComponent<GoldMineObjective>();
+                GoldMineObjective mine = WorldSelectionQuery.Resolve<GoldMineObjective>(hit);
                 if (mine != null) return mine;
             }
             return null;
@@ -308,7 +308,7 @@ namespace TinyKingdom.Input
             float bestDistance = float.PositiveInfinity;
             foreach (Collider2D collider in Physics2D.OverlapPointAll(world))
             {
-                ResourceNode node = collider.GetComponent<ResourceNode>();
+                ResourceNode node = WorldSelectionQuery.Resolve<ResourceNode>(collider);
                 if (node == null || node.IsDepleted || !CanPlayerObserveResource(node.transform.position))
                     continue;
                 float distance = ((Vector2)(world - node.transform.position)).sqrMagnitude;
@@ -486,7 +486,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingSite site = hit.GetComponent<BuildingSite>();
+                BuildingSite site = WorldSelectionQuery.Resolve<BuildingSite>(hit);
                 if (site != null && site.IsAlive
                     && site.Faction == selectionManager.PlayerFaction) return site;
             }
@@ -498,7 +498,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingGarrison garrison = hit.GetComponent<BuildingGarrison>();
+                BuildingGarrison garrison = WorldSelectionQuery.Resolve<BuildingGarrison>(hit);
                 if (garrison != null && garrison.IsReady
                     && garrison.Faction == selectionManager.PlayerFaction) return garrison;
             }
@@ -510,7 +510,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingCombatTarget target = hit.GetComponent<BuildingCombatTarget>();
+                BuildingCombatTarget target = WorldSelectionQuery.Resolve<BuildingCombatTarget>(hit);
                 if (target != null && target.IsTargetable
                     && target.Faction != selectionManager.PlayerFaction
                     && CanPlayerObserve(target.Faction, target.transform.position)) return target;

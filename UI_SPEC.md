@@ -307,3 +307,36 @@ the Default cursor. Merely selecting a production building does not create a
 rally targeting mode; contextual right click still sets a valid rally point.
 UI raycast blocking and existing Fog visibility rules run before world hover,
 so hidden enemy objects cannot be revealed by cursor state.
+
+## Phase 6D.4 Interaction Cursor and Construction Animation Polish
+
+Outside an explicit Placement or AttackMove mode, normal world hover resolves a
+legally observable selectable entity before testing whether the raw mouse cell is
+a valid movement destination. Sheep, Tree, Gold resources and friendly buildings
+use a query-only `SelectionHitArea` trigger fitted to the current sprite bounds.
+Animated resource sprites resynchronize this collider after a frame/pivot change.
+World SpriteRenderer bounds are converted into the hit-area transform's local
+collider space, including presentation scale and child offset. Sheep applies a
+symmetrical 0.08-world-unit selection-only padding so its exact bounds edge does not
+fall through to terrain when the cursor hotspot sits on visible wool pixels. This allows the Hand
+cursor and normal click resolution across Sheep wool, Tree canopy/trunk, Gold art
+and Castle side edges. The trigger does not replace the root gameplay collider and
+has no navigation, occupancy, combat-range, resource-slot or building-placement
+authority.
+
+UI blocking remains first, while explicit target modes continue to override normal
+entity hover. Resource visibility is checked through the current Fog presentation
+rule, and friendly building hover still checks faction/availability, so hidden live
+objects cannot disclose themselves through the cursor.
+
+Pawn construction presentation observes `PawnBuilder.IsWorking`. A Pawn walking to
+its reserved interaction slot uses RunHammer; an assigned Pawn waiting at the site
+uses IdleHammer; and every Pawn that has arrived and is contributing loops the
+verified Hammer animation. Builder arrival accepts a 0.2-world-unit terminal
+tolerance so a small final UnitSeparation displacement cannot leave secondary
+Pawns permanently holding IdleHammer beside their reserved slots. Movement must
+still be complete and each Pawn must own a valid slot. Leaving, death, reassignment,
+completion or loss of a valid work target clears the working state through the
+existing builder lifecycle. Animation never advances construction and does not
+trigger hammer audio. The existing per-Pawn authoritative progress update, build
+duration, interaction slots and work-cycle SFX remain unchanged.

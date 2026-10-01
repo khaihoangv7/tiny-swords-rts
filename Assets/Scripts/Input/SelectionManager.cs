@@ -147,7 +147,7 @@ namespace TinyKingdom.Input
                     screenPosition.y, -worldCamera.transform.position.z));
                 foreach (Collider2D collider in Physics2D.OverlapPointAll(world))
                 {
-                    BuildingSite building = collider.GetComponent<BuildingSite>();
+                    BuildingSite building = WorldSelectionQuery.Resolve<BuildingSite>(collider);
                     if (building != null && building.IsFriendlyCursorTarget(playerFaction))
                     {
                         ClearSelection();
@@ -157,7 +157,7 @@ namespace TinyKingdom.Input
                         SelectionChanged?.Invoke();
                         return;
                     }
-                    CastleDropOff castle = collider.GetComponent<CastleDropOff>();
+                    CastleDropOff castle = WorldSelectionQuery.Resolve<CastleDropOff>(collider);
                     if (castle != null && castle.IsFriendlyCursorTarget(playerFaction))
                     {
                         ClearSelection();
@@ -167,7 +167,7 @@ namespace TinyKingdom.Input
                         SelectionChanged?.Invoke();
                         return;
                     }
-                    GoldMineObjective mine = collider.GetComponent<GoldMineObjective>();
+                    GoldMineObjective mine = WorldSelectionQuery.Resolve<GoldMineObjective>(collider);
                     if (mine != null && CanObserveResource(mine.transform.position))
                     {
                         ClearSelection();
@@ -176,7 +176,7 @@ namespace TinyKingdom.Input
                         SelectionChanged?.Invoke();
                         return;
                     }
-                    ResourceNode resource = collider.GetComponent<ResourceNode>();
+                    ResourceNode resource = WorldSelectionQuery.Resolve<ResourceNode>(collider);
                     if (resource != null && CanSelectResource(resource))
                     {
                         ClearSelection();

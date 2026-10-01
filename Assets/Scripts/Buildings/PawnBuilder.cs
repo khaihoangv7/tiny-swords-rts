@@ -11,6 +11,7 @@ namespace TinyKingdom.Buildings
     {
         public const float WorkCycleSeconds = 0.8f;
         public const float RepairImpactDelay = 0.35f;
+        public const float InteractionArrivalTolerance = 0.2f;
 
         private UnitController controller;
         private UnitMovement movement;
@@ -24,6 +25,12 @@ namespace TinyKingdom.Buildings
         public bool HasJob => target != null;
         public bool IsWorking => working;
         public BuildingSite Target => target;
+        public Vector3 InteractionPosition => interaction;
+        public float DistanceToInteraction => target != null
+            ? Vector2.Distance(transform.position, interaction) : float.PositiveInfinity;
+        public bool IsAtInteraction => HasJob && !movement.IsMoving
+            && DistanceToInteraction <= InteractionArrivalTolerance;
+        public bool IsRepairing => repairing;
         public event Action WorkCycleStarted;
         public event Action<BuildingSite> RepairImpact;
 
@@ -84,7 +91,7 @@ namespace TinyKingdom.Buildings
                 CancelJob();
                 return;
             }
-            if (movement.IsMoving || Vector2.Distance(transform.position, interaction) > 0.1f)
+            if (!IsAtInteraction)
             {
                 working = false;
                 return;
