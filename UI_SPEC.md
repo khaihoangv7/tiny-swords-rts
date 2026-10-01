@@ -141,6 +141,12 @@ edge pan the camera; `A` arms AttackMove; `A` + Left Click valid ground issues
 AttackMove; Right Click ground normally issues Move; Right Click enemy normally
 issues explicit Attack; and `G` controls Guard for eligible Warriors.
 
+The Default, Hand and Forbidden gameplay cursors use a 1.5 presentation scale.
+They are enlarged with nearest-neighbor sampling at runtime, and each verified
+hotspot is scaled with its texture so pointing and command coordinates remain
+unchanged. A successful normal Move command retains its 0.45-second two-ring
+shrink/fade timing while the complete marker and line width render at 1.35 scale.
+
 A successful `A` + Left Click ground AttackMove command creates its own two
 red flattened world-space ellipses at the destination. They remain fixed at the
 clicked ground point, shrink and fade over about 0.45 seconds, render above

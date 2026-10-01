@@ -90,8 +90,8 @@ namespace TinyKingdom.Audio
             cues[1].Configure(GameplayAudioEvent.LancerAttack, 0.8f, 3, 0f, 0f, 1.25f);
             cues[2].Configure(GameplayAudioEvent.ArcherAttack, 0.75f, 3, 0f, 0f, 1.25f);
             cues[3].Configure(GameplayAudioEvent.MonkHeal, 0.75f, 2, 0f, 0f, 1.5f);
-            cues[4].Configure(GameplayAudioEvent.PawnMining, 0.45f, 2, 0f, 0f, 1.25f);
-            cues[5].Configure(GameplayAudioEvent.PawnChopping, 0.45f, 2, 0f, 3f, 1.25f);
+            cues[4].Configure(GameplayAudioEvent.PawnMining, 0.20f, 2, 0f, 0f, 1.25f);
+            cues[5].Configure(GameplayAudioEvent.PawnChopping, 0.65f, 2, 0f, 3f, 1.25f);
             cues[6].Configure(GameplayAudioEvent.PawnFoodHarvest, 0.65f, 2, 0f, 0f, 0f);
             cues[7].Configure(GameplayAudioEvent.SheepHurt, 0.45f, 2, 0.15f, 0f, 0.8f);
         }

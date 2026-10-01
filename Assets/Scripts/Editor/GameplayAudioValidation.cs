@@ -26,12 +26,22 @@ namespace TinyKingdom.EditorTools
                 ValidateCue(catalog, GameplayAudioEvent.PawnMining, ref valid);
                 ValidateCue(catalog, GameplayAudioEvent.PawnChopping, ref valid);
                 ValidateCue(catalog, GameplayAudioEvent.SheepHurt, ref valid);
+                if (catalog.TryGetCue(GameplayAudioEvent.PawnMining, out GameplayAudioCue mining))
+                    Check(Mathf.Approximately(mining.Volume, 0.20f),
+                        "PawnMining volume must remain at 0.20.", ref valid);
+                if (catalog.TryGetCue(GameplayAudioEvent.PawnChopping, out GameplayAudioCue chopping))
+                    Check(Mathf.Approximately(chopping.Volume, 0.65f),
+                        "PawnChopping volume must remain at 0.65.", ref valid);
             }
 
             Check(GameplayAudioService.RuntimeBootstrapEnabled,
                 "GameplayAudioService runtime bootstrap is disabled.", ref valid);
             Check(!ContainsPerPlayClipLoads(),
                 "Resources.Load<AudioClip> was found in runtime scripts.", ref valid);
+            Check(!File.ReadAllText("Assets/Scripts/Economy/ResourceNode.cs")
+                    .Contains("GameplayAudioEvent.SheepHurt"),
+                "Sheep harvesting must not request the Sheep Hurt cue.", ref valid);
+            ValidateCameraViewportRule(ref valid);
 
             if (Application.isPlaying)
             {
@@ -84,6 +94,28 @@ namespace TinyKingdom.EditorTools
                     $"{eventId} does not preload audio data.", ref valid);
             }
             else Check(false, $"{eventId} has no AudioImporter.", ref valid);
+        }
+
+        private static void ValidateCameraViewportRule(ref bool valid)
+        {
+            var cameraObject = new GameObject("GameplayAudioViewportValidation");
+            try
+            {
+                Camera camera = cameraObject.AddComponent<Camera>();
+                camera.orthographic = true;
+                camera.orthographicSize = 5f;
+                camera.aspect = 1f;
+                camera.transform.position = new Vector3(0f, 0f, -10f);
+                Check(GameplayAudioService.IsInsideCameraViewport(camera, Vector3.zero),
+                    "A centered world SFX source was rejected by the camera viewport.", ref valid);
+                Check(!GameplayAudioService.IsInsideCameraViewport(camera,
+                        new Vector3(20f, 0f, 0f)),
+                    "An off-screen world SFX source passed the camera viewport rule.", ref valid);
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
+            }
         }
 
         private static string ExpectedPath(GameplayAudioEvent eventId) => eventId switch

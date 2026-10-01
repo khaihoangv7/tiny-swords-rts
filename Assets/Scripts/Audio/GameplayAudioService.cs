@@ -24,6 +24,7 @@ namespace TinyKingdom.Audio
         private SourceSlot[] sources = Array.Empty<SourceSlot>();
         private GameplayAudioCatalog catalog;
         private MatchManager subscribedMatch;
+        private Camera listenerCamera;
         private uint playSerial;
         private int droppedByConcurrency;
         [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
@@ -67,6 +68,14 @@ namespace TinyKingdom.Audio
         }
         public GameplayAudioCatalog Catalog => catalog;
 
+        public static bool IsInsideCameraViewport(Camera camera, Vector3 worldPosition)
+        {
+            if (camera == null || !camera.isActiveAndEnabled) return false;
+            Vector3 viewport = camera.WorldToViewportPoint(worldPosition);
+            return viewport.z > 0f && viewport.x >= 0f && viewport.x <= 1f
+                && viewport.y >= 0f && viewport.y <= 1f;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
         {
@@ -94,6 +103,21 @@ namespace TinyKingdom.Audio
             SceneManager.sceneLoaded -= HandleSceneLoaded;
             UnsubscribeMatch();
             if (Instance == this) Instance = null;
+        }
+
+        private void Update()
+        {
+            listenerCamera ??= Camera.main;
+            if (listenerCamera == null) return;
+            for (int i = 0; i < sources.Length; i++)
+            {
+                AudioSource source = sources[i].Source;
+                if (source == null || !source.isPlaying
+                    || IsInsideCameraViewport(listenerCamera, source.transform.position))
+                    continue;
+                source.Stop();
+                source.clip = null;
+            }
         }
 
         public void Configure(GameplayAudioCatalog value)
@@ -166,6 +190,8 @@ namespace TinyKingdom.Audio
 
         private bool CanPlayerHear(Vector3 position, Faction? sourceFaction)
         {
+            listenerCamera ??= Camera.main;
+            if (!IsInsideCameraViewport(listenerCamera, position)) return false;
             Faction playerFaction = PlayerViewRelation.PlayerViewFaction;
             if (sourceFaction.HasValue && sourceFaction.Value == playerFaction) return true;
             TeamVisionSystem vision = TeamVisionSystem.Instance;
@@ -207,6 +233,7 @@ namespace TinyKingdom.Audio
         private void HandleSceneLoaded(Scene _, LoadSceneMode __)
         {
             StopAll();
+            listenerCamera = Camera.main;
             UnsubscribeMatch();
             subscribedMatch = MatchManager.Instance;
             if (subscribedMatch != null) subscribedMatch.MatchEnded += HandleMatchEnded;

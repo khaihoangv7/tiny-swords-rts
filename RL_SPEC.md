@@ -227,3 +227,18 @@ visible enemy strength. These values must use the same `FactionKnowledge` legali
 hidden enemy units contribute nothing, remote Scout observations outside the battle
 radius contribute nothing, and hidden building live state is unavailable. Phase
 7C.3 adds no ML-Agents package, tensor, reward, training loop or RL policy.
+
+## Phase 7D Rule-Based evaluation baseline
+
+Phase 7D stabilizes the Rule-Based Commander as the future comparison baseline.
+It keeps one legal observation surface (`FactionKnowledge`) and one action authority
+(`FactionCommandService`). Its progress timestamps and eventual match metrics may
+support evaluation, but they are diagnostics rather than observations that expose
+hidden world truth or rewards that alter gameplay.
+
+The baseline records or can cheaply derive match result/duration, own resources,
+own buildings/units, Army states, offensive launches and retreats. Damage dealt,
+kill attribution and complete historical aggregate counters remain deferred until a
+small shared metrics contract is designed. Phase 8A may consume the same legal
+interfaces; Phase 7D adds no ML-Agents dependency, tensors, actions, rewards or
+training loop.

@@ -61,7 +61,7 @@ namespace TinyKingdom.EditorTools
                     return set;
                 }).ToArray();
                 Sprite[] dead = LoadFrames(DeadPath).Take(14).ToArray();
-                if (dead.Length != 14 || dead.Any(sprite => sprite == null))
+                if (File.Exists(DeadPath) && (dead.Length != 14 || dead.Any(sprite => sprite == null)))
                 {
                     AssetDatabase.ImportAsset(DeadPath,
                         ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
@@ -183,6 +183,9 @@ namespace TinyKingdom.EditorTools
 
         private static void EnsureDeadRuntimeAtlas()
         {
+            // Local source artwork may be absent; the shipped verified atlas is
+            // already the runtime fallback and should not break unrelated map setup.
+            if (!File.Exists(DeadPath) && File.Exists(DeadRuntimePath)) return;
             byte[] source = File.ReadAllBytes(DeadPath);
             if (File.Exists(DeadRuntimePath)
                 && File.ReadAllBytes(DeadRuntimePath).SequenceEqual(source)) return;

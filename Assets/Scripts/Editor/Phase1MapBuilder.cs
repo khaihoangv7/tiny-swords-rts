@@ -21,8 +21,8 @@ public static class Phase1MapBuilder
     private const string SourceFolder = "Assets/Terrain/Tileset";
     private const string TileFolder = "Assets/Tiles";
     private const string ScenePath = "Assets/Scenes/Map.unity";
-    private const int Width = 40;
-    private const int Height = 28;
+    private const int Width = BattlefieldLayout.Width;
+    private const int Height = BattlefieldLayout.Height;
 
     static Phase1MapBuilder()
     {
@@ -76,11 +76,22 @@ public static class Phase1MapBuilder
         Debug.Log("Phase 1 map generated: " + ScenePath);
     }
 
-    // Kept as an explicit menu entry for repairing an open scene. Validation
-    // synchronizes only the two visual effect Tilemaps when they differ.
+    // Keep the existing repair command functional with all three terrace layers.
     [MenuItem("Tools/Tiny Kingdom/Repair Terrain Visuals")]
     public static void RepairTerrainVisuals()
     {
+        if (EditorApplication.isPlaying || SceneManager.GetActiveScene().path != ScenePath)
+            throw new InvalidOperationException("Open Map outside Play Mode before repairing terrain.");
+        Transform grid = GameObject.Find("Map").transform.Find("Grid");
+        var foam = grid.Find("WaterFoam").GetComponent<Tilemap>();
+        AnimatedFoamTile foamAsset = AssetDatabase.LoadAssetAtPath<AnimatedFoamTile>(
+            "Assets/Tiles/Water/AnimatedFoam.asset");
+        if (foamAsset == null) throw new InvalidOperationException("AnimatedFoam asset is missing.");
+        foam.ClearAllTiles();
+        PaintShorelineFoam(foam, foamAsset, 2, 2, Width-4, Height-4);
+        TinyKingdom.EditorTools.BattlefieldTerrainPainter.Paint(grid);
+        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
         TinyKingdom.EditorTools.TerrainVisualValidation.Run();
     }
 
@@ -259,39 +270,25 @@ public static class Phase1MapBuilder
             bg.SetTile(new Vector3Int(x, y, 0), tiles["Water Background color"]);
 
         // Mirrored clear base areas remain on the large flat island.
-        PaintPlatform(flat, tiles, "Tilemap_color1", 2, 2, 36, 24, false);
-        PaintShorelineFoam(foam, animatedFoam, 2, 2, 36, 24);
-
-        // One central raised plateau. The two bottom rows are its cliff face.
-        PaintPlatform(elevated, tiles, "Tilemap_color2", 16, 13, 8, 7, true);
-        PaintOffsetShadow(shadow, tiles["Shadow"], 16, 13, 8, 7);
-        // The cliff face occupies y=12 and y=11. A contact row at y=11 lets
-        // the 80px shadow artwork extend 8px below the visible cliff foot.
-        for (int x = 16; x <= 23; x++)
-            if (!StrategicObjectiveMapLayout.IsConnectorColumn(x))
-                shadow.SetTile(new Vector3Int(x, 11, 0), tiles["Shadow"]);
-        for (int x = 16; x <= 23; x++)
+        for (int y = 2; y < Height-2; y++)
+        for (int x = 2; x < Width-2; x++)
         {
-            if (StrategicObjectiveMapLayout.TryGetConnector(x,
-                out TerrainHeightConnectorDefinition connector))
-            {
-                elevated.SetTile(new Vector3Int(x, connector.UpperY, 0),
-                    tiles[connector.UpperSpriteName]);
-                elevated.SetTile(new Vector3Int(x, connector.LowerY, 0),
-                    tiles[connector.LowerSpriteName]);
-                continue;
-            }
-
-            int column = x == 16 ? 5 : x == 23 ? 7 : 6;
-            elevated.SetTile(new Vector3Int(x, 12, 0), tiles["Tilemap_color2_r4c" + column]);
-            elevated.SetTile(new Vector3Int(x, 11, 0), tiles["Tilemap_color2_r5c" + column]);
+            if (!BattlefieldLayout.IsLand(x, y)) continue;
+            int row = !BattlefieldLayout.IsLand(x, y + 1) ? 0
+                : !BattlefieldLayout.IsLand(x, y - 1) ? 2 : 1;
+            int col = !BattlefieldLayout.IsLand(x - 1, y) ? 0
+                : !BattlefieldLayout.IsLand(x + 1, y) ? 2 : 1;
+            flat.SetTile(new Vector3Int(x, y, 0), tiles[$"Tilemap_color1_r{row}c{col}"]);
         }
+        PaintShorelineFoam(foam, animatedFoam, 2, 2, Width-4, Height-4);
+
+        TinyKingdom.EditorTools.BattlefieldTerrainPainter.Paint(gridObject.transform);
 
         if (GameObject.Find("Main Camera") == null)
         {
             var cameraObject = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener), typeof(MapCameraController));
             cameraObject.tag = "MainCamera";
-            cameraObject.transform.position = new Vector3(20f, 14f, -10f);
+            cameraObject.transform.position = new Vector3(Width*.5f, Height*.5f, -10f);
             var camera = cameraObject.GetComponent<Camera>();
             camera.orthographic = true;
             camera.orthographicSize = 8f;
@@ -323,7 +320,7 @@ public static class Phase1MapBuilder
     {
         for (int y = bottom; y < bottom + height; y++)
         for (int x = left; x < left + width; x++)
-            if (x == left || x == left + width - 1 || y == bottom || y == bottom + height - 1)
+            if (BattlefieldLayout.IsShoreline(x, y))
                 layer.SetTile(new Vector3Int(x, y, 0), tile);
     }
 

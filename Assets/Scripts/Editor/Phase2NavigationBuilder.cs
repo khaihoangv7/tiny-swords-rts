@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using TinyKingdom.Navigation;
+using TinyKingdom.Terrain;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -13,8 +14,8 @@ namespace TinyKingdom.EditorTools
     {
         public const string DataPath = "Assets/Data/Navigation/MapNavigation.asset";
         private const string ScenePath = "Assets/Scenes/Map.unity";
-        private const int Width = 40;
-        private const int Height = 28;
+        private const int Width = BattlefieldLayout.Width;
+        private const int Height = BattlefieldLayout.Height;
 
         static Phase2NavigationBuilder()
         {
@@ -93,30 +94,7 @@ namespace TinyKingdom.EditorTools
             for (int y = 0; y < Height; y++)
             for (int x = 0; x < Width; x++)
             {
-                TerrainType terrain = TerrainType.Water;
-                int heightLevel = 0;
-
-                if (x >= 2 && x <= 37 && y >= 2 && y <= 25)
-                    terrain = TerrainType.FlatGround;
-
-                if (x >= 16 && x <= 23 && y >= 13 && y <= 19)
-                {
-                    terrain = TerrainType.ElevatedGround;
-                    heightLevel = 1;
-                }
-                else if (x >= 16 && x <= 23 && y >= 11 && y <= 12)
-                {
-                    terrain = TerrainType.Cliff;
-                }
-
-                if (StrategicObjectiveMapLayout.TryGetConnectorCell(x, y,
-                    out int connectorHeight))
-                {
-                    terrain = TerrainType.Stairs;
-                    heightLevel = connectorHeight;
-                }
-
-                result.Add(new NavigationCellData(x, y, terrain, heightLevel));
+                result.Add(BattlefieldTerraces.Cell(x, y));
             }
 
             return result;

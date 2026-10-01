@@ -139,8 +139,10 @@ namespace TinyKingdom.EditorTools
             GridManager grid = UnityEngine.Object.FindAnyObjectByType<GridManager>();
             Require(system != null && system.IsReady, "TeamVisionSystem is not ready.");
             Require(renderer != null && presentation != null, "Fog presentation components are missing.");
-            Require(grid != null && grid.Width == 40 && grid.Height == 28,
-                "Phase 6A requires the existing 40x28 logical grid.");
+            Require(grid != null
+                    && grid.Width == TinyKingdom.Terrain.BattlefieldLayout.Width
+                    && grid.Height == TinyKingdom.Terrain.BattlefieldLayout.Height,
+                "Vision must cover the complete authored logical grid.");
             Require(renderer.SamplesPerCell == FogRenderer.DefaultSamplesPerCell
                 && renderer.MaskWidth == grid.Width * FogRenderer.DefaultSamplesPerCell
                 && renderer.MaskHeight == grid.Height * FogRenderer.DefaultSamplesPerCell,

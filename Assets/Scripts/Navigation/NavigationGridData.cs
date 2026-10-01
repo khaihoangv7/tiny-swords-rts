@@ -11,6 +11,8 @@ namespace TinyKingdom.Navigation
         public int gridY;
         public TerrainType terrainType;
         public int heightLevel;
+        public bool hasHeightConnection;
+        public Vector2Int heightConnection;
 
         public NavigationCellData(int gridX, int gridY, TerrainType terrainType, int heightLevel)
         {
@@ -18,14 +20,16 @@ namespace TinyKingdom.Navigation
             this.gridY = gridY;
             this.terrainType = terrainType;
             this.heightLevel = heightLevel;
+            hasHeightConnection = false;
+            heightConnection = default;
         }
     }
 
     [CreateAssetMenu(menuName = "Tiny Kingdom/Navigation Grid Data", fileName = "NavigationGridData")]
     public sealed class NavigationGridData : ScriptableObject
     {
-        [SerializeField, Min(1)] private int width = 40;
-        [SerializeField, Min(1)] private int height = 28;
+        [SerializeField, Min(1)] private int width = TinyKingdom.Terrain.BattlefieldLayout.Width;
+        [SerializeField, Min(1)] private int height = TinyKingdom.Terrain.BattlefieldLayout.Height;
         [SerializeField] private Vector2 worldOrigin;
         [SerializeField, Min(0.01f)] private float cellSize = 1f;
         [SerializeField] private List<NavigationCellData> cells = new();

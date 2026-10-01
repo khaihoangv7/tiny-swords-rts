@@ -41,6 +41,8 @@ namespace TinyKingdom.AI
         public UnitController CurrentBuilder => builder;
         public Vector2Int CurrentBuildCell => currentBuildCell;
         public int CompletedCoreInfrastructure { get; private set; }
+        public uint SuccessfulCommandSerial { get; private set; }
+        public float LastSuccessfulCommandTime { get; private set; } = -1f;
 
         public void Reset(CommanderPawnRoles roles = null)
         {
@@ -53,6 +55,8 @@ namespace TinyKingdom.AI
             nextAttemptTime = 0f;
             currentBuildCell = new Vector2Int(-1, -1);
             CompletedCoreInfrastructure = 0;
+            SuccessfulCommandSerial = 0;
+            LastSuccessfulCommandTime = -1f;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -114,6 +118,8 @@ namespace TinyKingdom.AI
                         activeSite = site;
                         builder = chosen;
                         currentBuildCell = origin;
+                        SuccessfulCommandSerial++;
+                        LastSuccessfulCommandTime = context.Time;
                         return;
                     }
                     roles.Release(chosen, CommanderPawnRole.Builder);
@@ -178,7 +184,12 @@ namespace TinyKingdom.AI
             roles.TryAssign(replacement, CommanderPawnRole.Builder);
             CommanderCommandResult result = context.Commands.TryResumeConstruction(
                 replacement.GetComponent<PawnBuilder>(), activeSite);
-            if (result == CommanderCommandResult.Accepted) builder = replacement;
+            if (result == CommanderCommandResult.Accepted)
+            {
+                builder = replacement;
+                SuccessfulCommandSerial++;
+                LastSuccessfulCommandTime = context.Time;
+            }
             else roles.Release(replacement, CommanderPawnRole.Builder);
             return true;
         }

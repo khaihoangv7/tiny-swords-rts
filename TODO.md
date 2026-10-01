@@ -900,6 +900,51 @@ and Profiler comparison remain required before PASS.
 - [ ] Profile Commander/strength/retreat/recovery markers, path requests, GC and FPS
 - [ ] Confirm Unity Console has no new errors or warnings
 
+## Phase 7D - Full Rule-Based AI Integration, Balancing and Match Regression
+
+Status: **NOT COMPLETE** - integration hardening, progress diagnostics, validator,
+documentation and independent Runtime / Editor compilation are complete. Full-match
+Play Mode scenarios and actual Profiler validation remain mandatory before PASS.
+
+- [x] Audit policy order and preserve one legal FactionKnowledge/FactionCommandService path
+- [x] Preserve exclusive Pawn Economy/Scout/Builder ownership and Scout/Army separation
+- [x] Use configured 75% normal Army staging instead of a 100% straggler-sensitive gate
+- [x] Bound PreparingAttack to 10 seconds with a deterministic 60% fallback
+- [x] Fail and cool down an objective cleanly when timeout assembly remains below 60%
+- [x] Add stable Scout frontier-exhaustion standby and two-second blocked-frontier retry
+- [x] Add low-frequency Commander progress timestamps without gameplay overrides
+- [x] Keep optional 25-second stall warning disabled by default and rate limited
+- [x] Record final provisional Rule-Based tuning and intentional limitations
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7D Full Match`
+- [x] Preserve anti-wallhack, Strategic Safety, deterministic ordering and shared commands
+- [x] Preserve all core gameplay stats, audio pause, disabled Goblins and current UI
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Refresh Unity assets and run `Validate Phase 7D Full Match` in Play Mode
+- [ ] Scenario: passive Blue; Red economy, infrastructure, Army, Scout and offense progress
+- [ ] Scenario: early Blue pressure; defense resolves and normal progression resumes
+- [ ] Scenario: Red successful offense; target resolves and survivors regroup
+- [ ] Scenario: failed offense; Retreat -> Recovery -> reinforcement -> later campaign
+- [ ] Scenario: deplete local resources; workers switch safely or remain legitimately Idle
+- [ ] Scenario: kill Scout and Builder; roles/projects recover without duplicates
+- [ ] Scenario: destroy Barracks/Archery; core infrastructure is rebuilt when affordable
+- [ ] Scenario: wipe Red Army; production forms a new Army and strategy resumes
+- [ ] Scenario: undiscovered Blue Castle is never targeted, then becomes legal after scouting
+- [ ] Scenario: stale hidden building memory clears only after legal re-observation
+- [ ] Scenario: Red destroys Blue Castle and normal MatchManager result stops all new AI commands
+- [ ] Scenario: Blue destroys Red Castle and Commander stops without exception
+- [ ] Restart during economy, construction, offense, retreat, recovery and after Match End
+- [ ] Run at least three long/full sessions; recommended 10-15 minutes where practical
+- [ ] Profile early, mid, active combat and late match FPS / GC Alloc / Commander cost
+- [ ] Confirm no repeated identical A*, runtime scene search, warning spam or registry growth
+- [ ] Verify Blue controls, Fog, buildings, HUD and Console regressions
+
+### Phase 8A - RL Environment Foundation (roadmap only)
+
+- [ ] Begin only after Phase 7D full-match and Profiler gates pass
+- [ ] Reuse FactionKnowledge observations and FactionCommandService actions
+- [ ] Define environment reset, legal observation tensor, action mask and baseline metrics
+- [ ] Do not grant omniscience, low-level unit control or Rule-Based-only cheats
+
 ## Gameplay SFX Foundation / Initial Audio Integration
 
 Status: **NOT COMPLETE** - implementation and data setup are present. Unity asset

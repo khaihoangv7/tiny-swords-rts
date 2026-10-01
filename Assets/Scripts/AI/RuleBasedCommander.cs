@@ -39,11 +39,14 @@ namespace TinyKingdom.AI
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
         [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
         [SerializeField] private StrategicSafetyMap strategicSafety = new();
+        [SerializeField] private CommanderProgressDiagnostics progressDiagnostics = new();
         [SerializeField] private bool drawScoutGizmo = false;
         [SerializeField] private bool drawMilitaryGizmos = false;
         [SerializeField] private bool drawStrategicSafetyGizmos = false;
         [Header("Runtime debug (disabled by default)")]
         [SerializeField] private bool exposeRuntimeDebug = false;
+        [SerializeField] private bool warnOnStrategicStall = false;
+        [SerializeField, Min(20f)] private float stallWarningSeconds = 25f;
         [SerializeField] private ulong debugThinkTick;
         [SerializeField] private int debugKnownFood;
         [SerializeField] private int debugKnownWood;
@@ -106,6 +109,15 @@ namespace TinyKingdom.AI
         [SerializeField] private string debugScoutSafetyState;
         [SerializeField] private string debugScoutDangerReason;
         [SerializeField] private Vector2Int debugScoutRetreatCell;
+        [SerializeField] private float debugLastGatherAssignmentTime;
+        [SerializeField] private float debugLastBuildCommandTime;
+        [SerializeField] private float debugLastTrainCommandTime;
+        [SerializeField] private float debugLastScoutDestinationTime;
+        [SerializeField] private float debugLastArmyStateChangeTime;
+        [SerializeField] private float debugLastOffensiveLaunchTime;
+        [SerializeField] private float debugLastTargetCompletionTime;
+        [SerializeField] private float debugLastResourceIncomeTime;
+        [SerializeField] private float debugLastMeaningfulActionTime;
 
         private float nextThinkTime;
 
@@ -122,6 +134,8 @@ namespace TinyKingdom.AI
         public ProductionCommanderPolicy ProductionPolicy => productionPolicy;
         public MilitaryCommanderPolicy MilitaryPolicy => militaryPolicy;
         public StrategicSafetyMap StrategicSafety => strategicSafety;
+        public CommanderProgressDiagnostics ProgressDiagnostics => progressDiagnostics;
+        public float StallWarningSeconds => Mathf.Max(20f, stallWarningSeconds);
         public UnitController CurrentScout => scoutingPolicy?.Scout;
         public bool IsConfigured => FactionRelations.IsPlayable(faction) && knowledge != null
             && commandService != null && knowledge.Faction == faction
@@ -141,6 +155,7 @@ namespace TinyKingdom.AI
         {
             militaryPolicy ??= new MilitaryCommanderPolicy();
             strategicSafety ??= new StrategicSafetyMap();
+            progressDiagnostics ??= new CommanderProgressDiagnostics();
             nextThinkTime = Time.time;
         }
 
@@ -152,6 +167,7 @@ namespace TinyKingdom.AI
             productionPolicy?.Reset();
             militaryPolicy?.Reset();
             strategicSafety?.Reset();
+            progressDiagnostics?.Reset();
             pawnRoles?.Reset();
             ThinkTick = 0;
         }
@@ -188,6 +204,16 @@ namespace TinyKingdom.AI
                         strategicSafety);
                 using (EconomyPolicyMarker.Auto())
                     economyPolicy.Tick(context, pawnRoles, strategicSafety);
+                progressDiagnostics.Observe(context.Time, context.Knowledge,
+                    economyPolicy, buildingPolicy, productionPolicy, scoutingPolicy,
+                    militaryPolicy);
+                if (warnOnStrategicStall && progressDiagnostics.TryConsumeStallWarning(
+                        context.Time, StallWarningSeconds, out float stalledSeconds))
+                    Debug.LogWarning("AI STALL: State=" + militaryPolicy.Army.State
+                        + ", Seconds=" + stalledSeconds.ToString("0.0")
+                        + ", Pawns=" + productionPolicy.LivingPawnCount
+                        + ", GatherAssignments=" + economyPolicy.AssignmentCount
+                        + ", ArmyMembers=" + militaryPolicy.Army.Members.Count, this);
                 ThinkTick++;
                 if (exposeRuntimeDebug) RefreshDebug();
             }
@@ -275,6 +301,15 @@ namespace TinyKingdom.AI
             debugScoutDangerReason = scoutingPolicy.DangerReason;
             debugScoutRetreatCell = scoutingPolicy.HasRetreatDestination
                 ? scoutingPolicy.RetreatCell : new Vector2Int(-1, -1);
+            debugLastGatherAssignmentTime = progressDiagnostics.LastGatherAssignmentTime;
+            debugLastBuildCommandTime = progressDiagnostics.LastBuildCommandTime;
+            debugLastTrainCommandTime = progressDiagnostics.LastTrainCommandTime;
+            debugLastScoutDestinationTime = progressDiagnostics.LastScoutDestinationTime;
+            debugLastArmyStateChangeTime = progressDiagnostics.LastArmyStateChangeTime;
+            debugLastOffensiveLaunchTime = progressDiagnostics.LastOffensiveLaunchTime;
+            debugLastTargetCompletionTime = progressDiagnostics.LastTargetCompletionTime;
+            debugLastResourceIncomeTime = progressDiagnostics.LastResourceIncomeTime;
+            debugLastMeaningfulActionTime = progressDiagnostics.LastMeaningfulActionTime;
         }
 
         private void OnDrawGizmosSelected()

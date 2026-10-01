@@ -41,7 +41,8 @@ namespace TinyKingdom.Navigation
                 if (!navigationData.TryGetCellData(x, y, out NavigationCellData data))
                     throw new InvalidOperationException($"Navigation data is missing cell ({x}, {y}).");
 
-                cells[x, y] = new GridCell(x, y, GridToWorld(x, y), data.terrainType, data.heightLevel);
+                cells[x, y] = new GridCell(x, y, GridToWorld(x, y), data.terrainType, data.heightLevel,
+                    data.hasHeightConnection ? data.heightConnection : null);
             }
         }
 

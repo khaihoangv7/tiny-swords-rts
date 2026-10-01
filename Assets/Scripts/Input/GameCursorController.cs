@@ -16,6 +16,8 @@ namespace TinyKingdom.Input
 
     public sealed class GameCursorController : MonoBehaviour
     {
+        public const float PresentationScale = 1.5f;
+
         private enum CursorVisual { Default, Hand, Forbidden }
 
         [SerializeField] private Camera worldCamera;
@@ -28,6 +30,7 @@ namespace TinyKingdom.Input
         [SerializeField] private Vector2 defaultHotspot = new Vector2(22f, 17f);
         [SerializeField] private Vector2 handHotspot = new Vector2(24f, 18f);
         [SerializeField] private Vector2 forbiddenHotspot = new Vector2(32f, 31f);
+        [SerializeField, Range(1f, 2f)] private float cursorScale = PresentationScale;
         [SerializeField, Min(0.05f)] private float validityRefreshSeconds = 0.2f;
 
         private readonly List<RaycastResult> uiHits = new();
@@ -39,6 +42,9 @@ namespace TinyKingdom.Input
         private bool cachedCanMove;
         private float nextValidityRefresh;
         private BuildingPlacementController placement;
+        private Texture2D scaledDefaultCursor;
+        private Texture2D scaledHandCursor;
+        private Texture2D scaledForbiddenCursor;
 
         private void Awake()
         {
@@ -47,6 +53,9 @@ namespace TinyKingdom.Input
             if (commandController == null) commandController = GetComponent<PlayerCommandController>();
             if (gridManager == null) gridManager = FindAnyObjectByType<GridManager>();
             placement = GetComponent<BuildingPlacementController>();
+            scaledDefaultCursor = CreateScaledCursor(defaultCursor);
+            scaledHandCursor = CreateScaledCursor(handCursor);
+            scaledForbiddenCursor = CreateScaledCursor(forbiddenCursor);
             Apply(CursorVisual.Default);
         }
 
@@ -62,6 +71,13 @@ namespace TinyKingdom.Input
                 selectionManager.SelectionChanged -= InvalidateMoveCache;
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             currentVisual = null;
+        }
+
+        private void OnDestroy()
+        {
+            DestroyScaledCursor(scaledDefaultCursor);
+            DestroyScaledCursor(scaledHandCursor);
+            DestroyScaledCursor(scaledForbiddenCursor);
         }
 
         private void Update()
@@ -206,9 +222,10 @@ namespace TinyKingdom.Input
             if (currentVisual == visual) return;
             Texture2D texture = visual switch
             {
-                CursorVisual.Hand => handCursor,
-                CursorVisual.Forbidden => forbiddenCursor,
-                _ => defaultCursor
+                CursorVisual.Hand => scaledHandCursor != null ? scaledHandCursor : handCursor,
+                CursorVisual.Forbidden => scaledForbiddenCursor != null
+                    ? scaledForbiddenCursor : forbiddenCursor,
+                _ => scaledDefaultCursor != null ? scaledDefaultCursor : defaultCursor
             };
             Vector2 hotspot = visual switch
             {
@@ -216,8 +233,50 @@ namespace TinyKingdom.Input
                 CursorVisual.Forbidden => forbiddenHotspot,
                 _ => defaultHotspot
             };
-            Cursor.SetCursor(texture, hotspot, CursorMode.Auto);
+            if (texture != null && texture != defaultCursor && texture != handCursor
+                && texture != forbiddenCursor)
+                hotspot *= Mathf.Max(1f, cursorScale);
+            Cursor.SetCursor(texture, hotspot, CursorMode.ForceSoftware);
             currentVisual = visual;
+        }
+
+        private Texture2D CreateScaledCursor(Texture2D source)
+        {
+            float scale = Mathf.Max(1f, cursorScale);
+            if (source == null || Mathf.Approximately(scale, 1f)) return source;
+
+            int width = Mathf.Max(1, Mathf.RoundToInt(source.width * scale));
+            int height = Mathf.Max(1, Mathf.RoundToInt(source.height * scale));
+            Color32[] sourcePixels = source.GetPixels32();
+            var scaledPixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                int sourceY = Mathf.Min(source.height - 1, Mathf.FloorToInt(y / scale));
+                int targetRow = y * width;
+                int sourceRow = sourceY * source.width;
+                for (int x = 0; x < width; x++)
+                {
+                    int sourceX = Mathf.Min(source.width - 1, Mathf.FloorToInt(x / scale));
+                    scaledPixels[targetRow + x] = sourcePixels[sourceRow + sourceX];
+                }
+            }
+
+            var result = new Texture2D(width, height, TextureFormat.RGBA32, false, false)
+            {
+                name = source.name + "_CursorScaled",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave
+            };
+            result.SetPixels32(scaledPixels);
+            result.Apply(false, false);
+            return result;
+        }
+
+        private static void DestroyScaledCursor(Texture2D texture)
+        {
+            if (texture != null && texture.name.EndsWith("_CursorScaled"))
+                Destroy(texture);
         }
     }
 }

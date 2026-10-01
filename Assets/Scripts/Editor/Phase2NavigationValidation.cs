@@ -24,26 +24,26 @@ namespace TinyKingdom.EditorTools
 
             var grid = new ValidationGrid(data);
 
-            List<GridCell> validPath = Find(grid, 3, 3, 36, 24);
+            List<GridCell> validPath = Find(grid, 12, 15, 47, 31);
             Require(validPath.Count > 0, "A valid flat-ground path was not found.");
             Require(validPath.All(cell => cell.TerrainType != TerrainType.Water),
                 "A valid path entered Water.");
 
-            List<GridCell> cliffDetour = Find(grid, 15, 12, 24, 12);
+            List<GridCell> cliffDetour = Find(grid, 4, 8, 22, 8);
             Require(cliffDetour.Count > 0, "A path around the central cliff was not found.");
             Require(cliffDetour.All(cell => cell.TerrainType != TerrainType.Cliff),
                 "A path entered a Cliff cell.");
 
-            GridCell flat = grid.GetCell(15, 15);
-            GridCell elevated = grid.GetCell(16, 15);
+            GridCell flat = grid.GetCell(22, 17);
+            GridCell elevated = grid.GetCell(20, 16);
             Require(!flat.CanTraverseTo(elevated),
                 "Direct movement from height 0 to height 1 was incorrectly allowed.");
-            List<GridCell> elevatedDetour = Find(grid, 15, 15, 16, 15);
+            List<GridCell> elevatedDetour = Find(grid, 22, 17, 20, 16);
             Require(elevatedDetour.Count > 0
                 && elevatedDetour.Any(cell => cell.TerrainType == TerrainType.Stairs),
                 "The elevated destination should be reachable only by routing through a stair.");
 
-            Require(Find(grid, 3, 3, 0, 0).Count == 0,
+            Require(Find(grid, 12, 15, 0, 0).Count == 0,
                 "A Water destination should fail safely.");
 
             GridCell occupied = grid.GetCell(10, 3);
@@ -129,7 +129,8 @@ namespace TinyKingdom.EditorTools
             {
                 return new GridCell(data.gridX, data.gridY,
                     new Vector3(data.gridX + 0.5f, data.gridY + 0.5f),
-                    data.terrainType, data.heightLevel);
+                    data.terrainType, data.heightLevel,
+                    data.hasHeightConnection ? data.heightConnection : null);
             }
         }
     }

@@ -70,6 +70,8 @@ namespace TinyKingdom.AI
         [Header("Phase 7C.2 offense (MVP / provisional)")]
         [SerializeField, Min(1)] private int minOffensiveMilitaryPopulation = 6;
         [SerializeField, Range(0.5f, 1f)] private float assembledFraction = 0.75f;
+        [SerializeField, Min(1f)] private float preparationTimeoutSeconds = 10f;
+        [SerializeField, Range(0.5f, 1f)] private float timeoutAssemblyFraction = 0.60f;
         [SerializeField, Min(1f)] private float offensiveCohesionRadius = 6f;
         [SerializeField, Min(0.5f)] private float offensiveReevaluationSeconds = 3f;
         [SerializeField, Range(1, 6)] private int maximumObjectiveFailures = 3;
@@ -138,6 +140,7 @@ namespace TinyKingdom.AI
         private float recoveryStartTime;
         private bool recoveryReady;
         private bool resumeRecoveryAfterDefense;
+        private float preparationStartTime;
 
         public ArmyGroup Army => army;
         public float BaseDefenseRadius => Mathf.Max(1f, baseDefenseRadius);
@@ -145,6 +148,10 @@ namespace TinyKingdom.AI
         public int MinOffensiveMilitaryPopulation
             => Mathf.Max(1, minOffensiveMilitaryPopulation);
         public float AssembledFraction => Mathf.Clamp(assembledFraction, 0.5f, 1f);
+        public float PreparationTimeoutSeconds => preparationTimeoutSeconds > 0f
+            ? preparationTimeoutSeconds : 10f;
+        public float TimeoutAssemblyFraction => Mathf.Clamp(timeoutAssemblyFraction,
+            0.5f, AssembledFraction);
         public bool HasBaseAnchor => hasBaseAnchor;
         public Vector3 BaseAnchor => baseAnchor;
         public bool HasStagingPosition => hasStagingPosition;
@@ -211,6 +218,10 @@ namespace TinyKingdom.AI
         public float RecoveryDuration(float now) => army.State == ArmyGroupState.Recovering
             ? Mathf.Max(0f, now - recoveryStartTime) : 0f;
         public bool RecoveryReady => recoveryReady;
+        public uint OffensiveLaunchSerial { get; private set; }
+        public float LastOffensiveLaunchTime { get; private set; } = -1f;
+        public uint TargetCompletionSerial { get; private set; }
+        public float LastTargetCompletionTime { get; private set; } = -1f;
 
         private bool IsOffensiveState => army.State is ArmyGroupState.PreparingAttack
             or ArmyGroupState.Advancing or ArmyGroupState.Assaulting;
@@ -325,7 +336,8 @@ namespace TinyKingdom.AI
             bool sufficientlyStaged = recoveryReady
                 ? FractionInside(army.Members, stagingPosition, stagingRegionRadius)
                     >= RecoveryAssemblyFraction
-                : AllMembersInsideStaging();
+                : FractionInside(army.Members, stagingPosition, stagingRegionRadius)
+                    >= AssembledFraction;
             if (!sufficientlyStaged)
             {
                 if (army.State != ArmyGroupState.Regrouping)
@@ -387,6 +399,11 @@ namespace TinyKingdom.AI
             recoveryStartTime = 0f;
             recoveryReady = false;
             resumeRecoveryAfterDefense = false;
+            preparationStartTime = 0f;
+            OffensiveLaunchSerial = 0;
+            LastOffensiveLaunchTime = -1f;
+            TargetCompletionSerial = 0;
+            LastTargetCompletionTime = -1f;
         }
 
         private void TryBeginOffense(CommanderDecisionContext context,
@@ -410,6 +427,7 @@ namespace TinyKingdom.AI
                 for (int i = 0; i < army.Members.Count; i++)
                     operationMembers.Add(army.Members[i]);
                 operationStartTime = context.Time;
+                preparationStartTime = context.Time;
                 objectiveFailureCount = 0;
                 cohesionRegroup = false;
                 recoveryReady = false;
@@ -534,18 +552,33 @@ namespace TinyKingdom.AI
             {
                 Vector3 assembly = cohesionRegroup ? cohesionRegroupPosition
                     : stagingPosition;
-                if (FractionInside(operationMembers, assembly, stagingRegionRadius)
-                    >= AssembledFraction
+                float assembled = FractionInside(operationMembers, assembly,
+                    stagingRegionRadius);
+                bool timedOut = context.Time - preparationStartTime
+                    >= PreparationTimeoutSeconds;
+                if ((assembled >= AssembledFraction
+                        || timedOut && assembled >= TimeoutAssemblyFraction)
                     && (cohesionRegroup || PopulationOf(operationMembers)
                         >= MinOffensiveMilitaryPopulation))
                 {
                     cohesionRegroup = false;
-                    if (!campaignBaselineCaptured)
+                    bool firstLaunch = !campaignBaselineCaptured;
+                    if (firstLaunch)
                         CaptureCampaignBaseline();
                     moveIntents.Clear();
                     retryAfter.Clear();
                     army.SetState(ArmyGroupState.Advancing);
+                    if (firstLaunch)
+                    {
+                        OffensiveLaunchSerial++;
+                        LastOffensiveLaunchTime = context.Time;
+                    }
                     IssueAdvance(context, safety, true);
+                    return;
+                }
+                if (timedOut && assembled < TimeoutAssemblyFraction)
+                {
+                    FailOffense(context, "Attack assembly timed out");
                     return;
                 }
                 RegroupMembers(context, operationMembers, assembly, true,
@@ -572,6 +605,7 @@ namespace TinyKingdom.AI
                     cohesionRegroupPosition = centroid;
                     ClearCommandIntents();
                     army.SetState(ArmyGroupState.PreparingAttack);
+                    preparationStartTime = context.Time;
                     objectiveReason = "Cohesion regroup";
                     TickPreparingAttack(context, safety);
                     return;
@@ -1005,6 +1039,8 @@ namespace TinyKingdom.AI
 
         private void CompleteOffense(CommanderDecisionContext context, string reason)
         {
+            TargetCompletionSerial++;
+            LastTargetCompletionTime = context.Time;
             CancelOffense(reason, context.Time, true);
             army.SetState(ArmyGroupState.Regrouping);
             InvalidateMoveAssignments();
@@ -1018,7 +1054,10 @@ namespace TinyKingdom.AI
                 blockedTargetId = offensiveTarget.RuntimeId;
                 blockedTargetUntil = context.Time + FailedObjectiveCooldown;
             }
-            CompleteOffense(context, reason);
+            CancelOffense(reason, context.Time, true);
+            army.SetState(ArmyGroupState.Regrouping);
+            InvalidateMoveAssignments();
+            Regroup(context, true);
         }
 
         private void CancelOffense(string reason, float time, bool cooldown)
@@ -1264,9 +1303,6 @@ namespace TinyKingdom.AI
             center = default;
             return false;
         }
-
-        private bool AllMembersInsideStaging()
-            => FractionInside(army.Members, stagingPosition, stagingRegionRadius) >= 0.999f;
 
         private bool IsSeverelyFragmented(out Vector3 centroid)
         {

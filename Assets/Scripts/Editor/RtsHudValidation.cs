@@ -180,7 +180,7 @@ namespace TinyKingdom.EditorTools
                     Require(mine.PresentationRenderer != null && Mathf.Approximately(
                         mine.PresentationRenderer.transform.localScale.x,
                         GoldMineObjective.VisualScale),
-                        "Gold Mine must retain its independent 1.30 presentation scale.");
+                        "Gold Mine must use its independent 2.60 presentation scale.");
 
                 foreach (UnitController unit in UnitController.AllUnits)
                 {
@@ -202,8 +202,12 @@ namespace TinyKingdom.EditorTools
         [MenuItem("Tools/Tiny Kingdom/Validate Selection And Unit Scale Polish")]
         public static void RunSelectionAndUnitScalePolish()
         {
-            Require(Mathf.Approximately(UnitVisualPresentation.Scale, 1.3f),
-                "Non-building world presentation scale must remain 1.3x.");
+            Require(Mathf.Approximately(UnitVisualPresentation.Scale, 1.6f),
+                "Unit, Tree and Sheep presentation scale must remain 1.6x.");
+            Require(Mathf.Approximately(GameCursorController.PresentationScale, 1.5f),
+                "Gameplay cursors must retain their 1.5x pixel-art presentation scale.");
+            Require(Mathf.Approximately(MoveCommandFeedback.PresentationScale, 1.35f),
+                "Move command feedback must retain its 1.35x presentation scale.");
             Require(ResourceNode.DefaultInteractionOffsetFactor > 0f
                 && ResourceNode.GoldInteractionOffsetFactor > 0f
                 && ResourceNode.LargeGoldInteractionOffsetFactor < 0f,
@@ -225,9 +229,9 @@ namespace TinyKingdom.EditorTools
                     SpriteRenderer body = unit.GetComponent<UnitAnimator>()?.VisualRenderer
                         ?? unit.GetComponent<PawnVisual>()?.VisualRenderer;
                     Require(unit.transform.localScale == Vector3.one && body != null
-                        && Mathf.Approximately(body.transform.localScale.x, 1.3f)
-                        && Mathf.Approximately(body.transform.localScale.y, 1.3f),
-                        $"{unit.name}: gameplay root or 1.3x visual scale is invalid.");
+                        && Mathf.Approximately(body.transform.localScale.x, 1.6f)
+                        && Mathf.Approximately(body.transform.localScale.y, 1.6f),
+                        $"{unit.name}: gameplay root or 1.6x visual scale is invalid.");
                     UnitSelection selection = unit.GetComponent<UnitSelection>();
                     Transform ring = unit.transform.Find("SelectionIndicator");
                     Require(selection != null && ring != null
@@ -245,7 +249,7 @@ namespace TinyKingdom.EditorTools
                     float expectedScale = resource.ResourceType == ResourceType.Gold
                         ? (resource.name.EndsWith("_6", System.StringComparison.Ordinal)
                             ? 1.55f : 1.4f)
-                        : 1.3f;
+                        : 1.6f;
                     Require(resource.PresentationRenderer != null
                         && Mathf.Approximately(resource.PresentationScale, expectedScale)
                         && Mathf.Approximately(
@@ -256,7 +260,7 @@ namespace TinyKingdom.EditorTools
                     {
                         ResourceType.Wood => 0f,
                         ResourceType.Gold => -0.20f,
-                        _ => -0.30f
+                        _ => -0.37f
                     };
                     Require(Mathf.Approximately(ring.LocalY, expectedRingY),
                         $"{resource.name}: selection ring ground offset is invalid.");
@@ -287,7 +291,7 @@ namespace TinyKingdom.EditorTools
                 }
             }
 
-            Debug.Log("Selection and unit scale polish validation passed: 1.3x units/resources, "
+            Debug.Log("Selection and unit scale polish validation passed: 1.6x units/Trees/Sheep, "
                 + "1.4x Gold Stones, 1.55x Gold Stone 6, aligned selection rings and gentle vertical building click "
                 + "pulse verified."
                 + (Application.isPlaying ? " Runtime objects verified." :

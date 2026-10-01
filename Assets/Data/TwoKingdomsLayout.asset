@@ -1,0 +1,1750 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e199f9a0aa468074d94e3de579b7e99c, type: 3}
+  m_Name: TwoKingdomsLayout
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Terrain.BattlefieldLayout
+  blueCastle: {x: 12.5, y: 16.5}
+  redCastle: {x: 47.5, y: 32.5}
+  bluePawns:
+  - {x: 11.5, y: 14.5}
+  - {x: 12.5, y: 14.5}
+  - {x: 13.5, y: 14.5}
+  redPawns:
+  - {x: 46.5, y: 30.5}
+  - {x: 47.5, y: 30.5}
+  - {x: 48.5, y: 30.5}
+  redPawnAnimations: {fileID: 11400000, guid: f99e8f48276242848a6962d1be0f83de, type: 2}
+  resources:
+  - name: Blue_Wood_1
+    type: 1
+    position: {x: 17.5, y: 24.5}
+    variant: 0
+  - name: Blue_Wood_2
+    type: 1
+    position: {x: 19.5, y: 25.5}
+    variant: 1
+  - name: Blue_Wood_3
+    type: 1
+    position: {x: 21.5, y: 24.5}
+    variant: 2
+  - name: Blue_Wood_4
+    type: 1
+    position: {x: 18.5, y: 27.5}
+    variant: 3
+  - name: Blue_Wood_5
+    type: 1
+    position: {x: 20.5, y: 28.5}
+    variant: 0
+  - name: Blue_Wood_6
+    type: 1
+    position: {x: 22.5, y: 27.5}
+    variant: 1
+  - name: Blue_Wood_7
+    type: 1
+    position: {x: 17.5, y: 5.5}
+    variant: 2
+  - name: Blue_Wood_8
+    type: 1
+    position: {x: 19.5, y: 4.5}
+    variant: 3
+  - name: Blue_Wood_9
+    type: 1
+    position: {x: 21.5, y: 5.5}
+    variant: 0
+  - name: Blue_Wood_10
+    type: 1
+    position: {x: 18.5, y: 3.5}
+    variant: 1
+  - name: Blue_Wood_11
+    type: 1
+    position: {x: 20.5, y: 3.5}
+    variant: 2
+  - name: Blue_Wood_12
+    type: 1
+    position: {x: 22.5, y: 4.5}
+    variant: 3
+  - name: Blue_Sheep_1
+    type: 0
+    position: {x: 7.5, y: 23.5}
+    variant: 0
+  - name: Blue_Sheep_2
+    type: 0
+    position: {x: 11.5, y: 22.5}
+    variant: 1
+  - name: Blue_Sheep_3
+    type: 0
+    position: {x: 14.5, y: 24.5}
+    variant: 2
+  - name: Blue_Sheep_4
+    type: 0
+    position: {x: 18.5, y: 22.5}
+    variant: 3
+  - name: Blue_Sheep_5
+    type: 0
+    position: {x: 7.5, y: 4.5}
+    variant: 4
+  - name: Blue_Sheep_6
+    type: 0
+    position: {x: 10.5, y: 6.5}
+    variant: 5
+  - name: Blue_Sheep_7
+    type: 0
+    position: {x: 13.5, y: 4.5}
+    variant: 6
+  - name: Blue_Sheep_8
+    type: 0
+    position: {x: 16.5, y: 6.5}
+    variant: 7
+  - name: Blue_Sheep_9
+    type: 0
+    position: {x: 5.5, y: 25.5}
+    variant: 8
+  - name: Blue_Sheep_10
+    type: 0
+    position: {x: 9.5, y: 25.5}
+    variant: 9
+  - name: Blue_Sheep_11
+    type: 0
+    position: {x: 16.5, y: 23.5}
+    variant: 10
+  - name: Blue_Sheep_12
+    type: 0
+    position: {x: 20.5, y: 22.5}
+    variant: 11
+  - name: Blue_Sheep_13
+    type: 0
+    position: {x: 5.5, y: 5.5}
+    variant: 12
+  - name: Blue_Sheep_14
+    type: 0
+    position: {x: 9.5, y: 3.5}
+    variant: 13
+  - name: Blue_Sheep_15
+    type: 0
+    position: {x: 14.5, y: 6.5}
+    variant: 14
+  - name: Blue_Sheep_16
+    type: 0
+    position: {x: 18.5, y: 6.5}
+    variant: 15
+  - name: Blue_Sheep_17
+    type: 0
+    position: {x: 6.5, y: 22.5}
+    variant: 16
+  - name: Blue_Sheep_18
+    type: 0
+    position: {x: 12.5, y: 25.5}
+    variant: 17
+  - name: Blue_Sheep_19
+    type: 0
+    position: {x: 15.5, y: 22.5}
+    variant: 18
+  - name: Blue_Sheep_20
+    type: 0
+    position: {x: 19.5, y: 24.5}
+    variant: 19
+  - name: Blue_Sheep_21
+    type: 0
+    position: {x: 6.5, y: 3.5}
+    variant: 20
+  - name: Blue_Sheep_22
+    type: 0
+    position: {x: 8.5, y: 6.5}
+    variant: 21
+  - name: Blue_Sheep_23
+    type: 0
+    position: {x: 12.5, y: 5.5}
+    variant: 22
+  - name: Blue_Sheep_24
+    type: 0
+    position: {x: 15.5, y: 3.5}
+    variant: 23
+  - name: Blue_Gold_1
+    type: 2
+    position: {x: 22.5, y: 10.5}
+    variant: 0
+  - name: Blue_Gold_2
+    type: 2
+    position: {x: 23.5, y: 12.5}
+    variant: 1
+  - name: Blue_Gold_3
+    type: 2
+    position: {x: 22.5, y: 8.5}
+    variant: 2
+  - name: Red_Wood_1
+    type: 1
+    position: {x: 42.5, y: 19.5}
+    variant: 0
+  - name: Red_Wood_2
+    type: 1
+    position: {x: 40.5, y: 18.5}
+    variant: 1
+  - name: Red_Wood_3
+    type: 1
+    position: {x: 38.5, y: 19.5}
+    variant: 2
+  - name: Red_Wood_4
+    type: 1
+    position: {x: 41.5, y: 16.5}
+    variant: 3
+  - name: Red_Wood_5
+    type: 1
+    position: {x: 39.5, y: 15.5}
+    variant: 0
+  - name: Red_Wood_6
+    type: 1
+    position: {x: 37.5, y: 16.5}
+    variant: 1
+  - name: Red_Wood_7
+    type: 1
+    position: {x: 42.5, y: 38.5}
+    variant: 2
+  - name: Red_Wood_8
+    type: 1
+    position: {x: 40.5, y: 39.5}
+    variant: 3
+  - name: Red_Wood_9
+    type: 1
+    position: {x: 38.5, y: 38.5}
+    variant: 0
+  - name: Red_Wood_10
+    type: 1
+    position: {x: 41.5, y: 40.5}
+    variant: 1
+  - name: Red_Wood_11
+    type: 1
+    position: {x: 39.5, y: 40.5}
+    variant: 2
+  - name: Red_Wood_12
+    type: 1
+    position: {x: 37.5, y: 39.5}
+    variant: 3
+  - name: Red_Sheep_1
+    type: 0
+    position: {x: 52.5, y: 20.5}
+    variant: 0
+  - name: Red_Sheep_2
+    type: 0
+    position: {x: 48.5, y: 21.5}
+    variant: 1
+  - name: Red_Sheep_3
+    type: 0
+    position: {x: 45.5, y: 19.5}
+    variant: 2
+  - name: Red_Sheep_4
+    type: 0
+    position: {x: 41.5, y: 21.5}
+    variant: 3
+  - name: Red_Sheep_5
+    type: 0
+    position: {x: 52.5, y: 39.5}
+    variant: 4
+  - name: Red_Sheep_6
+    type: 0
+    position: {x: 49.5, y: 37.5}
+    variant: 5
+  - name: Red_Sheep_7
+    type: 0
+    position: {x: 46.5, y: 39.5}
+    variant: 6
+  - name: Red_Sheep_8
+    type: 0
+    position: {x: 43.5, y: 37.5}
+    variant: 7
+  - name: Red_Sheep_9
+    type: 0
+    position: {x: 54.5, y: 18.5}
+    variant: 8
+  - name: Red_Sheep_10
+    type: 0
+    position: {x: 50.5, y: 18.5}
+    variant: 9
+  - name: Red_Sheep_11
+    type: 0
+    position: {x: 43.5, y: 20.5}
+    variant: 10
+  - name: Red_Sheep_12
+    type: 0
+    position: {x: 39.5, y: 21.5}
+    variant: 11
+  - name: Red_Sheep_13
+    type: 0
+    position: {x: 54.5, y: 38.5}
+    variant: 12
+  - name: Red_Sheep_14
+    type: 0
+    position: {x: 50.5, y: 40.5}
+    variant: 13
+  - name: Red_Sheep_15
+    type: 0
+    position: {x: 45.5, y: 37.5}
+    variant: 14
+  - name: Red_Sheep_16
+    type: 0
+    position: {x: 41.5, y: 37.5}
+    variant: 15
+  - name: Red_Sheep_17
+    type: 0
+    position: {x: 53.5, y: 21.5}
+    variant: 16
+  - name: Red_Sheep_18
+    type: 0
+    position: {x: 47.5, y: 18.5}
+    variant: 17
+  - name: Red_Sheep_19
+    type: 0
+    position: {x: 44.5, y: 21.5}
+    variant: 18
+  - name: Red_Sheep_20
+    type: 0
+    position: {x: 40.5, y: 19.5}
+    variant: 19
+  - name: Red_Sheep_21
+    type: 0
+    position: {x: 53.5, y: 40.5}
+    variant: 20
+  - name: Red_Sheep_22
+    type: 0
+    position: {x: 51.5, y: 37.5}
+    variant: 21
+  - name: Red_Sheep_23
+    type: 0
+    position: {x: 47.5, y: 38.5}
+    variant: 22
+  - name: Red_Sheep_24
+    type: 0
+    position: {x: 44.5, y: 40.5}
+    variant: 23
+  - name: Red_Gold_1
+    type: 2
+    position: {x: 37.5, y: 33.5}
+    variant: 0
+  - name: Red_Gold_2
+    type: 2
+    position: {x: 36.5, y: 31.5}
+    variant: 1
+  - name: Red_Gold_3
+    type: 2
+    position: {x: 37.5, y: 35.5}
+    variant: 2
+  - name: Central_Gold_1
+    type: 2
+    position: {x: 24.5, y: 24.5}
+    variant: 3
+  - name: Central_Gold_2
+    type: 2
+    position: {x: 25.5, y: 26.5}
+    variant: 4
+  - name: Central_Gold_3
+    type: 2
+    position: {x: 34.5, y: 21.5}
+    variant: 5
+  - name: Central_Gold_4
+    type: 2
+    position: {x: 35.5, y: 20.5}
+    variant: 3
+  - name: Central_Gold_5
+    type: 2
+    position: {x: 27.5, y: 26.5}
+    variant: 4
+  - name: Central_Gold_6
+    type: 2
+    position: {x: 32.5, y: 26.5}
+    variant: 5
+  - name: North_Grove_0
+    type: 1
+    position: {x: 5.5, y: 29.5}
+    variant: 0
+  - name: South_Grove_0
+    type: 1
+    position: {x: 54.5, y: 14.5}
+    variant: 2
+  - name: North_Grove_1
+    type: 1
+    position: {x: 7.5, y: 30.5}
+    variant: 1
+  - name: South_Grove_1
+    type: 1
+    position: {x: 52.5, y: 13.5}
+    variant: 3
+  - name: North_Grove_2
+    type: 1
+    position: {x: 9.5, y: 29.5}
+    variant: 2
+  - name: South_Grove_2
+    type: 1
+    position: {x: 50.5, y: 14.5}
+    variant: 0
+  - name: North_Grove_3
+    type: 1
+    position: {x: 6.5, y: 33.5}
+    variant: 3
+  - name: South_Grove_3
+    type: 1
+    position: {x: 53.5, y: 10.5}
+    variant: 1
+  - name: North_Grove_4
+    type: 1
+    position: {x: 8.5, y: 34.5}
+    variant: 0
+  - name: South_Grove_4
+    type: 1
+    position: {x: 51.5, y: 9.5}
+    variant: 2
+  - name: North_Grove_5
+    type: 1
+    position: {x: 11.5, y: 32.5}
+    variant: 1
+  - name: South_Grove_5
+    type: 1
+    position: {x: 48.5, y: 11.5}
+    variant: 3
+  - name: North_Grove_6
+    type: 1
+    position: {x: 13.5, y: 34.5}
+    variant: 2
+  - name: South_Grove_6
+    type: 1
+    position: {x: 46.5, y: 9.5}
+    variant: 0
+  - name: North_Grove_7
+    type: 1
+    position: {x: 15.5, y: 32.5}
+    variant: 3
+  - name: South_Grove_7
+    type: 1
+    position: {x: 44.5, y: 11.5}
+    variant: 1
+  - name: North_Grove_8
+    type: 1
+    position: {x: 12.5, y: 37.5}
+    variant: 0
+  - name: South_Grove_8
+    type: 1
+    position: {x: 47.5, y: 6.5}
+    variant: 2
+  - name: North_Grove_9
+    type: 1
+    position: {x: 16.5, y: 37.5}
+    variant: 1
+  - name: South_Grove_9
+    type: 1
+    position: {x: 43.5, y: 6.5}
+    variant: 3
+  - name: North_Grove_10
+    type: 1
+    position: {x: 19.5, y: 35.5}
+    variant: 2
+  - name: South_Grove_10
+    type: 1
+    position: {x: 40.5, y: 8.5}
+    variant: 0
+  - name: North_Grove_11
+    type: 1
+    position: {x: 21.5, y: 37.5}
+    variant: 3
+  - name: South_Grove_11
+    type: 1
+    position: {x: 38.5, y: 6.5}
+    variant: 1
+  - name: North_Grove_12
+    type: 1
+    position: {x: 23.5, y: 34.5}
+    variant: 0
+  - name: South_Grove_12
+    type: 1
+    position: {x: 36.5, y: 9.5}
+    variant: 2
+  - name: North_Grove_13
+    type: 1
+    position: {x: 25.5, y: 38.5}
+    variant: 1
+  - name: South_Grove_13
+    type: 1
+    position: {x: 34.5, y: 5.5}
+    variant: 3
+  - name: North_Grove_14
+    type: 1
+    position: {x: 27.5, y: 40.5}
+    variant: 2
+  - name: South_Grove_14
+    type: 1
+    position: {x: 32.5, y: 3.5}
+    variant: 0
+  - name: North_Grove_15
+    type: 1
+    position: {x: 32.5, y: 40.5}
+    variant: 3
+  - name: South_Grove_15
+    type: 1
+    position: {x: 27.5, y: 3.5}
+    variant: 1
+  - name: North_Grove_16
+    type: 1
+    position: {x: 34.5, y: 38.5}
+    variant: 0
+  - name: South_Grove_16
+    type: 1
+    position: {x: 25.5, y: 5.5}
+    variant: 2
+  - name: North_Grove_17
+    type: 1
+    position: {x: 35.5, y: 34.5}
+    variant: 1
+  - name: South_Grove_17
+    type: 1
+    position: {x: 24.5, y: 9.5}
+    variant: 3
+  - name: North_Grove_18
+    type: 1
+    position: {x: 36.5, y: 37.5}
+    variant: 2
+  - name: South_Grove_18
+    type: 1
+    position: {x: 23.5, y: 6.5}
+    variant: 0
+  - name: North_Grove_19
+    type: 1
+    position: {x: 24.5, y: 31.5}
+    variant: 3
+  - name: South_Grove_19
+    type: 1
+    position: {x: 35.5, y: 12.5}
+    variant: 1
+  - name: Meadow_Sheep_0
+    type: 0
+    position: {x: 12.5, y: 28.5}
+    variant: 0
+  - name: Meadow_Sheep_1
+    type: 0
+    position: {x: 15.5, y: 30.5}
+    variant: 1
+  - name: Meadow_Sheep_2
+    type: 0
+    position: {x: 47.5, y: 15.5}
+    variant: 2
+  - name: Meadow_Sheep_3
+    type: 0
+    position: {x: 44.5, y: 13.5}
+    variant: 3
+  - name: Meadow_Sheep_4
+    type: 0
+    position: {x: 8.5, y: 27.5}
+    variant: 4
+  - name: Meadow_Sheep_5
+    type: 0
+    position: {x: 10.5, y: 28.5}
+    variant: 5
+  - name: Meadow_Sheep_6
+    type: 0
+    position: {x: 13.5, y: 30.5}
+    variant: 6
+  - name: Meadow_Sheep_7
+    type: 0
+    position: {x: 16.5, y: 29.5}
+    variant: 7
+  - name: Meadow_Sheep_8
+    type: 0
+    position: {x: 51.5, y: 16.5}
+    variant: 8
+  - name: Meadow_Sheep_9
+    type: 0
+    position: {x: 49.5, y: 15.5}
+    variant: 9
+  - name: Meadow_Sheep_10
+    type: 0
+    position: {x: 46.5, y: 13.5}
+    variant: 10
+  - name: Meadow_Sheep_11
+    type: 0
+    position: {x: 43.5, y: 14.5}
+    variant: 11
+  - name: Woodland_North_0
+    type: 1
+    position: {x: 3.5119314, y: 22.5346}
+    variant: 0
+  - name: Woodland_South_0
+    type: 1
+    position: {x: 56.488068, y: 21.4654}
+    variant: 2
+  - name: Woodland_North_1
+    type: 1
+    position: {x: 9.55926, y: 22.47709}
+    variant: 1
+  - name: Woodland_South_1
+    type: 1
+    position: {x: 50.44074, y: 21.52291}
+    variant: 3
+  - name: Woodland_North_2
+    type: 1
+    position: {x: 13.514362, y: 22.557446}
+    variant: 2
+  - name: Woodland_South_2
+    type: 1
+    position: {x: 46.485638, y: 21.442554}
+    variant: 0
+  - name: Woodland_North_3
+    type: 1
+    position: {x: 37.48108, y: 22.462797}
+    variant: 3
+  - name: Woodland_South_3
+    type: 1
+    position: {x: 22.51892, y: 21.537203}
+    variant: 1
+  - name: Woodland_North_4
+    type: 1
+    position: {x: 9.555098, y: 23.518682}
+    variant: 0
+  - name: Woodland_South_4
+    type: 1
+    position: {x: 50.4449, y: 20.481318}
+    variant: 2
+  - name: Woodland_North_5
+    type: 1
+    position: {x: 37.610966, y: 23.461538}
+    variant: 1
+  - name: Woodland_South_5
+    type: 1
+    position: {x: 22.389034, y: 20.538462}
+    variant: 3
+  - name: Woodland_North_6
+    type: 1
+    position: {x: 3.4266176, y: 25.541729}
+    variant: 2
+  - name: Woodland_South_6
+    type: 1
+    position: {x: 56.573383, y: 18.458271}
+    variant: 0
+  - name: Woodland_North_7
+    type: 1
+    position: {x: 7.5461893, y: 25.545734}
+    variant: 3
+  - name: Woodland_South_7
+    type: 1
+    position: {x: 52.45381, y: 18.454266}
+    variant: 1
+  - name: Woodland_North_8
+    type: 1
+    position: {x: 17.380102, y: 25.479912}
+    variant: 0
+  - name: Woodland_South_8
+    type: 1
+    position: {x: 42.619896, y: 18.520088}
+    variant: 2
+  - name: Woodland_North_9
+    type: 1
+    position: {x: 21.462658, y: 25.456068}
+    variant: 1
+  - name: Woodland_South_9
+    type: 1
+    position: {x: 38.537342, y: 18.543932}
+    variant: 3
+  - name: Woodland_North_10
+    type: 1
+    position: {x: 3.4113343, y: 26.493868}
+    variant: 2
+  - name: Woodland_South_10
+    type: 1
+    position: {x: 56.588665, y: 17.506132}
+    variant: 0
+  - name: Woodland_North_11
+    type: 1
+    position: {x: 15.532817, y: 26.496979}
+    variant: 3
+  - name: Woodland_South_11
+    type: 1
+    position: {x: 44.467182, y: 17.503021}
+    variant: 1
+  - name: Woodland_North_12
+    type: 1
+    position: {x: 17.465914, y: 26.55898}
+    variant: 0
+  - name: Woodland_South_12
+    type: 1
+    position: {x: 42.53409, y: 17.44102}
+    variant: 2
+  - name: Woodland_North_13
+    type: 1
+    position: {x: 19.517605, y: 26.504581}
+    variant: 1
+  - name: Woodland_South_13
+    type: 1
+    position: {x: 40.482395, y: 17.495419}
+    variant: 3
+  - name: Woodland_North_14
+    type: 1
+    position: {x: 21.444946, y: 26.464287}
+    variant: 2
+  - name: Woodland_South_14
+    type: 1
+    position: {x: 38.555054, y: 17.535713}
+    variant: 0
+  - name: Woodland_North_15
+    type: 1
+    position: {x: 23.574045, y: 26.513462}
+    variant: 3
+  - name: Woodland_South_15
+    type: 1
+    position: {x: 36.425957, y: 17.486538}
+    variant: 1
+  - name: Woodland_North_16
+    type: 1
+    position: {x: 3.3976636, y: 27.532757}
+    variant: 0
+  - name: Woodland_South_16
+    type: 1
+    position: {x: 56.602337, y: 16.467243}
+    variant: 2
+  - name: Woodland_North_17
+    type: 1
+    position: {x: 5.579261, y: 27.550255}
+    variant: 1
+  - name: Woodland_South_17
+    type: 1
+    position: {x: 54.42074, y: 16.449745}
+    variant: 3
+  - name: Woodland_North_18
+    type: 1
+    position: {x: 15.510157, y: 27.513088}
+    variant: 2
+  - name: Woodland_South_18
+    type: 1
+    position: {x: 44.489845, y: 16.486912}
+    variant: 0
+  - name: Woodland_North_19
+    type: 1
+    position: {x: 19.421598, y: 27.539967}
+    variant: 3
+  - name: Woodland_South_19
+    type: 1
+    position: {x: 40.5784, y: 16.460033}
+    variant: 1
+  - name: Woodland_North_20
+    type: 1
+    position: {x: 21.608778, y: 27.494892}
+    variant: 0
+  - name: Woodland_South_20
+    type: 1
+    position: {x: 38.39122, y: 16.505108}
+    variant: 2
+  - name: Woodland_North_21
+    type: 1
+    position: {x: 23.381529, y: 27.552567}
+    variant: 1
+  - name: Woodland_South_21
+    type: 1
+    position: {x: 36.61847, y: 16.447433}
+    variant: 3
+  - name: Woodland_North_22
+    type: 1
+    position: {x: 19.485554, y: 29.489527}
+    variant: 2
+  - name: Woodland_South_22
+    type: 1
+    position: {x: 40.514446, y: 14.510473}
+    variant: 0
+  - name: Woodland_North_23
+    type: 1
+    position: {x: 21.453747, y: 29.52005}
+    variant: 3
+  - name: Woodland_South_23
+    type: 1
+    position: {x: 38.546253, y: 14.47995}
+    variant: 1
+  - name: Woodland_North_24
+    type: 1
+    position: {x: 23.475658, y: 29.468605}
+    variant: 0
+  - name: Woodland_South_24
+    type: 1
+    position: {x: 36.52434, y: 14.531395}
+    variant: 2
+  - name: Woodland_North_25
+    type: 1
+    position: {x: 27.58416, y: 29.536783}
+    variant: 1
+  - name: Woodland_South_25
+    type: 1
+    position: {x: 32.41584, y: 14.463217}
+    variant: 3
+  - name: Woodland_North_26
+    type: 1
+    position: {x: 29.392763, y: 29.499348}
+    variant: 2
+  - name: Woodland_South_26
+    type: 1
+    position: {x: 30.607237, y: 14.500652}
+    variant: 0
+  - name: Woodland_North_27
+    type: 1
+    position: {x: 31.47225, y: 29.503916}
+    variant: 3
+  - name: Woodland_South_27
+    type: 1
+    position: {x: 28.52775, y: 14.496084}
+    variant: 1
+  - name: Woodland_North_28
+    type: 1
+    position: {x: 33.525192, y: 29.558716}
+    variant: 0
+  - name: Woodland_South_28
+    type: 1
+    position: {x: 26.474808, y: 14.441284}
+    variant: 2
+  - name: Woodland_North_29
+    type: 1
+    position: {x: 3.4456189, y: 30.442537}
+    variant: 1
+  - name: Woodland_South_29
+    type: 1
+    position: {x: 56.554382, y: 13.557463}
+    variant: 3
+  - name: Woodland_North_30
+    type: 1
+    position: {x: 5.449941, y: 30.54881}
+    variant: 2
+  - name: Woodland_South_30
+    type: 1
+    position: {x: 54.55006, y: 13.451191}
+    variant: 0
+  - name: Woodland_North_31
+    type: 1
+    position: {x: 9.479118, y: 30.535381}
+    variant: 3
+  - name: Woodland_South_31
+    type: 1
+    position: {x: 50.52088, y: 13.464619}
+    variant: 1
+  - name: Woodland_North_32
+    type: 1
+    position: {x: 11.41447, y: 30.501614}
+    variant: 0
+  - name: Woodland_South_32
+    type: 1
+    position: {x: 48.58553, y: 13.498386}
+    variant: 2
+  - name: Woodland_North_33
+    type: 1
+    position: {x: 21.41235, y: 30.447922}
+    variant: 1
+  - name: Woodland_South_33
+    type: 1
+    position: {x: 38.58765, y: 13.552078}
+    variant: 3
+  - name: Woodland_North_34
+    type: 1
+    position: {x: 23.474558, y: 30.467638}
+    variant: 2
+  - name: Woodland_South_34
+    type: 1
+    position: {x: 36.525444, y: 13.532362}
+    variant: 0
+  - name: Woodland_North_35
+    type: 1
+    position: {x: 25.564312, y: 30.446592}
+    variant: 3
+  - name: Woodland_South_35
+    type: 1
+    position: {x: 34.435688, y: 13.553408}
+    variant: 1
+  - name: Woodland_North_36
+    type: 1
+    position: {x: 27.443916, y: 30.543383}
+    variant: 0
+  - name: Woodland_South_36
+    type: 1
+    position: {x: 32.556084, y: 13.456617}
+    variant: 2
+  - name: Woodland_North_37
+    type: 1
+    position: {x: 29.481112, y: 30.484594}
+    variant: 1
+  - name: Woodland_South_37
+    type: 1
+    position: {x: 30.518888, y: 13.515406}
+    variant: 3
+  - name: Woodland_North_38
+    type: 1
+    position: {x: 31.488651, y: 30.47647}
+    variant: 2
+  - name: Woodland_South_38
+    type: 1
+    position: {x: 28.511349, y: 13.523529}
+    variant: 0
+  - name: Woodland_North_39
+    type: 1
+    position: {x: 33.54008, y: 30.54952}
+    variant: 3
+  - name: Woodland_South_39
+    type: 1
+    position: {x: 26.459919, y: 13.4504795}
+    variant: 1
+  - name: Woodland_North_40
+    type: 1
+    position: {x: 3.440097, y: 31.518343}
+    variant: 0
+  - name: Woodland_South_40
+    type: 1
+    position: {x: 56.559902, y: 12.481657}
+    variant: 2
+  - name: Woodland_North_41
+    type: 1
+    position: {x: 5.3900733, y: 31.524004}
+    variant: 1
+  - name: Woodland_South_41
+    type: 1
+    position: {x: 54.60993, y: 12.475996}
+    variant: 3
+  - name: Woodland_North_42
+    type: 1
+    position: {x: 7.4001036, y: 31.535978}
+    variant: 2
+  - name: Woodland_South_42
+    type: 1
+    position: {x: 52.599895, y: 12.464022}
+    variant: 0
+  - name: Woodland_North_43
+    type: 1
+    position: {x: 9.514484, y: 31.547768}
+    variant: 3
+  - name: Woodland_South_43
+    type: 1
+    position: {x: 50.485516, y: 12.452232}
+    variant: 1
+  - name: Woodland_North_44
+    type: 1
+    position: {x: 11.592421, y: 31.540558}
+    variant: 0
+  - name: Woodland_South_44
+    type: 1
+    position: {x: 48.407578, y: 12.459442}
+    variant: 2
+  - name: Woodland_North_45
+    type: 1
+    position: {x: 17.539017, y: 31.521456}
+    variant: 1
+  - name: Woodland_South_45
+    type: 1
+    position: {x: 42.460983, y: 12.478544}
+    variant: 3
+  - name: Woodland_North_46
+    type: 1
+    position: {x: 19.483868, y: 31.484697}
+    variant: 2
+  - name: Woodland_South_46
+    type: 1
+    position: {x: 40.516132, y: 12.515303}
+    variant: 0
+  - name: Woodland_North_47
+    type: 1
+    position: {x: 21.541304, y: 31.492004}
+    variant: 3
+  - name: Woodland_South_47
+    type: 1
+    position: {x: 38.458694, y: 12.507996}
+    variant: 1
+  - name: Woodland_North_48
+    type: 1
+    position: {x: 23.604551, y: 31.481783}
+    variant: 0
+  - name: Woodland_South_48
+    type: 1
+    position: {x: 36.395447, y: 12.518217}
+    variant: 2
+  - name: Woodland_North_49
+    type: 1
+    position: {x: 25.466312, y: 31.47995}
+    variant: 1
+  - name: Woodland_South_49
+    type: 1
+    position: {x: 34.533688, y: 12.52005}
+    variant: 3
+  - name: Woodland_North_50
+    type: 1
+    position: {x: 27.45205, y: 31.453352}
+    variant: 2
+  - name: Woodland_South_50
+    type: 1
+    position: {x: 32.54795, y: 12.546648}
+    variant: 0
+  - name: Woodland_North_51
+    type: 1
+    position: {x: 29.529633, y: 31.522882}
+    variant: 3
+  - name: Woodland_South_51
+    type: 1
+    position: {x: 30.470367, y: 12.477118}
+    variant: 1
+  - name: Woodland_North_52
+    type: 1
+    position: {x: 31.588287, y: 31.469133}
+    variant: 0
+  - name: Woodland_South_52
+    type: 1
+    position: {x: 28.411713, y: 12.530867}
+    variant: 2
+  - name: Woodland_North_53
+    type: 1
+    position: {x: 33.523617, y: 31.492367}
+    variant: 1
+  - name: Woodland_South_53
+    type: 1
+    position: {x: 26.476383, y: 12.507633}
+    variant: 3
+  - name: Woodland_North_54
+    type: 1
+    position: {x: 3.5802522, y: 33.55233}
+    variant: 2
+  - name: Woodland_South_54
+    type: 1
+    position: {x: 56.419746, y: 10.44767}
+    variant: 0
+  - name: Woodland_North_55
+    type: 1
+    position: {x: 5.4733815, y: 33.55245}
+    variant: 3
+  - name: Woodland_South_55
+    type: 1
+    position: {x: 54.52662, y: 10.447552}
+    variant: 1
+  - name: Woodland_North_56
+    type: 1
+    position: {x: 7.4405003, y: 33.448093}
+    variant: 0
+  - name: Woodland_South_56
+    type: 1
+    position: {x: 52.5595, y: 10.551907}
+    variant: 2
+  - name: Woodland_North_57
+    type: 1
+    position: {x: 9.427558, y: 33.52941}
+    variant: 1
+  - name: Woodland_South_57
+    type: 1
+    position: {x: 50.57244, y: 10.470589}
+    variant: 3
+  - name: Woodland_North_58
+    type: 1
+    position: {x: 11.434405, y: 33.500248}
+    variant: 2
+  - name: Woodland_South_58
+    type: 1
+    position: {x: 48.565594, y: 10.499752}
+    variant: 0
+  - name: Woodland_North_59
+    type: 1
+    position: {x: 13.514098, y: 33.473484}
+    variant: 3
+  - name: Woodland_South_59
+    type: 1
+    position: {x: 46.4859, y: 10.526516}
+    variant: 1
+  - name: Woodland_North_60
+    type: 1
+    position: {x: 15.559305, y: 33.514168}
+    variant: 0
+  - name: Woodland_South_60
+    type: 1
+    position: {x: 44.440697, y: 10.485832}
+    variant: 2
+  - name: Woodland_North_61
+    type: 1
+    position: {x: 17.502728, y: 33.549313}
+    variant: 1
+  - name: Woodland_South_61
+    type: 1
+    position: {x: 42.497272, y: 10.450687}
+    variant: 3
+  - name: Woodland_North_62
+    type: 1
+    position: {x: 19.572582, y: 33.530956}
+    variant: 2
+  - name: Woodland_South_62
+    type: 1
+    position: {x: 40.427418, y: 10.469044}
+    variant: 0
+  - name: Woodland_North_63
+    type: 1
+    position: {x: 21.611717, y: 33.459793}
+    variant: 3
+  - name: Woodland_South_63
+    type: 1
+    position: {x: 38.388283, y: 10.540207}
+    variant: 1
+  - name: Woodland_North_64
+    type: 1
+    position: {x: 23.500656, y: 33.535175}
+    variant: 0
+  - name: Woodland_South_64
+    type: 1
+    position: {x: 36.499344, y: 10.464825}
+    variant: 2
+  - name: Woodland_North_65
+    type: 1
+    position: {x: 25.391973, y: 33.532978}
+    variant: 1
+  - name: Woodland_South_65
+    type: 1
+    position: {x: 34.608025, y: 10.467022}
+    variant: 3
+  - name: Woodland_North_66
+    type: 1
+    position: {x: 27.38468, y: 33.44271}
+    variant: 2
+  - name: Woodland_South_66
+    type: 1
+    position: {x: 32.61532, y: 10.557289}
+    variant: 0
+  - name: Woodland_North_67
+    type: 1
+    position: {x: 29.460623, y: 33.484715}
+    variant: 3
+  - name: Woodland_South_67
+    type: 1
+    position: {x: 30.539377, y: 10.5152855}
+    variant: 1
+  - name: Woodland_North_68
+    type: 1
+    position: {x: 31.565792, y: 33.479275}
+    variant: 0
+  - name: Woodland_South_68
+    type: 1
+    position: {x: 28.434208, y: 10.520725}
+    variant: 2
+  - name: Woodland_North_69
+    type: 1
+    position: {x: 33.460537, y: 33.501392}
+    variant: 1
+  - name: Woodland_South_69
+    type: 1
+    position: {x: 26.539463, y: 10.498608}
+    variant: 3
+  - name: Woodland_North_70
+    type: 1
+    position: {x: 35.52465, y: 33.50685}
+    variant: 2
+  - name: Woodland_South_70
+    type: 1
+    position: {x: 24.47535, y: 10.493149}
+    variant: 0
+  - name: Woodland_North_71
+    type: 1
+    position: {x: 3.4920478, y: 34.469563}
+    variant: 3
+  - name: Woodland_South_71
+    type: 1
+    position: {x: 56.507954, y: 9.530437}
+    variant: 1
+  - name: Woodland_North_72
+    type: 1
+    position: {x: 5.4670687, y: 34.512943}
+    variant: 0
+  - name: Woodland_South_72
+    type: 1
+    position: {x: 54.532932, y: 9.487057}
+    variant: 2
+  - name: Woodland_North_73
+    type: 1
+    position: {x: 7.5491037, y: 34.52946}
+    variant: 1
+  - name: Woodland_South_73
+    type: 1
+    position: {x: 52.450897, y: 9.470539}
+    variant: 3
+  - name: Woodland_North_74
+    type: 1
+    position: {x: 9.578106, y: 34.494213}
+    variant: 2
+  - name: Woodland_South_74
+    type: 1
+    position: {x: 50.421894, y: 9.505787}
+    variant: 0
+  - name: Woodland_North_75
+    type: 1
+    position: {x: 11.591581, y: 34.49231}
+    variant: 3
+  - name: Woodland_South_75
+    type: 1
+    position: {x: 48.408417, y: 9.50769}
+    variant: 1
+  - name: Woodland_North_76
+    type: 1
+    position: {x: 15.382741, y: 34.515823}
+    variant: 0
+  - name: Woodland_South_76
+    type: 1
+    position: {x: 44.61726, y: 9.484177}
+    variant: 2
+  - name: Woodland_North_77
+    type: 1
+    position: {x: 17.554861, y: 34.48018}
+    variant: 1
+  - name: Woodland_South_77
+    type: 1
+    position: {x: 42.445137, y: 9.519821}
+    variant: 3
+  - name: Woodland_North_78
+    type: 1
+    position: {x: 21.384281, y: 34.519966}
+    variant: 2
+  - name: Woodland_South_78
+    type: 1
+    position: {x: 38.61572, y: 9.480034}
+    variant: 0
+  - name: Woodland_North_79
+    type: 1
+    position: {x: 25.52059, y: 34.492977}
+    variant: 3
+  - name: Woodland_South_79
+    type: 1
+    position: {x: 34.47941, y: 9.507023}
+    variant: 1
+  - name: Woodland_North_80
+    type: 1
+    position: {x: 29.60386, y: 34.53648}
+    variant: 0
+  - name: Woodland_South_80
+    type: 1
+    position: {x: 30.39614, y: 9.46352}
+    variant: 2
+  - name: Woodland_North_81
+    type: 1
+    position: {x: 31.450718, y: 34.456245}
+    variant: 1
+  - name: Woodland_South_81
+    type: 1
+    position: {x: 28.549282, y: 9.543755}
+    variant: 3
+  - name: Woodland_North_82
+    type: 1
+    position: {x: 3.4189346, y: 35.47423}
+    variant: 2
+  - name: Woodland_South_82
+    type: 1
+    position: {x: 56.581066, y: 8.525768}
+    variant: 0
+  - name: Woodland_North_83
+    type: 1
+    position: {x: 5.5338516, y: 35.51219}
+    variant: 3
+  - name: Woodland_South_83
+    type: 1
+    position: {x: 54.46615, y: 8.487808}
+    variant: 1
+  - name: Woodland_North_84
+    type: 1
+    position: {x: 7.6160307, y: 35.522003}
+    variant: 0
+  - name: Woodland_South_84
+    type: 1
+    position: {x: 52.38397, y: 8.477997}
+    variant: 2
+  - name: Woodland_North_85
+    type: 1
+    position: {x: 9.466444, y: 35.541504}
+    variant: 1
+  - name: Woodland_South_85
+    type: 1
+    position: {x: 50.533554, y: 8.458496}
+    variant: 3
+  - name: Woodland_North_86
+    type: 1
+    position: {x: 11.526355, y: 35.48958}
+    variant: 2
+  - name: Woodland_South_86
+    type: 1
+    position: {x: 48.473644, y: 8.510422}
+    variant: 0
+  - name: Woodland_North_87
+    type: 1
+    position: {x: 13.586397, y: 35.498764}
+    variant: 3
+  - name: Woodland_South_87
+    type: 1
+    position: {x: 46.413605, y: 8.501236}
+    variant: 1
+  - name: Woodland_North_88
+    type: 1
+    position: {x: 15.471563, y: 35.442547}
+    variant: 0
+  - name: Woodland_South_88
+    type: 1
+    position: {x: 44.528435, y: 8.557453}
+    variant: 2
+  - name: Woodland_North_89
+    type: 1
+    position: {x: 17.485563, y: 35.52456}
+    variant: 1
+  - name: Woodland_South_89
+    type: 1
+    position: {x: 42.514435, y: 8.475441}
+    variant: 3
+  - name: Woodland_North_90
+    type: 1
+    position: {x: 21.48407, y: 35.48914}
+    variant: 2
+  - name: Woodland_South_90
+    type: 1
+    position: {x: 38.51593, y: 8.51086}
+    variant: 0
+  - name: Woodland_North_91
+    type: 1
+    position: {x: 23.563993, y: 35.50053}
+    variant: 3
+  - name: Woodland_South_91
+    type: 1
+    position: {x: 36.436005, y: 8.49947}
+    variant: 1
+  - name: Woodland_North_92
+    type: 1
+    position: {x: 25.487053, y: 35.559658}
+    variant: 0
+  - name: Woodland_South_92
+    type: 1
+    position: {x: 34.512947, y: 8.440342}
+    variant: 2
+  - name: Woodland_North_93
+    type: 1
+    position: {x: 33.416424, y: 35.499916}
+    variant: 1
+  - name: Woodland_South_93
+    type: 1
+    position: {x: 26.583576, y: 8.500084}
+    variant: 3
+  - name: Woodland_North_94
+    type: 1
+    position: {x: 35.559242, y: 35.44072}
+    variant: 2
+  - name: Woodland_South_94
+    type: 1
+    position: {x: 24.440758, y: 8.55928}
+    variant: 0
+  - name: Woodland_North_95
+    type: 1
+    position: {x: 5.6194196, y: 37.503223}
+    variant: 3
+  - name: Woodland_South_95
+    type: 1
+    position: {x: 54.38058, y: 6.4967766}
+    variant: 1
+  - name: Woodland_North_96
+    type: 1
+    position: {x: 7.5161247, y: 37.497723}
+    variant: 0
+  - name: Woodland_South_96
+    type: 1
+    position: {x: 52.483875, y: 6.5022774}
+    variant: 2
+  - name: Woodland_North_97
+    type: 1
+    position: {x: 9.589018, y: 37.45778}
+    variant: 1
+  - name: Woodland_South_97
+    type: 1
+    position: {x: 50.41098, y: 6.542221}
+    variant: 3
+  - name: Woodland_North_98
+    type: 1
+    position: {x: 11.4360285, y: 37.535313}
+    variant: 2
+  - name: Woodland_South_98
+    type: 1
+    position: {x: 48.563972, y: 6.4646873}
+    variant: 0
+  - name: Woodland_North_99
+    type: 1
+    position: {x: 13.435512, y: 37.544895}
+    variant: 3
+  - name: Woodland_South_99
+    type: 1
+    position: {x: 46.564487, y: 6.455105}
+    variant: 1
+  - name: Woodland_North_100
+    type: 1
+    position: {x: 15.565667, y: 37.539516}
+    variant: 0
+  - name: Woodland_South_100
+    type: 1
+    position: {x: 44.434334, y: 6.4604836}
+    variant: 2
+  - name: Woodland_North_101
+    type: 1
+    position: {x: 17.456411, y: 37.4433}
+    variant: 1
+  - name: Woodland_South_101
+    type: 1
+    position: {x: 42.543587, y: 6.5567017}
+    variant: 3
+  - name: Woodland_North_102
+    type: 1
+    position: {x: 23.585125, y: 37.469425}
+    variant: 2
+  - name: Woodland_South_102
+    type: 1
+    position: {x: 36.414875, y: 6.530575}
+    variant: 0
+  - name: Woodland_North_103
+    type: 1
+    position: {x: 25.534142, y: 37.49839}
+    variant: 3
+  - name: Woodland_South_103
+    type: 1
+    position: {x: 34.46586, y: 6.50161}
+    variant: 1
+  - name: Woodland_North_104
+    type: 1
+    position: {x: 35.54322, y: 37.522877}
+    variant: 0
+  - name: Woodland_South_104
+    type: 1
+    position: {x: 24.45678, y: 6.4771233}
+    variant: 2
+  - name: Woodland_North_105
+    type: 1
+    position: {x: 37.590973, y: 37.512363}
+    variant: 1
+  - name: Woodland_South_105
+    type: 1
+    position: {x: 22.409027, y: 6.4876366}
+    variant: 3
+  - name: Woodland_North_106
+    type: 1
+    position: {x: 5.4971766, y: 38.557076}
+    variant: 2
+  - name: Woodland_South_106
+    type: 1
+    position: {x: 54.502823, y: 5.4429245}
+    variant: 0
+  - name: Woodland_North_107
+    type: 1
+    position: {x: 7.444142, y: 38.48278}
+    variant: 3
+  - name: Woodland_South_107
+    type: 1
+    position: {x: 52.55586, y: 5.5172195}
+    variant: 1
+  - name: Woodland_North_108
+    type: 1
+    position: {x: 9.534489, y: 38.48929}
+    variant: 0
+  - name: Woodland_South_108
+    type: 1
+    position: {x: 50.46551, y: 5.5107117}
+    variant: 2
+  - name: Woodland_North_109
+    type: 1
+    position: {x: 11.49103, y: 38.481945}
+    variant: 1
+  - name: Woodland_South_109
+    type: 1
+    position: {x: 48.508972, y: 5.518055}
+    variant: 3
+  - name: Woodland_North_110
+    type: 1
+    position: {x: 13.53637, y: 38.486946}
+    variant: 2
+  - name: Woodland_South_110
+    type: 1
+    position: {x: 46.46363, y: 5.513054}
+    variant: 0
+  - name: Woodland_North_111
+    type: 1
+    position: {x: 15.406799, y: 38.45}
+    variant: 3
+  - name: Woodland_South_111
+    type: 1
+    position: {x: 44.5932, y: 5.549999}
+    variant: 1
+  - name: Woodland_North_112
+    type: 1
+    position: {x: 17.384787, y: 38.48234}
+    variant: 0
+  - name: Woodland_South_112
+    type: 1
+    position: {x: 42.61521, y: 5.517658}
+    variant: 2
+  - name: Woodland_North_113
+    type: 1
+    position: {x: 21.504347, y: 38.538387}
+    variant: 1
+  - name: Woodland_South_113
+    type: 1
+    position: {x: 38.49565, y: 5.4616127}
+    variant: 3
+  - name: Woodland_North_114
+    type: 1
+    position: {x: 23.448109, y: 38.511757}
+    variant: 2
+  - name: Woodland_South_114
+    type: 1
+    position: {x: 36.55189, y: 5.488243}
+    variant: 0
+  - name: Woodland_North_115
+    type: 1
+    position: {x: 35.5956, y: 38.49203}
+    variant: 3
+  - name: Woodland_South_115
+    type: 1
+    position: {x: 24.4044, y: 5.507969}
+    variant: 1
+  - name: Woodland_North_116
+    type: 1
+    position: {x: 37.4641, y: 38.52194}
+    variant: 0
+  - name: Woodland_South_116
+    type: 1
+    position: {x: 22.5359, y: 5.4780617}
+    variant: 2
+  - name: Woodland_North_117
+    type: 1
+    position: {x: 39.39572, y: 38.45148}
+    variant: 1
+  - name: Woodland_South_117
+    type: 1
+    position: {x: 20.604279, y: 5.548519}
+    variant: 3
+  - name: Woodland_North_118
+    type: 1
+    position: {x: 5.5156817, y: 39.552006}
+    variant: 2
+  - name: Woodland_South_118
+    type: 1
+    position: {x: 54.484318, y: 4.447994}
+    variant: 0
+  - name: Woodland_North_119
+    type: 1
+    position: {x: 7.383208, y: 39.493275}
+    variant: 3
+  - name: Woodland_South_119
+    type: 1
+    position: {x: 52.61679, y: 4.5067253}
+    variant: 1
+  - name: Woodland_North_120
+    type: 1
+    position: {x: 9.499169, y: 39.555374}
+    variant: 0
+  - name: Woodland_South_120
+    type: 1
+    position: {x: 50.50083, y: 4.444626}
+    variant: 2
+  - name: Woodland_North_121
+    type: 1
+    position: {x: 11.522981, y: 39.510475}
+    variant: 1
+  - name: Woodland_South_121
+    type: 1
+    position: {x: 48.47702, y: 4.489525}
+    variant: 3
+  - name: Woodland_North_122
+    type: 1
+    position: {x: 13.515618, y: 39.499943}
+    variant: 2
+  - name: Woodland_South_122
+    type: 1
+    position: {x: 46.484383, y: 4.500057}
+    variant: 0
+  - name: Woodland_North_123
+    type: 1
+    position: {x: 15.573233, y: 39.51795}
+    variant: 3
+  - name: Woodland_South_123
+    type: 1
+    position: {x: 44.426765, y: 4.482052}
+    variant: 1
+  - name: Woodland_North_124
+    type: 1
+    position: {x: 17.521124, y: 39.52517}
+    variant: 0
+  - name: Woodland_South_124
+    type: 1
+    position: {x: 42.478874, y: 4.4748306}
+    variant: 2
+  - name: Woodland_North_125
+    type: 1
+    position: {x: 19.474104, y: 39.447193}
+    variant: 1
+  - name: Woodland_South_125
+    type: 1
+    position: {x: 40.525894, y: 4.552807}
+    variant: 3
+  - name: Woodland_North_126
+    type: 1
+    position: {x: 21.42575, y: 39.480946}
+    variant: 2
+  - name: Woodland_South_126
+    type: 1
+    position: {x: 38.57425, y: 4.5190544}
+    variant: 0
+  - name: Woodland_North_127
+    type: 1
+    position: {x: 23.516962, y: 39.485813}
+    variant: 3
+  - name: Woodland_South_127
+    type: 1
+    position: {x: 36.48304, y: 4.514187}
+    variant: 1
+  - name: Woodland_North_128
+    type: 1
+    position: {x: 25.39388, y: 39.488033}
+    variant: 0
+  - name: Woodland_South_128
+    type: 1
+    position: {x: 34.606117, y: 4.5119667}
+    variant: 2
+  - name: Woodland_North_129
+    type: 1
+    position: {x: 33.39206, y: 39.523365}
+    variant: 1
+  - name: Woodland_South_129
+    type: 1
+    position: {x: 26.60794, y: 4.476635}
+    variant: 3
+  - name: Woodland_North_130
+    type: 1
+    position: {x: 35.43102, y: 39.459106}
+    variant: 2
+  - name: Woodland_South_130
+    type: 1
+    position: {x: 24.568981, y: 4.5408936}
+    variant: 0
+  - name: Woodland_North_131
+    type: 1
+    position: {x: 39.457413, y: 39.47603}
+    variant: 3
+  - name: Woodland_South_131
+    type: 1
+    position: {x: 20.542587, y: 4.5239716}
+    variant: 1
+  - name: Woodland_North_132
+    type: 1
+    position: {x: 41.610588, y: 39.46079}
+    variant: 0
+  - name: Woodland_South_132
+    type: 1
+    position: {x: 18.389412, y: 4.5392113}
+    variant: 2
+  - name: Blue_Rim_Wood_0
+    type: 1
+    position: {x: 8.5, y: 20.5}
+    variant: 0
+  - name: Blue_Rim_Wood_1
+    type: 1
+    position: {x: 18.5, y: 20.5}
+    variant: 1
+  - name: Blue_Rim_Wood_2
+    type: 1
+    position: {x: 5.5, y: 9.5}
+    variant: 2
+  - name: Blue_Rim_Wood_3
+    type: 1
+    position: {x: 20.5, y: 9.5}
+    variant: 3
+  - name: Blue_Rim_Sheep_0
+    type: 0
+    position: {x: 6.5, y: 8.5}
+    variant: 0
+  - name: Blue_Rim_Sheep_1
+    type: 0
+    position: {x: 8.5, y: 9.5}
+    variant: 1
+  - name: Blue_Rim_Sheep_2
+    type: 0
+    position: {x: 17.5, y: 8.5}
+    variant: 2
+  - name: Blue_Rim_Sheep_3
+    type: 0
+    position: {x: 19.5, y: 9.5}
+    variant: 3
+  - name: Blue_Rim_Gold_0
+    type: 2
+    position: {x: 8.5, y: 16.5}
+    variant: 4
+  - name: Blue_Rim_Gold_1
+    type: 2
+    position: {x: 17.5, y: 12.5}
+    variant: 1
+  - name: Red_Rim_Wood_0
+    type: 1
+    position: {x: 42.5, y: 36.5}
+    variant: 0
+  - name: Red_Rim_Wood_1
+    type: 1
+    position: {x: 52.5, y: 36.5}
+    variant: 1
+  - name: Red_Rim_Wood_2
+    type: 1
+    position: {x: 39.5, y: 25.5}
+    variant: 2
+  - name: Red_Rim_Wood_3
+    type: 1
+    position: {x: 54.5, y: 25.5}
+    variant: 3
+  - name: Red_Rim_Sheep_0
+    type: 0
+    position: {x: 40.5, y: 24.5}
+    variant: 0
+  - name: Red_Rim_Sheep_1
+    type: 0
+    position: {x: 42.5, y: 25.5}
+    variant: 1
+  - name: Red_Rim_Sheep_2
+    type: 0
+    position: {x: 51.5, y: 24.5}
+    variant: 2
+  - name: Red_Rim_Sheep_3
+    type: 0
+    position: {x: 53.5, y: 25.5}
+    variant: 3
+  - name: Red_Rim_Gold_0
+    type: 2
+    position: {x: 42.5, y: 32.5}
+    variant: 4
+  - name: Red_Rim_Gold_1
+    type: 2
+    position: {x: 51.5, y: 28.5}
+    variant: 1
+  - name: Blue_Terrace_Wood_0
+    type: 1
+    position: {x: 7.5, y: 9.5}
+    variant: 0
+  - name: Blue_Terrace_Wood_1
+    type: 1
+    position: {x: 18.5, y: 9.5}
+    variant: 0
+  - name: Blue_Terrace_Wood_2
+    type: 1
+    position: {x: 8.5, y: 18.5}
+    variant: 0
+  - name: Blue_Terrace_Wood_3
+    type: 1
+    position: {x: 17.5, y: 18.5}
+    variant: 0
+  - name: Blue_Terrace_Sheep_0
+    type: 0
+    position: {x: 10.5, y: 19.5}
+    variant: 0
+  - name: Blue_Terrace_Sheep_1
+    type: 0
+    position: {x: 12.5, y: 18.5}
+    variant: 1
+  - name: Blue_Terrace_Sheep_2
+    type: 0
+    position: {x: 14.5, y: 19.5}
+    variant: 2
+  - name: Blue_Terrace_Sheep_3
+    type: 0
+    position: {x: 8.5, y: 12.5}
+    variant: 3
+  - name: Blue_Terrace_Sheep_4
+    type: 0
+    position: {x: 17.5, y: 14.5}
+    variant: 4

@@ -43,14 +43,14 @@ MonoBehaviour:
     maxPlaybackSeconds: 1.5
   - eventId: 4
     clip: {fileID: 8300000, guid: a3313071e64420d4682b1d499f9e7330, type: 3}
-    volume: 0.45
+    volume: 0.2
     maxConcurrent: 2
     duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.25
   - eventId: 5
     clip: {fileID: 8300000, guid: 3d48a7961ddfddb41a22d5de494ec510, type: 3}
-    volume: 0.45
+    volume: 0.65
     maxConcurrent: 2
     duplicateCooldown: 0
     startTimeSeconds: 3

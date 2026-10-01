@@ -232,13 +232,13 @@ before gathering a different resource.
 
 # 8. Unit Types
 
-All gameplay unit artwork uses a presentation-only 1.3 scale on its animated
+All gameplay unit artwork uses a presentation-only 1.6 scale on its animated
 visual child. The unit gameplay root remains `(1,1,1)`, and movement, collider,
 separation, attack range, projectile origin, selection logic and navigation do
 not derive from this visual scale. Animation frame offsets are scaled around
 their verified animation anchor so the unit's ground contact remains stable.
 Unit health bars remain unscaled and use a raised presentation anchor.
-Normal Tree and Sheep visual children use the same 1.3 world-asset scale.
+Normal Tree and Sheep visual children use the same 1.6 world-asset scale.
 Gold Stone 1-5 use 1.4 and Gold Stone 6 uses 1.55 so the largest verified node
 has stronger visual weight. All retain their existing gameplay roots, colliders,
 occupancy and interaction slots. Terrain tiles, UI, cursors, projectiles and VFX
@@ -582,7 +582,7 @@ sorting allows a unit north of a building's ground line to pass behind upper
 roof artwork while south-side units remain in front. Health/construction bars,
 damage effects and mounted Archer anchors are positioned from the scaled visual
 but do not inherit its transform scale. Gold Mine keeps its separately tuned
-1.30 presentation scale.
+2.60 presentation scale.
 
 The Main Castle retains its authoritative 3x2 gameplay footprint and collider.
 Its wider 1.7 presentation silhouette reserves one additional navigation cell
@@ -1297,15 +1297,18 @@ leaves the destroyed visual without an explosion. Combat destruction kills only
 Pawns currently internal, uses normal death authority and leaves the same wreck.
 Its Fire threshold is 0.60; ordinary buildings remain at 0.70.
 
-The strategic Gold Mine uses a uniform presentation scale of 1.30 for inactive,
-active and destroyed states. A dedicated visual root adds a +0.17 world-unit Y
+The strategic Gold Mine uses a uniform presentation scale of 2.60 for inactive,
+active and destroyed states. A dedicated visual root adds a +0.92 world-unit Y
 ground-contact correction; the authoritative 2x2 footprint and 1.75x1.25
 interaction collider remain unchanged. Its enlarged Fire presentation uses
 scale 2.47 with anchors (-0.585, 0.13), (0, 0.546), (0.585, 0.156). Its building
-Explosion scale is 2.08. Two official Tiny Swords terrain stair assemblies
-replace the corresponding south cliff columns and provide fair access from
-both sides without permitting arbitrary cliff traversal. Each visible stair and
-its logical height transition come from one shared connector definition.
+Explosion scale is 2.08. The current 60x44 map places the Gold Mine on flat
+central ground, with its 2x2 footprint beginning at (29,21). Both main Castles
+stand on height-2 upper courts (12x8), nested within spacious 16x13 height-1
+terraces. Each base has two independent side routes, each with two ramp flights.
+Single cliff rows are separated by a walkable landing. Each visible Castle ramp and its exact logical height
+transition come from one shared connector definition. Sheep graze above and
+below the Castle land instead of occupying its construction area.
 
 Goblin is a neutral hostile faction outside match-result, economy and population
 systems. One Torch and one TNT guard the primary mine. Torch uses Warrior
@@ -1763,6 +1766,9 @@ These presentation settings do not affect gameplay authority.
 The AudioListener remains on the Main Camera. World SFX uses full 3D spatial blend
 with linear distance rolloff: actions directly below the camera center are loudest,
 and become progressively quieter as the camera center moves away from the source.
+A world SFX request is accepted only while its source point is inside the Main
+Camera viewport. An active clip stops if camera movement takes its source outside
+the viewport. Fog visibility rules remain an additional requirement.
 
 Own-faction world SFX remains audible. Enemy and neutral SFX is eligible only if
 the source position is currently visible to the local player's faction through

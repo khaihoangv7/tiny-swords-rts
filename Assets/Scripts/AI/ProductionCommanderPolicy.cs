@@ -46,6 +46,8 @@ namespace TinyKingdom.AI
         public UnitType? ActiveProductionDecision { get; private set; }
         public Vector2Int RallyStagingCell => stagingCell;
         public bool HasRallyStagingCell => hasStagingCell;
+        public uint SuccessfulTrainSerial { get; private set; }
+        public float LastSuccessfulTrainTime { get; private set; } = -1f;
 
         public int LivingCount(UnitType type) => livingCounts[(int)type];
         public int QueuedCount(UnitType type) => queuedCounts[(int)type];
@@ -64,6 +66,8 @@ namespace TinyKingdom.AI
             EffectiveFreePopulation = 0;
             PopulationBlocked = false;
             ActiveProductionDecision = null;
+            SuccessfulTrainSerial = 0;
+            LastSuccessfulTrainTime = -1f;
         }
 
         public void Tick(CommanderDecisionContext context)
@@ -147,7 +151,12 @@ namespace TinyKingdom.AI
             }
             ActiveProductionDecision = type;
             CommanderCommandResult result = context.Commands.TryTrain(producer, type);
-            if (result == CommanderCommandResult.Accepted) return;
+            if (result == CommanderCommandResult.Accepted)
+            {
+                SuccessfulTrainSerial++;
+                LastSuccessfulTrainTime = context.Time;
+                return;
+            }
             if (result == CommanderCommandResult.RejectedPopulationBlocked)
                 PopulationBlocked = true;
             nextProductionAttemptTime = context.Time + rejectedCommandRetrySeconds;

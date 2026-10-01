@@ -8,6 +8,10 @@ namespace TinyKingdom.Units
     public sealed class UnitMovement : MonoBehaviour
     {
         public const float BlockedPathRepathInterval = 0.35f;
+        // The painted side ramp is visually wider than one centre-to-centre grid
+        // diagonal. Extending each endpoint by a quarter cell horizontally makes
+        // the on-screen route follow the middle of that artwork.
+        internal const float StairHorizontalEndpointOffset = 0.25f;
 
         [SerializeField, Min(0.01f)] private float movementSpeed = 3f;
         [SerializeField, Min(0.001f)] private float arrivalTolerance = 0.02f;
@@ -277,6 +281,7 @@ namespace TinyKingdom.Units
             Vector3 current = transform.position;
             Vector3 desired = current;
             bool hadPath = activePath.HasRemainingWaypoints;
+            bool crossingHeightConnector = hadPath && IsCrossingHeightConnector(current);
             bool completed = false;
             int previousWaypoint = activePath.NextWaypointIndex;
             if (hadPath)
@@ -293,13 +298,45 @@ namespace TinyKingdom.Units
                 else blockedRepathCooldown = 0f;
             }
 
-            Vector3 resolved = UnitSeparation.Apply(this, desired, deltaTime, gridManager);
+            // A side ramp is a narrow authored diagonal. Applying lateral separation
+            // while the unit is crossing it can turn the visible trajectory vertical
+            // or push the unit into the cliff art. Follow the path waypoint exactly
+            // for this short segment; separation resumes as soon as the ramp endpoint
+            // has been reached.
+            Vector3 resolved = crossingHeightConnector
+                ? desired
+                : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
             Vector2 movement = resolved - current;
             if (hadPath && movement.sqrMagnitude > 0.000001f)
                 lastMovementDirection = movement.normalized;
             transform.position = resolved;
             if (hadPath && completed)
                 Stop();
+        }
+
+        private bool IsCrossingHeightConnector(Vector3 currentPosition)
+        {
+            if (gridManager == null || !activePath.HasRemainingWaypoints)
+                return false;
+
+            int waypointIndex = activePath.NextWaypointIndex;
+            if (waypointIndex < 0 || waypointIndex >= activePath.Waypoints.Count)
+                return false;
+
+            Vector2Int currentGrid = gridManager.WorldToGrid(currentPosition);
+            Vector2Int targetGrid = gridManager.WorldToGrid(activePath.Waypoints[waypointIndex]);
+            GridCell currentCell = gridManager.GetCell(currentGrid.x, currentGrid.y);
+            GridCell targetCell = gridManager.GetCell(targetGrid.x, targetGrid.y);
+            if (currentCell == null || targetCell == null)
+                return false;
+
+            // Keep the approach to the endpoint centre stable after the transform has
+            // crossed the cell boundary, as well as the actual endpoint-to-endpoint step.
+            if (currentGrid == targetGrid)
+                return currentCell.HeightConnection.HasValue;
+
+            return currentCell.HeightConnection == targetGrid
+                && targetCell.HeightConnection == currentGrid;
         }
 
         private void HandleStateChanged(UnitState state)
@@ -331,7 +368,8 @@ namespace TinyKingdom.Units
         {
             if (path == null || path.Count == 0) return false;
             GridCell destinationCell = path[path.Count - 1];
-            if (finalPosition.HasValue
+            bool connectorDestination = destinationCell.HeightConnection.HasValue;
+            if (finalPosition.HasValue && !connectorDestination
                 && !UnitSeparation.IsSafeSegment(gridManager,
                     destinationCell.WorldPosition, finalPosition.Value))
                 return false;
@@ -341,11 +379,10 @@ namespace TinyKingdom.Units
             var worldPath = new List<Vector3>(Mathf.Max(0, path.Count - 1));
             for (int i = path.Count > 1 ? 1 : 0; i < path.Count; i++)
             {
-                GridCell cell = path[i];
-                worldPath.Add(new Vector3(cell.WorldPosition.x, cell.WorldPosition.y,
-                    transform.position.z));
+                worldPath.Add(ResolvePathWaypoint(path, i,
+                    gridManager.NavigationData.CellSize, transform.position.z));
             }
-            if (finalPosition.HasValue)
+            if (finalPosition.HasValue && !connectorDestination)
             {
                 if (path.Count == 1 && UnitSeparation.IsSafeSegment(gridManager,
                     transform.position, finalPosition.Value))
@@ -358,6 +395,45 @@ namespace TinyKingdom.Units
             }
             activePath.Set(worldPath, transform.position, arrivalTolerance);
             return true;
+        }
+
+        internal static Vector3 ResolvePathWaypoint(IReadOnlyList<GridCell> path,
+            int index, float cellSize, float z)
+        {
+            GridCell cell = path[index];
+            Vector3 waypoint = new(cell.WorldPosition.x, cell.WorldPosition.y, z);
+            GridCell partner = null;
+            if (index > 0 && IsReciprocalHeightConnector(cell, path[index - 1]))
+                partner = path[index - 1];
+            else if (index + 1 < path.Count
+                && IsReciprocalHeightConnector(cell, path[index + 1]))
+                partner = path[index + 1];
+
+            if (partner == null)
+                return waypoint;
+
+            GridCell lower = cell.HeightLevel < partner.HeightLevel ? cell : partner;
+            GridCell upper = cell.HeightLevel > partner.HeightLevel ? cell : partner;
+            int descentDirectionX = lower.GridX - upper.GridX;
+            float horizontalOffset = StairHorizontalEndpointOffset
+                * Mathf.Max(0.01f, cellSize);
+            float directionX = Mathf.Sign(descentDirectionX);
+            // Both points remain inside their authored connector cells. The
+            // segment still crosses their exact shared corner, but its wider
+            // horizontal run follows the centre of the painted side ramp.
+            if (cell == upper)
+                waypoint.x -= directionX * horizontalOffset;
+            else
+                waypoint.x += directionX * horizontalOffset;
+            return waypoint;
+        }
+
+        private static bool IsReciprocalHeightConnector(GridCell first, GridCell second)
+        {
+            return first != null && second != null
+                && first.HeightLevel != second.HeightLevel
+                && first.HeightConnection == new Vector2Int(second.GridX, second.GridY)
+                && second.HeightConnection == new Vector2Int(first.GridX, first.GridY);
         }
 
         private void ResolveNavigationReferences()

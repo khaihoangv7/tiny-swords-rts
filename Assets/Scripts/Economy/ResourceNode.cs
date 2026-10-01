@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using TinyKingdom.Audio;
 using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
 using TinyKingdom.Units;
@@ -76,7 +75,6 @@ namespace TinyKingdom.Economy
         public const float LargeGoldInteractionOffsetFactor = -0.22f;
 
         private static readonly List<ResourceNode> registeredNodes = new();
-        private static int nextAudioSourceKey;
         [SerializeField] private ResourceType resourceType;
         [SerializeField, Min(1)] private int maximumAmount = 100;
         [SerializeField, Min(0)] private int remainingAmount = 100;
@@ -88,7 +86,6 @@ namespace TinyKingdom.Economy
         private bool centerVisualY;
         private float presentationScale = UnitVisualPresentation.Scale;
         private ResourceSelectionIndicator selectionIndicator;
-        private int audioSourceKey;
 
         public static IReadOnlyList<ResourceNode> ActiveNodes => registeredNodes;
         public ResourceType ResourceType => resourceType;
@@ -105,7 +102,6 @@ namespace TinyKingdom.Economy
 
         private void OnEnable()
         {
-            if (audioSourceKey == 0) audioSourceKey = ++nextAudioSourceKey;
             EnsureSelectionIndicator();
             if (!registeredNodes.Contains(this)) registeredNodes.Add(this);
         }
@@ -142,7 +138,7 @@ namespace TinyKingdom.Economy
             {
                 ResourceType.Wood => (0.95f, 0.30f, 0f),
                 ResourceType.Gold => (0.80f, 0.26f, -0.20f),
-                _ => (0.60f, 0.22f, -0.30f)
+                _ => (0.60f, 0.22f, -0.37f)
             };
             selectionIndicator.Configure(width * presentationScale,
                 height * presentationScale, y);
@@ -183,9 +179,6 @@ namespace TinyKingdom.Economy
             if (taken > 0 && resourceType == ResourceType.Food)
             {
                 GetComponent<HitSquashStretchPresentation>()?.Trigger();
-                if (GetComponent<SheepPresentation>() != null)
-                    GameplayAudioService.Request(GameplayAudioEvent.SheepHurt,
-                        transform.position, null, audioSourceKey);
             }
             if (taken > 0 && resourceType == ResourceType.Gold)
                 GetComponent<GoldHarvestHighlight>()?.Play();

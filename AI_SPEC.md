@@ -351,3 +351,91 @@ Match End clear campaign members, baselines, directives, hysteresis, cooldowns a
 destinations. Fixed markers are `TinyKingdom.AI.CombatStrengthAssessment`,
 `TinyKingdom.AI.RetreatEvaluation`, `TinyKingdom.AI.RetreatExecution` and
 `TinyKingdom.AI.RecoveryEvaluation`.
+
+## Phase 7D final Rule-Based baseline
+
+Phase 7D integrates the existing policies rather than replacing them. The legal
+flow remains `FactionKnowledge -> policy -> FactionCommandService -> gameplay`.
+Economy owns ordinary Pawn work and civilian withdrawal; Scouting owns one Scout;
+Building owns one Builder/project; Production owns bounded queues and Rally;
+Military owns the single ArmyGroup. Policy order reserves Builder and Scout roles
+before Economy assigns remaining Pawns, while Military excludes the active Scout.
+Urgent visible base defense can interrupt offense/withdrawal. Retreat and Recovery
+finish before another campaign; routine economy and production continue alongside
+those military states.
+
+| Policy/service | Runtime responsibility |
+|---|---|
+| `EconomyCommanderPolicy` | Safe gathering, reassignment and civilian withdrawal |
+| `ScoutingCommanderPolicy` | One legal frontier Scout and safe standby |
+| `BuildingCommanderPolicy` | One deterministic project and Builder recovery |
+| `ProductionCommanderPolicy` | Population-aware bounded queues and Rally |
+| `MilitaryCommanderPolicy` | Defense, one ArmyGroup, offense, retreat and recovery |
+| `StrategicSafetyMap` | Risk derived only from legal current/remembered knowledge |
+| `FactionKnowledge` | Observation boundary |
+| `FactionCommandService` | Ownership, match-state and observability command authority |
+
+Conflict priority is enforced through match guards, role ownership and military
+state transitions rather than one global switch:
+
+| Priority | Intent |
+|---:|---|
+| 1 | Match End: all new Commander actions stop |
+| 2 | Immediate visible base defense |
+| 3 | Retreat |
+| 4 | Recovery |
+| 5 | Active offensive campaign |
+| 6 | Army regroup/readiness |
+| 7 | Scout exploration |
+| 8 | Builder project |
+| 9 | Normal economy assignment |
+
+The final provisional configuration is:
+
+| Setting | Value |
+|---|---:|
+| Commander think interval | 0.50 s |
+| Worker target ratios | Food 40%, Wood 35%, Gold 25% |
+| Home economic radius | 11 |
+| Target Pawns | 6 |
+| Target military population | 8 |
+| Production queue depth | 1 |
+| Monk cap | 1 |
+| Minimum offensive population | 6 |
+| Normal attack assembly | 0.75 |
+| PreparingAttack timeout | 10 s |
+| Timeout assembly fallback | 0.60 |
+| Combat assessment radius | 9 |
+| Strength: Warrior / Archer / Lancer / Monk | 1.00 / 0.75 / 0.60 / 0.45 |
+| Visible Tower / Castle threat | 2.00 / 3.00 |
+| Retreat remaining force / average HP | 0.45 / 0.35 |
+| Retreat enemy strength ratio / hysteresis | 1.40 / 2 ticks |
+| Retreat arrival / timeout | 0.75 / 12 s |
+| Recovery minimum / maximum duration | 3 s / 10 s |
+| Recovery average HP / effective strength | 0.65 / 4.0 |
+| Recovery assembly | 0.75 |
+| Failed objective cooldown | 12 s |
+
+Normal staging now uses the configured 75% assembly threshold instead of requiring
+every member, so one unreachable member cannot keep the Army in Forming forever.
+PreparingAttack launches after normal assembly, may use the 60% fallback after ten
+seconds, or fails the current objective cleanly when even that fallback is not
+achievable. The target receives the existing finite cooldown and the Army regroups.
+Completed exploration enters a stable exhausted state instead of repeatedly
+reserving and releasing a Scout each Commander tick. If another unit later expands
+the explored area, Scout selection resumes. Temporarily unsafe/cooldown-only
+frontiers are reconsidered every two seconds.
+
+`CommanderProgressDiagnostics` records successful Gather assignment, Build/resume,
+Train, Scout destination, Army state change, offensive launch, objective resolution,
+resource income and last meaningful action timestamps at Commander frequency. It
+does not issue commands or alter gameplay. The optional 25-second stall warning is
+disabled by default and rate limited when enabled. The Phase 7D validator checks
+wiring, economy/population, core building data, staging, tuning, role separation,
+MatchManager and the absence of Goblin units. Full-match behavior and performance
+still require Unity Play Mode and Profiler validation.
+
+Intentional baseline limits remain one ArmyGroup, no flanking, focus fire, counter
+production, forward bases, strategic Gold Mine warfare, advanced garrison strategy
+or enemy-unit memory outside current vision. These are deferred and are not hidden
+information shortcuts.

@@ -74,6 +74,32 @@ namespace TinyKingdom.EditorTools
                     && Path(grid, 0, 0, 1, 1).Count == 0,
                     "Diagonal bypassed a stairless height transition.");
 
+                var diagonalStairCells = new List<NavigationCellData>();
+                for (int y = 0; y < 2; y++)
+                for (int x = 0; x < 2; x++)
+                {
+                    var cell = new NavigationCellData(x, y,
+                        x == y ? TerrainType.Stairs : TerrainType.Cliff,
+                        x == 1 && y == 1 ? 1 : 0);
+                    if (x == 0 && y == 0)
+                    {
+                        cell.hasHeightConnection = true;
+                        cell.heightConnection = new Vector2Int(1, 1);
+                    }
+                    else if (x == 1 && y == 1)
+                    {
+                        cell.hasHeightConnection = true;
+                        cell.heightConnection = new Vector2Int(0, 0);
+                    }
+                    diagonalStairCells.Add(cell);
+                }
+                data.Configure(2, 2, Vector2.zero, 1f, diagonalStairCells);
+                grid.SetNavigationData(data);
+                Require(AStarPathfinder.CanTraverseStep(grid,
+                        grid.GetCell(0, 0), grid.GetCell(1, 1))
+                    && Path(grid, 0, 0, 1, 1).Count == 2,
+                    "Authored diagonal stair connector was not traversable.");
+
                 NavigationGridData map = AssetDatabase.LoadAssetAtPath<NavigationGridData>(
                     Phase2NavigationBuilder.DataPath);
                 Require(map != null, "Map navigation data missing.");
