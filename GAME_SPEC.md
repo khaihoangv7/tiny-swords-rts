@@ -1214,6 +1214,22 @@ Minimap.
 
 Minimap is not required for MVP.
 
+Phase 6D.3 command tooltips are presentation only. Train commands obtain costs,
+population, combat stats and training duration from `UnitCombatData`; military
+strengths and weaknesses come from `CombatDamage.Multiplier`. Build commands
+obtain costs, HP, logical footprint, construction duration, population bonus
+and defense capacity from `BuildingData`. Tooltips never spend resources,
+reserve population or decide whether a command is legal. Disabled Train and
+Build commands remain inspectable.
+
+Explicit target modes have first cursor priority. Building placement and
+AttackMove keep their context validity cursor. With no explicit target mode,
+an observable friendly selectable entity uses the existing Hand cursor and
+ordinary terrain uses the Default cursor. A selected production building does
+not implicitly enter a rally targeting mode; right click remains the command
+that attempts to set its rally point. Fog and UI blocking continue to run
+before world hover feedback.
+
 ---
 
 # 39. Match Statistics

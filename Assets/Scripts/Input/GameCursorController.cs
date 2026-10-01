@@ -113,24 +113,9 @@ namespace TinyKingdom.Input
             }
             if (selectionManager.SelectedUnits.Count == 0)
             {
-                Component selected = selectionManager.SelectedBuilding != null
-                    ? selectionManager.SelectedBuilding : selectionManager.SelectedCastle;
-                if (selected != null && selected.GetComponent<BuildingRallyPoint>() != null)
-                {
-                    Vector2Int rallyCell = gridManager != null
-                        ? gridManager.WorldToGrid(world) : default;
-                    if (!hasCachedCell || rallyCell != cachedCell
-                        || Time.unscaledTime >= nextValidityRefresh)
-                    {
-                        cachedCell = rallyCell;
-                        hasCachedCell = true;
-                        nextValidityRefresh = Time.unscaledTime + validityRefreshSeconds;
-                        cachedCanMove = commandController != null
-                            && commandController.CanSetSelectedBuildingRallyPoint(world);
-                    }
-                    Apply(cachedCanMove ? CursorVisual.Hand : CursorVisual.Forbidden);
-                    return;
-                }
+                // Selecting a production building does not enter a targeting mode.
+                // Rally points remain a contextual right-click action, so ordinary
+                // hover must resolve selectable objects before any command validity.
                 Apply(IsFriendlyHover(pointer, world) ? CursorVisual.Hand : CursorVisual.Default);
                 return;
             }

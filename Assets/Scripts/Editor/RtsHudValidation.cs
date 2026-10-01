@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
+using UnityEngine.EventSystems;
 
 namespace TinyKingdom.EditorTools
 {
@@ -22,6 +23,7 @@ namespace TinyKingdom.EditorTools
         private const string Paper = "Assets/UI Elements/UI Elements/Papers/SpecialPaper.png";
         private const string Icons = "Assets/UI Elements/UI Elements/Icons/";
         private const string Avatars = "Assets/UI Elements/UI Elements/Human Avatars/";
+        private const string HandCursor = "Assets/UI Elements/UI Elements/Cursors/Cursor_02.png";
 
         [MenuItem("Tools/Tiny Kingdom/Validate RTS HUD")]
         public static void Run()
@@ -101,6 +103,84 @@ namespace TinyKingdom.EditorTools
                 + "unit avatars and authoritative presenter configuration verified. "
                 + (Application.isPlaying ? "Runtime HUD is present and Goblins are disabled."
                     : "Run again in Play Mode for live panel checks."));
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.3 UI")]
+        public static void RunPhase6D3()
+        {
+            RtsHudAssetCatalog catalog = RtsHudAssetCatalog.Load();
+            Require(catalog != null && catalog.IsComplete,
+                "RTS HUD catalog or one of its shared resource icons is missing.");
+
+            UnitType[] requiredUnits =
+            {
+                UnitType.Pawn, UnitType.Warrior, UnitType.Archer,
+                UnitType.Lancer, UnitType.Monk
+            };
+            UnitCombatData[] unitData = AssetDatabase.FindAssets("t:UnitCombatData")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<UnitCombatData>)
+                .Where(item => item != null).ToArray();
+            foreach (UnitType type in requiredUnits)
+                Require(unitData.Count(item => item.UnitType == type) == 1,
+                    $"Expected one authoritative UnitCombatData asset for {type}.");
+
+            BuildingType[] requiredBuildings =
+            {
+                BuildingType.House, BuildingType.Barracks, BuildingType.Archery,
+                BuildingType.Monastery, BuildingType.Tower
+            };
+            BuildingData[] buildingData = Resources.LoadAll<BuildingData>("Buildings");
+            foreach (BuildingType type in requiredBuildings)
+                Require(buildingData.Count(item => item != null && item.Type == type) == 1,
+                    $"Expected one authoritative BuildingData asset for {type}.");
+
+            Require(CombatDamage.Multiplier(UnitType.Warrior, UnitType.Archer) > 1f
+                && CombatDamage.Multiplier(UnitType.Lancer, UnitType.Warrior) > 1f
+                && CombatDamage.Multiplier(UnitType.Archer, UnitType.Lancer) > 1f,
+                "Authoritative Warrior/Archer/Lancer matchup cycle is incomplete.");
+
+            EventSystem[] eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>();
+            Require(eventSystems.Length == 1,
+                "Expected exactly one active EventSystem for command hover input.");
+
+            GameCursorController cursor = UnityEngine.Object.FindAnyObjectByType<GameCursorController>();
+            Require(cursor != null, "GameCursorController is missing from the active scene.");
+            SerializedObject cursorObject = new(cursor);
+            Texture2D handCursor = cursorObject.FindProperty("handCursor")?.objectReferenceValue
+                as Texture2D;
+            Require(handCursor != null && AssetDatabase.GetAssetPath(handCursor) == HandCursor,
+                "GameCursorController Hand cursor reference is missing.");
+
+            if (Application.isPlaying)
+            {
+                RtsHudController hud = UnityEngine.Object.FindAnyObjectByType<RtsHudController>();
+                Require(hud != null && hud.IsReady, "Runtime RTS HUD is missing or incomplete.");
+                Require(hud.CommandTooltip != null && hud.CommandTooltip.HasValidReferences,
+                    "CommandTooltipPresenter hierarchy or text/cost references are incomplete.");
+                Require(hud.CommandTooltip.UsesCompactAutoSizing
+                    && hud.CommandTooltip.ContentRoot != null,
+                    "Command tooltip must use non-stretched compact auto sizing with a Content root.");
+                Require(hud.CommandTooltip.IsPointerFollowingConfigured,
+                    "Command tooltip pointer following or screen-edge safety is not configured.");
+                Require(!hud.CommandTooltip.BlocksRaycasts,
+                    "Command tooltip graphics must not block pointer raycasts.");
+                Require(UnityEngine.Object.FindObjectsByType<CommandTooltipPresenter>().Length == 1,
+                    "Exactly one reusable CommandTooltipPresenter must be active.");
+                Require(hud.CommandPanel != null
+                    && hud.CommandPanel.TooltipTriggerCount == 12,
+                    "Every reusable command button must own one tooltip trigger.");
+                foreach (CommandTooltipTrigger trigger in hud.CommandPanel.Root
+                    .GetComponentsInChildren<CommandTooltipTrigger>(false))
+                    Require(trigger.HasTooltipData,
+                        $"Active command button {trigger.name} has no tooltip data.");
+            }
+
+            Debug.Log("Phase 6D.3 UI validation passed: shared tooltip assets, authoritative "
+                + "unit/building data, combat matchup source, Hand cursor and EventSystem "
+                + "integrity verified. " + (Application.isPlaying
+                    ? "Runtime tooltip hierarchy, raycasts and command triggers verified."
+                    : "Run again in Play Mode for runtime tooltip hierarchy checks."));
         }
 
         [MenuItem("Tools/Tiny Kingdom/Validate Building Presentation Hotfix")]

@@ -35,6 +35,7 @@ namespace TinyKingdom.UI
             internal Text Label;
             internal Text Hotkey;
             internal GuardButtonHold GuardHold;
+            internal CommandTooltipTrigger Tooltip;
         }
 
         private readonly ActionView[] views = new ActionView[12];
@@ -44,17 +45,28 @@ namespace TinyKingdom.UI
         private BuildingSystem buildingSystem;
         private BuildingPlacementController placement;
         private RtsHudAssetCatalog assets;
+        private CommandTooltipPresenter tooltip;
         private RectTransform root;
         private Text title;
         private float refreshAt;
 
         public RectTransform Root => root;
         public bool IsVisible => root != null && root.gameObject.activeSelf;
+        public int TooltipTriggerCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (ActionView view in views)
+                    if (view?.Tooltip != null) count++;
+                return count;
+            }
+        }
 
         public void Configure(SelectionManager manager, PlayerCommandController commandInput,
             GuardInputController guardInput, BuildingSystem buildings,
             BuildingPlacementController buildingPlacement, RtsHudAssetCatalog catalog,
-            RectTransform hudParent)
+            CommandTooltipPresenter tooltipPresenter, RectTransform hudParent)
         {
             if (selection != null) selection.SelectionChanged -= HandleSelectionChanged;
             selection = manager;
@@ -63,6 +75,7 @@ namespace TinyKingdom.UI
             buildingSystem = buildings;
             placement = buildingPlacement;
             assets = catalog;
+            tooltip = tooltipPresenter;
             if (root == null) Build(hudParent);
             if (selection != null) selection.SelectionChanged += HandleSelectionChanged;
             Refresh();
@@ -71,6 +84,7 @@ namespace TinyKingdom.UI
         private void OnDestroy()
         {
             if (selection != null) selection.SelectionChanged -= HandleSelectionChanged;
+            tooltip?.Hide();
         }
 
         private void Update()
@@ -82,6 +96,7 @@ namespace TinyKingdom.UI
 
         private void HandleSelectionChanged()
         {
+            tooltip?.Hide();
             refreshAt = 0f;
             Refresh();
         }
@@ -135,7 +150,8 @@ namespace TinyKingdom.UI
                     Icon = icon,
                     Label = label,
                     Hotkey = hotkey,
-                    GuardHold = rect.gameObject.AddComponent<GuardButtonHold>()
+                    GuardHold = rect.gameObject.AddComponent<GuardButtonHold>(),
+                    Tooltip = rect.gameObject.AddComponent<CommandTooltipTrigger>()
                 };
                 views[i].GuardHold.enabled = false;
             }
@@ -174,13 +190,20 @@ namespace TinyKingdom.UI
                 hasPawn |= unit.GetComponent<PawnBuilder>() != null;
             }
             if (combat)
-                ConfigureClick(shown++, assets.AttackMoveIcon, "Attack Move", "A",
-                    MatchManager.AllowsGameplay, () => commands?.BeginAttackMoveTargeting());
+            {
+                ActionView view = ConfigureClick(shown++, assets.AttackMoveIcon,
+                    "Attack Move", "A", MatchManager.AllowsGameplay,
+                    () => commands?.BeginAttackMoveTargeting());
+                view.Tooltip.ConfigureSimple(tooltip, "Attack Move",
+                    "Move toward a target area and engage enemies encountered.", "A");
+            }
             if (canGuard)
             {
                 ActionView view = ConfigureView(shown++, assets.GuardIcon, "Guard", "G",
                     MatchManager.AllowsGameplay, true);
                 view.GuardHold.Configure(guard);
+                view.Tooltip.ConfigureSimple(tooltip, "Guard",
+                    "Hold position and reduce incoming damage while the command is held.", "G");
             }
             if (!hasPawn || buildingSystem == null || placement == null) return shown;
             foreach ((BuildingType type, HouseVariant variant, string name) in BuildActions)
@@ -190,9 +213,11 @@ namespace TinyKingdom.UI
                     && MatchManager.AllowsGameplay;
                 Sprite icon = data != null ? data.GetSprite(selection.PlayerFaction, variant) : null;
                 int index = shown++;
-                string cost = data != null ? Cost(data.WoodCost, data.GoldCost, 0) : "";
-                ConfigureClick(index, icon, name + "\n" + cost, "", available,
-                    () => placement.Begin(type, variant));
+                string cost = data != null
+                    ? Cost(data.WoodCost, data.GoldCost, data.FoodCost) : "";
+                ActionView view = ConfigureClick(index, icon, name + "\n" + cost,
+                    "", available, () => placement.Begin(type, variant));
+                view.Tooltip.ConfigureBuilding(tooltip, data, name);
             }
             return shown;
         }
@@ -210,16 +235,22 @@ namespace TinyKingdom.UI
                     int index = shown++;
                     string cost = data != null
                         ? Cost(data.WoodCost, data.GoldCost, data.FoodCost) : "";
-                    ConfigureClick(index, assets.Avatar(unit), "Train " + unit + "\n" + cost,
-                        "", available, () => queue.TryTrain(unit));
+                    ActionView view = ConfigureClick(index, assets.Avatar(unit),
+                        "Train " + unit + "\n" + cost, "", available,
+                        () => queue.TryTrain(unit));
+                    view.Tooltip.ConfigureUnit(tooltip, data);
                 }
             }
             BuildingGarrison garrison = host.GetComponent<BuildingGarrison>();
             if (garrison != null)
-                ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
+            {
+                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay
                         && garrison.InternalCount + garrison.MountedCount > 0,
                     () => garrison.EjectAll());
+                view.Tooltip.ConfigureSimple(tooltip, "Eject All",
+                    "Release every internal occupant and mounted Archer from this building.");
+            }
             return shown;
         }
 
@@ -227,9 +258,13 @@ namespace TinyKingdom.UI
         {
             bool friendly = mine.HasOwner && mine.Faction == selection.PlayerFaction;
             if (friendly)
-                ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
+            {
+                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay && mine.OccupantCount > 0,
                     () => mine.EjectAll());
+                view.Tooltip.ConfigureSimple(tooltip, "Eject All",
+                    "Release every Pawn currently inside the Gold Mine.");
+            }
             return shown;
         }
 
@@ -245,6 +280,7 @@ namespace TinyKingdom.UI
             {
                 ActionView view = views[i];
                 if (view.GuardHold.enabled) view.GuardHold.enabled = false;
+                view.Tooltip.Clear();
                 view.Button.gameObject.SetActive(false);
             }
         }
@@ -266,11 +302,12 @@ namespace TinyKingdom.UI
             return view;
         }
 
-        private void ConfigureClick(int index, Sprite icon, string label, string hotkey,
+        private ActionView ConfigureClick(int index, Sprite icon, string label, string hotkey,
             bool available, UnityEngine.Events.UnityAction action)
         {
             ActionView view = ConfigureView(index, icon, label, hotkey, available);
             if (action != null) view.Button.onClick.AddListener(action);
+            return view;
         }
 
         private static string Cost(int wood, int gold, int food)

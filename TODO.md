@@ -584,6 +584,40 @@ Mode inspection remain required. No later gameplay, AI or RL phase has started.
 - [ ] Verify hold-to-Guard remains active for the complete mouse hold and AttackMove retains existing behavior
 - [ ] Verify building placement, production, economy, combat, Fog, cursor, camera, Match Result and clean Console regressions
 
+## Phase 6D.3 - Command Tooltips and Cursor Interaction Polish
+
+Status: **NOT COMPLETE** - implementation and independent Runtime/Editor
+compile checks pass with 0 errors and 0 warnings. Edit Mode/Play Mode validation
+and manual visual tests remain required before PASS.
+
+- [x] Root-cause selected-building Forbidden cursor as implicit rally-point validation taking priority over selectable hover
+- [x] Restore explicit target mode > selectable Hand > normal terrain Default cursor priority
+- [x] Add one persistent SpecialPaper command tooltip above the command panel
+- [x] Add pointer triggers to all reusable command slots, including disabled buttons
+- [x] Read Train costs/stats/times from UnitCombatData and Build values from BuildingData
+- [x] Derive Warrior/Archer/Lancer matchup labels from CombatDamage.Multiplier
+- [x] Describe Pawn worker and Monk healer roles from current gameplay behavior
+- [x] Reuse RtsHudAssetCatalog Food/Wood/Gold/Population icons with affordability coloring
+- [x] Clear tooltip on pointer exit, selection change, command reuse/hide, match end and HUD teardown
+- [x] Replace the fixed 460x250 tooltip with compact 240/286/320-width content sizing and auto height
+- [x] Remove inactive Cost, Stats and Details sections from vertical space calculation
+- [x] Follow the Input System pointer with a 30-unit offset while visible only
+- [x] Flip left/below at screen edges and clamp inside an 8-unit safe margin
+- [x] Keep SpecialPaper frame fitted to the computed root and all tooltip raycasts disabled
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.3 UI`
+- [x] Run runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run Phase 6D.3 validator in Edit Mode and Play Mode
+- [ ] Manual Play Mode: verify Train Pawn/Warrior/Archer/Lancer/Monk tooltip content
+- [ ] Manual Play Mode: verify House A/B/C, Barracks, Archery, Monastery and Tower tooltip content
+- [ ] Manual Play Mode: verify disabled/unaffordable/full-population command hover and red cost styling
+- [ ] Manual Play Mode: verify rapid hover/selection, match end/restart and no tooltip flicker or stale content
+- [ ] Manual Play Mode: verify Barracks/House shrink, Warrior/Tower growth and no clipped wrapped text
+- [ ] Manual Play Mode: verify cursor following plus left/below flipping and clamping at screen edges/corners
+- [ ] Manual Play Mode: verify tall-to-short and short-to-tall transitions do not retain stale root size
+- [ ] Manual Play Mode: verify Castle-selected same/other-building Hand cursor regression
+- [ ] Manual Play Mode: verify placement/AttackMove override, Fog anti-leak and UI-over-world cursor behavior
+- [ ] Manual Play Mode: verify Blue controls, Red AI, buildings and Console remain regression-free
+
 ## Phase 7A - Rule-Based Commander Foundation
 
 Status: **PASS** - manual Play Mode validation, Phase 7A validation, Profiler

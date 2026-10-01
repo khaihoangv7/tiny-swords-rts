@@ -258,3 +258,52 @@ the complete visible panel as one UI raycast-blocking region.
 During this UI/UX milestone Goblin Torch/TNT are removed from the active Map
 setup and validator requirements. Their imported assets and dormant gameplay
 code remain available for later work.
+
+## Phase 6D.3 Command Tooltips and Cursor Interaction Polish
+
+The bottom command grid owns twelve persistent button objects. Each button has
+an EventSystem pointer trigger, while one shared `CommandTooltipPresenter`
+creates and reuses a single `CommandTooltip` panel beside the hovered command.
+Tooltip graphics do not receive raycasts, so the panel cannot interrupt the
+button's pointer enter/exit lifecycle. Selection changes, hidden/reused buttons,
+match end and HUD teardown clear the current tooltip.
+
+The tooltip has a 240 UI unit minimum width, 286 preferred width and 320 maximum
+width. Train and Build commands normally use the preferred width; simple command
+help may use the minimum, while a wider cost row can grow only up to the maximum.
+Height is recalculated from the visible Title, Cost, Stats and Details preferred
+heights with 12 units horizontal padding, 10 vertical padding and 5 between
+sections. Empty sections are inactive and consume no height. The SpecialPaper
+surface and eight frame pieces stretch with the resulting root rectangle.
+
+While visible, the presenter converts the Input System pointer position into the
+bottom HUD root's local coordinates with `RectTransformUtility`. A 30 UI unit
+offset places the tooltip above-right by default. It flips left or below near the
+corresponding screen edge, then clamps the complete rectangle inside an 8-unit
+safe margin. The fixed bottom-left pivot avoids content-dependent pivot jumps.
+Only position updates each visible frame; content and preferred sizes update on
+pointer entry or command source change. A non-interactable, non-blocking
+`CanvasGroup` and non-raycast graphics prevent hover flicker and blocked clicks.
+
+Train tooltips read cost, population, HP, damage, range, speed, attack interval
+and training duration from the same `UnitCombatData` used by production and
+combat. Warrior, Archer and Lancer strengths and weaknesses are derived from
+`CombatDamage.Multiplier`; they are not a second UI matchup table. Pawn is
+described as a worker. Monk displays the authoritative healing amount, range
+and interval from `MonkHealer` and does not claim a fabricated combat counter.
+
+Build tooltips read cost, HP, logical footprint, construction duration and
+population bonus or defense capacity from `BuildingData`. Production building
+rosters are derived through `UnitProductionQueue.CanProduce`. Cost rows reuse
+the Food, Wood, Gold and Population sprites in `RtsHudAssetCatalog`. A missing
+resource or population capacity colors only the affected cost value; tooltip
+code never pays resources, reserves population or changes command authority.
+Disabled Train and Build buttons remain raycastable by their tooltip trigger.
+
+World cursor resolution gives explicit placement and AttackMove targeting first
+priority. Outside an explicit target mode, a currently observable selectable
+friendly unit/building uses the existing Hand cursor and ordinary terrain uses
+the Default cursor. Merely selecting a production building does not create a
+rally targeting mode; contextual right click still sets a valid rally point.
+UI raycast blocking and existing Fog visibility rules run before world hover,
+so hidden enemy objects cannot be revealed by cursor state.
