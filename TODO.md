@@ -351,7 +351,7 @@ Status: **PASS** - Unity Play Mode validation completed before Phase 6C.
 - [x] Face Pawn gather/build/repair and explicit knife work toward the interaction target
 - [x] Preserve Lancer directional attack selection and horizontal flip for left-side equivalents
 - [x] Map Fire_01/02/03 as 8/10/12-frame 64px, 10 FPS looping effects
-- [x] Burn completed buildings only below 70 percent HP and stop Fire after repair to 70 percent or more
+- [x] Burn completed buildings only below 60 percent HP and stop Fire after repair to 60 percent or more
 - [x] Map Explosion_01/02 as 8/10-frame 192px, 10 FPS one-shots and play both once on building death
 - [x] Replace damaged-building bars with BigBar static frame plus one left-anchored continuous fill; keep unit SmallBar unchanged
 - [x] Keep construction progress separate, raise garrison count clearance and suppress enemy damage VFX through Fog
@@ -361,7 +361,7 @@ Status: **PASS** - Unity Play Mode validation completed before Phase 6C.
 - [x] Manual Play Mode: rapid nearby/same-direction path replacement without local backtracking or oscillation
 - [x] Manual Play Mode: movement/attack facing for both factions and Pawn resource/build/repair facing
 - [x] Manual Play Mode: all Lancer attack directions including flipped left-side equivalents
-- [x] Manual Play Mode: building 80/69 percent HP, repair across 70 percent and no Fire during construction
+- [x] Manual Play Mode: building 61/59 percent HP, repair across 60 percent and no Fire during construction
 - [x] Manual Play Mode: BigBar fill/visibility and Tower/Castle garrison-count stacking
 - [x] Manual Play Mode: House/Barracks/Tower/Castle destruction, two one-shot Explosions and immediate gameplay cleanup/ejection
 - [x] Manual Play Mode: hidden enemy Fire/Explosion, full Fog/gameplay regression and clean Console
@@ -502,7 +502,7 @@ not started.
 - [x] Preserve internal Pawn population; depletion ejects safely and combat destruction kills internal Pawns only
 - [x] Reuse building combat, health bar, 0.60 profile Fire, Explosion_01/02 and persistent wreck presentation
 - [x] Extend Fog visibility and last-seen memory to Gold Mine without Goblin unit ghosts or hidden-state leaks
-- [x] Increase both Main Castles from 1000 to 2000 HP while preserving normal 0.70 Fire threshold
+- [x] Increase both Main Castles from 1000 to 2000 HP while preserving the shared Fire threshold
 - [x] Remove obsolete broad Goblin/Gold Mine ignore rules and explicitly unignore active runtime textures
 - [x] Verify and document exact asset paths, dimensions, frames, tags, variants and import requirements
 - [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
@@ -985,21 +985,21 @@ Status: **NOT COMPLETE** - implementation and data setup are present. Unity asse
 refresh, Edit/Play Mode validator runs and manual listening/Fog regression tests
 remain required before PASS. This is not the full Phase 6E audio phase.
 
-- [x] Add a serialized GameplayAudioCatalog with seven verified clip references
-- [x] Add a persistent GameplayAudioService with a fixed 12-source world SFX pool
-- [x] Add per-event volume, concurrency, playback cap and optional subtle pitch tuning
+- [x] Add a serialized GameplayAudioCatalog with six active initial clip references
+- [x] Add a persistent GameplayAudioService with a 12-source initial reusable pool
+- [x] Add per-event volume, playback cap and optional subtle pitch tuning
 - [x] Add SfxVolume with default 1.0 for future settings/mixer integration
 - [x] Trigger Warrior/Lancer only after successful melee damage
 - [x] Trigger Archer at actual projectile creation
 - [x] Trigger Monk only after positive HP restoration
 - [x] Trigger mining/chopping only after positive resource transfer
-- [x] Trigger SheepHurt only for positive Food removal on verified Sheep resources
+- [x] Preserve the requested removal of Sheep Hurt playback
 - [x] Suppress hidden enemy/neutral world SFX through current TeamVision visibility
 - [x] Stop and reset pooled sources on Match End and scene reload
 - [x] Preserve one existing Main Camera AudioListener and add no listener
 - [x] Add `Tools > Tiny Kingdom > Prepare Gameplay Audio`
 - [x] Add `Tools > Tiny Kingdom > Validate Gameplay Audio`
-- [x] Reduce Mining, Chopping and Sheep Hurt volume to provisional 0.45
+- [x] Keep provisional Mining 0.20 and Chopping 0.65 volume tuning
 - [x] Skip the silent first 3.0 seconds of the supplied Chopping clip
 - [x] Use Main Camera centered linear distance attenuation for world SFX
 - [ ] Refresh assets and run Prepare/Validate in Unity Edit Mode
@@ -1009,4 +1009,45 @@ remain required before PASS. This is not the full Phase 6E audio phase.
 - [ ] Verify hidden Red combat and hidden Sheep damage produce no audio leak
 - [ ] Verify camera distance attenuation, multi-unit concurrency and economy load
 - [ ] Verify Match End/Restart, Blue controls, Red AI, Fog and clean Console
-- [ ] Add Pawn Food, impacts, death, building, UI/result, ambience and music later
+- [ ] Add Pawn Food, generic impacts/death, ambience and music later
+
+## Phase 6E.2 - Extended Gameplay SFX, Building Audio and UI Notifications
+
+Status: **NOT COMPLETE** - runtime/editor code and serialized mappings are implemented,
+and both assemblies compile with zero errors. Unity Edit/Play Mode validator runs,
+manual listening, Fog, overlap and restart validation remain before PASS.
+
+- [x] Verify Castle, House, Barracks, Archery, Monastery and Tower selection clips
+- [x] Record that no Gold Mine selection clip is supplied
+- [x] Add successful building-selection acknowledgement and allow explicit reselect
+- [x] Align building Fire VFX/audio threshold to below 60% HP
+- [x] Add one Fog-aware positional Fire loop handle per observable damaged building
+- [x] Stop Fire at 60%+, on destruction, Match End, loss of vision and scene reload
+- [x] Add one observable positional building-destruction sound
+- [x] Add 2D building-plan sound only after successful Human placement
+- [x] Add two Pawn hammer variations for real construction cycles/positive repairs
+- [x] Add accepted/rejected command-button feedback from authoritative command result
+- [x] Keep visually disabled command buttons non-executable while allowing reject audio
+- [x] Add Human production-finished notification after successful spawn only
+- [x] Add once-per-match Victory/Defeat audio from `MatchManager.MatchEnded`
+- [x] Replace per-event concurrency/cooldown suppression with expandable source pooling
+- [x] Permit simultaneous identical combat, work, explosion and queue SFX
+- [x] Preserve viewport attenuation and TeamVision anti-wallhack rules for world audio
+- [x] Add separate 2D path for direct player feedback and result audio
+- [x] Add Phase 6E.2 setup/validator and debug source counters
+- [x] Add `AUDIO_SPEC.md` and update gameplay/asset documentation
+- [x] Compile Runtime and Editor assemblies with zero errors/warnings
+- [ ] Run `Prepare Gameplay Audio` after Unity finishes refreshing assets
+- [ ] Run Phase 6E.2 validator in Edit Mode
+- [ ] Run Phase 6E.2 validator in Play Mode and record pool/loop counters
+- [ ] Manually test all building selection mappings and repeat-selection behavior
+- [ ] Manually test 59%/60% Fire lifecycle, repair, multiple fires and Fog suspension
+- [ ] Manually test visible/hidden destruction and simultaneous explosions
+- [ ] Manually test valid/invalid placement and build command two-sound flow
+- [ ] Manually test two hammer variations, multiple builders and positive repair impacts
+- [ ] Manually test accepted/rejected/disabled command buttons and mutual exclusion
+- [ ] Manually test own queue completion and hidden Red production anti-leak
+- [ ] Manually test Victory, Defeat, once-per-match guard and Restart reset
+- [ ] Stress simultaneous combat/economy audio and inspect Audio CPU/GC/pool growth
+- [ ] Confirm the Unity Console remains clean
+- [ ] Decide separately whether to integrate the supplied `attack_theme.mp3`

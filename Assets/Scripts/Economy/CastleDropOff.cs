@@ -46,7 +46,7 @@ namespace TinyKingdom.Economy
             FootprintHeight);
         public bool IsProductionReady => registered && IsAvailable && IsAlive;
         public bool IsDefenseReady => IsProductionReady;
-        public float FireThreshold => 0.70f;
+        public float FireThreshold => BuildingDamagePresentation.FireThreshold;
         public BuildingData DefenseData => defenseData;
         public Transform HostTransform => transform;
         public Collider2D InteractionCollider => GetComponent<Collider2D>();

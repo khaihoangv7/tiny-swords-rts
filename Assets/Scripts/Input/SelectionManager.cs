@@ -4,6 +4,7 @@ using TinyKingdom.Units;
 using TinyKingdom.UI;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
+using TinyKingdom.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -155,6 +156,7 @@ namespace TinyKingdom.Input
                         BuildingSelectionPulse.Ensure(building.gameObject,
                             building.PresentationRenderer)?.Trigger();
                         SelectionChanged?.Invoke();
+                        PlayBuildingSelection(building.Type);
                         return;
                     }
                     CastleDropOff castle = collider.GetComponent<CastleDropOff>();
@@ -165,6 +167,7 @@ namespace TinyKingdom.Input
                         BuildingSelectionPulse.Ensure(castle.gameObject,
                             castle.PresentationRenderer)?.Trigger();
                         SelectionChanged?.Invoke();
+                        PlayBuildingSelection(BuildingType.Castle);
                         return;
                     }
                     GoldMineObjective mine = collider.GetComponent<GoldMineObjective>();
@@ -370,6 +373,21 @@ namespace TinyKingdom.Input
             return Rect.MinMaxRect(
                 Mathf.Min(start.x, end.x), Mathf.Min(start.y, end.y),
                 Mathf.Max(start.x, end.x), Mathf.Max(start.y, end.y));
+        }
+
+        private static void PlayBuildingSelection(BuildingType type)
+        {
+            GameplayAudioEvent? eventId = type switch
+            {
+                BuildingType.Castle => GameplayAudioEvent.CastleSelect,
+                BuildingType.House => GameplayAudioEvent.HouseSelect,
+                BuildingType.Barracks => GameplayAudioEvent.BarracksSelect,
+                BuildingType.Archery => GameplayAudioEvent.ArcherySelect,
+                BuildingType.Monastery => GameplayAudioEvent.MonasterySelect,
+                BuildingType.Tower => GameplayAudioEvent.TowerSelect,
+                _ => null
+            };
+            if (eventId.HasValue) GameplayAudioService.RequestUi(eventId.Value);
         }
     }
 }
