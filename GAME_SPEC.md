@@ -1883,12 +1883,13 @@ toward the clicked point. The local forward axis points toward the command and t
 lateral axis is perpendicular to it, so the layout supports arbitrary directions.
 A near-zero direction deterministically falls back to world right.
 
-The canonical front-to-rear priority is Warrior, Lancer, Archer, Monk and Pawn.
-Missing roles leave no empty row. Future or non-player unit types use a safe
-middle/rear priority. Each present role receives one or more compact rows with a
-default one-cell spacing; additional rows for a role are filled before the next
-role begins. Within a role, deterministic nearest-pair matching minimizes travel
-and uses stable EntityId order to resolve ties.
+The canonical tactical priority is Warrior, Lancer, Archer, Monk and Pawn.
+Missing roles leave no empty slot. Future or non-player unit types use a safe
+middle/rear priority. Compact slots use a default one-cell spacing and are ordered
+from the leading row toward the rear; roles receive the earliest available slots
+in canonical order. Roles may share a row when its geometry has several positions.
+Within a role, deterministic nearest-pair matching minimizes travel and uses stable
+EntityId order to resolve ties.
 
 Desired geometry is corrected through the existing logical grid destination
 distribution. Final cells must be unique, walkable, unoccupied and on the clicked
@@ -1899,7 +1900,59 @@ not a rigid leader/follower system: A*, UnitSeparation and combat behavior remai
 authoritative during travel and engagement. Phase 6G.1 changes only Human group
 commands; RuleBasedCommander movement keeps its existing APIs and assignments.
 
-# 61. Source of Truth
+# 61. Phase 6G.2 Player Formation Commands and Shapes
+
+The Human command state exposes exactly four `FormationType` values: `Compact`,
+`Wedge`, `Loose` and `Line`. Compact is the match-start default, and the latest
+selection persists in `PlayerCommandController` when the player changes unit
+selection. There is no Column or SingleColumn formation.
+
+Formation type generates role-agnostic desired geometry around the command anchor.
+The existing Phase 6G.1 role priority then assigns units to those tactical slots,
+and the existing bounded logical-grid correction resolves each desired point to a
+unique walkable, unoccupied cell at the command height. UnitMovement, A*,
+UnitSeparation and combat remain authoritative after command issue. Formation is
+recalculated only for an explicit formation choice, Move or ground AttackMove;
+combat is free to break it and no Update loop continuously restores it.
+
+Player-selectable Phase 6G.2 formations are military-only. The single canonical
+eligibility rule explicitly admits Warrior, Lancer, Archer and Monk; Pawn and any
+unknown/future unit type are excluded. Formation buttons require at least two
+living, friendly, controllable eligible military units. Selected Pawns never enter
+formation slot generation, role assignment, centroid calculation or reform-in-place,
+and a formation-button click never moves them or cancels their economy jobs.
+
+Compact uses a tight adaptive multi-row block at one-cell spacing. Wedge starts
+with one leading slot and widens each rear row by one; incomplete final rows are
+centered. Loose uses the Compact block with a provisional 1.65 spacing multiplier
+on both axes. Compact, Wedge and Loose order tactical slots from front to rear, so
+Warrior, Lancer, Archer and Monk receive progressively later slots without
+reserving empty role rows.
+
+Line is exactly one lateral rank perpendicular to the group forward axis. Odd
+counts contain one center slot; even counts use symmetric half spacing around the
+center. Its tactical slot order is center-to-wing, so canonical role priority puts
+Warriors nearest the center, followed by Lancers, Archers and Monks toward the
+wings. It never creates a second row merely because the selected group is
+large. All four shapes share the same normalized forward axis from group centroid
+to command point and perpendicular lateral axis, including diagonal movement.
+
+Selecting a formation with at least two valid eligible military units immediately
+issues a normal reform move around their military-only centroid. It uses the last
+meaningful group movement direction, or deterministic world right before one has
+been established. Selecting a different shape while moving replaces the units'
+previous destinations through the normal latest-command path. Single-unit movement
+and direct target Attack keep their previous behavior.
+
+A normal ground Move remains an explicit command for every selected controllable
+unit. With a mixed selection, the military subset uses the selected formation and
+Pawns use the existing nearby logical destination distribution outside the cells
+reserved by the military formation. Pawns do not influence the military centroid
+or facing, but their normal Move still cancels their previous job as it did before.
+Ground AttackMove preserves its existing combat-unit eligibility and applies the
+formation only to formation-eligible military participants.
+
+# 62. Source of Truth
 
 This file defines gameplay rules.
 

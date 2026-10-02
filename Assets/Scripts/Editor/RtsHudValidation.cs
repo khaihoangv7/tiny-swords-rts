@@ -168,7 +168,8 @@ namespace TinyKingdom.EditorTools
                 Require(UnityEngine.Object.FindObjectsByType<CommandTooltipPresenter>().Length == 1,
                     "Exactly one reusable CommandTooltipPresenter must be active.");
                 Require(hud.CommandPanel != null
-                    && hud.CommandPanel.TooltipTriggerCount == 12,
+                    && hud.CommandPanel.TooltipTriggerCount
+                        == CommandPanelPresenter.ActionViewCount,
                     "Every reusable command button must own one tooltip trigger.");
                 foreach (CommandTooltipTrigger trigger in hud.CommandPanel.Root
                     .GetComponentsInChildren<CommandTooltipTrigger>(false))
