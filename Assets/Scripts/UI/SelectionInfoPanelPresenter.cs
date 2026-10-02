@@ -11,6 +11,18 @@ namespace TinyKingdom.UI
     [RequireComponent(typeof(Canvas))]
     public sealed class SelectionInfoPanelPresenter : MonoBehaviour
     {
+        public const float PanelWidth = 380f;
+        public const float PanelHeight = 188f;
+        public const float PortraitSize = 96f;
+        public const int TitleFontSize = 24;
+        public const int DetailFontSize = 16;
+        public const float SummaryPreferredIconSize = 52f;
+        public const float SummaryMinimumIconSize = 34f;
+        public const int SummaryPreferredFontSize = 21;
+        public const int SummaryMinimumFontSize = 18;
+        public const float SummaryMaximumRowHeight = 54f;
+        public const float SummaryContentHeight = 168f;
+
         private static readonly UnitType[] SummaryOrder =
         {
             UnitType.Pawn, UnitType.Warrior, UnitType.Archer,
@@ -32,9 +44,17 @@ namespace TinyKingdom.UI
         private RectTransform queueRoot;
         private RectTransform queueFill;
         private float refreshAt;
+        private int currentSummaryRowCount;
+        private float currentSummaryRowHeight;
+        private float currentSummaryIconSize;
+        private int currentSummaryFontSize;
 
         public RectTransform Root => root;
         public bool IsVisible => root != null && root.gameObject.activeSelf;
+        public int CurrentSummaryRowCount => currentSummaryRowCount;
+        public float CurrentSummaryRowHeight => currentSummaryRowHeight;
+        public float CurrentSummaryIconSize => currentSummaryIconSize;
+        public int CurrentSummaryFontSize => currentSummaryFontSize;
 
         public void Configure(SelectionManager manager, RtsHudAssetCatalog catalog,
             RectTransform hudParent)
@@ -43,6 +63,7 @@ namespace TinyKingdom.UI
             selection = manager;
             assets = catalog;
             if (root == null) Build(hudParent);
+            ApplyPresentationLayout();
             if (selection != null) selection.SelectionChanged += HandleSelectionChanged;
             Refresh();
         }
@@ -70,45 +91,49 @@ namespace TinyKingdom.UI
         {
             root = RtsUiFactory.Rect("SelectionInfoPanel", hudParent);
             RtsUiFactory.Anchor(root, Vector2.zero, Vector2.zero,
-                new Vector2(224f, 0f), new Vector2(380f, 160f));
+                new Vector2(224f, 0f), new Vector2(PanelWidth, PanelHeight));
             RtsUiFactory.BuildPanelFrame("SpecialPaper", root, assets.SpecialPaper, 0.5f);
 
             portrait = RtsUiFactory.Image("Portrait", root, null);
             RtsUiFactory.Anchor(portrait.rectTransform, Vector2.zero, Vector2.zero,
-                new Vector2(18f, 84f), new Vector2(54f, 54f));
+                new Vector2(18f, 80f), new Vector2(PortraitSize, PortraitSize));
 
-            title = RtsUiFactory.Label("Title", root, "", 16,
+            title = RtsUiFactory.Label("Title", root, "", TitleFontSize,
                 TextAnchor.MiddleLeft, FontStyle.Bold);
             RtsUiFactory.Anchor(title.rectTransform, Vector2.zero, Vector2.zero,
-                new Vector2(82f, 125f), new Vector2(280f, 24f));
-            details = RtsUiFactory.Label("Details", root, "", 14,
+                new Vector2(124f, 148f), new Vector2(238f, 30f));
+            details = RtsUiFactory.Label("Details", root, "", DetailFontSize,
                 TextAnchor.UpperLeft);
             RtsUiFactory.Anchor(details.rectTransform, Vector2.zero, Vector2.zero,
-                new Vector2(82f, 56f), new Vector2(280f, 66f));
+                new Vector2(124f, 56f), new Vector2(238f, 88f));
 
             for (int i = 0; i < summaryRows.Length; i++)
             {
                 RectTransform row = RtsUiFactory.Rect("Summary" + i, root);
                 RtsUiFactory.Anchor(row, Vector2.zero, Vector2.zero,
-                    new Vector2(20f, 122f - i * 28f), new Vector2(340f, 28f));
+                    new Vector2(18f, 116f - i * SummaryMaximumRowHeight),
+                    new Vector2(344f, SummaryMaximumRowHeight));
                 summaryRows[i] = row.gameObject;
                 summaryIcons[i] = RtsUiFactory.Image("Avatar", row, null);
                 RtsUiFactory.Anchor(summaryIcons[i].rectTransform, new Vector2(0f, 0.5f),
-                    new Vector2(0f, 0.5f), Vector2.zero, new Vector2(28f, 28f));
-                summaryLabels[i] = RtsUiFactory.Label("Count", row, "", 14,
+                    new Vector2(0f, 0.5f), Vector2.zero,
+                    new Vector2(SummaryPreferredIconSize, SummaryPreferredIconSize));
+                summaryLabels[i] = RtsUiFactory.Label("Count", row, "",
+                    SummaryPreferredFontSize,
                     TextAnchor.MiddleLeft, FontStyle.Bold);
                 RtsUiFactory.Anchor(summaryLabels[i].rectTransform, new Vector2(0f, 0.5f),
-                    new Vector2(0f, 0.5f), new Vector2(38f, 0f), new Vector2(294f, 26f));
+                    new Vector2(0f, 0.5f), new Vector2(62f, 0f),
+                    new Vector2(278f, SummaryMaximumRowHeight));
             }
 
             queueRoot = RtsUiFactory.Rect("ProductionQueue", root);
             RtsUiFactory.Anchor(queueRoot, Vector2.zero, Vector2.zero,
-                new Vector2(18f, 10f), new Vector2(344f, 40f));
+                new Vector2(18f, 10f), new Vector2(344f, 44f));
             for (int i = 0; i < queueIcons.Length; i++)
             {
                 queueIcons[i] = RtsUiFactory.Image("QueueSlot" + i, queueRoot, null);
                 RtsUiFactory.Anchor(queueIcons[i].rectTransform, Vector2.zero, Vector2.zero,
-                    new Vector2(i * 36f, 7f), new Vector2(30f, 30f));
+                    new Vector2(i * 40f, 7f), new Vector2(34f, 34f));
             }
             RectTransform bar = RtsUiFactory.Rect("QueueProgress", queueRoot);
             RtsUiFactory.Anchor(bar, Vector2.zero, Vector2.zero,
@@ -125,6 +150,53 @@ namespace TinyKingdom.UI
             Image fillImage = queueFill.gameObject.AddComponent<Image>();
             fillImage.color = new Color(0.88f, 0.68f, 0.22f, 1f);
             fillImage.raycastTarget = false;
+        }
+
+        private void ApplyPresentationLayout()
+        {
+            root.sizeDelta = new Vector2(PanelWidth, PanelHeight);
+            if (portrait == null)
+                portrait = root.Find("Portrait")?.GetComponent<Image>();
+            if (title == null) title = root.Find("Title")?.GetComponent<Text>();
+            if (details == null) details = root.Find("Details")?.GetComponent<Text>();
+            if (portrait != null)
+                RtsUiFactory.Anchor(portrait.rectTransform, Vector2.zero, Vector2.zero,
+                    new Vector2(18f, 80f), new Vector2(PortraitSize, PortraitSize));
+            if (title != null)
+            {
+                title.fontSize = TitleFontSize;
+                RtsUiFactory.Anchor(title.rectTransform, Vector2.zero, Vector2.zero,
+                    new Vector2(124f, 148f), new Vector2(238f, 30f));
+            }
+            if (details != null)
+            {
+                details.fontSize = DetailFontSize;
+                RtsUiFactory.Anchor(details.rectTransform, Vector2.zero, Vector2.zero,
+                    new Vector2(124f, 56f), new Vector2(238f, 88f));
+            }
+
+            for (int i = 0; i < summaryRows.Length; i++)
+            {
+                RectTransform row = root.Find("Summary" + i) as RectTransform;
+                if (row == null) continue;
+                summaryRows[i] = row.gameObject;
+                summaryIcons[i] = row.Find("Avatar")?.GetComponent<Image>();
+                summaryLabels[i] = row.Find("Count")?.GetComponent<Text>();
+            }
+            ApplySummaryLayout(2);
+
+            queueRoot = root.Find("ProductionQueue") as RectTransform;
+            if (queueRoot == null) return;
+            RtsUiFactory.Anchor(queueRoot, Vector2.zero, Vector2.zero,
+                new Vector2(18f, 10f), new Vector2(344f, 44f));
+            for (int i = 0; i < queueIcons.Length; i++)
+            {
+                queueIcons[i] = queueRoot.Find("QueueSlot" + i)?.GetComponent<Image>();
+                if (queueIcons[i] != null)
+                    RtsUiFactory.Anchor(queueIcons[i].rectTransform, Vector2.zero,
+                        Vector2.zero, new Vector2(i * 40f, 7f), new Vector2(34f, 34f));
+            }
+            queueFill = queueRoot.Find("QueueProgress/Fill") as RectTransform;
         }
 
         private void Refresh()
@@ -193,7 +265,49 @@ namespace TinyKingdom.UI
                 summaryLabels[row].text = $"{SummaryOrder[i]}  x{counts[i]}";
                 row++;
             }
+            ApplySummaryLayout(row);
         }
+
+        private void ApplySummaryLayout(int rowCount)
+        {
+            currentSummaryRowCount = Mathf.Clamp(rowCount, 0, summaryRows.Length);
+            if (currentSummaryRowCount <= 0) return;
+            currentSummaryRowHeight = CalculateSummaryRowHeight(currentSummaryRowCount);
+            currentSummaryIconSize = CalculateSummaryIconSize(currentSummaryRowCount);
+            currentSummaryFontSize = CalculateSummaryFontSize(currentSummaryRowCount);
+            float totalHeight = currentSummaryRowCount * currentSummaryRowHeight;
+            float bottom = Mathf.Round((PanelHeight - totalHeight) * 0.5f);
+
+            for (int i = 0; i < currentSummaryRowCount; i++)
+            {
+                RectTransform row = summaryRows[i].transform as RectTransform;
+                float y = bottom + (currentSummaryRowCount - i - 1)
+                    * currentSummaryRowHeight;
+                RtsUiFactory.Anchor(row, Vector2.zero, Vector2.zero,
+                    new Vector2(18f, y), new Vector2(344f, currentSummaryRowHeight));
+                RtsUiFactory.Anchor(summaryIcons[i].rectTransform,
+                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero,
+                    new Vector2(currentSummaryIconSize, currentSummaryIconSize));
+                summaryLabels[i].fontSize = currentSummaryFontSize;
+                RtsUiFactory.Anchor(summaryLabels[i].rectTransform,
+                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
+                    new Vector2(currentSummaryIconSize + 10f, 0f),
+                    new Vector2(326f - currentSummaryIconSize,
+                        currentSummaryRowHeight));
+            }
+        }
+
+        public static float CalculateSummaryRowHeight(int rowCount)
+            => rowCount <= 0 ? 0f : Mathf.Min(SummaryMaximumRowHeight,
+                SummaryContentHeight / Mathf.Clamp(rowCount, 1, 5));
+
+        public static float CalculateSummaryIconSize(int rowCount)
+            => Mathf.Clamp(CalculateSummaryRowHeight(rowCount) - 2f,
+                SummaryMinimumIconSize, SummaryPreferredIconSize);
+
+        public static int CalculateSummaryFontSize(int rowCount)
+            => rowCount <= 2 ? SummaryPreferredFontSize
+                : rowCount <= 4 ? 19 : SummaryMinimumFontSize;
 
         private void ShowBuilding(BuildingSite site)
         {

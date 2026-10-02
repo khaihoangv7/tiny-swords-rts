@@ -59,28 +59,40 @@ namespace TinyKingdom.EditorTools
                 Require(hud != null && hud.IsReady, "Runtime RTS HUD is missing or incomplete.");
                 Require(hud.ResourcePanel.Root.gameObject.activeInHierarchy,
                     "Resource panel must always remain visible during gameplay.");
-                Require(RectMatches(hud.HudRoot, new Vector2(1258f, 160f))
+                Require(Mathf.Approximately(hud.HudRoot.rect.height,
+                        RtsHudController.HudHeight)
                     && hud.HudRoot.anchorMin == Vector2.zero
-                    && hud.HudRoot.anchorMax == Vector2.zero
+                    && hud.HudRoot.anchorMax == new Vector2(1f, 0f)
                     && hud.HudRoot.pivot == Vector2.zero
                     && hud.HudRoot.anchoredPosition.y >= 8f,
-                    "Bottom HUD root must be bottom-left anchored, 1258x160 and inside the viewport.");
-                Require(RectMatches(hud.ResourcePanel.Root, new Vector2(220f, 160f))
+                    "Bottom HUD root must stretch through the safe horizontal viewport.");
+                Require(RectMatches(hud.ResourcePanel.Root, new Vector2(
+                        ResourcePanelPresenter.PanelWidth, ResourcePanelPresenter.PanelHeight))
                     && hud.ResourcePanel.Root.anchoredPosition.y >= 0f,
-                    "Resource panel must be compact, baseline-aligned and fully on-screen.");
-                Require(RectMatches(hud.SelectionPanel.Root, new Vector2(380f, 160f))
-                    && RectMatches(hud.CommandPanel.Root, new Vector2(650f, 160f)),
-                    "Selection and command panels do not match the compact HUD layout.");
+                    "Resource panel must be readable, baseline-aligned and fully on-screen.");
+                Require(RectMatches(hud.SelectionPanel.Root, new Vector2(
+                        SelectionInfoPanelPresenter.PanelWidth,
+                        SelectionInfoPanelPresenter.PanelHeight))
+                    && hud.CommandPanel.Root.rect.width
+                        is >= CommandPanelPresenter.MinimumPanelWidth
+                    && hud.CommandPanel.Root.rect.width <= hud.HudRoot.rect.width
+                    && Mathf.Approximately(hud.CommandPanel.Root.rect.height,
+                        CommandPanelPresenter.MinimumPanelHeight),
+                    "Selection and command panels do not match the adaptive HUD layout.");
                 CanvasScaler scaler = hud.GetComponent<CanvasScaler>();
                 Require(scaler != null && scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize
-                    && scaler.referenceResolution == new Vector2(1920f, 1080f)
+                    && scaler.referenceResolution == RtsHudController.ReferenceResolution
                     && scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.MatchWidthOrHeight
                     && Mathf.Approximately(scaler.matchWidthOrHeight, 0.5f),
                     "RTS HUD CanvasScaler configuration is invalid.");
-                RectTransform action = hud.CommandPanel.Root.Find("Action0") as RectTransform;
-                Require(action != null && action.rect.width >= 52f && action.rect.width <= 60f
-                    && action.rect.height >= 52f && action.rect.height <= 60f,
-                    "Command button dimensions must remain within the intended 52-60 px range.");
+                RectTransform action = hud.CommandPanel.ContentRoot?.Find("Action0")
+                    as RectTransform;
+                Require(action != null
+                    && action.rect.width is >= CommandPanelPresenter.MinimumButtonWidth
+                        and <= CommandPanelPresenter.LargeButtonWidth
+                    && action.rect.height is >= CommandPanelPresenter.MinimumButtonHeight
+                        and <= CommandPanelPresenter.LargeButtonHeight,
+                    "Command button dimensions are outside the Phase 6D.5 adaptive range.");
                 Require(CountNamed(hud.ResourcePanel.Root, "WoodTableSurface") == 1
                     && CountNamed(hud.SelectionPanel.Root, "SpecialPaperSurface") == 1
                     && CountNamed(hud.CommandPanel.Root, "SpecialPaperSurface") == 1,
@@ -103,6 +115,322 @@ namespace TinyKingdom.EditorTools
                 + "unit avatars and authoritative presenter configuration verified. "
                 + (Application.isPlaying ? "Runtime HUD is present and Goblins are disabled."
                     : "Run again in Play Mode for live panel checks."));
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.5 HUD Scale")]
+        public static void RunPhase6D5HudScale()
+        {
+            Require(CommandPanelPresenter.ActionViewCount == 14,
+                "Phase 6D.5 must preserve fourteen reusable command actions.");
+            Require(CommandPanelPresenter.FormationButtonCount == 4,
+                "All four Phase 6G.2 formation actions must remain registered.");
+            Require(Mathf.Approximately(CommandPanelPresenter.LargeButtonWidth, 104f)
+                && Mathf.Approximately(CommandPanelPresenter.LargeButtonHeight, 112f)
+                && Mathf.Approximately(CommandPanelPresenter.MinimumButtonWidth, 76f)
+                && Mathf.Approximately(CommandPanelPresenter.MinimumButtonHeight, 82f),
+                "Command card maximum/minimum dimensions are invalid.");
+            Require(Mathf.Approximately(CommandPanelPresenter.LargeIconSize, 68f)
+                && Mathf.Approximately(CommandPanelPresenter.MinimumIconSize, 48f)
+                && CommandPanelPresenter.LargeLabelFontSize == 15
+                && CommandPanelPresenter.MinimumLabelFontSize == 12
+                && CommandPanelPresenter.LargeCostFontSize == 13
+                && CommandPanelPresenter.MinimumCostFontSize == 10
+                && CommandPanelPresenter.LargeHotkeyFontSize == 13
+                && CommandPanelPresenter.MinimumHotkeyFontSize == 10,
+                "Adaptive icon or text ranges are invalid.");
+
+            float safeWidth = CommandPanelPresenter.CalculateMaximumSafePanelWidth(
+                RtsHudController.HudSize.x,
+                CommandPanelPresenter.FixedPanelLeftX);
+            Require(Mathf.Approximately(safeWidth,
+                    CommandPanelPresenter.MaximumPanelWidth),
+                "Reference command safe width does not match HUD geometry.");
+            Require(Mathf.Approximately(CommandPanelPresenter.FixedPanelLeftX,
+                    224f + SelectionInfoPanelPresenter.PanelWidth + 4f),
+                "Command panel no longer begins after the fixed Selection region.");
+            foreach (int count in new[] { 1, 2, 5, 6, 7, 13, 14 })
+            {
+                Require(CommandPanelPresenter.CalculateRequiredRows(count, count) == 1
+                    && CommandPanelPresenter.CalculateUsedColumns(count) == count,
+                    $"{count} commands must use exactly one row.");
+                float panelWidth = CommandPanelPresenter.CalculatePanelWidth(count,
+                    safeWidth);
+                float buttonWidth = CommandPanelPresenter.CalculateButtonWidth(count,
+                    safeWidth);
+                float requiredContent = count * buttonWidth
+                    + Mathf.Max(0, count - 1)
+                        * CommandPanelPresenter.HorizontalSpacing;
+                Require(requiredContent <= panelWidth
+                        - CommandPanelPresenter.HorizontalPadding * 2f + 0.01f,
+                    $"{count} commands exceed the calculated inner content width.");
+            }
+            Require(Mathf.Approximately(CommandPanelPresenter.CalculatePanelHeight(1),
+                    SelectionInfoPanelPresenter.PanelHeight)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelHeight(14),
+                    SelectionInfoPanelPresenter.PanelHeight),
+                "Command panel height must remain stable for every action count.");
+            Require(Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(1,
+                    safeWidth), CommandPanelPresenter.MinimumPanelWidth)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(2,
+                    safeWidth), 240f)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(5,
+                    safeWidth), 568f)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(6,
+                    safeWidth), 678f)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(7,
+                    safeWidth), 788f)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(13,
+                    safeWidth), safeWidth)
+                && Mathf.Approximately(CommandPanelPresenter.CalculatePanelWidth(14,
+                    safeWidth), safeWidth),
+                "Representative one-row panel widths are invalid.");
+            Require(Mathf.Approximately(CommandPanelPresenter.CalculateButtonWidth(7,
+                    safeWidth), CommandPanelPresenter.LargeButtonWidth)
+                && CommandPanelPresenter.CalculateButtonWidth(13, safeWidth)
+                    < CommandPanelPresenter.LargeButtonWidth
+                && CommandPanelPresenter.CalculateButtonWidth(14, safeWidth)
+                    < CommandPanelPresenter.CalculateButtonWidth(13, safeWidth)
+                && CommandPanelPresenter.CalculateButtonWidth(14, safeWidth)
+                    >= CommandPanelPresenter.MinimumButtonWidth,
+                "Cards must stay large through seven actions and shrink only when required.");
+            Require(Mathf.Approximately(SelectionInfoPanelPresenter.PanelWidth, 380f)
+                && Mathf.Approximately(SelectionInfoPanelPresenter.PanelHeight, 188f),
+                "Selection outer dimensions changed during the content-only hotfix.");
+            foreach (int count in new[] { 0, 2, 7, 13, 14 })
+                Require(Mathf.Approximately(ResourcePanelPresenter.PanelWidth, 220f)
+                        && Mathf.Approximately(ResourcePanelPresenter.PanelHeight, 188f)
+                        && Mathf.Approximately(SelectionInfoPanelPresenter.PanelWidth, 380f)
+                        && Mathf.Approximately(SelectionInfoPanelPresenter.PanelHeight, 188f),
+                    $"Fixed Resource/Selection dimensions changed for the {count}-command fixture.");
+            Require(SelectionInfoPanelPresenter.PortraitSize > 76f
+                && SelectionInfoPanelPresenter.TitleFontSize > 20
+                && SelectionInfoPanelPresenter.DetailFontSize > 14,
+                "Selection portrait or typography was not enlarged.");
+            Require(Mathf.Approximately(
+                    SelectionInfoPanelPresenter.CalculateSummaryRowHeight(2), 54f)
+                && Mathf.Approximately(
+                    SelectionInfoPanelPresenter.CalculateSummaryIconSize(2), 52f)
+                && SelectionInfoPanelPresenter.CalculateSummaryFontSize(2) == 21
+                && Mathf.Approximately(
+                    SelectionInfoPanelPresenter.CalculateSummaryRowHeight(4), 42f)
+                && Mathf.Approximately(
+                    SelectionInfoPanelPresenter.CalculateSummaryIconSize(4), 40f)
+                && SelectionInfoPanelPresenter.CalculateSummaryFontSize(4) == 19,
+                "Adaptive multi-selection content sizing is invalid.");
+            Require(ResourcePanelPresenter.PanelHeight > 160f
+                && ResourcePanelPresenter.IconSize > 28f
+                && ResourcePanelPresenter.ValueFontSize > 18,
+                "Resource panel, icons or values were not enlarged.");
+
+            RtsHudAssetCatalog catalog = RtsHudAssetCatalog.Load();
+            Require(catalog != null && catalog.IsComplete,
+                "RTS HUD catalog is missing or incomplete.");
+
+            if (Application.isPlaying)
+            {
+                RtsHudController hud = UnityEngine.Object.FindAnyObjectByType<RtsHudController>();
+                Require(hud != null && hud.IsReady,
+                    "Runtime RTS HUD is missing or incomplete.");
+                Require(Mathf.Approximately(hud.HudRoot.rect.height,
+                        RtsHudController.HudHeight)
+                    && hud.HudRoot.anchorMin == Vector2.zero
+                    && hud.HudRoot.anchorMax == new Vector2(1f, 0f)
+                    && hud.HudRoot.pivot == Vector2.zero,
+                    "RtsBottomHud must span the safe horizontal canvas region.");
+                Require(RectMatches(hud.ResourcePanel.Root, new Vector2(
+                        ResourcePanelPresenter.PanelWidth, ResourcePanelPresenter.PanelHeight)),
+                    "Runtime Resources panel dimensions are invalid.");
+                Require(RectMatches(hud.SelectionPanel.Root, new Vector2(
+                        SelectionInfoPanelPresenter.PanelWidth,
+                        SelectionInfoPanelPresenter.PanelHeight)),
+                    "Runtime Selection panel dimensions are invalid.");
+                Require(hud.ResourcePanel.Root.anchorMin == Vector2.zero
+                        && hud.ResourcePanel.Root.anchorMax == Vector2.zero
+                        && hud.ResourcePanel.Root.pivot == Vector2.zero
+                        && hud.ResourcePanel.Root.anchoredPosition == Vector2.zero,
+                    "Resources outer position must remain fixed at HUD x=0.");
+                Require(hud.SelectionPanel.Root.anchorMin == Vector2.zero
+                        && hud.SelectionPanel.Root.anchorMax == Vector2.zero
+                        && hud.SelectionPanel.Root.pivot == Vector2.zero
+                        && hud.SelectionPanel.Root.anchoredPosition
+                            == new Vector2(224f, 0f),
+                    "Selection outer position must remain fixed at HUD x=224.");
+
+                RectTransform portrait = hud.SelectionPanel.Root.Find("Portrait")
+                    as RectTransform;
+                Text selectionTitle = hud.SelectionPanel.Root.Find("Title")
+                    ?.GetComponent<Text>();
+                Text selectionDetails = hud.SelectionPanel.Root.Find("Details")
+                    ?.GetComponent<Text>();
+                Require(portrait != null && RectMatches(portrait,
+                        Vector2.one * SelectionInfoPanelPresenter.PortraitSize)
+                    && selectionTitle != null
+                    && selectionTitle.fontSize == SelectionInfoPanelPresenter.TitleFontSize
+                    && selectionDetails != null
+                    && selectionDetails.fontSize == SelectionInfoPanelPresenter.DetailFontSize,
+                    "Runtime Selection portrait or text scale is invalid.");
+
+                foreach (string rowName in new[] { "Population", "Wood", "Gold", "Food" })
+                {
+                    Transform row = hud.ResourcePanel.Root.Find(rowName);
+                    RectTransform icon = row?.Find("Icon") as RectTransform;
+                    Text value = row?.Find("Value")?.GetComponent<Text>();
+                    Require(row != null && icon != null && RectMatches(icon,
+                            Vector2.one * ResourcePanelPresenter.IconSize)
+                        && value != null
+                        && value.fontSize == ResourcePanelPresenter.ValueFontSize
+                        && value.fontStyle == FontStyle.Bold
+                        && value.rectTransform.rect.width >= 130f,
+                        $"{rowName} resource row scale or typography is invalid.");
+                }
+
+                int activeActions = 0;
+                RectTransform commandContent = hud.CommandPanel.ContentRoot;
+                Require(commandContent != null
+                    && commandContent.parent == hud.CommandPanel.Root
+                    && commandContent.anchorMin == new Vector2(0f, 0f)
+                    && commandContent.anchorMax == new Vector2(1f, 0f)
+                    && commandContent.pivot == new Vector2(0.5f, 0f),
+                    "Command content root is missing or parented outside its panel.");
+                for (int i = 0; i < CommandPanelPresenter.ActionViewCount; i++)
+                {
+                    string actionName = "Action" + i;
+                    Require(CountNamed(hud.CommandPanel.Root, actionName) == 1,
+                        $"Expected exactly one reusable {actionName} object.");
+                    RectTransform action = commandContent.Find(actionName)
+                        as RectTransform;
+                    RectTransform icon = action?.Find("Icon") as RectTransform;
+                    Text label = action?.Find("Label")?.GetComponent<Text>();
+                    Text cost = action?.Find("Cost")?.GetComponent<Text>();
+                    Text hotkey = action?.Find("Hotkey")?.GetComponent<Text>();
+                    CommandTooltipTrigger trigger = action
+                        ?.GetComponent<CommandTooltipTrigger>();
+                    Require(action != null && icon != null && label != null
+                        && cost != null && hotkey != null && trigger != null,
+                        $"{actionName} is missing an adaptive command-card element.");
+                    if (action.gameObject.activeSelf) activeActions++;
+                }
+
+                Require(activeActions == hud.CommandPanel.VisibleActionCount,
+                    "Active command hierarchy and adaptive visible-action count disagree.");
+                if (activeActions > 0)
+                {
+                    int columns = CommandPanelPresenter.CalculateUsedColumns(activeActions);
+                    int rows = CommandPanelPresenter.CalculateRequiredRows(
+                        activeActions, columns);
+                    float buttonWidth = hud.CommandPanel.CurrentButtonWidth;
+                    float buttonHeight = hud.CommandPanel.CurrentButtonHeight;
+                    Require(hud.CommandPanel.CurrentColumnCount == columns
+                        && columns == activeActions
+                        && hud.CommandPanel.CurrentRowCount == 1 && rows == 1
+                        && Mathf.Approximately(hud.CommandPanel.CurrentPanelHeight,
+                            CommandPanelPresenter.MinimumPanelHeight)
+                        && buttonWidth is >= CommandPanelPresenter.MinimumButtonWidth
+                            and <= CommandPanelPresenter.LargeButtonWidth
+                        && buttonHeight is >= CommandPanelPresenter.MinimumButtonHeight
+                            and <= CommandPanelPresenter.LargeButtonHeight,
+                        "Runtime command panel did not preserve one-row adaptive geometry.");
+
+                    float rowY = float.NaN;
+                    float previousRight = float.NegativeInfinity;
+                    for (int i = 0; i < activeActions; i++)
+                    {
+                        RectTransform action = commandContent.Find("Action" + i)
+                            as RectTransform;
+                        RectTransform icon = action.Find("Icon") as RectTransform;
+                        Text label = action.Find("Label").GetComponent<Text>();
+                        Text cost = action.Find("Cost").GetComponent<Text>();
+                        Text hotkey = action.Find("Hotkey").GetComponent<Text>();
+                        float expectedIcon = CommandPanelPresenter.CalculateIconSize(
+                            buttonWidth);
+                        Require(RectMatches(action, new Vector2(buttonWidth, buttonHeight))
+                            && RectMatches(icon, Vector2.one * expectedIcon)
+                            && label.fontSize == CommandPanelPresenter
+                                .CalculateLabelFontSize(buttonWidth)
+                            && cost.fontSize == CommandPanelPresenter
+                                .CalculateCostFontSize(buttonWidth)
+                            && hotkey.fontSize == CommandPanelPresenter
+                                .CalculateHotkeyFontSize(buttonWidth),
+                            $"Action{i} internals do not match the shared adaptive size.");
+                        if (i == 0) rowY = action.anchoredPosition.y;
+                        Require(Mathf.Approximately(action.anchoredPosition.y, rowY)
+                            && action.anchoredPosition.x + 0.01f >= previousRight
+                            && action.anchoredPosition.x >= -0.01f
+                            && action.anchoredPosition.x + action.rect.width
+                                <= commandContent.rect.width + 0.01f
+                            && action.anchoredPosition.y >= -0.01f
+                            && action.anchoredPosition.y + action.rect.height
+                                <= commandContent.rect.height + 0.01f,
+                            $"Action{i} is wrapped or overlaps another command.");
+                        previousRight = action.anchoredPosition.x + action.rect.width;
+                    }
+                    Require(Mathf.Approximately(commandContent.rect.width,
+                            hud.CommandPanel.Root.rect.width
+                                - CommandPanelPresenter.HorizontalPadding * 2f)
+                        && commandContent.rect.xMin >= hud.CommandPanel.Root.rect.xMin
+                        && commandContent.rect.xMax <= hud.CommandPanel.Root.rect.xMax,
+                        "Command content bounds are not contained by the current panel.");
+                }
+
+                RectTransform commandSurface = hud.CommandPanel.Root
+                    .Find("SpecialPaperSurface") as RectTransform;
+                Text commandTitle = hud.CommandPanel.Root.Find("Title")
+                    ?.GetComponent<Text>();
+                float panelLeft = CommandPanelPresenter.FixedPanelLeftX;
+                float panelRight = panelLeft + hud.CommandPanel.Root.rect.width;
+                Require(hud.CommandPanel.Root.anchorMin == Vector2.zero
+                    && hud.CommandPanel.Root.anchorMax == Vector2.zero
+                    && hud.CommandPanel.Root.pivot == Vector2.zero
+                    && hud.CommandPanel.Root.anchoredPosition
+                        == new Vector2(CommandPanelPresenter.FixedPanelLeftX, 0f)
+                    && panelLeft >= -0.01f
+                    && panelRight <= hud.HudRoot.rect.width + 0.01f
+                    && commandSurface != null
+                    && RectMatches(commandSurface, hud.CommandPanel.Root.rect.size)
+                    && commandTitle != null
+                    && commandTitle.rectTransform.anchorMin.x == 0.5f
+                    && commandTitle.rectTransform.anchorMax.x == 0.5f,
+                    "Adaptive command frame/raycast region does not follow its actual panel bounds.");
+                Rect resourceBounds = RectInAncestor(hud.ResourcePanel.Root,
+                    hud.HudRoot);
+                Rect selectionBounds = RectInAncestor(hud.SelectionPanel.Root,
+                    hud.HudRoot);
+                Rect commandBounds = RectInAncestor(hud.CommandPanel.Root,
+                    hud.HudRoot);
+                Require(resourceBounds.xMax <= selectionBounds.xMin + 0.01f,
+                    "Resources and Selection panel bounds overlap.");
+                Require(selectionBounds.xMax <= commandBounds.xMin + 0.01f,
+                    "Selection and Command panel bounds overlap.");
+                foreach (string piece in new[]
+                {
+                    "Top", "Bottom", "Left", "Right", "TopLeft", "TopRight",
+                    "BottomLeft", "BottomRight"
+                })
+                    Require(CountNamed(hud.CommandPanel.Root,
+                            "SpecialPaper" + piece) == 1,
+                        "Command decorative frame piece is missing or duplicated: " + piece);
+                Require(hud.ResourcePanel.Root.Find("WoodTableSurface")
+                        ?.GetComponent<Image>()?.raycastTarget == true
+                    && hud.SelectionPanel.Root.Find("SpecialPaperSurface")
+                        ?.GetComponent<Image>()?.raycastTarget == true
+                    && hud.CommandPanel.Root.Find("SpecialPaperSurface")
+                        ?.GetComponent<Image>()?.raycastTarget == true,
+                    "HUD surfaces must retain world-input raycast blocking.");
+                CanvasScaler scaler = hud.GetComponent<CanvasScaler>();
+                Require(scaler != null
+                    && scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize
+                    && scaler.referenceResolution == RtsHudController.ReferenceResolution
+                    && Mathf.Approximately(scaler.matchWidthOrHeight, 0.5f),
+                    "Phase 6D.5 must not change the global CanvasScaler policy.");
+            }
+
+            Debug.Log("Phase 6D.5 HUD Scale validation passed: one-row adaptive command "
+                + "bar, 104x112 to 76x82 shared card range, larger Selection content, "
+                + "188-unit Resources panel, fourteen-action pool, formation registration, "
+                + "panel art and CanvasScaler policy verified."
+                + (Application.isPlaying
+                    ? " Runtime hierarchy and raycast blocking verified."
+                    : " Run again in Play Mode for runtime hierarchy checks."));
         }
 
         [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.3 UI")]
@@ -542,6 +870,26 @@ namespace TinyKingdom.EditorTools
 
         private static bool RectMatches(RectTransform rect, Vector2 expected)
             => rect != null && Vector2.Distance(rect.rect.size, expected) < 0.01f;
+
+        private static Rect RectInAncestor(RectTransform rect, RectTransform ancestor)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector3 first = ancestor.InverseTransformPoint(corners[0]);
+            float minX = first.x;
+            float maxX = first.x;
+            float minY = first.y;
+            float maxY = first.y;
+            for (int i = 1; i < corners.Length; i++)
+            {
+                Vector3 local = ancestor.InverseTransformPoint(corners[i]);
+                minX = Mathf.Min(minX, local.x);
+                maxX = Mathf.Max(maxX, local.x);
+                minY = Mathf.Min(minY, local.y);
+                maxY = Mathf.Max(maxY, local.y);
+            }
+            return Rect.MinMaxRect(minX, minY, maxX, maxY);
+        }
 
         private static int CountNamed(RectTransform root, string name)
             => root.GetComponentsInChildren<Transform>(true)
