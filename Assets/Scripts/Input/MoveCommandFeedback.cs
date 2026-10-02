@@ -4,6 +4,8 @@ namespace TinyKingdom.Input
 {
     public sealed class MoveCommandFeedback : MonoBehaviour
     {
+        public const float PresentationScale = 1.35f;
+
         private const int SegmentCount = 40;
         private static readonly Color[] RingColors =
         {
@@ -41,8 +43,8 @@ namespace TinyKingdom.Input
                 ring.useWorldSpace = false;
                 ring.loop = true;
                 ring.positionCount = SegmentCount;
-                ring.startWidth = ringLineWidth;
-                ring.endWidth = ringLineWidth;
+                ring.startWidth = ringLineWidth * PresentationScale;
+                ring.endWidth = ringLineWidth * PresentationScale;
                 ring.numCornerVertices = 2;
                 ring.sortingOrder = 8;
                 rings[i] = ring;
@@ -80,6 +82,7 @@ namespace TinyKingdom.Input
                 Vector2 size = ringIndex == 0
                     ? Vector2.Lerp(outerStartSize, outerEndSize, progress)
                     : Vector2.Lerp(innerStartSize, innerEndSize, progress);
+                size *= PresentationScale;
                 for (int point = 0; point < SegmentCount; point++)
                 {
                     float angle = point * 2f * Mathf.PI / SegmentCount;

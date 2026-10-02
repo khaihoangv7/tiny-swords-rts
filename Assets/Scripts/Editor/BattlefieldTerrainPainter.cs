@@ -1,4 +1,5 @@
 using System;
+using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
 using UnityEditor;
 using UnityEngine;
@@ -23,8 +24,10 @@ namespace TinyKingdom.EditorTools
             }
             for (int level=1;level<=BattlefieldTerraces.MaxHeight;level++)
             {
-                shadows[level]=Layer(grid,"Shadow_L"+level,2+2*level);
-                surfaces[level]=Layer(grid,"ElevatedGround_L"+level,3+2*level);
+                shadows[level]=Layer(grid,"Shadow_L"+level,
+                    GroundSorting.ElevatedTerrainBackgroundOrder(level, false));
+                surfaces[level]=Layer(grid,"ElevatedGround_L"+level,
+                    GroundSorting.ElevatedTerrainBackgroundOrder(level, true));
                 shadows[level].ClearAllTiles(); surfaces[level].ClearAllTiles();
             }
             foreach(TerraceDefinition terrace in BattlefieldTerraces.Platforms)
@@ -53,9 +56,9 @@ namespace TinyKingdom.EditorTools
             {
                 var stair=BattlefieldTerraces.Connector(i);
                 int level=stair.LowerHeight+1;
-                surfaces[level].SetTile(new(stair.GridX,stair.UpperY,0),Get(stair.UpperSpriteName));
-                surfaces[level].SetTile(new(stair.GridX,stair.LowerY,0),Get(stair.LowerSpriteName));
-                shadows[level].SetTile(new(stair.GridX,stair.LowerY,0),null);
+                surfaces[level].SetTile(new(stair.VisualX,stair.UpperY,0),Get(stair.UpperSpriteName));
+                surfaces[level].SetTile(new(stair.VisualX,stair.LowerY,0),Get(stair.LowerSpriteName));
+                shadows[level].SetTile(new(stair.VisualX,stair.LowerY,0),null);
             }
         }
 

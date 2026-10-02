@@ -4,7 +4,7 @@ namespace TinyKingdom.Units
 {
     public static class UnitVisualPresentation
     {
-        public const float Scale = 1.3f;
+        public const float Scale = 1.6f;
 
         public static void ApplyAlignedScale(SpriteRenderer renderer, Vector2 alignedOffset)
             => ApplyAlignedScale(renderer, alignedOffset, Scale);

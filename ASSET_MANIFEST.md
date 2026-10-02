@@ -96,24 +96,33 @@ the main travel lane and Castle construction areas.
 
 The expanded battlefield is 60x44 cells with two tiered Castle bases and a
 flat central mine. Castle bases now have a 16x13 lower terrace at height 1 and
-a nested 12x8 upper terrace at height 2, with two ascent routes per faction.
+a nested 10x7 upper terrace at height 2, with two ascent routes per faction.
 Each route uses two native ramp flights, one per height boundary. Each cliff uses the native
 finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
 omitted, eliminating the doubled visible face. Side ramps retain the verified
 64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching Color3 and
-explicit logical endpoints. The two finished cliff rows are separated by a
+their original same-column visual assembly. Navigation is separate: each ramp
+uses explicit diagonally adjacent logical endpoints so units follow the visible
+left/right slope while crossing each height boundary. `DescendsRight` uses an
+upper-left to lower-right descent (and the exact reverse ascent), while
+`DescendsLeft` mirrors that direction. Unit separation is suppressed only for
+the short connector segment so it cannot deflect this authored diagonal.
+Movement extends the two logical connector waypoints horizontally by 0.25 cell
+inside their respective cells. The segment still crosses the cells' shared
+corner, while its wider horizontal run keeps the unit ground pivot centered on
+the painted slope in either direction. The two finished cliff rows are separated by a
 walkable lower landing, never stacked into one wall. The mine remains flat.
 
 Sheep retain the verified Idle/Grass mapping. There are 73: twelve above and
 twelve below each Castle plateau, twelve neutral Sheep, and four at each base's
-lower outer corners, plus five on Blue's upper court.
+lower outer corners, plus two on Blue's upper court and three on its lower terrace.
 Each base uses four existing Tree variants: two at the
 lower terrace's northern rim (height 1) and two at the
 southern corners of the lower terrace.
 Blue additionally uses two native dark Tree1 pines on each tier, retaining the
-existing Tree1/Stump1 mapping. Four edge clusters each contain three static
-Bushe3_0 grass tufts (the inspected dark spiky bush). They render at order 8,
-above both terrace surfaces and below resource visuals, with no colliders.
+existing Tree1/Stump1 mapping. Four edge clusters each contain three animated
+Bushe3 grass tufts (the inspected dark spiky bush). Their ground roots use the
+logical terrain elevation band and within-level Y order, with no colliders.
 The upper court has one large Gold Stone 5 (catalog index 4) and one small
 Gold Stone 2 (index 1), both inspected from their native PNGs. They retain their
 existing matched highlights and resource capacities. Construction space and
@@ -130,8 +139,19 @@ mappings below are retained. No sprite is AI-generated or recolored.
 * `Tilemap_color1` supplies the main island, `color3` Castle plateaus and bright meadow
   patches, `color4` the flat mine clearing and
   approach paths, and `color5` cool coastal vegetation. All are 64x64 tiles.
-* `Terrain/Decorations/Bushes/Bushe1.png` through `Bushe4.png`: first imported
-  sprite only, static ground cover. No new animation mapping.
+* `Terrain/Decorations/Bushes/Bushe1.png`: Aseprite tag `Bush 1`, source frames
+  0..7, exported sprites `Bushe1_0..7`, 100 ms each; LARGE scale 1.50.
+* `Terrain/Decorations/Bushes/Bushe2.png`: Aseprite tag `Bush 2`, source frames
+  8..15, exported sprites `Bushe2_0..7`, 100 ms each; SMALL scale 1.25.
+* `Terrain/Decorations/Bushes/Bushe3.png`: Aseprite tag `Bush 3`, source frames
+  16..23, exported sprites `Bushe3_0..7`, 100 ms each; LARGE scale 1.50.
+* `Terrain/Decorations/Bushes/Bushe4.png`: Aseprite tag `Bush 4`, source frames
+  24..31, exported sprites `Bushe4_0..7`, 100 ms each; SMALL scale 1.25.
+  All four use Multiple sprites, 100 PPU, Point filtering, no mipmaps,
+  uncompressed texture data and Clamp. The prior map setup selected only frame
+  zero; Phase 6F.1 catalogs all eight verified frames and loops them at 10 FPS
+  with deterministic phase offsets. Scaling affects a bottom-anchored visual
+  child and never changes navigation occupancy.
 * `Terrain/Decorations/Rocks/Rock1.png` through `Rock4.png`: static coastal
   boulders on nonwalkable water/shore fringe, away from travel corridors.
 * `Terrain/Decorations/Rocks in the Water/Water Rocks_01.png` through `_04.png`:
@@ -828,21 +848,21 @@ use a presentation-only 1.7 scale. Their imported center pivots and existing
 sprite slicing remain unchanged. The visual child is shifted upward from the
 sprite lower bound so its original ground contact stays fixed. Logical
 `BuildingData` footprints remain House/Tower 2x2, Barracks/Archery/Monastery
-3x3 and Castle 3x2. The Gold Mine remains independently tuned at 1.30 and is
+3x3 and Castle 3x2. The Gold Mine is independently tuned at 2.60 and is
 excluded from this common faction-building scale.
 
 Pawn, Warrior, Archer, Lancer, Monk and any enabled Goblin unit continue using
 their verified animation sheets, slicing, PPU and frame order. Runtime
-`AnimatedVisual` children now use a common presentation scale of 1.3; no source
+`AnimatedVisual` children now use a common presentation scale of 1.6; no source
 texture, sprite metadata, gameplay root or collider is rescaled. Per-frame
 alignment offsets are multiplied by the same factor to retain the established
 animation ground anchor.
 
-Tree and Sheep visual children use the 1.3 presentation scale. Gold Stone 1-5
+Tree and Sheep visual children use the 1.6 presentation scale. Gold Stone 1-5
 use 1.4, while Gold Stone 6 uses 1.55. Their verified sprites, animation frames,
 PPU, root positions, colliders and logical occupancy remain unchanged. Building
 assets are excluded and continue using their dedicated 1.7 profile or the Gold
-Mine's dedicated 1.30 profile.
+Mine's dedicated 2.60 profile.
 
 ## Verified Tiny Swords cursors
 
@@ -861,7 +881,9 @@ Read/Write enabled for `Cursor.SetCursor`, Point filtering, no compression,
 no mipmaps and Clamp wrapping. The hand represents friendly hover and the
 default cursor state while controllable units are selected. The forbidden
 symbol represents an unavailable Move destination. UI and enemy hover use
-the default arrow.
+the default arrow. Runtime presentation enlarges all three full cursor textures
+to 1.5 with nearest-neighbor sampling and scales their verified hotspots by the
+same amount. Source PNGs and import metadata remain unchanged.
 
 # 11. Phase 5A inspected economy visuals
 
@@ -1052,7 +1074,7 @@ These PNGs previously used automatic tight slicing, which split one logical
 effect frame into separate particle fragments. Phase 6B.2 slices them by the
 verified full frame cells above, with centered pivots, 100 PPU, Point filtering,
 no compression, no mipmaps and Clamp wrapping. The three Fire effects run at
-separate building-local anchors while a completed building is below 70 percent
+separate building-local anchors while a completed building is below 60 percent
 HP. Both Explosion effects play once with a 0.06-second visual offset after
 building gameplay death. These effects have no collider or gameplay authority.
 
@@ -1099,6 +1121,20 @@ used UI textures to Sprite, Point filtering, no mipmaps, no compression, Clamp
 wrapping and a Max Size large enough for their source. No external UI or audio
 asset is introduced; the project currently has no gameplay audio system or
 imported font asset.
+
+## Phase 6G.2 formation command glyph inspection
+
+The twelve imported Tiny Swords command icons at
+`Assets/UI Elements/UI Elements/Icons/Icon_01.png` through `Icon_12.png` were
+visually inspected before adding formation commands. Their verified subjects are
+Wood, log, coin, meat, sword, shield, green directional arrow, red directional
+arrow, crossed weapons, gear, alert and music. None confidently represents
+Compact, Wedge, Loose or Line formation geometry.
+
+Phase 6G.2 therefore uses small procedural UI dot layouts created by
+`CommandPanelPresenter`; it does not map a misleading Tiny Swords icon and imports
+no external art. The dots are UI presentation only and have no sprite, animation,
+collider, gameplay or navigation authority.
 
 # 13. Important Rule For Codex
 
@@ -1180,18 +1216,58 @@ catalog once and never looks up an AudioClip by filename during an action.
 | MonkHeal | `Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3` | A valid heal pulse that restores positive HP |
 | PawnMining | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_mining_01.mp3` | Successful Gold transfer during the existing gather impact |
 | PawnChopping | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_chopping_01.mp3` | Successful Wood transfer during the existing gather impact |
-| SheepHurt | `Assets/Audio/SFX/Economy/Food/sfx_sheep_hurt_01.mp3` | Positive Food removal from a ResourceNode with verified SheepPresentation |
+| SheepHurt | No active clip | Disabled following the explicit Sheep Hurt removal request |
 
-All seven clips retain their source MP3 content. Import uses Decompress On Load,
+The six active clips retain their source MP3 content. Import uses Decompress On Load,
 preloaded audio data, background loading off and the existing source compression
-quality. Source inspection found Sheep, Archer, Lancer, Monk, Mining and Warrior
-encoded as stereo; Chopping is mono. Stereo does not prevent distance attenuation,
+quality. Source inspection found Archer, Lancer, Monk, Mining and Warrior encoded
+as stereo; Chopping is mono. Stereo does not prevent distance attenuation,
 but its positional image should be checked by listening in Play Mode.
 
 The supplied Chopping file is approximately 54 seconds long and its first three
 seconds contain no useful chopping impact. The catalog starts Chopping playback
 at 3.0 seconds and applies a configurable 1.25-second presentation limit per
 successful gather impact, so the useful sound plays without occupying a pooled
-source for nearly a minute. Mining, Chopping and Sheep Hurt currently use the
-reduced provisional per-event volume 0.45. Source files are unchanged.
+source for nearly a minute. Pawn Mining uses a substantially reduced provisional
+volume of 0.20, while Pawn Chopping uses 0.65 so axe impacts remain clear. Sheep
+harvesting no longer requests the Sheep Hurt cue and its former clip is absent.
 `PawnFoodHarvest` is reserved in the catalog without a clip.
+
+World SFX are camera-aware. Runtime rejects a cue whose source point is outside
+the Main Camera viewport and stops a playing pooled source once camera movement
+takes it off-screen. Sources still use the existing linear distance attenuation
+inside the viewport and retain the established Fog visibility check.
+
+## Phase 6E.2 verified building, Pawn, UI and match audio
+
+The following mappings were verified from the actual MP3 filenames and their Unity
+`.meta` GUIDs. No Gold Mine selection file exists in `Sound Effect`, so no substitute
+mapping is invented.
+
+| Audio event | Exact asset path | Approx. source duration / format | Runtime classification |
+| --- | --- | --- | --- |
+| CastleSelect | `Assets/Audio/SFX/Buildings/Sound Effect/castle_sound.mp3` | 0.862s, 44.1kHz stereo | 2D one-shot |
+| HouseSelect | `Assets/Audio/SFX/Buildings/Sound Effect/house_sound.mp3` | 0.576s, 24kHz stereo | 2D one-shot |
+| BarracksSelect | `Assets/Audio/SFX/Buildings/Sound Effect/barracks_sound.mp3` | 1.698s, 44.1kHz stereo | 2D one-shot |
+| ArcherySelect | `Assets/Audio/SFX/Buildings/Sound Effect/archery_sound.mp3` | 0.836s, 11.025kHz mono | 2D one-shot |
+| MonasterySelect | `Assets/Audio/SFX/Buildings/Sound Effect/monastery_sound.mp3` | 1.907s, 44.1kHz stereo | 2D one-shot |
+| TowerSelect | `Assets/Audio/SFX/Buildings/Sound Effect/tower_sound.mp3` | 2.016s, 48kHz stereo | 2D one-shot |
+| BuildingFire | `Assets/Audio/SFX/Buildings/Destruction/fire.mp3` | 36.519s, 44.1kHz stereo VBR | Positional owner loop |
+| BuildingExplosion | `Assets/Audio/SFX/Buildings/Destruction/building_destroy.mp3` | 2.976s, 24kHz stereo | Positional one-shot |
+| BuildingPlan | `Assets/Audio/SFX/Buildings/Construction/building_plan.mp3` | 0.984s, 48kHz stereo | 2D one-shot |
+| PawnHammer primary | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_01.mp3` | 1.032s, 24kHz stereo | Positional variation |
+| PawnHammer variation | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_02.mp3` | 1.200s, 24kHz stereo | Positional variation |
+| CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | 0.078s, 44.1kHz stereo | 2D one-shot |
+| CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | 0.456s, 48kHz stereo | 2D one-shot |
+| UnitProductionFinished | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D one-shot |
+| Victory | `Assets/Audio/SFX/Match/win.mp3` | 8.098s, 44.1kHz stereo | 2D one-shot |
+| Defeat | `Assets/Audio/SFX/Match/defeat.mp3` | 11.760s, 24kHz stereo | 2D one-shot |
+
+Short SFX use Decompress On Load with preloaded audio. Victory and Defeat use
+Compressed In Memory with preload. The long Fire loop uses Streaming, background
+loading and no preload. All source MP3 files remain unchanged. Fire uses
+`AudioSource.loop`; it is not rescheduled as repeated one-shots.
+
+`Assets/Audio/Music/attack_theme.mp3` was also found (about 10.971s, 44.1kHz
+stereo), but Phase 6E.2 defines no attack-music state machine, so it remains
+unmapped rather than being started from an invented gameplay rule.

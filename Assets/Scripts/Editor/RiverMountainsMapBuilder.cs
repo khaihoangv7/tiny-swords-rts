@@ -431,14 +431,14 @@ namespace TinyKingdom.EditorTools
                 // keep both complete, identically oriented r4/r5 pairs intact
                 // at their overlapping cell; no rotation or scaling is used.
                 int offset=RiverMountainsLayout.RampCopyOffset;
-                surfaces[level].SetTile(new(stair.GridX,stair.UpperY+offset,0),Tile(3,4,col));
-                surfaces[level].SetTile(new(stair.GridX,stair.LowerY+offset,0),Tile(3,5,col));
-                stairFronts[level].SetTile(new(stair.GridX,stair.UpperY,0),Tile(3,4,col));
-                stairFronts[level].SetTile(new(stair.GridX,stair.LowerY,0),Tile(3,5,col));
+                surfaces[level].SetTile(new(stair.VisualX,stair.UpperY+offset,0),Tile(3,4,col));
+                surfaces[level].SetTile(new(stair.VisualX,stair.LowerY+offset,0),Tile(3,5,col));
+                stairFronts[level].SetTile(new(stair.VisualX,stair.UpperY,0),Tile(3,4,col));
+                stairFronts[level].SetTile(new(stair.VisualX,stair.LowerY,0),Tile(3,5,col));
                 for (int y=stair.LowerY;y<=stair.UpperY+offset;y++)
                 {
-                    rampBacking.SetTile(new(stair.GridX,y,0),Tile(3,1,6));
-                    shadows[level].SetTile(new(stair.GridX,y,0),null);
+                    rampBacking.SetTile(new(stair.VisualX,y,0),Tile(3,1,6));
+                    shadows[level].SetTile(new(stair.VisualX,y,0),null);
                 }
             }
         }
@@ -670,10 +670,10 @@ namespace TinyKingdom.EditorTools
                 int offset=RiverMountainsLayout.RampCopyOffset;
                 int col=stair.Orientation==TerrainStairOrientation.DescendsLeft?0:3;
                 if (offset!=1
-                    || surface.GetTile(new(stair.GridX,stair.UpperY+offset,0))!=Tile(3,4,col)
-                    || surface.GetTile(new(stair.GridX,stair.LowerY+offset,0))!=Tile(3,5,col)
-                    || front.GetTile(new(stair.GridX,stair.UpperY,0))!=Tile(3,4,col)
-                    || front.GetTile(new(stair.GridX,stair.LowerY,0))!=Tile(3,5,col))
+                    || surface.GetTile(new(stair.VisualX,stair.UpperY+offset,0))!=Tile(3,4,col)
+                    || surface.GetTile(new(stair.VisualX,stair.LowerY+offset,0))!=Tile(3,5,col)
+                    || front.GetTile(new(stair.VisualX,stair.UpperY,0))!=Tile(3,4,col)
+                    || front.GetTile(new(stair.VisualX,stair.LowerY,0))!=Tile(3,5,col))
                     throw new InvalidOperationException("Double stair visuals must overlap exactly one cell and retain their native orientation.");
             }
             for (int side=0;side<2;side++)
@@ -798,12 +798,12 @@ namespace TinyKingdom.EditorTools
                 for (int i=0;i<RiverMountainsLayout.ConnectorCount;i++)
                 {
                     TerrainHeightConnectorDefinition stair=RiverMountainsLayout.Connector(i);
-                    grid.SetOccupied(stair.GridX,stair.LowerY,true);
-                    grid.SetOccupied(stair.GridX,stair.UpperY,true);
+                    grid.SetOccupied(stair.VisualX,stair.LowerY,true);
+                    grid.SetOccupied(stair.VisualX,stair.UpperY,true);
                     bool open=AStarPathfinder.FindPath(grid,grid.GetCell(blueStart.x,blueStart.y),
                         grid.GetCell(redStart.x,redStart.y)).Count>0;
-                    grid.SetOccupied(stair.GridX,stair.LowerY,false);
-                    grid.SetOccupied(stair.GridX,stair.UpperY,false);
+                    grid.SetOccupied(stair.VisualX,stair.LowerY,false);
+                    grid.SetOccupied(stair.VisualX,stair.UpperY,false);
                     if (open) throw new InvalidOperationException("An overlapping visual ramp permits an unintended height bypass: "+i);
                 }
             }
@@ -830,14 +830,14 @@ namespace TinyKingdom.EditorTools
             for (int i=0;i<RiverMountainsLayout.ConnectorCount;i++)
             {
                 TerrainHeightConnectorDefinition stair=RiverMountainsLayout.Connector(i);
-                GridCell lower=grid.GetCell(stair.GridX,stair.LowerY);
-                GridCell upper=grid.GetCell(stair.GridX,stair.UpperY);
+                GridCell lower=grid.GetCell(stair.VisualX,stair.LowerY);
+                GridCell upper=grid.GetCell(stair.VisualX,stair.UpperY);
                 if (!lower.CanTraverseTo(upper) || !upper.CanTraverseTo(lower)
                     || AStarPathfinder.FindPath(grid,blue,lower).Count==0
                     || AStarPathfinder.FindPath(grid,red,upper).Count==0)
                     throw new InvalidOperationException($"A stair endpoint is disconnected: {i}; lower {lower}, occupied={lower.Occupied}, partner={lower.HeightConnection}; upper {upper}, occupied={upper.Occupied}, partner={upper.HeightConnection}; occupants="
-                        +string.Join(",",ResourceNode.ActiveNodes.Where(node=>node.OccupiedCell==new Vector2Int(stair.GridX,stair.LowerY)
-                            || node.OccupiedCell==new Vector2Int(stair.GridX,stair.UpperY)).Select(node=>node.name)));
+                        +string.Join(",",ResourceNode.ActiveNodes.Where(node=>node.OccupiedCell==new Vector2Int(stair.VisualX,stair.LowerY)
+                            || node.OccupiedCell==new Vector2Int(stair.VisualX,stair.UpperY)).Select(node=>node.name)));
             }
             // The occupied mine footprint must leave a lane above and below it.
             foreach (Vector2Int p in new[] { new Vector2Int(29, 19), new Vector2Int(30, 24) })

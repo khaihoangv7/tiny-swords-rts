@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
 using TinyKingdom.Economy;
@@ -19,18 +20,59 @@ namespace TinyKingdom.Input
         [SerializeField] private GridManager gridManager;
         [SerializeField, Min(1)] private int candidateMultiplier = 4;
         [SerializeField, Min(1)] private int maximumSearchRadius = 8;
+        [SerializeField, Min(RoleFormationPlanner.MinimumSpacing)]
+        private float formationSpacing = RoleFormationPlanner.DefaultSpacing;
+        [SerializeField] private FormationType currentFormation = FormationType.Compact;
         [SerializeField] private bool blockWhenPointerIsOverUI = true;
 
         private readonly List<UnitSelection> commandUnits = new();
+        private readonly List<UnitSelection> eligibleCommandUnits = new();
+        private readonly List<UnitSelection> militaryFormationUnits = new();
+        private readonly List<UnitSelection> nonFormationUnits = new();
+        private readonly List<FormationAssignment> formationAssignments = new();
+        private readonly HashSet<GridCell> reservedCommandCells = new();
         private bool attackMovePending;
         private BuildingPlacementController placement;
+        private Vector2 lastFormationForward = Vector2.right;
+        private bool hasFormationForward;
 
         public bool IsAttackMoveTargeting => attackMovePending;
+        public float FormationSpacing => formationSpacing;
+        public FormationType CurrentFormation => currentFormation;
+        public event Action<FormationType> FormationChanged;
 
         public bool BeginAttackMoveTargeting()
         {
             if (!MatchManager.AllowsGameplay || !HasSelectedCombatUnits()) return false;
             attackMovePending = true;
+            return true;
+        }
+
+        public bool SelectFormation(FormationType formationType)
+        {
+            if (!MatchManager.AllowsGameplay || selectionManager == null
+                || gridManager == null
+                || !Enum.IsDefined(typeof(FormationType), formationType)) return false;
+
+            selectionManager.CopySelectedUnits(commandUnits);
+            CopyEligibleCommandUnits(false);
+            if (!MilitaryFormationEligibility.HasFormationCommandGroup(
+                    militaryFormationUnits.Count)) return false;
+
+            attackMovePending = false;
+            placement ??= GetComponent<BuildingPlacementController>();
+            placement?.Cancel();
+            selectionManager.CancelLeftClickSuppression();
+            if (currentFormation != formationType)
+            {
+                currentFormation = formationType;
+                FormationChanged?.Invoke(currentFormation);
+            }
+
+            Vector3 center = RoleFormationPlanner.CalculateGroupOrigin(
+                militaryFormationUnits);
+            IssueFormationCommand(militaryFormationUnits, center, false,
+                hasFormationForward ? lastFormationForward : Vector2.right);
             return true;
         }
 
@@ -293,7 +335,7 @@ namespace TinyKingdom.Input
         {
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                GoldMineObjective mine = hit.GetComponent<GoldMineObjective>();
+                GoldMineObjective mine = WorldSelectionQuery.Resolve<GoldMineObjective>(hit);
                 if (mine != null) return mine;
             }
             return null;
@@ -308,7 +350,7 @@ namespace TinyKingdom.Input
             float bestDistance = float.PositiveInfinity;
             foreach (Collider2D collider in Physics2D.OverlapPointAll(world))
             {
-                ResourceNode node = collider.GetComponent<ResourceNode>();
+                ResourceNode node = WorldSelectionQuery.Resolve<ResourceNode>(collider);
                 if (node == null || node.IsDepleted || !CanPlayerObserveResource(node.transform.position))
                     continue;
                 float distance = ((Vector2)(world - node.transform.position)).sqrMagnitude;
@@ -413,59 +455,185 @@ namespace TinyKingdom.Input
                 return 0;
 
             selectionManager.CopySelectedUnits(commandUnits);
-            if (commandUnits.Count == 0)
+            CopyEligibleCommandUnits(attackMove);
+            if (eligibleCommandUnits.Count == 0)
                 return 0;
 
-            List<GridCell> candidates = FindGroundCandidates(worldPosition, commandUnits.Count);
-            if (candidates.Count == 0)
+            if (eligibleCommandUnits.Count == 1)
+                return IssueSingleGroundCommand(eligibleCommandUnits[0],
+                    worldPosition, attackMove);
+
+            reservedCommandCells.Clear();
+            if (!MilitaryFormationEligibility.HasFormationCommandGroup(
+                    militaryFormationUnits.Count))
+                return IssueDistributedGroundCommands(eligibleCommandUnits,
+                    worldPosition, attackMove, reservedCommandCells);
+
+            Vector3 origin = RoleFormationPlanner.CalculateGroupOrigin(
+                militaryFormationUnits);
+            Vector2 delta = (Vector2)(worldPosition - origin);
+            Vector2 forward;
+            if (delta.sqrMagnitude >= RoleFormationPlanner.DirectionEpsilon
+                * RoleFormationPlanner.DirectionEpsilon)
+            {
+                forward = delta.normalized;
+                lastFormationForward = forward;
+                hasFormationForward = true;
+            }
+            else forward = hasFormationForward ? lastFormationForward : Vector2.right;
+            int issued = IssueFormationCommand(militaryFormationUnits,
+                worldPosition, attackMove, forward);
+            for (int i = 0; i < formationAssignments.Count; i++)
+                if (formationAssignments[i].Cell != null)
+                    reservedCommandCells.Add(formationAssignments[i].Cell);
+            if (nonFormationUnits.Count > 0)
+                issued += IssueDistributedGroundCommands(nonFormationUnits,
+                    worldPosition, attackMove, reservedCommandCells);
+            return issued;
+        }
+
+        private int IssueFormationCommand(IReadOnlyList<UnitSelection> units,
+            Vector3 anchor, bool attackMove, Vector2 forward)
+        {
+            if (!RoleFormationPlanner.TryPlan(gridManager, units, anchor,
+                    formationSpacing, candidateMultiplier, maximumSearchRadius,
+                    ConcealHiddenOccupancy(anchor), currentFormation, forward,
+                    formationAssignments))
                 return 0;
 
             int issued = 0;
-            var assigned = new HashSet<GridCell>();
-            foreach (UnitSelection selectedUnit in commandUnits)
+            for (int i = 0; i < formationAssignments.Count; i++)
             {
-                if (selectedUnit == null || !selectedUnit.Controller.IsAlive
-                    || selectedUnit.Controller.Faction != selectionManager.PlayerFaction)
-                    continue;
-                if (attackMove && selectedUnit.GetComponent<CombatController>()
-                    ?.CombatData?.AutoAcquireTargets != true)
-                    continue;
-
-                foreach (GridCell candidate in candidates)
-                {
-                    if (assigned.Contains(candidate))
-                        continue;
-                    Vector2Int destination = new(candidate.GridX, candidate.GridY);
-                    bool accepted = attackMove
-                        ? selectedUnit.GetComponent<CombatController>()
-                            ?.AttackMove(destination, worldPosition) == true
-                        : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
-                    if (!accepted)
-                        continue;
-
-                    selectedUnit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
-                    selectedUnit.GetComponent<PawnGatherer>()?.CancelJob();
-                    selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
-
-                    assigned.Add(candidate);
-                    issued++;
-                    break;
-                }
+                FormationAssignment assignment = formationAssignments[i];
+                UnitSelection selectedUnit = assignment.Unit;
+                Vector2Int destination = new(assignment.Cell.GridX, assignment.Cell.GridY);
+                bool accepted = attackMove
+                    ? selectedUnit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, anchor) == true
+                    : selectedUnit.Movement.TryIssueMove(destination, anchor);
+                if (!accepted) continue;
+                CancelPreviousUnitJob(selectedUnit);
+                issued++;
             }
 
             return issued;
         }
 
+        private int IssueDistributedGroundCommands(IReadOnlyList<UnitSelection> units,
+            Vector3 anchor, bool attackMove, HashSet<GridCell> reserved)
+        {
+            List<GridCell> candidates = FindGroundCandidates(anchor,
+                units.Count + reserved.Count);
+            int issued = 0;
+            for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
+            {
+                UnitSelection unit = units[unitIndex];
+                int best = -1;
+                float bestDistance = float.PositiveInfinity;
+                for (int candidateIndex = 0; candidateIndex < candidates.Count;
+                    candidateIndex++)
+                {
+                    GridCell candidate = candidates[candidateIndex];
+                    if (reserved.Contains(candidate)) continue;
+                    float distance = ((Vector2)(unit.transform.position
+                        - candidate.WorldPosition)).sqrMagnitude;
+                    if (distance < bestDistance - 0.0001f
+                        || Mathf.Abs(distance - bestDistance) <= 0.0001f
+                        && IsEarlierCell(candidate, best >= 0 ? candidates[best] : null))
+                    {
+                        best = candidateIndex;
+                        bestDistance = distance;
+                    }
+                }
+                if (best < 0) continue;
+
+                GridCell destinationCell = candidates[best];
+                Vector2Int destination = new(destinationCell.GridX,
+                    destinationCell.GridY);
+                bool accepted = attackMove
+                    ? unit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, anchor) == true
+                    : unit.Movement.TryIssueMove(destination, anchor);
+                if (!accepted) continue;
+                reserved.Add(destinationCell);
+                CancelPreviousUnitJob(unit);
+                issued++;
+            }
+            return issued;
+        }
+
+        private int IssueSingleGroundCommand(UnitSelection selectedUnit,
+            Vector3 worldPosition, bool attackMove)
+        {
+            List<GridCell> candidates = FindGroundCandidates(worldPosition, 1);
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                GridCell candidate = candidates[i];
+                Vector2Int destination = new(candidate.GridX, candidate.GridY);
+                bool accepted = attackMove
+                    ? selectedUnit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, worldPosition) == true
+                    : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
+                if (!accepted) continue;
+                CancelPreviousUnitJob(selectedUnit);
+                return 1;
+            }
+            return 0;
+        }
+
+        private void CopyEligibleCommandUnits(bool attackMove)
+        {
+            eligibleCommandUnits.Clear();
+            militaryFormationUnits.Clear();
+            nonFormationUnits.Clear();
+            for (int i = 0; i < commandUnits.Count; i++)
+            {
+                UnitSelection unit = commandUnits[i];
+                if (unit == null || !unit.Controller.IsAlive
+                    || unit.Movement == null
+                    || unit.Controller.Faction != selectionManager.PlayerFaction)
+                    continue;
+                if (attackMove && unit.GetComponent<CombatController>()
+                    ?.CombatData?.AutoAcquireTargets != true)
+                    continue;
+                eligibleCommandUnits.Add(unit);
+                if (MilitaryFormationEligibility.IsFormationMilitaryUnit(unit))
+                    militaryFormationUnits.Add(unit);
+                else nonFormationUnits.Add(unit);
+            }
+        }
+
+        private static bool IsEarlierCell(GridCell candidate, GridCell current)
+        {
+            if (current == null) return true;
+            int y = candidate.GridY.CompareTo(current.GridY);
+            return y < 0 || y == 0 && candidate.GridX < current.GridX;
+        }
+
+        private static void CancelPreviousUnitJob(UnitSelection selectedUnit)
+        {
+            selectedUnit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
+            selectedUnit.GetComponent<PawnGatherer>()?.CancelJob();
+            selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
+        }
+
         private List<GridCell> FindGroundCandidates(Vector3 worldPosition, int unitCount)
         {
             Vector2Int center = gridManager.WorldToGrid(worldPosition);
-            TeamVisionSystem vision = TeamVisionSystem.Instance;
-            bool concealHiddenOccupancy = vision != null && selectionManager != null
-                && vision.GetVisionState(selectionManager.PlayerFaction, center)
-                    != VisionState.Visible;
             return DestinationDistributor.FindNearbyDestinations(
                 gridManager, center, unitCount * candidateMultiplier, maximumSearchRadius,
-                concealHiddenOccupancy);
+                ConcealHiddenOccupancy(center));
+        }
+
+        private bool ConcealHiddenOccupancy(Vector3 worldPosition)
+            => ConcealHiddenOccupancy(gridManager.WorldToGrid(worldPosition));
+
+        private bool ConcealHiddenOccupancy(Vector2Int center)
+        {
+            TeamVisionSystem vision = TeamVisionSystem.Instance;
+            return vision != null && selectionManager != null
+                && vision.GetVisionState(selectionManager.PlayerFaction, center)
+                    != VisionState.Visible;
         }
 
         public void Configure(Camera cameraReference, SelectionManager selection, GridManager grid)
@@ -486,7 +654,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingSite site = hit.GetComponent<BuildingSite>();
+                BuildingSite site = WorldSelectionQuery.Resolve<BuildingSite>(hit);
                 if (site != null && site.IsAlive
                     && site.Faction == selectionManager.PlayerFaction) return site;
             }
@@ -498,7 +666,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingGarrison garrison = hit.GetComponent<BuildingGarrison>();
+                BuildingGarrison garrison = WorldSelectionQuery.Resolve<BuildingGarrison>(hit);
                 if (garrison != null && garrison.IsReady
                     && garrison.Faction == selectionManager.PlayerFaction) return garrison;
             }
@@ -510,7 +678,7 @@ namespace TinyKingdom.Input
             if (selectionManager == null) return null;
             foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
             {
-                BuildingCombatTarget target = hit.GetComponent<BuildingCombatTarget>();
+                BuildingCombatTarget target = WorldSelectionQuery.Resolve<BuildingCombatTarget>(hit);
                 if (target != null && target.IsTargetable
                     && target.Faction != selectionManager.PlayerFaction
                     && CanPlayerObserve(target.Faction, target.transform.position)) return target;

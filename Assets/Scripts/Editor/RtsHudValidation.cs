@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
+using UnityEngine.EventSystems;
 
 namespace TinyKingdom.EditorTools
 {
@@ -22,6 +23,7 @@ namespace TinyKingdom.EditorTools
         private const string Paper = "Assets/UI Elements/UI Elements/Papers/SpecialPaper.png";
         private const string Icons = "Assets/UI Elements/UI Elements/Icons/";
         private const string Avatars = "Assets/UI Elements/UI Elements/Human Avatars/";
+        private const string HandCursor = "Assets/UI Elements/UI Elements/Cursors/Cursor_02.png";
 
         [MenuItem("Tools/Tiny Kingdom/Validate RTS HUD")]
         public static void Run()
@@ -103,6 +105,85 @@ namespace TinyKingdom.EditorTools
                     : "Run again in Play Mode for live panel checks."));
         }
 
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.3 UI")]
+        public static void RunPhase6D3()
+        {
+            RtsHudAssetCatalog catalog = RtsHudAssetCatalog.Load();
+            Require(catalog != null && catalog.IsComplete,
+                "RTS HUD catalog or one of its shared resource icons is missing.");
+
+            UnitType[] requiredUnits =
+            {
+                UnitType.Pawn, UnitType.Warrior, UnitType.Archer,
+                UnitType.Lancer, UnitType.Monk
+            };
+            UnitCombatData[] unitData = AssetDatabase.FindAssets("t:UnitCombatData")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<UnitCombatData>)
+                .Where(item => item != null).ToArray();
+            foreach (UnitType type in requiredUnits)
+                Require(unitData.Count(item => item.UnitType == type) == 1,
+                    $"Expected one authoritative UnitCombatData asset for {type}.");
+
+            BuildingType[] requiredBuildings =
+            {
+                BuildingType.House, BuildingType.Barracks, BuildingType.Archery,
+                BuildingType.Monastery, BuildingType.Tower
+            };
+            BuildingData[] buildingData = Resources.LoadAll<BuildingData>("Buildings");
+            foreach (BuildingType type in requiredBuildings)
+                Require(buildingData.Count(item => item != null && item.Type == type) == 1,
+                    $"Expected one authoritative BuildingData asset for {type}.");
+
+            Require(CombatDamage.Multiplier(UnitType.Warrior, UnitType.Archer) > 1f
+                && CombatDamage.Multiplier(UnitType.Lancer, UnitType.Warrior) > 1f
+                && CombatDamage.Multiplier(UnitType.Archer, UnitType.Lancer) > 1f,
+                "Authoritative Warrior/Archer/Lancer matchup cycle is incomplete.");
+
+            EventSystem[] eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>();
+            Require(eventSystems.Length == 1,
+                "Expected exactly one active EventSystem for command hover input.");
+
+            GameCursorController cursor = UnityEngine.Object.FindAnyObjectByType<GameCursorController>();
+            Require(cursor != null, "GameCursorController is missing from the active scene.");
+            SerializedObject cursorObject = new(cursor);
+            Texture2D handCursor = cursorObject.FindProperty("handCursor")?.objectReferenceValue
+                as Texture2D;
+            Require(handCursor != null && AssetDatabase.GetAssetPath(handCursor) == HandCursor,
+                "GameCursorController Hand cursor reference is missing.");
+
+            if (Application.isPlaying)
+            {
+                RtsHudController hud = UnityEngine.Object.FindAnyObjectByType<RtsHudController>();
+                Require(hud != null && hud.IsReady, "Runtime RTS HUD is missing or incomplete.");
+                Require(hud.CommandTooltip != null && hud.CommandTooltip.HasValidReferences,
+                    "CommandTooltipPresenter hierarchy or text/cost references are incomplete.");
+                Require(hud.CommandTooltip.UsesCompactAutoSizing
+                    && hud.CommandTooltip.ContentRoot != null,
+                    "Command tooltip must use non-stretched compact auto sizing with a Content root.");
+                Require(hud.CommandTooltip.IsPointerFollowingConfigured,
+                    "Command tooltip pointer following or screen-edge safety is not configured.");
+                Require(!hud.CommandTooltip.BlocksRaycasts,
+                    "Command tooltip graphics must not block pointer raycasts.");
+                Require(UnityEngine.Object.FindObjectsByType<CommandTooltipPresenter>().Length == 1,
+                    "Exactly one reusable CommandTooltipPresenter must be active.");
+                Require(hud.CommandPanel != null
+                    && hud.CommandPanel.TooltipTriggerCount
+                        == CommandPanelPresenter.ActionViewCount,
+                    "Every reusable command button must own one tooltip trigger.");
+                foreach (CommandTooltipTrigger trigger in hud.CommandPanel.Root
+                    .GetComponentsInChildren<CommandTooltipTrigger>(false))
+                    Require(trigger.HasTooltipData,
+                        $"Active command button {trigger.name} has no tooltip data.");
+            }
+
+            Debug.Log("Phase 6D.3 UI validation passed: shared tooltip assets, authoritative "
+                + "unit/building data, combat matchup source, Hand cursor and EventSystem "
+                + "integrity verified. " + (Application.isPlaying
+                    ? "Runtime tooltip hierarchy, raycasts and command triggers verified."
+                    : "Run again in Play Mode for runtime tooltip hierarchy checks."));
+        }
+
         [MenuItem("Tools/Tiny Kingdom/Validate Building Presentation Hotfix")]
         public static void RunBuildingPresentationHotfix()
         {
@@ -146,8 +227,9 @@ namespace TinyKingdom.EditorTools
                         new Vector2(site.Footprint.x, site.Footprint.y)) < 0.01f,
                         $"{site.name}: collider no longer matches logical footprint.");
                     bool hasBuildingGroup = site.TryGetComponent(out SortingGroup buildingGroup);
-                    Require(hasBuildingGroup && buildingGroup != null
-                        && buildingGroup.sortingOrder == 10,
+                    ElevationSortingGroup buildingSorter = site.GetComponent<ElevationSortingGroup>();
+                    Require(hasBuildingGroup && buildingGroup != null && buildingSorter != null
+                        && buildingGroup.sortingOrder == buildingSorter.CalculatedOrder,
                         $"{site.name}: ground sorting group is missing.");
                     Transform progress = site.transform.Find("ConstructionProgressBar");
                     Require(progress == null || !progress.IsChildOf(visual.transform),
@@ -180,14 +262,18 @@ namespace TinyKingdom.EditorTools
                     Require(mine.PresentationRenderer != null && Mathf.Approximately(
                         mine.PresentationRenderer.transform.localScale.x,
                         GoldMineObjective.VisualScale),
-                        "Gold Mine must retain its independent 1.30 presentation scale.");
+                        "Gold Mine must use its independent 2.60 presentation scale.");
 
                 foreach (UnitController unit in UnitController.AllUnits)
                 {
                     SortingGroup unitGroup = null;
                     bool hasUnitGroup = unit != null
                         && unit.TryGetComponent(out unitGroup);
-                    Require(hasUnitGroup && unitGroup != null && unitGroup.sortingOrder >= 10,
+                    ElevationSortingGroup unitSorter = unit != null
+                        ? unit.GetComponent<ElevationSortingGroup>() : null;
+                    Require(hasUnitGroup && unitGroup != null && unitSorter != null
+                        && unitSorter.TrackMovement
+                        && unitGroup.sortingOrder == unitSorter.CalculatedOrder,
                         $"{unit?.name}: unit ground sorting group is missing.");
                 }
             }
@@ -202,8 +288,12 @@ namespace TinyKingdom.EditorTools
         [MenuItem("Tools/Tiny Kingdom/Validate Selection And Unit Scale Polish")]
         public static void RunSelectionAndUnitScalePolish()
         {
-            Require(Mathf.Approximately(UnitVisualPresentation.Scale, 1.3f),
-                "Non-building world presentation scale must remain 1.3x.");
+            Require(Mathf.Approximately(UnitVisualPresentation.Scale, 1.6f),
+                "Unit, Tree and Sheep presentation scale must remain 1.6x.");
+            Require(Mathf.Approximately(GameCursorController.PresentationScale, 1.5f),
+                "Gameplay cursors must retain their 1.5x pixel-art presentation scale.");
+            Require(Mathf.Approximately(MoveCommandFeedback.PresentationScale, 1.35f),
+                "Move command feedback must retain its 1.35x presentation scale.");
             Require(ResourceNode.DefaultInteractionOffsetFactor > 0f
                 && ResourceNode.GoldInteractionOffsetFactor > 0f
                 && ResourceNode.LargeGoldInteractionOffsetFactor < 0f,
@@ -225,9 +315,9 @@ namespace TinyKingdom.EditorTools
                     SpriteRenderer body = unit.GetComponent<UnitAnimator>()?.VisualRenderer
                         ?? unit.GetComponent<PawnVisual>()?.VisualRenderer;
                     Require(unit.transform.localScale == Vector3.one && body != null
-                        && Mathf.Approximately(body.transform.localScale.x, 1.3f)
-                        && Mathf.Approximately(body.transform.localScale.y, 1.3f),
-                        $"{unit.name}: gameplay root or 1.3x visual scale is invalid.");
+                        && Mathf.Approximately(body.transform.localScale.x, 1.6f)
+                        && Mathf.Approximately(body.transform.localScale.y, 1.6f),
+                        $"{unit.name}: gameplay root or 1.6x visual scale is invalid.");
                     UnitSelection selection = unit.GetComponent<UnitSelection>();
                     Transform ring = unit.transform.Find("SelectionIndicator");
                     Require(selection != null && ring != null
@@ -245,7 +335,7 @@ namespace TinyKingdom.EditorTools
                     float expectedScale = resource.ResourceType == ResourceType.Gold
                         ? (resource.name.EndsWith("_6", System.StringComparison.Ordinal)
                             ? 1.55f : 1.4f)
-                        : 1.3f;
+                        : 1.6f;
                     Require(resource.PresentationRenderer != null
                         && Mathf.Approximately(resource.PresentationScale, expectedScale)
                         && Mathf.Approximately(
@@ -256,7 +346,7 @@ namespace TinyKingdom.EditorTools
                     {
                         ResourceType.Wood => 0f,
                         ResourceType.Gold => -0.20f,
-                        _ => -0.30f
+                        _ => -0.37f
                     };
                     Require(Mathf.Approximately(ring.LocalY, expectedRingY),
                         $"{resource.name}: selection ring ground offset is invalid.");
@@ -287,11 +377,143 @@ namespace TinyKingdom.EditorTools
                 }
             }
 
-            Debug.Log("Selection and unit scale polish validation passed: 1.3x units/resources, "
+            Debug.Log("Selection and unit scale polish validation passed: 1.6x units/Trees/Sheep, "
                 + "1.4x Gold Stones, 1.55x Gold Stone 6, aligned selection rings and gentle vertical building click "
                 + "pulse verified."
                 + (Application.isPlaying ? " Runtime objects verified." :
                     " Run again in Play Mode for runtime object checks."));
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6D.4 Interaction Polish")]
+        public static void RunPhase6D4InteractionPolish()
+        {
+            PawnAnimationSet bluePawn = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>(
+                "Assets/UnitAnimations/BluePawn.asset");
+            PawnAnimationSet redPawn = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>(
+                "Assets/UnitAnimations/RedPawn.asset");
+            Require(bluePawn != null && bluePawn.Hammer.Length > 1,
+                "Blue Pawn Hammer animation mapping is missing.");
+            Require(redPawn != null && redPawn.Hammer.Length > 1,
+                "Red Pawn Hammer animation mapping is missing.");
+            PresentationAssetCatalog presentation = PresentationAssetCatalog.Load();
+            Require(presentation != null && presentation.SheepIdle.Length == 6
+                && presentation.SheepGrass.Length == 12
+                && presentation.SheepMove.Length == 4
+                && presentation.SheepIdle.Concat(presentation.SheepGrass)
+                    .Concat(presentation.SheepMove).All(frame => frame != null
+                        && frame.rect.width is >= 47f and <= 49f
+                        && frame.rect.height is >= 42f and <= 49f),
+                "Verified Sheep animation frames or their expected trimmed bounds changed.");
+
+            GameCursorController cursor = UnityEngine.Object.FindAnyObjectByType<GameCursorController>();
+            Require(cursor != null, "GameCursorController is missing from the active scene.");
+            SerializedProperty hand = new SerializedObject(cursor).FindProperty("handCursor");
+            Require(hand?.objectReferenceValue != null, "GameCursorController Hand cursor is missing.");
+            SerializedObject cursorData = new(cursor);
+            Require(cursorData.FindProperty("defaultHotspot").vector2Value == new Vector2(22f, 17f)
+                && cursorData.FindProperty("handHotspot").vector2Value == new Vector2(24f, 18f)
+                && cursorData.FindProperty("forbiddenHotspot").vector2Value == new Vector2(32f, 31f),
+                "Cursor hotspots no longer match the verified 64x64 cursor artwork.");
+            Require(UnityEngine.Object.FindAnyObjectByType<SelectionManager>() != null,
+                "SelectionManager is missing from the active scene.");
+            Require(cursor.HoverQueryUsesTriggers,
+                "Cursor overlap query must include pointer-only trigger hit areas.");
+            Require(PawnBuilder.InteractionArrivalTolerance >= 0.2f,
+                "Builder arrival tolerance is not compatible with terminal separation offset.");
+
+            if (Application.isPlaying)
+            {
+                foreach (CastleDropOff castle in CastleDropOff.Active)
+                    ValidateSelectionHitArea(castle, castle.PresentationRenderer,
+                        castle.GetComponent<BoxCollider2D>(), "Castle");
+
+                int sheepCount = 0;
+                int treeCount = 0;
+                foreach (ResourceNode resource in ResourceNode.ActiveNodes)
+                {
+                    if (resource == null) continue;
+                    ValidateSelectionHitArea(resource, resource.PresentationRenderer,
+                        resource.GetComponent<BoxCollider2D>(), resource.ResourceType.ToString());
+                    WorldSelectionHitArea resourceArea = resource
+                        .GetComponentInChildren<WorldSelectionHitArea>(true);
+                    if (resource.ResourceType == ResourceType.Food)
+                        Require(resourceArea != null && Mathf.Approximately(
+                            resourceArea.SelectionPadding, ResourceNode.SheepSelectionPadding)
+                            && resourceArea.SelectionPadding is >= 0.05f and <= 0.12f,
+                            $"{resource.name}: Sheep selection padding is missing or excessive.");
+                    else Require(resourceArea != null
+                            && Mathf.Approximately(resourceArea.SelectionPadding, 0f),
+                        $"{resource.name}: Sheep-only selection padding leaked to another resource.");
+                    Require(cursor.HoverQueryIncludesLayer(resource.gameObject.layer),
+                        $"{resource.name}: resource layer is excluded from cursor overlap query.");
+                    if (resource.ResourceType == ResourceType.Food) sheepCount++;
+                    if (resource.ResourceType == ResourceType.Wood) treeCount++;
+                }
+                Require(sheepCount > 0, "No runtime Sheep resource exists for hit-area validation.");
+                Require(treeCount > 0, "No runtime Tree resource exists for hit-area validation.");
+
+                foreach (GoldMineObjective mine in GoldMineObjective.Active)
+                    ValidateSelectionHitArea(mine, mine.PresentationRenderer,
+                        mine.GetComponent<BoxCollider2D>(), "Gold Mine");
+
+                foreach (BuildingSite site in UnityEngine.Object.FindObjectsByType<BuildingSite>())
+                    ValidateSelectionHitArea(site, site.PresentationRenderer,
+                        site.GetComponent<BoxCollider2D>(), site.Type.ToString());
+
+                var pawnVisuals = new System.Collections.Generic.HashSet<SpriteRenderer>();
+                foreach (UnitController unit in UnitController.AllUnits)
+                {
+                    if (unit?.GetComponent<HealthComponent>()?.CombatData?.UnitType
+                        != UnitType.Pawn) continue;
+                    PawnBuilder builder = unit.GetComponent<PawnBuilder>();
+                    PawnVisual visual = unit.GetComponent<PawnVisual>();
+                    Require(builder != null && visual != null && visual.AnimationSet != null
+                        && visual.AnimationSet.Hammer.Length > 1,
+                        $"{unit.name}: Pawn construction presentation is incomplete.");
+                    Require(!builder.IsWorking || visual.IsBuildAnimationActive,
+                        $"{unit.name}: active builder is not looping its Hammer animation.");
+                    Require(visual.VisualRenderer != null
+                        && visual.VisualRenderer.transform.parent == unit.transform
+                        && pawnVisuals.Add(visual.VisualRenderer),
+                        $"{unit.name}: PawnVisual does not own an independent visual renderer.");
+                    if (builder.HasJob)
+                        Debug.Log($"Builder {unit.name}#{unit.GetEntityId()}: "
+                            + $"site={builder.Target?.name}, slot={builder.InteractionPosition}, "
+                            + $"distance={builder.DistanceToInteraction:F3}, "
+                            + $"atSlot={builder.IsAtInteraction}, working={builder.IsWorking}, "
+                            + $"contributor={builder.IsWorking}, visual={visual.CurrentAnimationName}, "
+                            + $"frame={visual.CurrentFrameIndex}, normalized={visual.CurrentFrameNormalizedTime:F2}, "
+                            + $"loop={visual.IsLooping}, repairing={builder.IsRepairing}, "
+                            + $"movement={unit.CurrentState}, moving={unit.GetComponent<UnitMovement>()?.IsMoving}");
+                }
+
+                foreach (BuildingSite site in UnityEngine.Object.FindObjectsByType<BuildingSite>())
+                    Require(site.ReservedBuilderSlotCount >= site.ActiveBuilderCount,
+                        $"{site.name}: assigned builders do not all own interaction slots.");
+            }
+
+            Debug.Log("Phase 6D.4 interaction polish validation passed: sprite-bound query-only "
+                + "selection areas, unchanged gameplay colliders, Hand cursor assignment and "
+                + "continuous active-builder Hammer presentation verified."
+                + (Application.isPlaying ? " Runtime objects verified." :
+                    " Run again in Play Mode for runtime hit-area and active-builder checks."));
+        }
+
+        private static void ValidateSelectionHitArea(Component target, SpriteRenderer visual,
+            BoxCollider2D gameplayCollider, string label)
+        {
+            WorldSelectionHitArea area = target != null
+                ? target.GetComponentInChildren<WorldSelectionHitArea>(true) : null;
+            Require(area != null && area.TargetRoot == target.transform
+                && area.HitCollider != null && area.HitCollider.enabled
+                && area.HitCollider.isTrigger,
+                $"{target?.name}: {label} query-only selection hit area is missing.");
+            Require(area.gameObject.layer == target.gameObject.layer,
+                $"{target?.name}: {label} selection hit area is on the wrong layer.");
+            Require(gameplayCollider != null && !gameplayCollider.isTrigger,
+                $"{target?.name}: {label} gameplay collider was replaced or changed to a trigger.");
+            Require(area.Covers(visual),
+                $"{target?.name}: {label} selection hit area does not cover its visual bounds.");
         }
 
         private static void Check(string path, int expectedWidth, int expectedHeight,

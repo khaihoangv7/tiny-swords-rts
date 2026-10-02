@@ -69,6 +69,7 @@ namespace TinyKingdom.Navigation
                         || policy != null && !policy.CanEnter(neighbor))
                         continue;
                     if (policy != null && IsDiagonal(current, neighbor)
+                        && !IsAuthoredHeightConnection(current, neighbor)
                         && (!policy.CanEnter(grid.GetCell(neighbor.GridX, current.GridY))
                             || !policy.CanEnter(grid.GetCell(current.GridX, neighbor.GridY))))
                         continue;
@@ -100,6 +101,12 @@ namespace TinyKingdom.Navigation
             if (dx == 0 || dy == 0)
                 return true;
 
+            // A side-facing stair is one explicitly authored diagonal edge. Its
+            // orthogonal side cells deliberately belong to different heights, so
+            // the normal same-height corner test cannot represent this crossing.
+            if (IsAuthoredHeightConnection(from, to))
+                return true;
+
             GridCell sideX = grid.GetCell(from.GridX + dx, from.GridY);
             GridCell sideY = grid.GetCell(from.GridX, from.GridY + dy);
             return from.CanTraverseTo(sideX) && sideX.CanTraverseTo(to)
@@ -113,6 +120,11 @@ namespace TinyKingdom.Navigation
 
         private static bool IsDiagonal(GridCell from, GridCell to)
             => from.GridX != to.GridX && from.GridY != to.GridY;
+
+        private static bool IsAuthoredHeightConnection(GridCell from, GridCell to)
+            => from.HeightLevel != to.HeightLevel
+                && from.HeightConnection == new Vector2Int(to.GridX, to.GridY)
+                && to.HeightConnection == new Vector2Int(from.GridX, from.GridY);
 
         private static GridCell GetLowestScore(List<GridCell> open, Dictionary<GridCell, double> fScore,
             GridCell destination)

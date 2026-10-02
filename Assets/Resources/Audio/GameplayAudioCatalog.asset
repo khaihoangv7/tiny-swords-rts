@@ -15,61 +15,146 @@ MonoBehaviour:
   cues:
   - eventId: 0
     clip: {fileID: 8300000, guid: e0a822901eed0f94d8ece2638213856f, type: 3}
+    variations: []
     volume: 0.8
-    maxConcurrent: 3
-    duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 0.8
   - eventId: 1
     clip: {fileID: 8300000, guid: a235c4d34dfaa644f9bcd513ae81f4e5, type: 3}
+    variations: []
     volume: 0.8
-    maxConcurrent: 3
-    duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.25
   - eventId: 2
     clip: {fileID: 8300000, guid: 001481c845ada704fbdc48bc9d3ad993, type: 3}
+    variations: []
     volume: 0.75
-    maxConcurrent: 3
-    duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.25
   - eventId: 3
     clip: {fileID: 8300000, guid: 3d134f033589e0b4ebaa1e392a0bcba2, type: 3}
+    variations: []
     volume: 0.75
-    maxConcurrent: 2
-    duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.5
   - eventId: 4
     clip: {fileID: 8300000, guid: a3313071e64420d4682b1d499f9e7330, type: 3}
-    volume: 0.45
-    maxConcurrent: 2
-    duplicateCooldown: 0
+    variations: []
+    volume: 0.2
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.25
   - eventId: 5
     clip: {fileID: 8300000, guid: 3d48a7961ddfddb41a22d5de494ec510, type: 3}
-    volume: 0.45
-    maxConcurrent: 2
-    duplicateCooldown: 0
+    variations: []
+    volume: 0.65
     startTimeSeconds: 3
     maxPlaybackSeconds: 1.25
   - eventId: 6
     clip: {fileID: 0}
+    variations: []
     volume: 0.65
-    maxConcurrent: 2
-    duplicateCooldown: 0
     startTimeSeconds: 0
     maxPlaybackSeconds: 0
   - eventId: 7
-    clip: {fileID: 8300000, guid: 0e56d9b0afde22d4daf040d398a0cf5a, type: 3}
+    clip: {fileID: 0}
+    variations: []
     volume: 0.45
-    maxConcurrent: 2
-    duplicateCooldown: 0.15
     startTimeSeconds: 0
     maxPlaybackSeconds: 0.8
+  - eventId: 8
+    clip: {fileID: 8300000, guid: b917c554d5f42ad4ba170663913a1a5c, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 9
+    clip: {fileID: 8300000, guid: 0004087b58810874fb5c9ff600a565fa, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 10
+    clip: {fileID: 8300000, guid: 7bf1dc688f68a1d49bf9a1ed0bab2633, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 11
+    clip: {fileID: 8300000, guid: 6b737df61a085ca48966f15cbd8e2a30, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 12
+    clip: {fileID: 8300000, guid: 39b3a9a1a0e161c44a4b412c4aa2e55f, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 13
+    clip: {fileID: 8300000, guid: 76b7bb1ca8f28764eb5b96045590f67e, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 14
+    clip: {fileID: 8300000, guid: c36c7a9ea11ad8d449cf2bdf290c9d2f, type: 3}
+    variations: []
+    volume: 0.35
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 15
+    clip: {fileID: 8300000, guid: ec64d80e63328b849b9287d496cd12d7, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 16
+    clip: {fileID: 8300000, guid: 064f44e811f8e9c41a0e5a6c260460cd, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 17
+    clip: {fileID: 8300000, guid: 33ae3b69aacf7bd44835a46cff22feda, type: 3}
+    variations:
+    - {fileID: 8300000, guid: 9dfecfc06f4df07419ead5942526c320, type: 3}
+    volume: 0.55
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 18
+    clip: {fileID: 8300000, guid: f8c280a6b8854a74bb7da2a939d7d1a8, type: 3}
+    variations: []
+    volume: 0.7
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 19
+    clip: {fileID: 8300000, guid: 3055384280693434a9bc05848b53e90d, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 20
+    clip: {fileID: 8300000, guid: 89cf3dfc95cb9354aae1dc11b6f0d12c, type: 3}
+    variations: []
+    volume: 0.8
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 21
+    clip: {fileID: 8300000, guid: eba9968cd6de72c48bdc79a4047c4be5, type: 3}
+    variations: []
+    volume: 0.85
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 22
+    clip: {fileID: 8300000, guid: 4f6ef413ef50b704eae225c8e7c37105, type: 3}
+    variations: []
+    volume: 0.85
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
   poolSize: 12
+  poolGrowthSize: 4
+  catastrophicSourceLimit: 256
   spatialBlend: 1
   minDistance: 10
   maxDistance: 32

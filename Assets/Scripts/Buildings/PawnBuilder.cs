@@ -2,6 +2,7 @@ using System;
 using TinyKingdom.Economy;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -11,6 +12,7 @@ namespace TinyKingdom.Buildings
     {
         public const float WorkCycleSeconds = 0.8f;
         public const float RepairImpactDelay = 0.35f;
+        public const float InteractionArrivalTolerance = 0.2f;
 
         private UnitController controller;
         private UnitMovement movement;
@@ -24,6 +26,12 @@ namespace TinyKingdom.Buildings
         public bool HasJob => target != null;
         public bool IsWorking => working;
         public BuildingSite Target => target;
+        public Vector3 InteractionPosition => interaction;
+        public float DistanceToInteraction => target != null
+            ? Vector2.Distance(transform.position, interaction) : float.PositiveInfinity;
+        public bool IsAtInteraction => HasJob && !movement.IsMoving
+            && DistanceToInteraction <= InteractionArrivalTolerance;
+        public bool IsRepairing => repairing;
         public event Action WorkCycleStarted;
         public event Action<BuildingSite> RepairImpact;
 
@@ -84,7 +92,7 @@ namespace TinyKingdom.Buildings
                 CancelJob();
                 return;
             }
-            if (movement.IsMoving || Vector2.Distance(transform.position, interaction) > 0.1f)
+            if (!IsAtInteraction)
             {
                 working = false;
                 return;
@@ -96,6 +104,9 @@ namespace TinyKingdom.Buildings
                 visualCycle = 0f;
                 repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
+                if (!repairing)
+                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                        transform.position, controller.Faction);
             }
             visualCycle += Time.deltaTime;
             if (repairing)
@@ -104,7 +115,11 @@ namespace TinyKingdom.Buildings
                 {
                     repairImpactApplied = true;
                     if (target.Repair(WorkCycleSeconds) > 0f)
+                    {
                         RepairImpact?.Invoke(target);
+                        GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                            transform.position, controller.Faction);
+                    }
                 }
             }
             else target.AdvanceConstruction(Time.deltaTime);
@@ -113,6 +128,9 @@ namespace TinyKingdom.Buildings
                 visualCycle -= WorkCycleSeconds;
                 repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
+                if (!repairing)
+                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                        transform.position, controller.Faction);
             }
         }
 

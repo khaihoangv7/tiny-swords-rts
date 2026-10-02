@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using TinyKingdom.Audio;
 using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
+using TinyKingdom.Input;
 using TinyKingdom.Units;
 using UnityEngine;
 
@@ -74,9 +74,9 @@ namespace TinyKingdom.Economy
         public const float DefaultInteractionOffsetFactor = 0.49f;
         public const float GoldInteractionOffsetFactor = 0.20f;
         public const float LargeGoldInteractionOffsetFactor = -0.22f;
+        public const float SheepSelectionPadding = 0.08f;
 
         private static readonly List<ResourceNode> registeredNodes = new();
-        private static int nextAudioSourceKey;
         [SerializeField] private ResourceType resourceType;
         [SerializeField, Min(1)] private int maximumAmount = 100;
         [SerializeField, Min(0)] private int remainingAmount = 100;
@@ -88,7 +88,7 @@ namespace TinyKingdom.Economy
         private bool centerVisualY;
         private float presentationScale = UnitVisualPresentation.Scale;
         private ResourceSelectionIndicator selectionIndicator;
-        private int audioSourceKey;
+        private WorldSelectionHitArea selectionHitArea;
 
         public static IReadOnlyList<ResourceNode> ActiveNodes => registeredNodes;
         public ResourceType ResourceType => resourceType;
@@ -102,11 +102,14 @@ namespace TinyKingdom.Economy
         public bool HasMemoryPresentation => resourceType == ResourceType.Wood || !IsDepleted;
         public bool IsSelected => selectionIndicator != null && selectionIndicator.IsSelected;
         public event Action<ResourceNode> Depleted;
+        public event Action<ResourceNode, int> Harvested;
 
         private void OnEnable()
         {
-            if (audioSourceKey == 0) audioSourceKey = ++nextAudioSourceKey;
+            GroundSorting.Ensure(gameObject, resourceType == ResourceType.Food,
+                SortGroundAnchorYOffset());
             EnsureSelectionIndicator();
+            EnsureSelectionHitArea();
             if (!registeredNodes.Contains(this)) registeredNodes.Add(this);
         }
 
@@ -142,10 +145,13 @@ namespace TinyKingdom.Economy
             {
                 ResourceType.Wood => (0.95f, 0.30f, 0f),
                 ResourceType.Gold => (0.80f, 0.26f, -0.20f),
-                _ => (0.60f, 0.22f, -0.30f)
+                _ => (0.60f, 0.22f, -0.37f)
             };
             selectionIndicator.Configure(width * presentationScale,
                 height * presentationScale, y);
+            EnsureSelectionHitArea();
+            GroundSorting.Ensure(gameObject, type == ResourceType.Food,
+                SortGroundAnchorYOffset());
         }
 
         public void SetSelected(bool selected)
@@ -183,12 +189,10 @@ namespace TinyKingdom.Economy
             if (taken > 0 && resourceType == ResourceType.Food)
             {
                 GetComponent<HitSquashStretchPresentation>()?.Trigger();
-                if (GetComponent<SheepPresentation>() != null)
-                    GameplayAudioService.Request(GameplayAudioEvent.SheepHurt,
-                        transform.position, null, audioSourceKey);
             }
             if (taken > 0 && resourceType == ResourceType.Gold)
                 GetComponent<GoldHarvestHighlight>()?.Play();
+            if (taken > 0) Harvested?.Invoke(this, taken);
             if (IsDepleted)
             {
                 ClearOccupancy();
@@ -214,6 +218,8 @@ namespace TinyKingdom.Economy
                     / sprite.pixelsPerUnit);
             UnitVisualPresentation.ApplyAlignedScale(visual, alignedOffset,
                 presentationScale);
+            EnsureSelectionHitArea();
+            selectionHitArea?.SyncToVisual(visual);
         }
 
         public bool TryMoveOccupancy(Vector2Int destination, out Vector3 worldPosition)
@@ -262,5 +268,22 @@ namespace TinyKingdom.Economy
             if (!selectionIndicator.IsConfigured)
                 selectionIndicator.Configure(0.7f, 0.24f, -0.35f);
         }
+
+        private void EnsureSelectionHitArea()
+        {
+            if (visual == null) return;
+            float padding = resourceType == ResourceType.Food ? SheepSelectionPadding : 0f;
+            if (selectionHitArea == null)
+                selectionHitArea = WorldSelectionHitArea.Ensure(this, visual, padding);
+            else selectionHitArea.SetSelectionPadding(padding, visual);
+        }
+
+        private float SortGroundAnchorYOffset()
+            => resourceType switch
+            {
+                ResourceType.Wood => 0f,
+                ResourceType.Gold => -0.20f * presentationScale,
+                _ => -0.37f * presentationScale
+            };
     }
 }

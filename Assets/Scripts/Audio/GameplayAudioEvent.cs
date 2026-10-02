@@ -9,6 +9,21 @@ namespace TinyKingdom.Audio
         PawnMining,
         PawnChopping,
         PawnFoodHarvest,
-        SheepHurt
+        SheepHurt,
+        CastleSelect,
+        HouseSelect,
+        BarracksSelect,
+        ArcherySelect,
+        MonasterySelect,
+        TowerSelect,
+        BuildingFire,
+        BuildingExplosion,
+        BuildingPlan,
+        PawnHammer,
+        CommandClick,
+        CommandRejected,
+        UnitProductionFinished,
+        Victory,
+        Defeat
     }
 }

@@ -52,6 +52,8 @@ namespace TinyKingdom.AI
         public int FoodAssignments { get; private set; }
         public int WoodAssignments { get; private set; }
         public int GoldAssignments { get; private set; }
+        public uint SuccessfulAssignmentSerial { get; private set; }
+        public float LastSuccessfulAssignmentTime { get; private set; } = -1f;
 
         public void Reset()
         {
@@ -62,6 +64,8 @@ namespace TinyKingdom.AI
             retreatRequests.Clear();
             retreats.Clear();
             FoodAssignments = WoodAssignments = GoldAssignments = 0;
+            SuccessfulAssignmentSerial = 0;
+            LastSuccessfulAssignmentTime = -1f;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -237,6 +241,8 @@ namespace TinyKingdom.AI
                             LastKnownPosition = best.transform.position,
                             Mode = AssignmentMode.Gathering
                         };
+                        SuccessfulAssignmentSerial++;
+                        LastSuccessfulAssignmentTime = context.Time;
                         return true;
                     }
                     Block(id, context.Time);
@@ -257,6 +263,8 @@ namespace TinyKingdom.AI
                     LastKnownPosition = remembered.LastSeenPosition,
                     Mode = AssignmentMode.SeekingMemory
                 };
+                SuccessfulAssignmentSerial++;
+                LastSuccessfulAssignmentTime = context.Time;
                 return true;
             }
         }

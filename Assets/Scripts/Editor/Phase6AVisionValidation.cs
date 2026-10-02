@@ -30,7 +30,7 @@ namespace TinyKingdom.EditorTools
             ValidateRuntime();
             Debug.Log("Phase 6A automated vision validation passed: faction isolation, "
                 + "Visible->Explored memory, overlapping sources, Tower/Castle radii, "
-                + "map-sized bounds, source rules, fog renderer and presentation gates.");
+                + "40x28 bounds, source rules, fog renderer and presentation gates.");
         }
 
         [MenuItem("Tools/Tiny Kingdom/Vision/Display Blue Fog (Debug)")]
@@ -139,7 +139,9 @@ namespace TinyKingdom.EditorTools
             GridManager grid = UnityEngine.Object.FindAnyObjectByType<GridManager>();
             Require(system != null && system.IsReady, "TeamVisionSystem is not ready.");
             Require(renderer != null && presentation != null, "Fog presentation components are missing.");
-            Require(grid != null && grid.Width == TinyKingdom.Terrain.BattlefieldLayout.Width && grid.Height == TinyKingdom.Terrain.BattlefieldLayout.Height,
+            Require(grid != null
+                    && grid.Width == TinyKingdom.Terrain.BattlefieldLayout.Width
+                    && grid.Height == TinyKingdom.Terrain.BattlefieldLayout.Height,
                 "Vision must cover the complete authored logical grid.");
             Require(renderer.SamplesPerCell == FogRenderer.DefaultSamplesPerCell
                 && renderer.MaskWidth == grid.Width * FogRenderer.DefaultSamplesPerCell

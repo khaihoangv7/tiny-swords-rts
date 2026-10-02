@@ -14,8 +14,125 @@ namespace TinyKingdom.Input
         bool IsFriendlyCursorTarget(Faction playerFaction);
     }
 
+    // Query-only pointer coverage for artwork that extends beyond its logical
+    // navigation/interaction footprint. This trigger never owns gameplay authority.
+    [RequireComponent(typeof(BoxCollider2D))]
+    public sealed class WorldSelectionHitArea : MonoBehaviour
+    {
+        private const string ObjectName = "SelectionHitArea";
+
+        [SerializeField] private Transform targetRoot;
+        [SerializeField, Min(0f)] private float selectionPadding;
+
+        public Transform TargetRoot => targetRoot;
+        public BoxCollider2D HitCollider => GetComponent<BoxCollider2D>();
+        public float SelectionPadding => selectionPadding;
+
+        public static WorldSelectionHitArea Ensure(Component target, SpriteRenderer visual,
+            float worldPadding = 0f)
+        {
+            if (target == null || visual == null) return null;
+            Transform child = target.transform.Find(ObjectName);
+            WorldSelectionHitArea area;
+            if (child == null)
+            {
+                var hitObject = new GameObject(ObjectName);
+                hitObject.transform.SetParent(target.transform, false);
+                child = hitObject.transform;
+            }
+            child.gameObject.layer = target.gameObject.layer;
+
+            BoxCollider2D collider = child.GetComponent<BoxCollider2D>();
+            if (collider == null)
+                collider = child.gameObject.AddComponent<BoxCollider2D>();
+            area = child.GetComponent<WorldSelectionHitArea>();
+            if (area == null)
+                area = child.gameObject.AddComponent<WorldSelectionHitArea>();
+            area.Configure(target.transform, visual, collider, worldPadding);
+            return area;
+        }
+
+        public void SyncToVisual(SpriteRenderer visual)
+        {
+            BoxCollider2D collider = GetComponent<BoxCollider2D>();
+            if (visual == null || collider == null) return;
+
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+
+            Bounds worldBounds = visual.bounds;
+            Vector3 localMin = transform.InverseTransformPoint(worldBounds.min);
+            Vector3 localMax = transform.InverseTransformPoint(worldBounds.max);
+            Vector2 min = Vector2.Min(localMin, localMax);
+            Vector2 max = Vector2.Max(localMin, localMax);
+            Vector3 scale = transform.lossyScale;
+            Vector2 localPadding = new(
+                selectionPadding / Mathf.Max(0.0001f, Mathf.Abs(scale.x)),
+                selectionPadding / Mathf.Max(0.0001f, Mathf.Abs(scale.y)));
+            collider.offset = (min + max) * 0.5f;
+            collider.size = max - min + localPadding * 2f;
+        }
+
+        public void SetSelectionPadding(float worldPadding, SpriteRenderer visual)
+        {
+            float next = Mathf.Max(0f, worldPadding);
+            if (Mathf.Approximately(selectionPadding, next)) return;
+            selectionPadding = next;
+            SyncToVisual(visual);
+        }
+
+        public bool Covers(SpriteRenderer visual)
+        {
+            BoxCollider2D collider = GetComponent<BoxCollider2D>();
+            if (visual == null || collider == null) return false;
+            Bounds hitBounds = collider.bounds;
+            Bounds visualBounds = visual.bounds;
+            const float epsilon = 0.01f;
+            return hitBounds.min.x <= visualBounds.min.x + epsilon
+                && hitBounds.max.x >= visualBounds.max.x - epsilon
+                && hitBounds.min.y <= visualBounds.min.y + epsilon
+                && hitBounds.max.y >= visualBounds.max.y - epsilon;
+        }
+
+        private void Configure(Transform root, SpriteRenderer visual, BoxCollider2D collider,
+            float worldPadding)
+        {
+            targetRoot = root;
+            selectionPadding = Mathf.Max(0f, worldPadding);
+            if (collider == null) return;
+            collider.isTrigger = true;
+            SyncToVisual(visual);
+        }
+    }
+
+    public static class WorldSelectionQuery
+    {
+        public static T Resolve<T>(Collider2D hit) where T : Component
+        {
+            if (hit == null) return null;
+            T direct = hit.GetComponent<T>();
+            if (direct != null) return direct;
+            WorldSelectionHitArea area = hit.GetComponent<WorldSelectionHitArea>();
+            return area != null && area.TargetRoot != null
+                ? area.TargetRoot.GetComponent<T>() : null;
+        }
+
+        public static IFriendlyCursorTarget ResolveFriendly(Collider2D hit)
+        {
+            if (hit == null) return null;
+            IFriendlyCursorTarget direct = hit.GetComponent<IFriendlyCursorTarget>();
+            if (direct != null) return direct;
+            WorldSelectionHitArea area = hit.GetComponent<WorldSelectionHitArea>();
+            return area != null && area.TargetRoot != null
+                ? area.TargetRoot.GetComponent<IFriendlyCursorTarget>() : null;
+        }
+    }
+
     public sealed class GameCursorController : MonoBehaviour
     {
+        public const float PresentationScale = 1.5f;
+
         private enum CursorVisual { Default, Hand, Forbidden }
 
         [SerializeField] private Camera worldCamera;
@@ -28,9 +145,11 @@ namespace TinyKingdom.Input
         [SerializeField] private Vector2 defaultHotspot = new Vector2(22f, 17f);
         [SerializeField] private Vector2 handHotspot = new Vector2(24f, 18f);
         [SerializeField] private Vector2 forbiddenHotspot = new Vector2(32f, 31f);
+        [SerializeField, Range(1f, 2f)] private float cursorScale = PresentationScale;
         [SerializeField, Min(0.05f)] private float validityRefreshSeconds = 0.2f;
 
         private readonly List<RaycastResult> uiHits = new();
+        private readonly Collider2D[] hoverHits = new Collider2D[64];
         private PointerEventData pointerEvent;
         private EventSystem pointerEventSystem;
         private CursorVisual? currentVisual;
@@ -39,6 +158,22 @@ namespace TinyKingdom.Input
         private bool cachedCanMove;
         private float nextValidityRefresh;
         private BuildingPlacementController placement;
+        private Texture2D scaledDefaultCursor;
+        private Texture2D scaledHandCursor;
+        private Texture2D scaledForbiddenCursor;
+        private ContactFilter2D hoverFilter;
+        private bool hoverFilterConfigured;
+
+        public bool HoverQueryUsesTriggers
+        {
+            get { EnsureHoverFilter(); return hoverFilter.useTriggers; }
+        }
+        public bool HoverQueryIncludesLayer(int layer)
+        {
+            EnsureHoverFilter();
+            return layer >= 0 && layer <= 31 && (!hoverFilter.useLayerMask
+                || (hoverFilter.layerMask & (1 << layer)) != 0);
+        }
 
         private void Awake()
         {
@@ -47,6 +182,10 @@ namespace TinyKingdom.Input
             if (commandController == null) commandController = GetComponent<PlayerCommandController>();
             if (gridManager == null) gridManager = FindAnyObjectByType<GridManager>();
             placement = GetComponent<BuildingPlacementController>();
+            EnsureHoverFilter();
+            scaledDefaultCursor = CreateScaledCursor(defaultCursor);
+            scaledHandCursor = CreateScaledCursor(handCursor);
+            scaledForbiddenCursor = CreateScaledCursor(forbiddenCursor);
             Apply(CursorVisual.Default);
         }
 
@@ -62,6 +201,13 @@ namespace TinyKingdom.Input
                 selectionManager.SelectionChanged -= InvalidateMoveCache;
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             currentVisual = null;
+        }
+
+        private void OnDestroy()
+        {
+            DestroyScaledCursor(scaledDefaultCursor);
+            DestroyScaledCursor(scaledHandCursor);
+            DestroyScaledCursor(scaledForbiddenCursor);
         }
 
         private void Update()
@@ -95,27 +241,17 @@ namespace TinyKingdom.Input
                     ? CursorVisual.Hand : CursorVisual.Forbidden);
                 return;
             }
+            if (IsNormalSelectableHover(pointer, world))
+            {
+                Apply(CursorVisual.Hand);
+                return;
+            }
+
             if (selectionManager.SelectedUnits.Count == 0)
             {
-                Component selected = selectionManager.SelectedBuilding != null
-                    ? selectionManager.SelectedBuilding : selectionManager.SelectedCastle;
-                if (selected != null && selected.GetComponent<BuildingRallyPoint>() != null)
-                {
-                    Vector2Int rallyCell = gridManager != null
-                        ? gridManager.WorldToGrid(world) : default;
-                    if (!hasCachedCell || rallyCell != cachedCell
-                        || Time.unscaledTime >= nextValidityRefresh)
-                    {
-                        cachedCell = rallyCell;
-                        hasCachedCell = true;
-                        nextValidityRefresh = Time.unscaledTime + validityRefreshSeconds;
-                        cachedCanMove = commandController != null
-                            && commandController.CanSetSelectedBuildingRallyPoint(world);
-                    }
-                    Apply(cachedCanMove ? CursorVisual.Hand : CursorVisual.Forbidden);
-                    return;
-                }
-                Apply(IsFriendlyHover(pointer, world) ? CursorVisual.Hand : CursorVisual.Default);
+                // Selecting a production building does not enter a targeting mode.
+                // Rally points remain a contextual right-click action.
+                Apply(CursorVisual.Default);
                 return;
             }
 
@@ -127,28 +263,9 @@ namespace TinyKingdom.Input
                 return;
             }
 
-            if (commandController != null && commandController.IsResourceAtScreenPosition(pointer))
-            {
-                Apply(commandController.CanGatherAtScreenPosition(pointer)
-                    ? CursorVisual.Hand : CursorVisual.Default);
-                return;
-            }
-
-            if (IsFriendlyTargetAt(world))
-            {
-                Apply(CursorVisual.Hand);
-                return;
-            }
-
-            if (commandController != null && commandController.CanEnterGoldMineAt(world))
-            {
-                Apply(CursorVisual.Hand);
-                return;
-            }
-
             if (commandController == null)
             {
-                Apply(CursorVisual.Hand);
+                Apply(CursorVisual.Default);
                 return;
             }
 
@@ -161,27 +278,36 @@ namespace TinyKingdom.Input
                 nextValidityRefresh = Time.unscaledTime + validityRefreshSeconds;
                 cachedCanMove = commandController.CanIssueMoveCommand(world);
             }
-            Apply(cachedCanMove ? CursorVisual.Hand : CursorVisual.Forbidden);
+            Apply(cachedCanMove ? CursorVisual.Default : CursorVisual.Forbidden);
         }
 
-        private bool IsFriendlyHover(Vector2 pointer, Vector3 world)
+        private bool IsNormalSelectableHover(Vector2 pointer, Vector3 world)
         {
             if (selectionManager.FindFriendlyUnitAtScreenPosition(pointer) != null)
                 return true;
 
-            foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
-                if (hit.GetComponent<IFriendlyCursorTarget>()?.IsFriendlyCursorTarget(
-                        selectionManager.PlayerFaction) == true)
+            int hitCount = Physics2D.OverlapPoint(world, hoverFilter, hoverHits);
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider2D hit = hoverHits[i];
+                IFriendlyCursorTarget friendly = WorldSelectionQuery.ResolveFriendly(hit);
+                if (friendly?.IsFriendlyCursorTarget(selectionManager.PlayerFaction) == true)
                     return true;
+                Economy.ResourceNode resource = WorldSelectionQuery.Resolve<Economy.ResourceNode>(hit);
+                if (resource != null && resource.IsAvailable
+                    && (Vision.FogWorldVisibility.Instance == null
+                        || Vision.FogWorldVisibility.Instance.CanObserveResource(
+                            resource.transform.position))) return true;
+            }
             return false;
         }
 
-        private bool IsFriendlyTargetAt(Vector3 world)
+        private void EnsureHoverFilter()
         {
-            foreach (Collider2D hit in Physics2D.OverlapPointAll(world))
-                if (hit.GetComponent<IFriendlyCursorTarget>()?.IsFriendlyCursorTarget(
-                        selectionManager.PlayerFaction) == true) return true;
-            return false;
+            if (hoverFilterConfigured) return;
+            hoverFilter = ContactFilter2D.noFilter;
+            hoverFilter.useTriggers = true;
+            hoverFilterConfigured = true;
         }
 
         private bool IsOverUI(Vector2 pointer)
@@ -206,9 +332,10 @@ namespace TinyKingdom.Input
             if (currentVisual == visual) return;
             Texture2D texture = visual switch
             {
-                CursorVisual.Hand => handCursor,
-                CursorVisual.Forbidden => forbiddenCursor,
-                _ => defaultCursor
+                CursorVisual.Hand => scaledHandCursor != null ? scaledHandCursor : handCursor,
+                CursorVisual.Forbidden => scaledForbiddenCursor != null
+                    ? scaledForbiddenCursor : forbiddenCursor,
+                _ => scaledDefaultCursor != null ? scaledDefaultCursor : defaultCursor
             };
             Vector2 hotspot = visual switch
             {
@@ -216,8 +343,50 @@ namespace TinyKingdom.Input
                 CursorVisual.Forbidden => forbiddenHotspot,
                 _ => defaultHotspot
             };
-            Cursor.SetCursor(texture, hotspot, CursorMode.Auto);
+            if (texture != null && texture != defaultCursor && texture != handCursor
+                && texture != forbiddenCursor)
+                hotspot *= Mathf.Max(1f, cursorScale);
+            Cursor.SetCursor(texture, hotspot, CursorMode.ForceSoftware);
             currentVisual = visual;
+        }
+
+        private Texture2D CreateScaledCursor(Texture2D source)
+        {
+            float scale = Mathf.Max(1f, cursorScale);
+            if (source == null || Mathf.Approximately(scale, 1f)) return source;
+
+            int width = Mathf.Max(1, Mathf.RoundToInt(source.width * scale));
+            int height = Mathf.Max(1, Mathf.RoundToInt(source.height * scale));
+            Color32[] sourcePixels = source.GetPixels32();
+            var scaledPixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                int sourceY = Mathf.Min(source.height - 1, Mathf.FloorToInt(y / scale));
+                int targetRow = y * width;
+                int sourceRow = sourceY * source.width;
+                for (int x = 0; x < width; x++)
+                {
+                    int sourceX = Mathf.Min(source.width - 1, Mathf.FloorToInt(x / scale));
+                    scaledPixels[targetRow + x] = sourcePixels[sourceRow + sourceX];
+                }
+            }
+
+            var result = new Texture2D(width, height, TextureFormat.RGBA32, false, false)
+            {
+                name = source.name + "_CursorScaled",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave
+            };
+            result.SetPixels32(scaledPixels);
+            result.Apply(false, false);
+            return result;
+        }
+
+        private static void DestroyScaledCursor(Texture2D texture)
+        {
+            if (texture != null && texture.name.EndsWith("_CursorScaled"))
+                Destroy(texture);
         }
     }
 }

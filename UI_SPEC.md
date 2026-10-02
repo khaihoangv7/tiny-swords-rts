@@ -141,6 +141,12 @@ edge pan the camera; `A` arms AttackMove; `A` + Left Click valid ground issues
 AttackMove; Right Click ground normally issues Move; Right Click enemy normally
 issues explicit Attack; and `G` controls Guard for eligible Warriors.
 
+The Default, Hand and Forbidden gameplay cursors use a 1.5 presentation scale.
+They are enlarged with nearest-neighbor sampling at runtime, and each verified
+hotspot is scaled with its texture so pointing and command coordinates remain
+unchanged. A successful normal Move command retains its 0.45-second two-ring
+shrink/fade timing while the complete marker and line width render at 1.35 scale.
+
 A successful `A` + Left Click ground AttackMove command creates its own two
 red flattened world-space ellipses at the destination. They remain fixed at the
 clicked ground point, shrink and fade over about 0.45 seconds, render above
@@ -252,3 +258,105 @@ the complete visible panel as one UI raycast-blocking region.
 During this UI/UX milestone Goblin Torch/TNT are removed from the active Map
 setup and validator requirements. Their imported assets and dormant gameplay
 code remain available for later work.
+
+## Phase 6D.3 Command Tooltips and Cursor Interaction Polish
+
+The bottom command grid owns fourteen persistent button objects. Each button has
+an EventSystem pointer trigger, while one shared `CommandTooltipPresenter`
+creates and reuses a single `CommandTooltip` panel beside the hovered command.
+Tooltip graphics do not receive raycasts, so the panel cannot interrupt the
+button's pointer enter/exit lifecycle. Selection changes, hidden/reused buttons,
+match end and HUD teardown clear the current tooltip.
+
+The tooltip has a 240 UI unit minimum width, 286 preferred width and 320 maximum
+width. Train and Build commands normally use the preferred width; simple command
+help may use the minimum, while a wider cost row can grow only up to the maximum.
+Height is recalculated from the visible Title, Cost, Stats and Details preferred
+heights with 12 units horizontal padding, 10 vertical padding and 5 between
+sections. Empty sections are inactive and consume no height. The SpecialPaper
+surface and eight frame pieces stretch with the resulting root rectangle.
+
+While visible, the presenter converts the Input System pointer position into the
+bottom HUD root's local coordinates with `RectTransformUtility`. A 30 UI unit
+offset places the tooltip above-right by default. It flips left or below near the
+corresponding screen edge, then clamps the complete rectangle inside an 8-unit
+safe margin. The fixed bottom-left pivot avoids content-dependent pivot jumps.
+Only position updates each visible frame; content and preferred sizes update on
+pointer entry or command source change. A non-interactable, non-blocking
+`CanvasGroup` and non-raycast graphics prevent hover flicker and blocked clicks.
+
+Train tooltips read cost, population, HP, damage, range, speed, attack interval
+and training duration from the same `UnitCombatData` used by production and
+combat. Warrior, Archer and Lancer strengths and weaknesses are derived from
+`CombatDamage.Multiplier`; they are not a second UI matchup table. Pawn is
+described as a worker. Monk displays the authoritative healing amount, range
+and interval from `MonkHealer` and does not claim a fabricated combat counter.
+
+Build tooltips read cost, HP, logical footprint, construction duration and
+population bonus or defense capacity from `BuildingData`. Production building
+rosters are derived through `UnitProductionQueue.CanProduce`. Cost rows reuse
+the Food, Wood, Gold and Population sprites in `RtsHudAssetCatalog`. A missing
+resource or population capacity colors only the affected cost value; tooltip
+code never pays resources, reserves population or changes command authority.
+Disabled Train and Build buttons remain raycastable by their tooltip trigger.
+
+World cursor resolution gives explicit placement and AttackMove targeting first
+priority. Outside an explicit target mode, a currently observable selectable
+friendly unit/building uses the existing Hand cursor and ordinary terrain uses
+the Default cursor. Merely selecting a production building does not create a
+rally targeting mode; contextual right click still sets a valid rally point.
+UI raycast blocking and existing Fog visibility rules run before world hover,
+so hidden enemy objects cannot be revealed by cursor state.
+
+## Phase 6D.4 Interaction Cursor and Construction Animation Polish
+
+Outside an explicit Placement or AttackMove mode, normal world hover resolves a
+legally observable selectable entity before testing whether the raw mouse cell is
+a valid movement destination. Sheep, Tree, Gold resources and friendly buildings
+use a query-only `SelectionHitArea` trigger fitted to the current sprite bounds.
+Animated resource sprites resynchronize this collider after a frame/pivot change.
+World SpriteRenderer bounds are converted into the hit-area transform's local
+collider space, including presentation scale and child offset. Sheep applies a
+symmetrical 0.08-world-unit selection-only padding so its exact bounds edge does not
+fall through to terrain when the cursor hotspot sits on visible wool pixels. This allows the Hand
+cursor and normal click resolution across Sheep wool, Tree canopy/trunk, Gold art
+and Castle side edges. The trigger does not replace the root gameplay collider and
+has no navigation, occupancy, combat-range, resource-slot or building-placement
+authority.
+
+UI blocking remains first, while explicit target modes continue to override normal
+entity hover. Resource visibility is checked through the current Fog presentation
+rule, and friendly building hover still checks faction/availability, so hidden live
+objects cannot disclose themselves through the cursor.
+
+Pawn construction presentation observes `PawnBuilder.IsWorking`. A Pawn walking to
+its reserved interaction slot uses RunHammer; an assigned Pawn waiting at the site
+uses IdleHammer; and every Pawn that has arrived and is contributing loops the
+verified Hammer animation. Builder arrival accepts a 0.2-world-unit terminal
+tolerance so a small final UnitSeparation displacement cannot leave secondary
+Pawns permanently holding IdleHammer beside their reserved slots. Movement must
+still be complete and each Pawn must own a valid slot. Leaving, death, reassignment,
+completion or loss of a valid work target clears the working state through the
+existing builder lifecycle. Animation never advances construction and does not
+trigger hammer audio. The existing per-Pawn authoritative progress update, build
+duration, interaction slots and work-cycle SFX remain unchanged.
+
+## Phase 6G.2 Formation Commands
+
+When at least two living, friendly, controllable military units are selected, the
+existing bottom Command Panel shows Compact, Wedge, Loose and Line formation
+commands. Military formation eligibility is explicitly limited to Warrior, Lancer,
+Archer and Monk. Pawn does not count toward the two-unit minimum, so Pawn-only and
+one-military-plus-Pawn selections show no formation buttons or formation tooltip
+targets. Mixed selections with at least two military units show the controls, but
+the resulting reform affects only those military units. The selected formation is
+shown with a distinct pale-green command-slot tint, and the preference remains
+active when the player changes selections.
+
+Inspection of the imported Tiny Swords `Icon_01` through `Icon_12` set found no
+formation-specific art. Each command therefore draws a lightweight six-dot UI
+glyph: a block for Compact, widening rows for Wedge, spaced dots for Loose and one
+lateral row for Line. These glyphs are presentation only and introduce no external
+art. Each button reuses the Phase 6D.3 tooltip presenter and concise shape help.
+Clicks use the existing Phase 6E `CommandClick`/`CommandRejected` request path.
+No formation-specific sound is added.

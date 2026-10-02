@@ -24,6 +24,7 @@ namespace TinyKingdom.Presentation
         [SerializeField] private Sprite[] stumpSprites = Array.Empty<Sprite>();
         [SerializeField] private Sprite[] goldSprites = Array.Empty<Sprite>();
         [SerializeField] private SpriteFrameSet[] goldHighlights = Array.Empty<SpriteFrameSet>();
+        [SerializeField] private SpriteFrameSet[] bushAnimations = Array.Empty<SpriteFrameSet>();
         [SerializeField] private Sprite[] deadFrames = Array.Empty<Sprite>();
         [SerializeField] private Sprite rallyFlag;
 
@@ -41,6 +42,9 @@ namespace TinyKingdom.Presentation
         public Sprite[] GoldHighlight(int index)
             => index >= 0 && index < goldHighlights.Length && goldHighlights[index] != null
                 ? goldHighlights[index].Frames : Array.Empty<Sprite>();
+        public Sprite[] BushFrames(int index)
+            => index >= 0 && index < bushAnimations.Length && bushAnimations[index] != null
+                ? bushAnimations[index].Frames : Array.Empty<Sprite>();
 
         public static PresentationAssetCatalog Load()
             => Resources.Load<PresentationAssetCatalog>("Presentation/Phase5C21Presentation");
@@ -64,6 +68,8 @@ namespace TinyKingdom.Presentation
         }
 
         public void SetRallyFlag(Sprite value) => rallyFlag = value;
+        public void SetBushes(SpriteFrameSet[] value)
+            => bushAnimations = value ?? Array.Empty<SpriteFrameSet>();
 #endif
     }
 }

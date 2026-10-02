@@ -12,14 +12,17 @@ namespace TinyKingdom.UI
         private ResourcePanelPresenter resources;
         private SelectionInfoPanelPresenter selectionInfo;
         private CommandPanelPresenter commands;
+        private CommandTooltipPresenter tooltip;
         private RectTransform hudRoot;
 
         public RectTransform HudRoot => hudRoot;
         public ResourcePanelPresenter ResourcePanel => resources;
         public SelectionInfoPanelPresenter SelectionPanel => selectionInfo;
         public CommandPanelPresenter CommandPanel => commands;
+        public CommandTooltipPresenter CommandTooltip => tooltip;
         public bool IsReady => resources != null && resources.IsReady
-            && selectionInfo != null && commands != null;
+            && selectionInfo != null && commands != null
+            && tooltip != null && tooltip.HasValidReferences;
 
         public void Configure(SelectionManager selection,
             PlayerCommandController commandInput, GuardInputController guardInput,
@@ -53,10 +56,13 @@ namespace TinyKingdom.UI
                 ?? gameObject.AddComponent<SelectionInfoPanelPresenter>();
             commands = GetComponent<CommandPanelPresenter>()
                 ?? gameObject.AddComponent<CommandPanelPresenter>();
+            tooltip = GetComponent<CommandTooltipPresenter>()
+                ?? gameObject.AddComponent<CommandTooltipPresenter>();
             resources.Configure(stockpile, population, catalog, hudRoot);
             selectionInfo.Configure(selection, catalog, hudRoot);
             commands.Configure(selection, commandInput, guardInput,
-                buildingSystem, placement, catalog, hudRoot);
+                buildingSystem, placement, catalog, tooltip, hudRoot);
+            tooltip.Configure(catalog, stockpile, population, hudRoot);
         }
 
         private void DisableLegacyPresenters()

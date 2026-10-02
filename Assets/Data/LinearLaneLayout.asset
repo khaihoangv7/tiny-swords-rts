@@ -22,7 +22,7 @@ MonoBehaviour:
   - {x: 54.5, y: 21.5}
   - {x: 53.5, y: 21.5}
   - {x: 52.5, y: 21.5}
-  redPawnAnimations: {fileID: 11400000, guid: f0bfd6436a20c4347b69b5a2581334d6, type: 2}
+  redPawnAnimations: {fileID: 11400000, guid: f99e8f48276242848a6962d1be0f83de, type: 2}
   resources:
   - name: Blue_Wood_1
     type: 1

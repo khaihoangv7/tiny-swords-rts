@@ -38,7 +38,7 @@ namespace TinyKingdom.Buildings
         public Vector2Int Footprint => data.Footprint;
         public bool IsProductionReady => IsAlive && State == BuildingState.Completed;
         public bool IsDefenseReady => IsProductionReady;
-        public float FireThreshold => 0.70f;
+        public float FireThreshold => BuildingDamagePresentation.FireThreshold;
         public BuildingData DefenseData => data;
         public Transform HostTransform => transform;
         public Collider2D InteractionCollider => GetComponent<Collider2D>();
@@ -49,6 +49,8 @@ namespace TinyKingdom.Buildings
         public bool NeedsRepair => State == BuildingState.Completed && currentHP < data.MaxHP;
         public SpriteRenderer PresentationRenderer => visual;
         public int ActiveBuilderCount => assignedBuilders.Count;
+        public int ReservedBuilderSlotCount => interactionSlots != null
+            ? interactionSlots.ReservationCount : 0;
         public bool CanAssign(PawnBuilder pawn) => pawn != null && !assignedBuilders.Contains(pawn);
         public event Action<BuildingSite> Changed;
         public event Action DefenseHostDestroyed;
@@ -77,8 +79,10 @@ namespace TinyKingdom.Buildings
             visual.sortingOrder = 9;
             BuildingVisualPresentation.Apply(visual, data.Type, data.VisualOffset);
             BuildingSelectionPulse.Ensure(gameObject, visual);
+            WorldSelectionHitArea.Ensure(this, visual);
             visual.color = new Color(1f, 1f, 1f, 0.55f);
-            GroundSorting.Ensure(gameObject);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, visual));
             MakeBar();
             (GetComponent<BuildingHealthBar>()
                 ?? gameObject.AddComponent<BuildingHealthBar>()).Configure(this,

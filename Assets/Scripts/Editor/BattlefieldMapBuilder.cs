@@ -6,6 +6,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
+using TinyKingdom.Units;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -33,10 +34,13 @@ namespace TinyKingdom.EditorTools
             BattlefieldLayout layout = MakeLayout();
             GameObject map = GameObject.Find("Map");
             Transform grid = map.transform.Find("Grid");
-            grid.Find("Shadow_L1").GetComponent<TilemapRenderer>().sortingOrder = 4;
-            grid.Find("ElevatedGround_L1").GetComponent<TilemapRenderer>().sortingOrder = 5;
-            grid.Find("Decorations").GetComponent<TilemapRenderer>().sortingOrder = 6;
-            Tilemap meadows = Layer(grid, "MeadowsAndPaths", 3);
+            grid.Find("BG_Color").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(0);
+            grid.Find("WaterFoam").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(1);
+            grid.Find("FlatGround").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(2);
+            grid.Find("Shadow_L1").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.ElevatedTerrainBackgroundOrder(1, false);
+            grid.Find("ElevatedGround_L1").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.ElevatedTerrainBackgroundOrder(1, true);
+            grid.Find("Decorations").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(4);
+            Tilemap meadows = Layer(grid, "MeadowsAndPaths", GroundSorting.TerrainBackgroundOrder(3));
             PaintClearings(meadows);
             Transform details = ReplaceRoot(map.transform, "BattlefieldScenery");
             PaintScenery(details, layout);
@@ -75,8 +79,8 @@ namespace TinyKingdom.EditorTools
             }
             layout.blueCastle = BattlefieldLayout.BlueCastleStart;
             layout.redCastle = BattlefieldLayout.RedCastleStart;
-            layout.bluePawns = new[] { new Vector2(11.5f,14.5f), new Vector2(12.5f,14.5f), new Vector2(13.5f,14.5f) };
-            layout.redPawns = new[] { new Vector2(46.5f,30.5f), new Vector2(47.5f,30.5f), new Vector2(48.5f,30.5f) };
+            layout.bluePawns = new[] { new Vector2(12f,18.5f), new Vector2(13f,18.5f), new Vector2(14f,18.5f) };
+            layout.redPawns = new[] { new Vector2(46f,34.5f), new Vector2(47f,34.5f), new Vector2(48f,34.5f) };
             layout.redPawnAnimations = MakeRedPawnSet();
             var resources = new List<BattlefieldResource>();
             void Add(string name, ResourceType type, Vector2 p, int variant)
@@ -156,7 +160,7 @@ namespace TinyKingdom.EditorTools
             // Keep the middle courts and both stair approaches free for building.
             Vector2[] rimTrees = { new(8.5f,20.5f),new(18.5f,20.5f),new(5.5f,9.5f),new(20.5f,9.5f) };
             Vector2[] rimSheep = { new(6.5f,8.5f),new(8.5f,9.5f),new(17.5f,8.5f),new(19.5f,9.5f) };
-            Vector2[] rimGold = { new(8.5f,16.5f),new(17.5f,12.5f) };
+            Vector2[] rimGold = { new(8.5f,16.5f),new(17.5f,15.5f) };
             for(int side=0;side<2;side++)
             {
                 string name=side==0?"Blue_Rim_":"Red_Rim_";
@@ -168,10 +172,11 @@ namespace TinyKingdom.EditorTools
                 for(int i=0;i<rimGold.Length;i++)
                     Add(name+"Gold_"+i,ResourceType.Gold,rimGold[i]+offset,i==0?4:1);
             }
-            // Blue Castle edge planting: two dark pines per tier and five upper-court Sheep.
+            // Blue Castle edge planting: two dark pines per tier, two upper-court Sheep,
+            // and three Sheep moved down to the lower terrace to keep the Castle court open.
             Vector2[] terracePines = { new(7.5f,9.5f),new(18.5f,9.5f),new(8.5f,18.5f),new(17.5f,18.5f) };
-            Vector2[] courtSheep = { new(10.5f,19.5f),new(12.5f,18.5f),new(14.5f,19.5f),
-                new(8.5f,12.5f),new(17.5f,14.5f) };
+            Vector2[] courtSheep = { new(10.5f,11.5f),new(13.5f,10.5f),new(16.5f,11.5f),
+                new(9.5f,14.5f),new(17.5f,14.5f) };
             for(int i=0;i<terracePines.Length;i++)
                 Add("Blue_Terrace_Wood_"+i,ResourceType.Wood,terracePines[i],0);
             for(int i=0;i<courtSheep.Length;i++)
@@ -283,17 +288,18 @@ namespace TinyKingdom.EditorTools
                     || Vector2.Distance(new(x,y),layout.blueCastle)<4
                     || Vector2.Distance(new(x,y),layout.redCastle)<4
                     || layout.resources.Any(r=>Vector2.Distance(r.position,new(x,y))<.65f)) continue;
-                Sprite sprite = First($"Assets/Terrain/Decorations/Bushes/Bushe{1+i%4}.png");
-                Place(root,"GroundCover_"+i,sprite,new(x,y),6,1f);
+                int variant = i % 4;
+                Sprite[] frames = LoadFrames($"Assets/Terrain/Decorations/Bushes/Bushe{variant+1}.png");
+                PlaceBush(root,"GroundCover_"+i,frames,new(x,y),variant,i*.037f);
             }
             // Native dark grass tufts sit in compact, nonblocking clusters near the Blue court edges.
             Vector2[] grassCenters = { new(7.65f,17.8f),new(18.35f,19.1f),new(10f,8.25f),new(15.5f,8.25f) };
             Vector2[] grassOffsets = { new(-.28f,-.1f),new(.25f,0),new(.03f,.3f) };
-            Sprite grass=First("Assets/Terrain/Decorations/Bushes/Bushe3.png");
+            Sprite[] grass=LoadFrames("Assets/Terrain/Decorations/Bushes/Bushe3.png");
             for(int cluster=0;cluster<grassCenters.Length;cluster++)
                 for(int tuft=0;tuft<grassOffsets.Length;tuft++)
-                    Place(root,$"Blue_Terrace_Grass_{cluster}_{tuft}",grass,
-                        grassCenters[cluster]+grassOffsets[tuft],8,1f);
+                    PlaceBush(root,$"Blue_Terrace_Grass_{cluster}_{tuft}",grass,
+                        grassCenters[cluster]+grassOffsets[tuft],2,(cluster*3+tuft)*.071f);
             Sprite[][] waterFrames=Enumerable.Range(1,4).Select(i=>BattlefieldAmbientAssets.Frames(
                 $"Assets/Terrain/Decorations/Rocks in the Water/Water Rocks_0{i}.png",64,16)).ToArray();
             Sprite[] rockSprites=Enumerable.Range(1,4).Select(i=>First($"Assets/Terrain/Decorations/Rocks/Rock{i}.png")).ToArray();
@@ -359,15 +365,21 @@ namespace TinyKingdom.EditorTools
             {
                 Sprite sprite = item.type == ResourceType.Wood ? catalog.Tree(item.variant)
                     : item.type == ResourceType.Gold ? catalog.Gold(item.variant) : catalog.SheepIdle[0];
+                float scale = item.type == ResourceType.Gold
+                    ? item.variant == 5 ? 1.55f : 1.4f
+                    : UnitVisualPresentation.Scale;
                 Vector2 position = item.position;
-                if(item.type == ResourceType.Wood) position.y += sprite.rect.height*.5f/sprite.pixelsPerUnit;
-                Place(root,item.name,sprite,position,10,1);
+                if(item.type == ResourceType.Wood)
+                    position.y += sprite.rect.height*.5f/sprite.pixelsPerUnit*scale;
+                Place(root,item.name,sprite,position,10,scale);
             }
             Place(root,"Central_Gold_Mine",Phase6C2AssetCatalog.Load().GoldMineInactive,
                 new(StrategicObjectiveMapLayout.MineOriginX+1,StrategicObjectiveMapLayout.MineOriginY+1+GoldMineObjective.VisualGroundOffsetY),10,GoldMineObjective.VisualScale);
             PawnAnimationSet blue = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>("Assets/UnitAnimations/BluePawn.asset");
-            foreach(Vector2 p in layout.bluePawns) Place(root,"Blue_Pawn",blue.Idle[0],p,10,1);
-            foreach(Vector2 p in layout.redPawns) Place(root,"Red_Pawn",layout.redPawnAnimations.Idle[0],p,10,1);
+            foreach(Vector2 p in layout.bluePawns)
+                Place(root,"Blue_Pawn",blue.Idle[0],p,10,UnitVisualPresentation.Scale);
+            foreach(Vector2 p in layout.redPawns)
+                Place(root,"Red_Pawn",layout.redPawnAnimations.Idle[0],p,10,UnitVisualPresentation.Scale);
         }
 
         private static Sprite First(string path)
@@ -387,11 +399,32 @@ namespace TinyKingdom.EditorTools
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().OrderBy(s=>s.name).First();
         }
 
+        private static Sprite[] LoadFrames(string path)
+            => AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>()
+                .OrderBy(sprite =>
+                {
+                    int split = sprite.name.LastIndexOf('_');
+                    return split >= 0 && int.TryParse(sprite.name[(split + 1)..], out int value)
+                        ? value : int.MaxValue;
+                }).ToArray();
+
         private static GameObject Place(Transform parent,string name,Sprite sprite,Vector2 p,int order,float scale)
         {
             var obj=new GameObject(name); obj.transform.SetParent(parent,false);
             obj.transform.position=p; obj.transform.localScale=Vector3.one*scale;
             var renderer=obj.AddComponent<SpriteRenderer>(); renderer.sprite=sprite; renderer.sortingOrder=order;
+            if (!name.StartsWith("Cloud_"))
+                GroundSorting.ApplyStatic(renderer, obj.transform.position, 0f);
+            return obj;
+        }
+
+        private static GameObject PlaceBush(Transform parent, string name, Sprite[] frames,
+            Vector2 position, int variant, float phase)
+        {
+            GameObject obj = Place(parent, name, frames[0], position, 0, 1f);
+            SpriteRenderer source = obj.GetComponent<SpriteRenderer>();
+            BushPresentation bush = BushPresentation.Ensure(obj, source, frames, variant, phase);
+            GroundSorting.ApplyStatic(bush.Visual, obj.transform.position, 0f);
             return obj;
         }
 

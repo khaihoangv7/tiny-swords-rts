@@ -4021,73 +4021,73 @@ MonoBehaviour:
     heightConnection: {x: 0, y: 0}
   - gridX: 7
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 9
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 10
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 11
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 12
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 13
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 14
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 15
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 16
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 17
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 18
     gridY: 11
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
@@ -4366,7 +4366,7 @@ MonoBehaviour:
     terrainType: 4
     heightLevel: 0
     hasHeightConnection: 1
-    heightConnection: {x: 4, y: 13}
+    heightConnection: {x: 5, y: 13}
   - gridX: 5
     gridY: 12
     terrainType: 3
@@ -4382,73 +4382,73 @@ MonoBehaviour:
   - gridX: 7
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 9
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 10
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 11
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 12
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 13
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 14
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 15
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 16
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 17
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 18
     gridY: 12
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -4722,93 +4722,93 @@ MonoBehaviour:
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 4
+    gridY: 13
+    terrainType: 1
+    heightLevel: 0
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 5
     gridY: 13
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
     heightConnection: {x: 4, y: 12}
-  - gridX: 5
+  - gridX: 6
     gridY: 13
     terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
-  - gridX: 6
+  - gridX: 7
     gridY: 13
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
-    heightConnection: {x: 6, y: 14}
-  - gridX: 7
-    gridY: 13
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
+    heightConnection: {x: 8, y: 14}
   - gridX: 8
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 9
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 10
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 11
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 12
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 13
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 14
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 15
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 16
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 17
     gridY: 13
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 18
     gridY: 13
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -5095,22 +5095,22 @@ MonoBehaviour:
     heightConnection: {x: 0, y: 0}
   - gridX: 6
     gridY: 14
-    terrainType: 4
-    heightLevel: 2
-    hasHeightConnection: 1
-    heightConnection: {x: 6, y: 13}
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
   - gridX: 7
     gridY: 14
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
     gridY: 14
-    terrainType: 3
+    terrainType: 4
     heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
+    hasHeightConnection: 1
+    heightConnection: {x: 7, y: 13}
   - gridX: 9
     gridY: 14
     terrainType: 3
@@ -5168,7 +5168,7 @@ MonoBehaviour:
   - gridX: 18
     gridY: 14
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -5462,7 +5462,7 @@ MonoBehaviour:
   - gridX: 7
     gridY: 15
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
@@ -5528,7 +5528,7 @@ MonoBehaviour:
   - gridX: 18
     gridY: 15
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -5548,7 +5548,7 @@ MonoBehaviour:
     terrainType: 4
     heightLevel: 0
     hasHeightConnection: 1
-    heightConnection: {x: 21, y: 16}
+    heightConnection: {x: 20, y: 16}
   - gridX: 22
     gridY: 15
     terrainType: 1
@@ -5822,7 +5822,7 @@ MonoBehaviour:
   - gridX: 7
     gridY: 16
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
@@ -5887,28 +5887,28 @@ MonoBehaviour:
     heightConnection: {x: 0, y: 0}
   - gridX: 18
     gridY: 16
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 19
-    gridY: 16
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
-    heightConnection: {x: 19, y: 17}
-  - gridX: 20
+    heightConnection: {x: 17, y: 17}
+  - gridX: 19
     gridY: 16
     terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
-  - gridX: 21
+  - gridX: 20
     gridY: 16
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
     heightConnection: {x: 21, y: 15}
+  - gridX: 21
+    gridY: 16
+    terrainType: 1
+    heightLevel: 0
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
   - gridX: 22
     gridY: 16
     terrainType: 1
@@ -6182,7 +6182,7 @@ MonoBehaviour:
   - gridX: 7
     gridY: 17
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
@@ -6240,23 +6240,23 @@ MonoBehaviour:
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 17
-    gridY: 17
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 18
-    gridY: 17
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 19
     gridY: 17
     terrainType: 4
     heightLevel: 2
     hasHeightConnection: 1
-    heightConnection: {x: 19, y: 16}
+    heightConnection: {x: 18, y: 16}
+  - gridX: 18
+    gridY: 17
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 19
+    gridY: 17
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
   - gridX: 20
     gridY: 17
     terrainType: 3
@@ -6542,7 +6542,7 @@ MonoBehaviour:
   - gridX: 7
     gridY: 18
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
@@ -6608,7 +6608,7 @@ MonoBehaviour:
   - gridX: 18
     gridY: 18
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -6902,7 +6902,7 @@ MonoBehaviour:
   - gridX: 7
     gridY: 19
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 8
@@ -6968,7 +6968,7 @@ MonoBehaviour:
   - gridX: 18
     gridY: 19
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 19
@@ -7268,61 +7268,61 @@ MonoBehaviour:
   - gridX: 8
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 9
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 10
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 11
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 12
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 13
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 14
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 15
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 16
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 17
     gridY: 20
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 18
@@ -9985,73 +9985,73 @@ MonoBehaviour:
     heightConnection: {x: 0, y: 0}
   - gridX: 41
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 43
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 44
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 45
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 46
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 47
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 48
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 49
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 50
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 51
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 52
     gridY: 27
-    terrainType: 2
+    terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
@@ -10346,73 +10346,73 @@ MonoBehaviour:
   - gridX: 41
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 43
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 44
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 45
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 46
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 47
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 48
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 49
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 50
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 51
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 52
     gridY: 28
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -10432,7 +10432,7 @@ MonoBehaviour:
     terrainType: 4
     heightLevel: 0
     hasHeightConnection: 1
-    heightConnection: {x: 55, y: 29}
+    heightConnection: {x: 54, y: 29}
   - gridX: 56
     gridY: 28
     terrainType: 1
@@ -10690,7 +10690,7 @@ MonoBehaviour:
     terrainType: 4
     heightLevel: 0
     hasHeightConnection: 1
-    heightConnection: {x: 38, y: 30}
+    heightConnection: {x: 39, y: 30}
   - gridX: 39
     gridY: 29
     terrainType: 3
@@ -10706,93 +10706,93 @@ MonoBehaviour:
   - gridX: 41
     gridY: 29
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 43
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 44
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 45
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 46
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 47
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 48
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 49
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 50
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 51
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
+    terrainType: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 52
     gridY: 29
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 53
-    gridY: 29
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
-    heightConnection: {x: 53, y: 30}
-  - gridX: 54
+    heightConnection: {x: 51, y: 30}
+  - gridX: 53
     gridY: 29
     terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
-  - gridX: 55
+  - gridX: 54
     gridY: 29
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
     heightConnection: {x: 55, y: 28}
+  - gridX: 55
+    gridY: 29
+    terrainType: 1
+    heightLevel: 0
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
   - gridX: 56
     gridY: 29
     terrainType: 1
@@ -11046,29 +11046,29 @@ MonoBehaviour:
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 38
+    gridY: 30
+    terrainType: 1
+    heightLevel: 0
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 39
     gridY: 30
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
     heightConnection: {x: 38, y: 29}
-  - gridX: 39
+  - gridX: 40
     gridY: 30
     terrainType: 3
     heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
-  - gridX: 40
+  - gridX: 41
     gridY: 30
     terrainType: 4
     heightLevel: 1
     hasHeightConnection: 1
-    heightConnection: {x: 40, y: 31}
-  - gridX: 41
-    gridY: 30
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
+    heightConnection: {x: 42, y: 31}
   - gridX: 42
     gridY: 30
     terrainType: 3
@@ -11124,23 +11124,23 @@ MonoBehaviour:
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 51
-    gridY: 30
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 52
-    gridY: 30
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 53
     gridY: 30
     terrainType: 4
     heightLevel: 2
     hasHeightConnection: 1
-    heightConnection: {x: 53, y: 29}
+    heightConnection: {x: 52, y: 29}
+  - gridX: 52
+    gridY: 30
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 53
+    gridY: 30
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
   - gridX: 54
     gridY: 30
     terrainType: 3
@@ -11418,23 +11418,23 @@ MonoBehaviour:
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 40
+    gridY: 31
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 41
+    gridY: 31
+    terrainType: 3
+    heightLevel: 1
+    hasHeightConnection: 0
+    heightConnection: {x: 0, y: 0}
+  - gridX: 42
     gridY: 31
     terrainType: 4
     heightLevel: 2
     hasHeightConnection: 1
-    heightConnection: {x: 40, y: 30}
-  - gridX: 41
-    gridY: 31
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
-  - gridX: 42
-    gridY: 31
-    terrainType: 3
-    heightLevel: 2
-    hasHeightConnection: 0
-    heightConnection: {x: 0, y: 0}
+    heightConnection: {x: 41, y: 30}
   - gridX: 43
     gridY: 31
     terrainType: 3
@@ -11492,7 +11492,7 @@ MonoBehaviour:
   - gridX: 52
     gridY: 31
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -11786,7 +11786,7 @@ MonoBehaviour:
   - gridX: 41
     gridY: 32
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
@@ -11852,7 +11852,7 @@ MonoBehaviour:
   - gridX: 52
     gridY: 32
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -12146,7 +12146,7 @@ MonoBehaviour:
   - gridX: 41
     gridY: 33
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
@@ -12212,7 +12212,7 @@ MonoBehaviour:
   - gridX: 52
     gridY: 33
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -12506,7 +12506,7 @@ MonoBehaviour:
   - gridX: 41
     gridY: 34
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
@@ -12572,7 +12572,7 @@ MonoBehaviour:
   - gridX: 52
     gridY: 34
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -12866,7 +12866,7 @@ MonoBehaviour:
   - gridX: 41
     gridY: 35
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 42
@@ -12932,7 +12932,7 @@ MonoBehaviour:
   - gridX: 52
     gridY: 35
     terrainType: 3
-    heightLevel: 2
+    heightLevel: 1
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 53
@@ -13232,61 +13232,61 @@ MonoBehaviour:
   - gridX: 42
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 43
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 44
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 45
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 46
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 47
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 48
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 49
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 50
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 51
     gridY: 36
     terrainType: 3
-    heightLevel: 1
+    heightLevel: 2
     hasHeightConnection: 0
     heightConnection: {x: 0, y: 0}
   - gridX: 52

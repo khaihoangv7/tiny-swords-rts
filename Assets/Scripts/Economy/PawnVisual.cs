@@ -19,7 +19,6 @@ namespace TinyKingdom.Economy
         private float elapsed;
         private float attackRemaining;
         private float workVisualRemaining;
-        private float buildVisualRemaining;
         private bool loop;
         private bool facingLeft;
 
@@ -27,6 +26,29 @@ namespace TinyKingdom.Economy
         private const float FacingEpsilon = 0.01f;
 
         public SpriteRenderer VisualRenderer => visual;
+        public PawnAnimationSet AnimationSet => animationSet;
+        public int CurrentFrameIndex => frame;
+        public float CurrentFrameNormalizedTime => frames != null && frames.Length > 1
+            ? frame / (float)(frames.Length - 1) : 0f;
+        public bool IsLooping => loop;
+        public bool IsBuildAnimationActive => builder != null && builder.IsWorking
+            && animationSet != null && ReferenceEquals(frames, animationSet.Hammer) && loop;
+        public string CurrentAnimationName
+        {
+            get
+            {
+                if (animationSet == null || frames == null) return "None";
+                if (ReferenceEquals(frames, animationSet.Hammer)) return "Hammer";
+                if (ReferenceEquals(frames, animationSet.RunHammer)) return "RunHammer";
+                if (ReferenceEquals(frames, animationSet.IdleHammer)) return "IdleHammer";
+                if (ReferenceEquals(frames, animationSet.Chop)) return "Chop";
+                if (ReferenceEquals(frames, animationSet.Mine)) return "Mine";
+                if (ReferenceEquals(frames, animationSet.Knife)) return "Knife";
+                if (ReferenceEquals(frames, animationSet.Run)) return "Run";
+                if (ReferenceEquals(frames, animationSet.Idle)) return "Idle";
+                return "Other";
+            }
+        }
 
         public void Configure(PawnAnimationSet set)
         {
@@ -52,7 +74,6 @@ namespace TinyKingdom.Economy
             source.enabled = false;
             if (gatherer != null) gatherer.WorkCycleStarted += OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed += OnAttackPerformed;
-            if (builder != null) builder.WorkCycleStarted += OnBuildCycleStarted;
             if (builder != null) builder.RepairImpact += OnRepairImpact;
         }
 
@@ -60,7 +81,6 @@ namespace TinyKingdom.Economy
         {
             if (gatherer != null) gatherer.WorkCycleStarted -= OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed -= OnAttackPerformed;
-            if (builder != null) builder.WorkCycleStarted -= OnBuildCycleStarted;
             if (builder != null) builder.RepairImpact -= OnRepairImpact;
         }
 
@@ -73,9 +93,6 @@ namespace TinyKingdom.Economy
                 workVisualRemaining = 0f;
             else if (workVisualRemaining > 0f)
                 workVisualRemaining = Mathf.Max(0f, workVisualRemaining - Time.deltaTime);
-            if (builder == null || !builder.IsWorking) buildVisualRemaining = 0f;
-            else if (buildVisualRemaining > 0f)
-                buildVisualRemaining = Mathf.Max(0f, buildVisualRemaining - Time.deltaTime);
             if (attackRemaining > 0f)
             {
                 attackRemaining -= Time.deltaTime;
@@ -84,8 +101,9 @@ namespace TinyKingdom.Economy
             if (attackRemaining <= 0f) ChooseStateVisual(false);
             if (frames == null || frames.Length <= 1) return;
             elapsed += Time.deltaTime;
-            float frameDuration = workVisualRemaining > 0f
-                || buildVisualRemaining > 0f ? WorkAnimationDuration / frames.Length : 0.1f;
+            float frameDuration = (workVisualRemaining > 0f
+                || builder != null && builder.IsWorking)
+                    ? WorkAnimationDuration / frames.Length : 0.1f;
             while (elapsed >= frameDuration)
             {
                 elapsed -= frameDuration;
@@ -119,16 +137,6 @@ namespace TinyKingdom.Economy
             Begin(animationSet.Knife, false);
         }
 
-        private void OnBuildCycleStarted()
-        {
-            if (animationSet == null || attackRemaining > 0f
-                || animationSet.Hammer.Length == 0) return;
-            buildVisualRemaining = WorkAnimationDuration;
-            FaceTowards(builder?.Target != null
-                ? builder.Target.transform.position - transform.position : Vector2.zero);
-            Begin(animationSet.Hammer, false);
-        }
-
         private static void OnRepairImpact(BuildingSite site)
         {
             if (site != null && site.TryGetComponent(out BuildingSelectionPulse pulse))
@@ -144,7 +152,7 @@ namespace TinyKingdom.Economy
             {
                 chosen = moving && animationSet.RunHammer.Length > 0
                     ? animationSet.RunHammer
-                    : builder.IsWorking && buildVisualRemaining > 0f
+                    : builder.IsWorking
                         ? animationSet.Hammer
                         : animationSet.IdleHammer.Length > 0
                             ? animationSet.IdleHammer : animationSet.Idle;

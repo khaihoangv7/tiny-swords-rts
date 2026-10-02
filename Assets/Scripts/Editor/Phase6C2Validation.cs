@@ -61,8 +61,8 @@ namespace TinyKingdom.EditorTools
                 && GoldMineObjective.IncomeSeconds == 5f
                 && GoldMineObjective.FireThresholdRatio == 0.60f,
                 "Gold Mine authoritative values mismatch.");
-            Require(Mathf.Approximately(GoldMineObjective.VisualScale, 1.30f)
-                && Mathf.Approximately(GoldMineObjective.VisualGroundOffsetY, 0.17f),
+            Require(Mathf.Approximately(GoldMineObjective.VisualScale, 2.60f)
+                && Mathf.Approximately(GoldMineObjective.VisualGroundOffsetY, 0.92f),
                 "Gold Mine visual scale/ground offset mismatch.");
             BuildingPresentationProfile mineProfile =
                 BuildingPresentationProfiles.For(BuildingType.GoldMine);

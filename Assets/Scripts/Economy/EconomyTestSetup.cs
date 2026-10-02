@@ -6,9 +6,9 @@ using TinyKingdom.Input;
 using TinyKingdom.Presentation;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
-using TinyKingdom.Terrain;
 using TinyKingdom.AI;
 using TinyKingdom.Debugging;
+using TinyKingdom.Terrain;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -16,7 +16,7 @@ namespace TinyKingdom.Economy
     // Phase 5A test content. It is attached only to the Map scene.
     public sealed class EconomyTestSetup : MonoBehaviour
     {
-        [SerializeField] private BattlefieldLayout battlefieldLayout;
+        [SerializeField] private BattlefieldLayout battlefieldLayout = null;
         [SerializeField] private PawnAnimationSet pawnAnimations = null;
         [SerializeField] private PawnAnimationSet redPawnAnimations = null;
         [SerializeField] private UnitCombatData pawnCombatData = null;
@@ -55,6 +55,8 @@ namespace TinyKingdom.Economy
 
         private void Awake()
         {
+            if (redPawnAnimations == null && battlefieldLayout != null)
+                redPawnAnimations = battlefieldLayout.redPawnAnimations;
             if (pawnAnimations == null || pawnAnimations.Idle.Length == 0
                 || redPawnAnimations == null || redPawnAnimations.Idle.Length == 0
                 || pawnCombatData == null || hitFlashShader == null
@@ -92,27 +94,30 @@ namespace TinyKingdom.Economy
             {
                 foreach (BattlefieldResource resource in battlefieldLayout.resources)
                 {
-                    int i = resource.variant;
+                    int variant = resource.variant;
                     bool wood = resource.type == ResourceType.Wood;
                     bool gold = resource.type == ResourceType.Gold;
                     MakeNode(area.transform, resource.name, resource.type,
-                        wood ? economyConfig.TreeCapacity : gold
-                            ? economyConfig.GetGoldStoneCapacity(i) : economyConfig.SheepCapacity,
-                        resource.position, wood ? presentation?.Tree(i) ?? treeSprite
-                            : gold ? presentation?.Gold(i) ?? goldSprite
-                            : First(presentation?.SheepIdle) ?? sheepSprite,
+                        wood ? economyConfig.TreeCapacity
+                            : gold ? economyConfig.GetGoldStoneCapacity(variant)
+                                : economyConfig.SheepCapacity,
+                        resource.position,
+                        wood ? presentation?.Tree(variant) ?? treeSprite
+                            : gold ? presentation?.Gold(variant) ?? goldSprite
+                                : First(presentation?.SheepIdle) ?? sheepSprite,
                         wood ? 1.5f : 0.65f,
-                        wood ? presentation?.Stump(i) ?? treeStumpSprite : null,
-                        gold ? presentation?.GoldHighlight(i) : null,
-                        wood ? presentation?.TreeFrames(i) : null);
+                        wood ? presentation?.Stump(variant) ?? treeStumpSprite : null,
+                        gold ? presentation?.GoldHighlight(variant) : null,
+                        wood ? presentation?.TreeFrames(variant) : null,
+                        gold ? (variant == 5 ? 1.55f : 1.4f)
+                            : UnitVisualPresentation.Scale);
                 }
                 for (int i = 0; i < battlefieldLayout.bluePawns.Length; i++)
-                    feedback.Watch(MakePawn(area.transform, "BluePawn_" + (i + 1),
-                        battlefieldLayout.bluePawns[i]));
+                    feedback.Watch(MakePawn(area.transform, $"BluePawn_{i + 1}",
+                        battlefieldLayout.bluePawns[i], Faction.Blue, pawnAnimations));
                 for (int i = 0; i < battlefieldLayout.redPawns.Length; i++)
-                    MakePawn(area.transform, "RedPawn_" + (i + 1),
-                        battlefieldLayout.redPawns[i], Faction.Red,
-                        battlefieldLayout.redPawnAnimations);
+                    MakePawn(area.transform, $"RedPawn_{i + 1}",
+                        battlefieldLayout.redPawns[i], Faction.Red, redPawnAnimations);
             }
             else
             {
@@ -396,7 +401,7 @@ namespace TinyKingdom.Economy
             visualRoot.transform.localScale = Vector3.one * GoldMineObjective.VisualScale;
             SpriteRenderer mineVisual = MakeVisual(visualRoot.transform,
                 assets?.GoldMineInactive, true);
-            mineVisual.sortingOrder = 10;
+            mineVisual.sortingOrder = 9;
             BoxCollider2D mineCollider = mineObject.AddComponent<BoxCollider2D>();
             mineCollider.size = new Vector2(1.75f, 1.25f);
             mineCollider.offset = new Vector2(0f, 0.1f);
@@ -450,7 +455,8 @@ namespace TinyKingdom.Economy
             visual.gameObject.name = "VisualRoot";
             BuildingVisualPresentation.Apply(visual, BuildingType.Castle,
                 visual.transform.localPosition);
-            GroundSorting.Ensure(obj);
+            GroundSorting.Ensure(obj, false,
+                GroundSorting.GroundOffsetFromVisual(obj.transform, visual));
             BoxCollider2D collider = obj.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(3f, 2f);
             collider.offset = new Vector2(0f, 0.5f);
@@ -575,9 +581,8 @@ namespace TinyKingdom.Economy
             => sprites != null && sprites.Length > 0 ? sprites[0] : null;
 
         private PawnGatherer MakePawn(Transform parent, string name, Vector3 position,
-            Faction faction = Faction.Blue, PawnAnimationSet animations = null)
+            Faction faction, PawnAnimationSet animations)
         {
-            animations ??= pawnAnimations;
             var obj = new GameObject(name);
             obj.transform.SetParent(parent, false);
             obj.transform.position = position;

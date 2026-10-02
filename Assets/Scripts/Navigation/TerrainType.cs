@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace TinyKingdom.Navigation
 {
     public enum TerrainType
@@ -32,20 +34,28 @@ namespace TinyKingdom.Navigation
 
     public readonly struct TerrainHeightConnectorDefinition
     {
-        public int GridX { get; }
+        public int LowerX { get; }
         public int LowerY { get; }
+        public int UpperX { get; }
         public int UpperY { get; }
         public TerrainStairOrientation Orientation { get; }
         public string UpperSpriteName { get; }
         public string LowerSpriteName { get; }
         public int LowerHeight { get; }
 
-        public TerrainHeightConnectorDefinition(int gridX, int lowerY, int upperY,
+        public Vector2Int LowerCell => new(LowerX, LowerY);
+        public Vector2Int UpperCell => new(UpperX, UpperY);
+        // Tiny Swords side-ramp halves are authored as one vertical visual pair.
+        // Navigation endpoints remain diagonal and are intentionally independent.
+        public int VisualX => LowerX;
+
+        public TerrainHeightConnectorDefinition(int lowerX, int lowerY, int upperX, int upperY,
             TerrainStairOrientation orientation, string upperSpriteName,
             string lowerSpriteName, int lowerHeight = 0)
         {
-            GridX = gridX;
+            LowerX = lowerX;
             LowerY = lowerY;
+            UpperX = upperX;
             UpperY = upperY;
             Orientation = orientation;
             UpperSpriteName = upperSpriteName;

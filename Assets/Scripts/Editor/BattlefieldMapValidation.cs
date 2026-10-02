@@ -5,6 +5,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Navigation;
+using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
 using TinyKingdom.Units;
 using UnityEditor;
@@ -170,24 +171,35 @@ namespace TinyKingdom.EditorTools
             for(int i=0;i<BattlefieldTerraces.ConnectorCount;i++)
             {
                 var stair=BattlefieldTerraces.Connector(i);
-                GridCell lower=grid.GetCell(stair.GridX,stair.LowerY);
-                GridCell upper=grid.GetCell(stair.GridX,stair.UpperY);
+                GridCell lower=grid.GetCell(stair.LowerX,stair.LowerY);
+                GridCell upper=grid.GetCell(stair.UpperX,stair.UpperY);
                 Require(lower.TerrainType==TerrainType.Stairs && lower.HeightLevel==stair.LowerHeight
                     && upper.TerrainType==TerrainType.Stairs && upper.HeightLevel==stair.LowerHeight+1,
                     "Invalid side ramp heights: "+i);
                 Require(AStarPathfinder.CanTraverseStep(grid,lower,upper)
                     && AStarPathfinder.CanTraverseStep(grid,upper,lower),"Side ramp cannot be used both ways: "+i);
                 Tilemap map=root.Find("ElevatedGround_L"+(stair.LowerHeight+1)).GetComponent<Tilemap>();
-                Require(map.GetTile<Tile>(new(stair.GridX,stair.LowerY,0))?.sprite?.name==stair.LowerSpriteName
-                    && map.GetTile<Tile>(new(stair.GridX,stair.UpperY,0))?.sprite?.name==stair.UpperSpriteName,
-                    "Visible ramp differs from navigation: "+i);
+                Require(map.GetTile<Tile>(new(stair.VisualX,stair.LowerY,0))?.sprite?.name==stair.LowerSpriteName
+                    && map.GetTile<Tile>(new(stair.VisualX,stair.UpperY,0))?.sprite?.name==stair.UpperSpriteName,
+                    "Visible ramp pair is not in its original shared column: "+i);
+                Require(Mathf.Abs(stair.UpperX-stair.LowerX)==1
+                    && stair.UpperY-stair.LowerY==1,
+                    "Side ramp must cross its height boundary diagonally: "+i);
+                int descentDeltaX=stair.LowerX-stair.UpperX;
+                Require(stair.Orientation==TerrainStairOrientation.DescendsRight
+                        ? descentDeltaX==1 : descentDeltaX==-1,
+                    "Side ramp logical direction does not match its visual orientation: "+i);
             }
             foreach(TerraceDefinition terrace in BattlefieldTerraces.Platforms)
             {
                 Tilemap map=root.Find("ElevatedGround_L"+terrace.Height).GetComponent<Tilemap>();
                 Tilemap shadow=root.Find("Shadow_L"+terrace.Height).GetComponent<Tilemap>();
-                Require(map.GetComponent<TilemapRenderer>().sortingOrder==3+2*terrace.Height
-                    && shadow.GetComponent<TilemapRenderer>().sortingOrder==2+2*terrace.Height,
+                int surfaceOrder=map.GetComponent<TilemapRenderer>().sortingOrder;
+                int shadowOrder=shadow.GetComponent<TilemapRenderer>().sortingOrder;
+                Require((surfaceOrder==GroundSorting.ElevatedTerrainBackgroundOrder(terrace.Height,true)
+                        && shadowOrder==GroundSorting.ElevatedTerrainBackgroundOrder(terrace.Height,false))
+                    || (surfaceOrder==3+2*terrace.Height
+                        && shadowOrder==2+2*terrace.Height),
                     "Terrace layer order invalid.");
                 for(int x=terrace.Surface.xMin;x<terrace.Surface.xMax;x++)
                 for(int y=terrace.Surface.yMin-1;y<terrace.Surface.yMin;y++)
@@ -233,9 +245,9 @@ namespace TinyKingdom.EditorTools
                     for(int flight=other;flight<other+2;flight++)
                     {
                         var stair=BattlefieldTerraces.Connector(flight);
-                        foreach(int y in new[]{stair.LowerY,stair.UpperY})
+                        foreach(Vector2Int endpoint in new[]{stair.LowerCell,stair.UpperCell})
                         {
-                            GridCell cell=grid.GetCell(stair.GridX,y);
+                            GridCell cell=grid.GetCell(endpoint.x,endpoint.y);
                             blocked.Add((cell,cell.Occupied));
                             grid.SetOccupied(cell.GridX,cell.GridY,true);
                         }
@@ -243,15 +255,15 @@ namespace TinyKingdom.EditorTools
                     Vector2 castle=side==0?BattlefieldLayout.BlueCastleStart:BattlefieldLayout.RedCastleStart;
                     Vector2Int start=grid.WorldToGrid(castle)+Vector2Int.down;
                     var gate=BattlefieldTerraces.Connector(entrance);
-                    GridCell from=grid.GetCell(start.x,start.y), to=grid.GetCell(gate.GridX,gate.LowerY);
+                    GridCell from=grid.GetCell(start.x,start.y), to=grid.GetCell(gate.LowerX,gate.LowerY);
                     foreach(var path in new[]{AStarPathfinder.FindPath(grid,from,to),AStarPathfinder.FindPath(grid,to,from)})
                     {
                         Require(path.Count>0,"Castle route blocked when its alternate is closed.");
                         for(int flight=entrance;flight<entrance+2;flight++)
                         {
                             var stair=BattlefieldTerraces.Connector(flight);
-                            Require(path.Any(c=>c.GridX==stair.GridX && c.GridY==stair.LowerY)
-                                && path.Any(c=>c.GridX==stair.GridX && c.GridY==stair.UpperY),
+                            Require(path.Any(c=>c.GridX==stair.LowerX && c.GridY==stair.LowerY)
+                                && path.Any(c=>c.GridX==stair.UpperX && c.GridY==stair.UpperY),
                                 "Castle route skipped one of its two stair flights.");
                         }
                     }
@@ -288,7 +300,7 @@ namespace TinyKingdom.EditorTools
             Transform root=GameObject.Find("Map").transform.Find("BattlefieldScenery");
             var visuals=root.GetComponentsInChildren<SpriteRenderer>();
             Require(layout.resources.Count(r=>r.type==ResourceType.Wood)>=300,"Dense woodland is missing.");
-            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==73,"Expected 60 meadow Sheep, 8 Castle-rim Sheep and 5 Blue upper-court Sheep.");
+            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==73,"Expected 60 meadow Sheep, 8 Castle-rim Sheep and 5 Blue terrace Sheep.");
             Require(visuals.Count(r=>r.name.StartsWith("Cloud_"))==16,"Expected 16 full-cloud illustrations.");
             AmbientCloudDrift[] clouds=root.GetComponentsInChildren<AmbientCloudDrift>();
             Require(clouds.Length==16 && clouds.Count(c=>BattlefieldLayout.IsPond((int)c.Anchor.x,(int)c.Anchor.y))==2,

@@ -232,13 +232,13 @@ before gathering a different resource.
 
 # 8. Unit Types
 
-All gameplay unit artwork uses a presentation-only 1.3 scale on its animated
+All gameplay unit artwork uses a presentation-only 1.6 scale on its animated
 visual child. The unit gameplay root remains `(1,1,1)`, and movement, collider,
 separation, attack range, projectile origin, selection logic and navigation do
 not derive from this visual scale. Animation frame offsets are scaled around
 their verified animation anchor so the unit's ground contact remains stable.
 Unit health bars remain unscaled and use a raised presentation anchor.
-Normal Tree and Sheep visual children use the same 1.3 world-asset scale.
+Normal Tree and Sheep visual children use the same 1.6 world-asset scale.
 Gold Stone 1-5 use 1.4 and Gold Stone 6 uses 1.55 so the largest verified node
 has stronger visual weight. All retain their existing gameplay roots, colliders,
 occupancy and interaction slots. Terrain tiles, UI, cursors, projectiles and VFX
@@ -577,12 +577,15 @@ Units cannot be trained if the population cap would be exceeded.
 Normal faction building art is rendered at presentation scale 1.7 on a
 ground-anchored visual child. The gameplay root remains scale 1.0. Logical
 footprints, construction occupancy, A* blockers, interaction slots, rally,
-drop-off and combat authority do not derive from sprite bounds. Custom-axis Y
-sorting allows a unit north of a building's ground line to pass behind upper
-roof artwork while south-side units remain in front. Health/construction bars,
+drop-off and combat authority do not derive from sprite bounds. Elevation-aware
+sorting projects the building's logical elevation into its ground contact using
+`projectedY = groundY - elevation * cellSize`, then uses that value in the same
+global depth domain as units, resources and terrain foreground faces. This allows
+a lower foreground unit to render over a higher object behind it and a unit north
+of a building's ground line to pass behind upper roof artwork. Health/construction bars,
 damage effects and mounted Archer anchors are positioned from the scaled visual
 but do not inherit its transform scale. Gold Mine keeps its separately tuned
-1.30 presentation scale.
+2.60 presentation scale.
 
 The Main Castle retains its authoritative 3x2 gameplay footprint and collider.
 Its wider 1.7 presentation silhouette reserves one additional navigation cell
@@ -591,6 +594,17 @@ The front approach remains open for Castle drop-off and garrison entry.
 
 `Building Visual Bounds != Building Physical Footprint.` `BuildingRoot` stays
 at `(1,1,1)`; only its `VisualRoot` may use presentation scale.
+
+Phase 6F.1 applies unified projected ground-depth sorting to units, Sheep, Trees,
+Gold, buildings, decorative world props, southern cliff faces and official stairs.
+Unit feet and resource/building ground contacts are sort anchors. Full terrain
+Tilemaps stay background-only and in Chunk mode. This is presentation only:
+navigation, occupancy, combat, economy, Fog authority and balance values are unchanged.
+
+Every successful positive Wood harvest may trigger one subtle Tree visual
+wobble (3.5 degrees for 0.22 seconds). The resource root and interaction area
+remain fixed, repeated impacts refresh the current wobble, and chopping audio
+remains independently driven by the authoritative gather impact.
 
 Clicking a selectable friendly normal building plays one presentation-only
 vertical pulse: 0.94 squash, 1.035 stretch, then recovery to its configured
@@ -1214,6 +1228,22 @@ Minimap.
 
 Minimap is not required for MVP.
 
+Phase 6D.3 command tooltips are presentation only. Train commands obtain costs,
+population, combat stats and training duration from `UnitCombatData`; military
+strengths and weaknesses come from `CombatDamage.Multiplier`. Build commands
+obtain costs, HP, logical footprint, construction duration, population bonus
+and defense capacity from `BuildingData`. Tooltips never spend resources,
+reserve population or decide whether a command is legal. Disabled Train and
+Build commands remain inspectable.
+
+Explicit target modes have first cursor priority. Building placement and
+AttackMove keep their context validity cursor. With no explicit target mode,
+an observable friendly selectable entity uses the existing Hand cursor and
+ordinary terrain uses the Default cursor. A selected production building does
+not implicitly enter a rally targeting mode; right click remains the command
+that attempts to set its rally point. Fog and UI blocking continue to run
+before world hover feedback.
+
 ---
 
 # 39. Match Statistics
@@ -1295,16 +1325,16 @@ empty. Up to three internal Pawns generate 15 Gold each every 5 seconds. A
 partial final payout uses only remaining Gold. Depletion safely ejects Pawns and
 leaves the destroyed visual without an explosion. Combat destruction kills only
 Pawns currently internal, uses normal death authority and leaves the same wreck.
-Its Fire threshold is 0.60; ordinary buildings remain at 0.70.
+Its Fire threshold is 0.60, shared with ordinary completed buildings.
 
-The strategic Gold Mine uses a uniform presentation scale of 1.30 for inactive,
-active and destroyed states. A dedicated visual root adds a +0.17 world-unit Y
+The strategic Gold Mine uses a uniform presentation scale of 2.60 for inactive,
+active and destroyed states. A dedicated visual root adds a +0.92 world-unit Y
 ground-contact correction; the authoritative 2x2 footprint and 1.75x1.25
 interaction collider remain unchanged. Its enlarged Fire presentation uses
 scale 2.47 with anchors (-0.585, 0.13), (0, 0.546), (0.585, 0.156). Its building
 Explosion scale is 2.08. The current 60x44 map places the Gold Mine on flat
 central ground, with its 2x2 footprint beginning at (29,21). Both main Castles
-stand on height-2 upper courts (12x8), nested within spacious 16x13 height-1
+stand on height-2 upper courts (10x7), nested within spacious 16x13 height-1
 terraces. Each base has two independent side routes, each with two ramp flights.
 Single cliff rows are separated by a walkable landing. Each visible Castle ramp and its exact logical height
 transition come from one shared connector definition. Sheep graze above and
@@ -1551,8 +1581,8 @@ the ground destination. It shrinks and fades independently of the red explicit
 Attack marker that follows an enemy. Automatic acquisition and retaliation do
 not create either player-command marker.
 
-A completed damageable building burns while `0 < CurrentHP / MaxHP < 0.70`.
-Repair at or above 70 percent stops the three looping presentation-only Fire
+A completed damageable building burns while `0 < CurrentHP / MaxHP < 0.60`.
+Repair at or above 60 percent stops the three looping presentation-only Fire
 effects; under-construction buildings never burn from construction HP semantics.
 At zero HP, gameplay destruction remains immediate, looping Fire stops and the
 two verified Explosion effects play once as an independent one-shot. Enemy Fire
@@ -1749,30 +1779,42 @@ delay. Phase 7C.3 below adds combat power and strength/casualty retreat. Counter
 production, multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine
 warfare and special final-Castle tactics remain deferred.
 
-# 57. Gameplay SFX Foundation / Initial Audio Integration
+# 57. Gameplay SFX / Phase 6E.2
 
 Gameplay audio is presentation-only and reacts after authoritative actions. It
 must never change combat cooldowns, projectile timing, healing, gathering,
-resource depletion or AI decisions. The initial supported events are Warrior and
-Lancer successful melee attacks, Archer projectile launch, successful Monk heal,
-successful Pawn Gold/Wood gather impacts and positive Sheep resource damage.
+construction, repair, production, match results, resource depletion or AI decisions.
+Supported world events are Warrior/Lancer successful melee attacks, Archer projectile
+launch, successful Monk heal, successful Pawn Gold/Wood impacts, Pawn hammer work,
+building fire and observable building destruction. Sheep Hurt remains disabled.
 
-World SFX uses a fixed pool of twelve positional AudioSources. Provisional per-event
-concurrency is three for Warrior, Lancer and Archer, and two for Monk, mining,
-chopping and Sheep hurt. Master SFX volume defaults to 1.0; per-event volume,
-playback cap, concurrency and optional 0.96-1.04 pitch variation are catalog data.
-These presentation settings do not affect gameplay authority.
+World/UI one-shots start with twelve pooled AudioSources. When all are busy, the pool
+grows by four and reuses the expanded sources. Legitimate instances of the same event
+may overlap without a per-event cap, same-clip cooldown or duplicate suppression. A
+256-source global catastrophic guard exists only to diagnose erroneous frame-spam.
+Fire uses separately owned loop handles so multiple damaged buildings may burn at once.
+Master SFX volume defaults to 1.0; per-event volume, playback cap and optional
+0.96-1.04 pitch variation remain catalog presentation data.
 
 The AudioListener remains on the Main Camera. World SFX uses full 3D spatial blend
 with linear distance rolloff: actions directly below the camera center are loudest,
 and become progressively quieter as the camera center moves away from the source.
+A world SFX request is accepted only while its source point is inside the Main
+Camera viewport. An active clip stops if camera movement takes its source outside
+the viewport. Fog visibility rules remain an additional requirement.
 
-Own-faction world SFX remains audible. Enemy and neutral SFX is eligible only if
+Own-faction world SFX remains eligible. Enemy and neutral SFX is eligible only if
 the source position is currently visible to the local player's faction through
-TeamVisionSystem, preventing audio from revealing hidden actions through Fog.
-Food harvesting has no Pawn sound yet. Hit impacts, unit death, construction,
-building destruction, fire, command/UI, victory/defeat, ambience and music remain
-future audio work; this does not complete the full Phase 6E audio scope.
+TeamVisionSystem, preventing audio from revealing hidden actions through Fog. Fire
+starts below 60% HP, stops at or above 60%, stops when an enemy building leaves Blue
+vision, and ends before its one observable destruction sound.
+
+Building selection, command accepted/rejected, successful building-plan placement,
+Human unit production completion and MatchManager victory/defeat are 2D player
+feedback. Building buttons use authoritative availability/results, so `click` and
+`cant_click` never both play for one click. Match result audio is once per match and
+restart resets that guard. Food harvesting, generic hit/death, ambience, attack-theme
+music and mixer/options UI remain future work. `AUDIO_SPEC.md` owns the exact mapping.
 
 # 58. Phase 7C.3 Combat Strength, Retreat and Recovery
 
@@ -1807,7 +1849,110 @@ and Scout continue. New units remain at Rally during retreat and join recovery a
 home. A failed retreat objective is skipped for 12 seconds before normal legal
 target selection may reconsider it.
 
-# 59. Source of Truth
+# 59. Phase 6D.4 Interaction Presentation
+
+Normal cursor presentation resolves an observable selectable entity before ground
+movement validity when no explicit target mode is active. Sheep, Trees, Gold
+resources, Gold Mine and buildings may use sprite-bound trigger colliders solely
+for pointer queries. Resource hit areas are derived by converting the current
+SpriteRenderer world bounds into the hit-area transform's local collider space and
+are resynchronized when animated resource frames change. Sheep alone adds a small,
+symmetrical 0.08-world-unit pointer padding around those visual bounds so cursor
+hotspot placement remains usable at visible wool/body edge pixels. Existing gameplay
+colliders, logical footprints, grid occupancy, pathfinding blockers, interaction
+slots and combat targeting remain authoritative. UI blocking, Placement and
+AttackMove retain higher cursor priority. Fog-hidden objects never produce
+selectable hover feedback.
+
+Every assigned Pawn becomes an active construction contributor only after reaching
+its reserved interaction position and entering `PawnBuilder.IsWorking`. All active
+contributors loop the verified Hammer animation; walking or waiting builders do
+not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
+that UnitSeparation may apply when a path completes at a reserved slot; builders
+still require movement completion and their own valid reservation before working.
+Construction progress continues to be added by the existing PawnBuilder gameplay
+update and never by animation frames or events. Builder removal, death,
+reassignment and completion stop the presentation through the existing job state.
+Repair continues to use the same working animation and authoritative repair impact.
+
+# 60. Phase 6G.1 Role-Based Army Movement
+
+Human multi-unit Move and ground AttackMove commands arrange final destinations in
+a compact formation oriented from the selected units' ground-position centroid
+toward the clicked point. The local forward axis points toward the command and the
+lateral axis is perpendicular to it, so the layout supports arbitrary directions.
+A near-zero direction deterministically falls back to world right.
+
+The canonical tactical priority is Warrior, Lancer, Archer, Monk and Pawn.
+Missing roles leave no empty slot. Future or non-player unit types use a safe
+middle/rear priority. Compact slots use a default one-cell spacing and are ordered
+from the leading row toward the rear; roles receive the earliest available slots
+in canonical order. Roles may share a row when its geometry has several positions.
+Within a role, deterministic nearest-pair matching minimizes travel and uses stable
+EntityId order to resolve ties.
+
+Desired geometry is corrected through the existing logical grid destination
+distribution. Final cells must be unique, walkable, unoccupied and on the clicked
+cell's logical height. Slot scoring performs no path searches; each assigned unit
+uses its existing A* request only when the command is issued. Single-unit commands
+retain their previous clicked-destination behavior. Formation is an arrival layout,
+not a rigid leader/follower system: A*, UnitSeparation and combat behavior remain
+authoritative during travel and engagement. Phase 6G.1 changes only Human group
+commands; RuleBasedCommander movement keeps its existing APIs and assignments.
+
+# 61. Phase 6G.2 Player Formation Commands and Shapes
+
+The Human command state exposes exactly four `FormationType` values: `Compact`,
+`Wedge`, `Loose` and `Line`. Compact is the match-start default, and the latest
+selection persists in `PlayerCommandController` when the player changes unit
+selection. There is no Column or SingleColumn formation.
+
+Formation type generates role-agnostic desired geometry around the command anchor.
+The existing Phase 6G.1 role priority then assigns units to those tactical slots,
+and the existing bounded logical-grid correction resolves each desired point to a
+unique walkable, unoccupied cell at the command height. UnitMovement, A*,
+UnitSeparation and combat remain authoritative after command issue. Formation is
+recalculated only for an explicit formation choice, Move or ground AttackMove;
+combat is free to break it and no Update loop continuously restores it.
+
+Player-selectable Phase 6G.2 formations are military-only. The single canonical
+eligibility rule explicitly admits Warrior, Lancer, Archer and Monk; Pawn and any
+unknown/future unit type are excluded. Formation buttons require at least two
+living, friendly, controllable eligible military units. Selected Pawns never enter
+formation slot generation, role assignment, centroid calculation or reform-in-place,
+and a formation-button click never moves them or cancels their economy jobs.
+
+Compact uses a tight adaptive multi-row block at one-cell spacing. Wedge starts
+with one leading slot and widens each rear row by one; incomplete final rows are
+centered. Loose uses the Compact block with a provisional 1.65 spacing multiplier
+on both axes. Compact, Wedge and Loose order tactical slots from front to rear, so
+Warrior, Lancer, Archer and Monk receive progressively later slots without
+reserving empty role rows.
+
+Line is exactly one lateral rank perpendicular to the group forward axis. Odd
+counts contain one center slot; even counts use symmetric half spacing around the
+center. Its tactical slot order is center-to-wing, so canonical role priority puts
+Warriors nearest the center, followed by Lancers, Archers and Monks toward the
+wings. It never creates a second row merely because the selected group is
+large. All four shapes share the same normalized forward axis from group centroid
+to command point and perpendicular lateral axis, including diagonal movement.
+
+Selecting a formation with at least two valid eligible military units immediately
+issues a normal reform move around their military-only centroid. It uses the last
+meaningful group movement direction, or deterministic world right before one has
+been established. Selecting a different shape while moving replaces the units'
+previous destinations through the normal latest-command path. Single-unit movement
+and direct target Attack keep their previous behavior.
+
+A normal ground Move remains an explicit command for every selected controllable
+unit. With a mixed selection, the military subset uses the selected formation and
+Pawns use the existing nearby logical destination distribution outside the cells
+reserved by the military formation. Pawns do not influence the military centroid
+or facing, but their normal Move still cancels their previous job as it did before.
+Ground AttackMove preserves its existing combat-unit eligibility and applies the
+formation only to formation-eligible military participants.
+
+# 62. Source of Truth
 
 This file defines gameplay rules.
 

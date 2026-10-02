@@ -22,6 +22,7 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.ScoutRetreat");
         [SerializeField, Min(0.05f)] private float arrivalDistance = 0.35f;
         [SerializeField, Min(0.5f)] private float unreachableRetrySeconds = 5f;
+        [SerializeField, Min(0.5f)] private float frontierRetrySeconds = 2f;
         [SerializeField, Min(1)] private int minimumPawnsForWorkerScout = 4;
 
         private readonly Dictionary<int, float> blockedUntil = new();
@@ -32,6 +33,9 @@ namespace TinyKingdom.AI
         private string dangerReason = "None";
         private Vector2Int retreatCell;
         private bool hasRetreatDestination;
+        private bool explorationExhausted;
+        private int exploredCellsAtExhaustion;
+        private float nextFrontierSearchTime;
 
         public UnitController Scout => scout;
         public bool HasDestination => hasDestination;
@@ -42,6 +46,9 @@ namespace TinyKingdom.AI
         public bool HasRetreatDestination => hasRetreatDestination;
 
         public int MinimumPawnsForWorkerScout => minimumPawnsForWorkerScout;
+        public bool ExplorationExhausted => explorationExhausted;
+        public uint SuccessfulDestinationSerial { get; private set; }
+        public float LastSuccessfulDestinationTime { get; private set; } = -1f;
 
         public void Reset()
         {
@@ -50,6 +57,11 @@ namespace TinyKingdom.AI
             safetyState = ScoutSafetyState.Exploring;
             dangerReason = "None";
             hasRetreatDestination = false;
+            explorationExhausted = false;
+            exploredCellsAtExhaustion = 0;
+            nextFrontierSearchTime = 0f;
+            SuccessfulDestinationSerial = 0;
+            LastSuccessfulDestinationTime = -1f;
             blockedUntil.Clear();
         }
 
@@ -59,6 +71,12 @@ namespace TinyKingdom.AI
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
             StrategicSafetyMap safety)
         {
+            if (explorationExhausted)
+            {
+                if (context.Knowledge.ExploredCellCount <= exploredCellsAtExhaustion)
+                    return;
+                explorationExhausted = false;
+            }
             UnitController preferred = ChooseScout(context.Knowledge, roles);
             if (!IsUsableScout(context, scout)
                 || (preferred != null && ScoutPriority(preferred) < ScoutPriority(scout)))
@@ -109,6 +127,8 @@ namespace TinyKingdom.AI
                 hasDestination = false;
             }
 
+            if (context.Time < nextFrontierSearchTime) return;
+
             const int maxAttemptsPerThink = 4;
             for (int attempt = 0; attempt < maxAttemptsPerThink; attempt++)
             {
@@ -121,7 +141,10 @@ namespace TinyKingdom.AI
                     {
                         ReleasePawnScout(roles);
                         scout = null;
+                        explorationExhausted = true;
+                        exploredCellsAtExhaustion = context.Knowledge.ExploredCellCount;
                     }
+                    else nextFrontierSearchTime = context.Time + frontierRetrySeconds;
                     hasDestination = false;
                     return;
                 }
@@ -131,12 +154,15 @@ namespace TinyKingdom.AI
                 {
                     destinationCell = frontier;
                     hasDestination = true;
+                    SuccessfulDestinationSerial++;
+                    LastSuccessfulDestinationTime = context.Time;
                     return;
                 }
                 blockedUntil[CellKey(frontier, grid.Width)] =
                     context.Time + unreachableRetrySeconds;
             }
             hasDestination = false;
+            nextFrontierSearchTime = context.Time + frontierRetrySeconds;
         }
 
         private static bool HasAnyFrontier(CommanderDecisionContext context)

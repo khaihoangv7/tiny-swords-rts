@@ -21,8 +21,8 @@ namespace TinyKingdom.Terrain
         {
             new(5,8,16,13,1,3),   // Blue lower landing and construction terrace.
             new(39,24,16,13,1,3), // Red equivalent lower terrace.
-            new(7,12,12,8,2,3),   // Inset upper Castle courts; a visible landing separates cliffs.
-            new(41,28,12,8,2,3)
+            new(8,14,10,7,2,3),   // Narrower upper courts extend to the rear rim and open the lower landing.
+            new(42,30,10,7,2,3)
         };
 
         public const int MaxHeight = 2;
@@ -30,18 +30,19 @@ namespace TinyKingdom.Terrain
         public static TerrainHeightConnectorDefinition Connector(int i) => i switch
         {
             0 => Stair(21,15,0,3,false), // Blue east: ground -> landing -> court.
-            1 => Stair(19,16,1,3,false),
+            1 => Stair(18,16,1,3,false),
             2 => Stair(4,12,0,3,true),   // Blue west, independent second route.
-            3 => Stair(6,13,1,3,true),
+            3 => Stair(7,13,1,3,true),
             4 => Stair(38,29,0,3,true), // Red west: inward-facing main route.
-            5 => Stair(40,30,1,3,true),
+            5 => Stair(41,30,1,3,true),
             6 => Stair(55,28,0,3,false),// Red east, independent second route.
-            7 => Stair(53,29,1,3,false),
+            7 => Stair(52,29,1,3,false),
             _ => throw new System.ArgumentOutOfRangeException(nameof(i))
         };
 
         private static TerrainHeightConnectorDefinition Stair(int x,int lowerY,int height,int color,bool left)
-            => new(x,lowerY,lowerY+1,left ? TerrainStairOrientation.DescendsLeft : TerrainStairOrientation.DescendsRight,
+            => new(x,lowerY,x+(left?1:-1),lowerY+1,
+                left ? TerrainStairOrientation.DescendsLeft : TerrainStairOrientation.DescendsRight,
                 $"Tilemap_color{color}_r4c{(left?0:3)}",$"Tilemap_color{color}_r5c{(left?0:3)}",height);
 
         public static bool TryConnectorCell(int x,int y,out TerrainHeightConnectorDefinition connector)
@@ -49,7 +50,8 @@ namespace TinyKingdom.Terrain
             for(int i=0;i<ConnectorCount;i++)
             {
                 connector=Connector(i);
-                if(x==connector.GridX && (y==connector.LowerY || y==connector.UpperY)) return true;
+                Vector2Int cell=new(x,y);
+                if(cell==connector.LowerCell || cell==connector.UpperCell) return true;
             }
             connector=default; return false;
         }
@@ -67,9 +69,10 @@ namespace TinyKingdom.Terrain
             if(TryConnectorCell(x,y,out TerrainHeightConnectorDefinition stair))
             {
                 cell.terrainType=TerrainType.Stairs;
-                cell.heightLevel=y==stair.LowerY ? stair.LowerHeight : stair.LowerHeight+1;
+                bool lower=new Vector2Int(x,y)==stair.LowerCell;
+                cell.heightLevel=lower ? stair.LowerHeight : stair.LowerHeight+1;
                 cell.hasHeightConnection=true;
-                cell.heightConnection=new Vector2Int(x,y==stair.LowerY ? stair.UpperY : stair.LowerY);
+                cell.heightConnection=lower ? stair.UpperCell : stair.LowerCell;
             }
             return cell;
         }

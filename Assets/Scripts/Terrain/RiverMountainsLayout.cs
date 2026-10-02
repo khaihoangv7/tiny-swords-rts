@@ -34,7 +34,7 @@ namespace TinyKingdom.Terrain
             if (red) x = Width - 1 - x;
             int lowerY=20;
             int column = red ? 0 : 3;
-            return new TerrainHeightConnectorDefinition(x,lowerY,lowerY+1,
+            return new TerrainHeightConnectorDefinition(x,lowerY,x,lowerY+1,
                 red ? TerrainStairOrientation.DescendsLeft : TerrainStairOrientation.DescendsRight,
                 $"Tilemap_color3_r4c{column}", $"Tilemap_color3_r5c{column}", local == 0 ? 0 : 1);
         }
@@ -44,7 +44,7 @@ namespace TinyKingdom.Terrain
             for (int i=0;i<ConnectorCount;i++)
             {
                 stair=Connector(i);
-                if (x==stair.GridX && (y==stair.LowerY || y==stair.UpperY)) return true;
+                if (x==stair.VisualX && (y==stair.LowerY || y==stair.UpperY)) return true;
             }
             stair=default;
             return false;
@@ -55,7 +55,7 @@ namespace TinyKingdom.Terrain
             for (int i=0;i<ConnectorCount;i++)
             {
                 stair=Connector(i);
-                if (x==stair.GridX && y>=stair.LowerY && y<=stair.UpperY+RampCopyOffset) return true;
+                if (x==stair.VisualX && y>=stair.LowerY && y<=stair.UpperY+RampCopyOffset) return true;
             }
             stair=default;
             return false;

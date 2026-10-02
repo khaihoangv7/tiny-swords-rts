@@ -351,7 +351,7 @@ Status: **PASS** - Unity Play Mode validation completed before Phase 6C.
 - [x] Face Pawn gather/build/repair and explicit knife work toward the interaction target
 - [x] Preserve Lancer directional attack selection and horizontal flip for left-side equivalents
 - [x] Map Fire_01/02/03 as 8/10/12-frame 64px, 10 FPS looping effects
-- [x] Burn completed buildings only below 70 percent HP and stop Fire after repair to 70 percent or more
+- [x] Burn completed buildings only below 60 percent HP and stop Fire after repair to 60 percent or more
 - [x] Map Explosion_01/02 as 8/10-frame 192px, 10 FPS one-shots and play both once on building death
 - [x] Replace damaged-building bars with BigBar static frame plus one left-anchored continuous fill; keep unit SmallBar unchanged
 - [x] Keep construction progress separate, raise garrison count clearance and suppress enemy damage VFX through Fog
@@ -361,7 +361,7 @@ Status: **PASS** - Unity Play Mode validation completed before Phase 6C.
 - [x] Manual Play Mode: rapid nearby/same-direction path replacement without local backtracking or oscillation
 - [x] Manual Play Mode: movement/attack facing for both factions and Pawn resource/build/repair facing
 - [x] Manual Play Mode: all Lancer attack directions including flipped left-side equivalents
-- [x] Manual Play Mode: building 80/69 percent HP, repair across 70 percent and no Fire during construction
+- [x] Manual Play Mode: building 61/59 percent HP, repair across 60 percent and no Fire during construction
 - [x] Manual Play Mode: BigBar fill/visibility and Tower/Castle garrison-count stacking
 - [x] Manual Play Mode: House/Barracks/Tower/Castle destruction, two one-shot Explosions and immediate gameplay cleanup/ejection
 - [x] Manual Play Mode: hidden enemy Fire/Explosion, full Fog/gameplay regression and clean Console
@@ -502,7 +502,7 @@ not started.
 - [x] Preserve internal Pawn population; depletion ejects safely and combat destruction kills internal Pawns only
 - [x] Reuse building combat, health bar, 0.60 profile Fire, Explosion_01/02 and persistent wreck presentation
 - [x] Extend Fog visibility and last-seen memory to Gold Mine without Goblin unit ghosts or hidden-state leaks
-- [x] Increase both Main Castles from 1000 to 2000 HP while preserving normal 0.70 Fire threshold
+- [x] Increase both Main Castles from 1000 to 2000 HP while preserving the shared Fire threshold
 - [x] Remove obsolete broad Goblin/Gold Mine ignore rules and explicitly unignore active runtime textures
 - [x] Verify and document exact asset paths, dimensions, frames, tags, variants and import requirements
 - [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
@@ -583,6 +583,85 @@ Mode inspection remain required. No later gameplay, AI or RL phase has started.
 - [ ] Verify unit/build/production/Eject All command availability, disabled states, hotkeys and costs
 - [ ] Verify hold-to-Guard remains active for the complete mouse hold and AttackMove retains existing behavior
 - [ ] Verify building placement, production, economy, combat, Fog, cursor, camera, Match Result and clean Console regressions
+
+## Phase 6D.3 - Command Tooltips and Cursor Interaction Polish
+
+Status: **NOT COMPLETE** - implementation and independent Runtime/Editor
+compile checks pass with 0 errors and 0 warnings. Edit Mode/Play Mode validation
+and manual visual tests remain required before PASS.
+
+- [x] Root-cause selected-building Forbidden cursor as implicit rally-point validation taking priority over selectable hover
+- [x] Restore explicit target mode > selectable Hand > normal terrain Default cursor priority
+- [x] Add one persistent SpecialPaper command tooltip above the command panel
+- [x] Add pointer triggers to all reusable command slots, including disabled buttons
+- [x] Read Train costs/stats/times from UnitCombatData and Build values from BuildingData
+- [x] Derive Warrior/Archer/Lancer matchup labels from CombatDamage.Multiplier
+- [x] Describe Pawn worker and Monk healer roles from current gameplay behavior
+- [x] Reuse RtsHudAssetCatalog Food/Wood/Gold/Population icons with affordability coloring
+- [x] Clear tooltip on pointer exit, selection change, command reuse/hide, match end and HUD teardown
+- [x] Replace the fixed 460x250 tooltip with compact 240/286/320-width content sizing and auto height
+- [x] Remove inactive Cost, Stats and Details sections from vertical space calculation
+- [x] Follow the Input System pointer with a 30-unit offset while visible only
+- [x] Flip left/below at screen edges and clamp inside an 8-unit safe margin
+- [x] Keep SpecialPaper frame fitted to the computed root and all tooltip raycasts disabled
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.3 UI`
+- [x] Run runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run Phase 6D.3 validator in Edit Mode and Play Mode
+- [ ] Manual Play Mode: verify Train Pawn/Warrior/Archer/Lancer/Monk tooltip content
+- [ ] Manual Play Mode: verify House A/B/C, Barracks, Archery, Monastery and Tower tooltip content
+- [ ] Manual Play Mode: verify disabled/unaffordable/full-population command hover and red cost styling
+- [ ] Manual Play Mode: verify rapid hover/selection, match end/restart and no tooltip flicker or stale content
+- [ ] Manual Play Mode: verify Barracks/House shrink, Warrior/Tower growth and no clipped wrapped text
+- [ ] Manual Play Mode: verify cursor following plus left/below flipping and clamping at screen edges/corners
+- [ ] Manual Play Mode: verify tall-to-short and short-to-tall transitions do not retain stale root size
+- [ ] Manual Play Mode: verify Castle-selected same/other-building Hand cursor regression
+- [ ] Manual Play Mode: verify placement/AttackMove override, Fog anti-leak and UI-over-world cursor behavior
+- [ ] Manual Play Mode: verify Blue controls, Red AI, buildings and Console remain regression-free
+
+## Phase 6D.4 - Interaction Cursor and Multi-Builder Animation Polish
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime/
+Editor compile checks pass with 0 errors and 0 warnings. Unity validator and manual
+Play Mode tests remain required before PASS.
+
+- [x] Diagnose Castle/Gold false Forbidden states as sprite coverage falling outside root colliders
+- [x] Diagnose Sheep remainder as animated frame/pivot changes leaving its initial hit area stale
+- [x] Diagnose Tree remainder as Wood being omitted from authoritative ResourceNode hit-area setup
+- [x] Resolve normal observable entity hover before raw ground movement validity
+- [x] Preserve UI > Placement/AttackMove > normal selectable hover > terrain priority
+- [x] Add sprite-bound trigger-only `SelectionHitArea` without changing gameplay colliders
+- [x] Add selection coverage to Sheep, every Tree variant, Gold resources, Gold Mine, Castle and constructed buildings
+- [x] Convert current world sprite bounds into SelectionHitArea local collider space
+- [x] Resynchronize animated Sheep/Tree hit areas after presentation frame changes
+- [x] Use a reusable non-alloc cursor overlap buffer with trigger and all-layer coverage
+- [x] Verify cursor hotspots remain 22/17 Default, 24/18 Hand and 32/31 Forbidden before 1.5x scaling
+- [x] Add a small symmetric 0.08-world-unit Sheep-only selection padding for visible edge pixels
+- [x] Keep padding out of gameplay collider, gather range, slots, navigation and resource rules
+- [x] Resolve selection and contextual commands through the hit-area target root
+- [x] Preserve Fog/resource observability and friendly-building faction checks
+- [x] Remove the incomplete diagnosis that only the 0.5-second/0.8-second visual cadence caused the multi-builder bug
+- [x] Diagnose secondary IdleHammer as terminal UnitSeparation displacement exceeding PawnBuilder's former 0.1 arrival check
+- [x] Align builder arrival with a small 0.2 terminal tolerance while still requiring movement completion and a reserved slot
+- [x] Loop verified Hammer frames while each Pawn's authoritative `IsWorking` state is true
+- [x] Preserve RunHammer during approach and IdleHammer before active participation
+- [x] Preserve construction progress, duration, interaction slots and work-cycle SFX
+- [x] Stop Hammer presentation through existing leave/death/reassignment/completion lifecycle
+- [x] Preserve repair Hammer animation and authoritative repair impact
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.4 Interaction Polish`
+- [x] Run independent Runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run Phase 6D.4 validator in Edit Mode and Play Mode
+- [ ] Manual: Pawn selected, Sheep lower/center/upper/left/right visible artwork shows Hand
+- [ ] Manual: Pawn selected, Tree trunk/center/top/left/right canopy shows Hand for every variant
+- [ ] Manual: right-click through Sheep/Tree expanded hit areas resolves normal Gather command
+- [ ] Manual: Pawn selected, every Gold variant center/upper artwork shows Hand
+- [ ] Manual: Castle center/left/right visible artwork shows Hand; just outside returns terrain cursor
+- [ ] Manual: UI blocking, Placement, AttackMove and Fog-hidden object cursor priority
+- [ ] Manual: one, two and three-plus builders all report AtSlot/IsWorking/contributor/Hammer after reaching distinct slots
+- [ ] Manual: staggered arrival, Move-away, death and late join update animation independently
+- [ ] Manual: all builders stop on completion and repair animation still works
+- [ ] Compare construction duration before/after with equal builder count
+- [ ] Verify gathering, Castle drop-off, building placement, combat, Red AI and audio regressions
+- [ ] Confirm Unity Console has no new errors or warnings
 
 ## Phase 7A - Rule-Based Commander Foundation
 
@@ -900,27 +979,72 @@ and Profiler comparison remain required before PASS.
 - [ ] Profile Commander/strength/retreat/recovery markers, path requests, GC and FPS
 - [ ] Confirm Unity Console has no new errors or warnings
 
+## Phase 7D - Full Rule-Based AI Integration, Balancing and Match Regression
+
+Status: **NOT COMPLETE** - integration hardening, progress diagnostics, validator,
+documentation and independent Runtime / Editor compilation are complete. Full-match
+Play Mode scenarios and actual Profiler validation remain mandatory before PASS.
+
+- [x] Audit policy order and preserve one legal FactionKnowledge/FactionCommandService path
+- [x] Preserve exclusive Pawn Economy/Scout/Builder ownership and Scout/Army separation
+- [x] Use configured 75% normal Army staging instead of a 100% straggler-sensitive gate
+- [x] Bound PreparingAttack to 10 seconds with a deterministic 60% fallback
+- [x] Fail and cool down an objective cleanly when timeout assembly remains below 60%
+- [x] Add stable Scout frontier-exhaustion standby and two-second blocked-frontier retry
+- [x] Add low-frequency Commander progress timestamps without gameplay overrides
+- [x] Keep optional 25-second stall warning disabled by default and rate limited
+- [x] Record final provisional Rule-Based tuning and intentional limitations
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7D Full Match`
+- [x] Preserve anti-wallhack, Strategic Safety, deterministic ordering and shared commands
+- [x] Preserve all core gameplay stats, audio pause, disabled Goblins and current UI
+- [x] Independent Runtime and Editor C# compile checks: 0 errors, 0 warnings
+- [ ] Refresh Unity assets and run `Validate Phase 7D Full Match` in Play Mode
+- [ ] Scenario: passive Blue; Red economy, infrastructure, Army, Scout and offense progress
+- [ ] Scenario: early Blue pressure; defense resolves and normal progression resumes
+- [ ] Scenario: Red successful offense; target resolves and survivors regroup
+- [ ] Scenario: failed offense; Retreat -> Recovery -> reinforcement -> later campaign
+- [ ] Scenario: deplete local resources; workers switch safely or remain legitimately Idle
+- [ ] Scenario: kill Scout and Builder; roles/projects recover without duplicates
+- [ ] Scenario: destroy Barracks/Archery; core infrastructure is rebuilt when affordable
+- [ ] Scenario: wipe Red Army; production forms a new Army and strategy resumes
+- [ ] Scenario: undiscovered Blue Castle is never targeted, then becomes legal after scouting
+- [ ] Scenario: stale hidden building memory clears only after legal re-observation
+- [ ] Scenario: Red destroys Blue Castle and normal MatchManager result stops all new AI commands
+- [ ] Scenario: Blue destroys Red Castle and Commander stops without exception
+- [ ] Restart during economy, construction, offense, retreat, recovery and after Match End
+- [ ] Run at least three long/full sessions; recommended 10-15 minutes where practical
+- [ ] Profile early, mid, active combat and late match FPS / GC Alloc / Commander cost
+- [ ] Confirm no repeated identical A*, runtime scene search, warning spam or registry growth
+- [ ] Verify Blue controls, Fog, buildings, HUD and Console regressions
+
+### Phase 8A - RL Environment Foundation (roadmap only)
+
+- [ ] Begin only after Phase 7D full-match and Profiler gates pass
+- [ ] Reuse FactionKnowledge observations and FactionCommandService actions
+- [ ] Define environment reset, legal observation tensor, action mask and baseline metrics
+- [ ] Do not grant omniscience, low-level unit control or Rule-Based-only cheats
+
 ## Gameplay SFX Foundation / Initial Audio Integration
 
 Status: **NOT COMPLETE** - implementation and data setup are present. Unity asset
 refresh, Edit/Play Mode validator runs and manual listening/Fog regression tests
 remain required before PASS. This is not the full Phase 6E audio phase.
 
-- [x] Add a serialized GameplayAudioCatalog with seven verified clip references
-- [x] Add a persistent GameplayAudioService with a fixed 12-source world SFX pool
-- [x] Add per-event volume, concurrency, playback cap and optional subtle pitch tuning
+- [x] Add a serialized GameplayAudioCatalog with six active initial clip references
+- [x] Add a persistent GameplayAudioService with a 12-source initial reusable pool
+- [x] Add per-event volume, playback cap and optional subtle pitch tuning
 - [x] Add SfxVolume with default 1.0 for future settings/mixer integration
 - [x] Trigger Warrior/Lancer only after successful melee damage
 - [x] Trigger Archer at actual projectile creation
 - [x] Trigger Monk only after positive HP restoration
 - [x] Trigger mining/chopping only after positive resource transfer
-- [x] Trigger SheepHurt only for positive Food removal on verified Sheep resources
+- [x] Preserve the requested removal of Sheep Hurt playback
 - [x] Suppress hidden enemy/neutral world SFX through current TeamVision visibility
 - [x] Stop and reset pooled sources on Match End and scene reload
 - [x] Preserve one existing Main Camera AudioListener and add no listener
 - [x] Add `Tools > Tiny Kingdom > Prepare Gameplay Audio`
 - [x] Add `Tools > Tiny Kingdom > Validate Gameplay Audio`
-- [x] Reduce Mining, Chopping and Sheep Hurt volume to provisional 0.45
+- [x] Keep provisional Mining 0.20 and Chopping 0.65 volume tuning
 - [x] Skip the silent first 3.0 seconds of the supplied Chopping clip
 - [x] Use Main Camera centered linear distance attenuation for world SFX
 - [ ] Refresh assets and run Prepare/Validate in Unity Edit Mode
@@ -930,4 +1054,145 @@ remain required before PASS. This is not the full Phase 6E audio phase.
 - [ ] Verify hidden Red combat and hidden Sheep damage produce no audio leak
 - [ ] Verify camera distance attenuation, multi-unit concurrency and economy load
 - [ ] Verify Match End/Restart, Blue controls, Red AI, Fog and clean Console
-- [ ] Add Pawn Food, impacts, death, building, UI/result, ambience and music later
+- [ ] Add Pawn Food, generic impacts/death, ambience and music later
+
+## Phase 6E.2 - Extended Gameplay SFX, Building Audio and UI Notifications
+
+Status: **NOT COMPLETE** - runtime/editor code and serialized mappings are implemented,
+and both assemblies compile with zero errors. Unity Edit/Play Mode validator runs,
+manual listening, Fog, overlap and restart validation remain before PASS.
+
+- [x] Verify Castle, House, Barracks, Archery, Monastery and Tower selection clips
+- [x] Record that no Gold Mine selection clip is supplied
+- [x] Add successful building-selection acknowledgement and allow explicit reselect
+- [x] Align building Fire VFX/audio threshold to below 60% HP
+- [x] Add one Fog-aware positional Fire loop handle per observable damaged building
+- [x] Stop Fire at 60%+, on destruction, Match End, loss of vision and scene reload
+- [x] Add one observable positional building-destruction sound
+- [x] Add 2D building-plan sound only after successful Human placement
+- [x] Add two Pawn hammer variations for real construction cycles/positive repairs
+- [x] Add accepted/rejected command-button feedback from authoritative command result
+- [x] Keep visually disabled command buttons non-executable while allowing reject audio
+- [x] Add Human production-finished notification after successful spawn only
+- [x] Add once-per-match Victory/Defeat audio from `MatchManager.MatchEnded`
+- [x] Replace per-event concurrency/cooldown suppression with expandable source pooling
+- [x] Permit simultaneous identical combat, work, explosion and queue SFX
+- [x] Preserve viewport attenuation and TeamVision anti-wallhack rules for world audio
+- [x] Add separate 2D path for direct player feedback and result audio
+- [x] Add Phase 6E.2 setup/validator and debug source counters
+- [x] Add `AUDIO_SPEC.md` and update gameplay/asset documentation
+- [x] Compile Runtime and Editor assemblies with zero errors/warnings
+- [ ] Run `Prepare Gameplay Audio` after Unity finishes refreshing assets
+- [ ] Run Phase 6E.2 validator in Edit Mode
+- [ ] Run Phase 6E.2 validator in Play Mode and record pool/loop counters
+- [ ] Manually test all building selection mappings and repeat-selection behavior
+- [ ] Manually test 59%/60% Fire lifecycle, repair, multiple fires and Fog suspension
+- [ ] Manually test visible/hidden destruction and simultaneous explosions
+- [ ] Manually test valid/invalid placement and build command two-sound flow
+- [ ] Manually test two hammer variations, multiple builders and positive repair impacts
+- [ ] Manually test accepted/rejected/disabled command buttons and mutual exclusion
+- [ ] Manually test own queue completion and hidden Red production anti-leak
+- [ ] Manually test Victory, Defeat, once-per-match guard and Restart reset
+- [ ] Stress simultaneous combat/economy audio and inspect Audio CPU/GC/pool growth
+- [ ] Confirm the Unity Console remains clean
+- [ ] Decide separately whether to integrate the supplied `attack_theme.mp3`
+
+## Phase 6F.1 - Elevation-Aware World Sorting, Animated Bushes and Tree Chop Feedback
+
+Status: **PASS** - implementation and projected-depth hotfix compile cleanly;
+manual Play Mode visual/regression validation was confirmed on 2026-10-02.
+
+- [x] Make logical `GridCell.HeightLevel` authoritative for projected world depth
+- [x] Replace absolute elevation bands with one global projected ground-depth domain
+- [x] Project each ground contact by one visual cell per logical elevation level
+- [x] Dynamically update all unit types and wandering Sheep across connectors
+- [x] Interpolate presentation elevation continuously across reciprocal connectors
+- [x] Resolve Trees, Gold, buildings, mine and decorative props from their ground cell
+- [x] Keep full terrain Tilemaps background-only and in Chunk mode
+- [x] Give southern cliff faces and official stair halves projected foreground copies
+- [x] Keep world orders below existing Fog/presentation overlays
+- [x] Verify Bushe1..4 paths, Aseprite tags, eight-frame sequences and 100 ms timing
+- [x] Classify Bushe1/3 as LARGE (1.50) and Bushe2/4 as SMALL (1.25)
+- [x] Preserve Point, 100 PPU, uncompressed, no-mipmap, Clamp bush imports
+- [x] Animate bushes through one shared frame scheduler with deterministic phases
+- [x] Trigger one 3.5 degree / 0.22 second Tree wobble per successful Wood take
+- [x] Refresh rather than queue repeated impacts and restore exact rotation safely
+- [x] Preserve roots, hit areas, navigation, Fog authority and chopping SFX
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6F.1 World Presentation`
+- [ ] Run the Phase 6F.1 validator in Edit and Play Mode when Unity licensing is available
+- [x] Reproduce lower Sheep vs higher Tree and lower Pawn vs upper cliff cases
+- [x] Verify same-level Pawn/Sheep vs Tree/Bush front/back Y sorting
+- [x] Verify level 1 Pawn, Sheep and building can cover level 2/3 background props
+- [x] Verify a genuinely foreground higher-level object still covers a lower-level object
+- [x] Verify level 1/2/3 objects can interleave by projected depth without level blocks
+- [x] Verify projected southern cliff faces occlude only at the intended contact depth
+- [x] Move Pawn, Warrior, Archer, Lancer and Monk through official stairs without flicker
+- [x] Verify Sheep, Tree, Gold, Castle and all constructible buildings across valid levels
+- [x] Observe all four Bush loops for sharpness, frame order, stable pivots and desynchronization
+- [x] Verify single/multiple Pawn chop wobble, stable Hand cursor and safe final depletion
+- [x] Confirm Fog, health bars, selection rings, Console, Profiler and GC regressions
+
+## Phase 6G.1 - Role-Based Army Movement and Frontline Ordering
+
+Status: **NOT COMPLETE** - implementation and automated validator are present;
+directional Play Mode, AI regression, Fog regression and Console validation remain.
+
+- [x] Centralize Warrior, Lancer, Archer, Monk and Pawn formation priority
+- [x] Derive forward/right axes from group centroid toward the Human command point
+- [x] Generate compact role rows with configurable one-cell spacing
+- [x] Collapse absent roles without reserving empty rows
+- [x] Assign same-role units by deterministic nearest-pair matching and EntityId ties
+- [x] Correct desired slots through existing bounded logical-grid distribution
+- [x] Preserve unique, walkable, unoccupied, same-height destination cells
+- [x] Keep one selected unit on the previous command path without formation offsets
+- [x] Apply the planner to Human Move and eligible ground AttackMove commands
+- [x] Preserve direct-target Attack, A*, UnitSeparation, combat and unit speeds
+- [x] Leave FactionCommandService and RuleBasedCommander call sites unchanged
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6G.1 Role Formation`
+- [ ] Run the Phase 6G.1 validator in Unity Edit Mode
+- [ ] Test right, left, up, down and four diagonal Human group commands
+- [ ] Test mixed roles, ranged-only, Pawn-inclusive and same-role groups
+- [ ] Test obstacle correction, map edge, choke passage and rapid recommand
+- [ ] Verify AttackMove acquisition/resume and direct target Attack regressions
+- [ ] Verify Red RuleBasedCommander, Fog, performance and clean Console
+
+## Phase 6G.2 - Player Formation Commands and Formation Shapes
+
+Status: **NOT COMPLETE** - implementation and automated validator are present;
+Unity Edit Mode validation and the required Play Mode regression matrix remain.
+
+- [x] Define exactly Compact, Wedge, Loose and Line; omit Column/SingleColumn
+- [x] Keep Compact as the match-start default and persist the Human preference
+- [x] Reuse one Phase 6G.1 slot, role assignment and logical-grid correction path
+- [x] Generate adaptive Compact rows at the existing one-cell spacing
+- [x] Generate widening Wedge rows with centered partial final rows
+- [x] Generate Loose from Compact with a provisional 1.65 spacing multiplier
+- [x] Generate Line as exactly one centered lateral rank for even and odd counts
+- [x] Assign Compact/Wedge/Loose roles front-to-rear in canonical priority
+- [x] Assign Line roles center-to-wing in canonical priority
+- [x] Restrict selectable formations to Warrior, Lancer, Archer and Monk
+- [x] Exclude Pawn from formation visibility counts, slots, centroid and reform
+- [x] Preserve Pawn gather/build/repair jobs when a mixed selection reforms
+- [x] Partition normal mixed Move into military formation and generic Pawn destinations
+- [x] Keep Pawn destinations outside cells reserved by the military formation
+- [x] Rotate all shapes with the shared forward/lateral basis
+- [x] Use the selected shape for Human Move and initial ground AttackMove layout
+- [x] Reform the current group in place using last meaningful facing
+- [x] Preserve single-unit and direct-target Attack behavior
+- [x] Add four contextual Command Panel buttons with procedural verified glyphs
+- [x] Add tooltips, active selection tint and existing click/reject audio handling
+- [x] Preserve HUD hierarchy across domain reload with fourteen reusable actions
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6G.2 Formation Commands`
+- [x] Extend validator with military eligibility, mixed slots and centroid isolation
+- [ ] Run the Phase 6G.2 validator in Unity Edit Mode
+- [ ] Verify buttons hidden for Pawn-only and one-military-plus-Pawn selections
+- [ ] Verify buttons visible for two military and mixed two-military-plus-Pawn selections
+- [ ] Test Compact, Wedge, Loose and Line reform while idle and while moving
+- [ ] Test up/down/left/right and four diagonal movement for every shape
+- [ ] Test Line even, odd, two-unit, mixed-role and 20+ unit groups
+- [ ] Verify mixed reform never moves Pawns or cancels gather/build/repair jobs
+- [ ] Verify normal mixed Move still moves Pawns outside military formation slots
+- [ ] Test absent military roles, map edges, obstacles, choke passages and rapid recommands
+- [ ] Verify Move, AttackMove acquisition/resume and direct target Attack regressions
+- [ ] Verify Phase 6D HUD/tooltips, Phase 6E audio and Phase 6F world sorting regressions
+- [ ] Verify RuleBasedCommander, Fog, Console and Profiler/GC regressions

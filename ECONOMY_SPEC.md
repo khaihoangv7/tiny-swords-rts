@@ -97,3 +97,18 @@ Population pressure uses `Cap - Used - Reserved`. At two or fewer free slots the
 Commander prioritizes one House project and waits for its normal completion
 before considering another. No resource, population or construction shortcut is
 available to AI.
+
+## Phase 7D long-match economy baseline
+
+The 40/35/25 worker distribution remains a target rather than a hard requirement.
+When the preferred resource type has no safe known target, the worker tries another
+type by current deficit and stable enum order. When no safe legal work exists it may
+remain Idle near home; it must not cross known danger to preserve a ratio.
+
+Builder completion/death/interruption and Scout release return a Pawn to the shared
+Economy role through `CommanderPawnRoles`. One under-construction House satisfies
+the current capacity plan until completion; population uses `Cap - Used - Reserved`
+exactly once. Destroyed core Barracks, Archery or Monastery becomes absent from
+authoritative own-building knowledge and may be planned again when resources,
+worker reserve and placement permit. Phase 7D grants no free income, construction,
+population or production.

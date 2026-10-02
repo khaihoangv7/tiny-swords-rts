@@ -2,6 +2,8 @@ using System.Collections;
 using TinyKingdom.Presentation;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
+using TinyKingdom.Audio;
+using TinyKingdom.Match;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -231,7 +233,7 @@ namespace TinyKingdom.Buildings
     // Presentation only: HP, destruction and Fog remain authoritative elsewhere.
     public sealed class BuildingDamagePresentation : MonoBehaviour
     {
-        public const float FireThreshold = 0.70f;
+        public const float FireThreshold = 0.60f;
         public const float FramesPerSecond = 10f;
 
         private IDefensiveBuildingHost host;
@@ -240,6 +242,7 @@ namespace TinyKingdom.Buildings
         private SpriteLoopPlayer[] fires;
         private bool burning;
         private bool destroyed;
+        private bool audioLoopActive;
 
         public bool IsBurning => burning;
         public bool IsConfigured => host != null;
@@ -251,6 +254,7 @@ namespace TinyKingdom.Buildings
                 host.DefenseHostHealthChanged -= Refresh;
                 host.DefenseHostDestroyed -= HandleDestroyed;
             }
+            StopFireAudio();
             host = owner;
             catalog = BuildingPresentationCatalog.Load();
             if (host == null || catalog == null) return;
@@ -262,6 +266,7 @@ namespace TinyKingdom.Buildings
 
         private void OnDestroy()
         {
+            StopFireAudio();
             if (host == null) return;
             host.DefenseHostHealthChanged -= Refresh;
             host.DefenseHostDestroyed -= HandleDestroyed;
@@ -273,6 +278,15 @@ namespace TinyKingdom.Buildings
             bool presented = FogWorldVisibility.Instance == null
                 || FogWorldVisibility.Instance.CanObserve(host.Faction, transform.position);
             if (fireRoot.activeSelf != presented) fireRoot.SetActive(presented);
+            audioLoopActive = GameplayAudioService.IsLoopActive(this,
+                GameplayAudioEvent.BuildingFire);
+            bool audible = MatchManager.AllowsGameplay && presented
+                && GameplayAudioService.CanHearWorld(transform.position, host.Faction);
+            if (audible && !audioLoopActive)
+                audioLoopActive = GameplayAudioService.StartLoop(this,
+                    GameplayAudioEvent.BuildingFire, transform.position, host.Faction);
+            else if (!audible && audioLoopActive)
+                StopFireAudio();
         }
 
         private void CreateFireEmitters()
@@ -303,7 +317,11 @@ namespace TinyKingdom.Buildings
             bool shouldBurn = host.IsAlive && host.IsDefenseReady && host.MaxHP > 0
                 && host.CurrentHP / host.MaxHP < host.FireThreshold;
             burning = shouldBurn;
-            if (!shouldBurn) fireRoot.SetActive(false);
+            if (!shouldBurn)
+            {
+                fireRoot.SetActive(false);
+                StopFireAudio();
+            }
         }
 
         private void HandleDestroyed()
@@ -311,10 +329,20 @@ namespace TinyKingdom.Buildings
             if (destroyed) return;
             destroyed = true;
             burning = false;
+            StopFireAudio();
             if (fireRoot != null) fireRoot.SetActive(false);
+            if (host != null)
+                GameplayAudioService.Request(GameplayAudioEvent.BuildingExplosion,
+                    transform.position, host.Faction);
             if (catalog != null && host != null
                 && FogWorldVisibility.ShouldPresentDeath(host.Faction, transform.position))
                 BuildingExplosionVfx.Spawn(transform.position, host.Type, host.Faction, catalog);
+        }
+
+        private void StopFireAudio()
+        {
+            GameplayAudioService.StopLoop(this, GameplayAudioEvent.BuildingFire);
+            audioLoopActive = false;
         }
 
     }

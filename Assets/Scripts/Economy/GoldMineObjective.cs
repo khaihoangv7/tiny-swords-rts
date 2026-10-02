@@ -27,8 +27,8 @@ namespace TinyKingdom.Economy
         public const int IncomePerPawn = 15;
         public const float IncomeSeconds = 5f;
         public const float FireThresholdRatio = 0.60f;
-        public const float VisualScale = 1.30f;
-        public const float VisualGroundOffsetY = 0.17f;
+        public const float VisualScale = 2.60f;
+        public const float VisualGroundOffsetY = 0.92f;
         public const float GuardVisualClearance = 2f;
         private static readonly List<GoldMineObjective> active = new();
         private readonly List<UnitController> occupants = new();
@@ -86,12 +86,14 @@ namespace TinyKingdom.Economy
             currentHP = MaximumHP; remainingGold = MaximumGold; state = GoldMineState.Neutral;
             hasOwner = false; incomeRemaining = IncomeSeconds;
             visual = GetComponentInChildren<SpriteRenderer>();
-            GroundSorting.Ensure(gameObject);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, visual));
             interaction = GetComponent<Collider2D>();
             if (!TryGetComponent(out selectionIndicator))
                 selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();
-            selectionIndicator.Configure(1.7f, 0.5f, -0.65f);
+            selectionIndicator.Configure(3.4f, 1f, -0.65f);
             SetVisual(assets?.GoldMineInactive);
+            WorldSelectionHitArea.Ensure(this, visual);
             for (int y = 0; y < Footprint.y; y++)
             for (int x = 0; x < Footprint.x; x++) grid?.SetOccupied(origin.x + x, origin.y + y, true);
             (GetComponent<BuildingCombatTarget>() ?? gameObject.AddComponent<BuildingCombatTarget>())
@@ -99,9 +101,9 @@ namespace TinyKingdom.Economy
             (GetComponent<BuildingDamagePresentation>()
                 ?? gameObject.AddComponent<BuildingDamagePresentation>()).Configure(this);
             (GetComponent<BuildingHealthBar>() ?? gameObject.AddComponent<BuildingHealthBar>())
-                .Configure(this, 1.05f);
+                .Configure(this, 2.55f);
             (GetComponent<BuildingGarrisonWorldCount>()
-                ?? gameObject.AddComponent<BuildingGarrisonWorldCount>()).Configure(this, 1.45f);
+                ?? gameObject.AddComponent<BuildingGarrisonWorldCount>()).Configure(this, 2.95f);
         }
 
         private void OnEnable()

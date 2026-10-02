@@ -232,3 +232,17 @@ defensive value to exact battle strength. A hidden remembered Tower/Castle may s
 affect legal strategic target selection and `StrategicSafetyMap` route costs, but
 combat assessment does not resolve its live object, current HP, garrison, damage or
 destruction state. Undiscovered enemies have no influence on retreat decisions.
+
+## Phase 7D full-match knowledge regression
+
+The integrated Rule-Based baseline continues to consume only `FactionKnowledge`.
+Enemy units disappear from strategic knowledge immediately outside current Red
+vision. Enemy building/resource memory remains copied, frozen last-seen data.
+Progress diagnostics observe only own authoritative state, policy outcomes and
+legal copied knowledge; they do not resolve hidden scene objects.
+
+Scout frontier exhaustion is cached only from Red's explored-cell count. It is
+cleared when legal Red exploration later increases that count. This avoids repeated
+full-grid frontier work without adding hidden map/object information. Target
+selection, combat strength, strategic safety and direct Attack validation preserve
+the Phase 7C visibility rules throughout a long match and after scene restart.

@@ -6,6 +6,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
+using TinyKingdom.Vision;
 
 namespace TinyKingdom.Buildings
 {
@@ -127,7 +129,12 @@ namespace TinyKingdom.Buildings
             consumedFrame = Time.frameCount;
             selection.SuppressNextLeftClick();
             if (!IsValidPreview) return;
-            if (system.TryBuild(activeType.Value, activeVariant, origin, builders, out _)) Cancel();
+            if (system.TryBuild(activeType.Value, activeVariant, origin, builders, out _))
+            {
+                if (selection.PlayerFaction == PlayerViewRelation.PlayerViewFaction)
+                    GameplayAudioService.RequestUi(GameplayAudioEvent.BuildingPlan);
+                Cancel();
+            }
         }
 
         private void CollectBuilders()

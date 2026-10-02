@@ -9,8 +9,8 @@ namespace TinyKingdom.Terrain
     {
         public const int Width = 60;
         public const int Height = 44;
-        public static readonly Vector2 BlueCastleStart = new(12.5f, 16.5f);
-        public static readonly Vector2 RedCastleStart = new(47.5f, 32.5f);
+        public static readonly Vector2 BlueCastleStart = new(13f, 19.5f);
+        public static readonly Vector2 RedCastleStart = new(47f, 35.5f);
         public Vector2 blueCastle = BlueCastleStart;
         public Vector2 redCastle = RedCastleStart;
         public Vector2[] bluePawns;

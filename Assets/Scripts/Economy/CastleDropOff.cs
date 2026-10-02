@@ -46,7 +46,7 @@ namespace TinyKingdom.Economy
             FootprintHeight);
         public bool IsProductionReady => registered && IsAvailable && IsAlive;
         public bool IsDefenseReady => IsProductionReady;
-        public float FireThreshold => 0.70f;
+        public float FireThreshold => BuildingDamagePresentation.FireThreshold;
         public BuildingData DefenseData => defenseData;
         public Transform HostTransform => transform;
         public Collider2D InteractionCollider => GetComponent<Collider2D>();
@@ -96,6 +96,9 @@ namespace TinyKingdom.Economy
             defenseData = castleData;
             currentHP = castleData != null ? castleData.MaxHP : 0f;
             BuildingSelectionPulse.Ensure(gameObject, PresentationRenderer);
+            WorldSelectionHitArea.Ensure(this, PresentationRenderer);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, PresentationRenderer));
             if (castleData != null)
                 (GetComponent<BuildingVisionSource>()
                     ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
