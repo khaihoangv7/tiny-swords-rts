@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TinyKingdom.AI;
 using TinyKingdom.Input;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
@@ -237,6 +238,189 @@ namespace TinyKingdom.EditorTools
 
         private static List<GridCell> Path(IGridCellProvider grid, int x0, int y0, int x1, int y1)
             => AStarPathfinder.FindPath(grid, grid.GetCell(x0, y0), grid.GetCell(x1, y1));
+
+        private static void Require(bool value, string message)
+        {
+            if (!value) throw new InvalidOperationException(message);
+        }
+    }
+
+    public static class Phase6G1RoleFormationValidation
+    {
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6G.1 Role Formation")]
+        public static void Run()
+        {
+            ValidatePriorityTable();
+            Require(!RoleFormationPlanner.RequiresFormation(1)
+                && RoleFormationPlanner.RequiresFormation(2),
+                "Single-unit movement must bypass formation planning.");
+            Require(RoleFormationPlanner.DefaultSpacing
+                    >= RoleFormationPlanner.MinimumSpacing,
+                "Default formation spacing is invalid.");
+            Require(typeof(PlayerCommandController).GetProperty("FormationSpacing") != null,
+                "PlayerCommandController is not exposing its formation configuration.");
+            Require(typeof(FactionCommandService).GetMethod("TryMove",
+                    new[] { typeof(UnitController), typeof(Vector3) }) != null,
+                "The existing AI single-actor movement path is missing.");
+
+            NavigationGridData data = ScriptableObject.CreateInstance<NavigationGridData>();
+            var root = new GameObject("Phase6G1RoleFormationValidation");
+            var definitions = new List<UnitCombatData>();
+            var units = new List<UnitSelection>();
+            try
+            {
+                GridManager grid = root.AddComponent<GridManager>();
+                Configure(data, 24, 20);
+                grid.SetNavigationData(data);
+
+                // Deliberately scramble selection order. The role table, not selection
+                // order, must define front-to-back placement.
+                units.Add(CreateUnit(root.transform, UnitType.Pawn, new Vector3(3.5f, 8.5f), definitions));
+                units.Add(CreateUnit(root.transform, UnitType.Archer, new Vector3(4.5f, 11.5f), definitions));
+                units.Add(CreateUnit(root.transform, UnitType.Warrior, new Vector3(3.5f, 10.5f), definitions));
+                units.Add(CreateUnit(root.transform, UnitType.Monk, new Vector3(4.5f, 8.5f), definitions));
+                units.Add(CreateUnit(root.transform, UnitType.Lancer, new Vector3(3.5f, 11.5f), definitions));
+
+                var assignments = new List<FormationAssignment>();
+                Vector3 rightTarget = new(16.5f, 10.5f);
+                Require(RoleFormationPlanner.TryPlan(grid, units, rightTarget,
+                        RoleFormationPlanner.DefaultSpacing, 4, 8, false, assignments),
+                    "Could not plan a right-facing role formation.");
+                ValidateAssignments(assignments, units.Count);
+                ValidateRoleDepth(assignments, Vector2.right);
+
+                var repeated = new List<FormationAssignment>();
+                units.Reverse();
+                Require(RoleFormationPlanner.TryPlan(grid, units, rightTarget,
+                        RoleFormationPlanner.DefaultSpacing, 4, 8, false, repeated),
+                    "Reordered selection could not be planned.");
+                Require(SameAssignments(assignments, repeated),
+                    "Selection order changed deterministic role assignments.");
+
+                var left = new List<FormationAssignment>();
+                Vector3 leftTarget = new(2.5f, 10.5f);
+                Require(RoleFormationPlanner.TryPlan(grid, units, leftTarget,
+                        RoleFormationPlanner.DefaultSpacing, 4, 8, false, left),
+                    "Could not plan a left-facing role formation.");
+                ValidateRoleDepth(left, Vector2.left);
+
+                Vector2 diagonal = RoleFormationPlanner.ResolveForward(
+                    new Vector3(2f, 2f), new Vector3(8f, 8f));
+                Require(Vector2.Dot(diagonal, new Vector2(1f, 1f).normalized) > 0.999f,
+                    "Formation facing does not preserve arbitrary diagonal direction.");
+                Require(RoleFormationPlanner.ResolveForward(Vector3.one, Vector3.one)
+                        == Vector2.right,
+                    "Near-zero movement does not use the deterministic fallback.");
+
+                Vector2Int occupied = grid.WorldToGrid(rightTarget);
+                grid.SetOccupied(occupied.x, occupied.y, true);
+                var corrected = new List<FormationAssignment>();
+                Require(RoleFormationPlanner.TryPlan(grid, units, rightTarget,
+                        RoleFormationPlanner.DefaultSpacing, 4, 8, true, corrected),
+                    "Formation could not correct an occupied center slot.");
+                Require(corrected.All(item => item.Cell != null && item.Cell.Walkable
+                    && !item.Cell.Occupied),
+                    "Formation correction retained a blocked destination.");
+
+                Debug.Log("Phase 6G.1 role formation validation passed: canonical priorities, "
+                    + "rotated basis, unique role rows, deterministic assignment, occupied-slot "
+                    + "correction, single-unit bypass and unchanged AI command API verified. "
+                    + "Complete the directional Play Mode checklist before marking PASS.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                for (int i = 0; i < definitions.Count; i++)
+                    UnityEngine.Object.DestroyImmediate(definitions[i]);
+                UnityEngine.Object.DestroyImmediate(data);
+            }
+        }
+
+        private static void ValidatePriorityTable()
+        {
+            Require(FormationRolePriority.For(UnitType.Warrior) == 0
+                && FormationRolePriority.For(UnitType.Lancer) == 1
+                && FormationRolePriority.For(UnitType.Archer) == 2
+                && FormationRolePriority.For(UnitType.Monk) == 3
+                && FormationRolePriority.For(UnitType.Pawn) == 4,
+                "Canonical player-unit role priorities are invalid.");
+            Require(FormationRolePriority.For(UnitType.GoblinTorch)
+                    == FormationRolePriority.SafeDefault
+                && FormationRolePriority.For(UnitType.GoblinTNT)
+                    == FormationRolePriority.SafeDefault,
+                "Future/non-player unit types lack a safe fallback priority.");
+        }
+
+        private static void ValidateAssignments(List<FormationAssignment> assignments,
+            int expectedCount)
+        {
+            Require(assignments.Count == expectedCount,
+                "Planner did not assign every eligible unit.");
+            Require(assignments.Select(item => item.Unit).Distinct().Count() == expectedCount,
+                "A unit received more than one formation slot.");
+            Require(assignments.Select(item => item.Cell).Distinct().Count() == expectedCount,
+                "Formation contains duplicate destination cells.");
+        }
+
+        private static void ValidateRoleDepth(List<FormationAssignment> assignments,
+            Vector2 forward)
+        {
+            float previous = float.PositiveInfinity;
+            for (int priority = FormationRolePriority.Warrior;
+                priority <= FormationRolePriority.Pawn; priority++)
+            {
+                FormationAssignment assignment = assignments.Single(
+                    item => item.RolePriority == priority);
+                float depth = Vector2.Dot(assignment.Cell.WorldPosition, forward);
+                Require(depth < previous - 0.5f || priority == FormationRolePriority.Warrior,
+                    "Role rows are not strictly ordered from front to rear.");
+                previous = depth;
+            }
+        }
+
+        private static bool SameAssignments(List<FormationAssignment> first,
+            List<FormationAssignment> second)
+        {
+            if (first.Count != second.Count) return false;
+            for (int i = 0; i < first.Count; i++)
+            {
+                FormationAssignment match = second.SingleOrDefault(
+                    item => item.Unit == first[i].Unit);
+                if (match.Unit == null || match.Cell != first[i].Cell) return false;
+            }
+            return true;
+        }
+
+        private static UnitSelection CreateUnit(Transform parent, UnitType type,
+            Vector3 position, List<UnitCombatData> definitions)
+        {
+            var go = new GameObject($"Formation_{type}");
+            go.SetActive(false);
+            go.transform.SetParent(parent, false);
+            go.transform.position = position;
+            UnitController controller = go.AddComponent<UnitController>();
+            go.AddComponent<UnitMovement>();
+            HealthComponent health = go.AddComponent<HealthComponent>();
+            UnitSelection selection = go.AddComponent<UnitSelection>();
+            UnitCombatData definition = ScriptableObject.CreateInstance<UnitCombatData>();
+            var serialized = new SerializedObject(definition);
+            serialized.FindProperty("unitType").enumValueIndex = (int)type;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            definitions.Add(definition);
+            health.Configure(definition);
+            controller.Configure(Faction.Blue);
+            go.SetActive(true);
+            return selection;
+        }
+
+        private static void Configure(NavigationGridData data, int width, int height)
+        {
+            var cells = new List<NavigationCellData>(width * height);
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                cells.Add(new NavigationCellData(x, y, TerrainType.FlatGround, 0));
+            data.Configure(width, height, Vector2.zero, 1f, cells);
+        }
 
         private static void Require(bool value, string message)
         {

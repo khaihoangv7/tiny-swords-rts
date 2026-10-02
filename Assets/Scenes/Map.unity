@@ -166318,6 +166318,7 @@ MonoBehaviour:
   gridManager: {fileID: 2101000002}
   candidateMultiplier: 4
   maximumSearchRadius: 8
+  formationSpacing: 1
   blockWhenPointerIsOverUI: 1
 --- !u!114 &2201000004
 MonoBehaviour:
