@@ -2,6 +2,7 @@ using System;
 using TinyKingdom.Economy;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -103,6 +104,9 @@ namespace TinyKingdom.Buildings
                 visualCycle = 0f;
                 repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
+                if (!repairing)
+                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                        transform.position, controller.Faction);
             }
             visualCycle += Time.deltaTime;
             if (repairing)
@@ -111,7 +115,11 @@ namespace TinyKingdom.Buildings
                 {
                     repairImpactApplied = true;
                     if (target.Repair(WorkCycleSeconds) > 0f)
+                    {
                         RepairImpact?.Invoke(target);
+                        GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                            transform.position, controller.Faction);
+                    }
                 }
             }
             else target.AdvanceConstruction(Time.deltaTime);
@@ -120,6 +128,9 @@ namespace TinyKingdom.Buildings
                 visualCycle -= WorkCycleSeconds;
                 repairImpactApplied = false;
                 WorkCycleStarted?.Invoke();
+                if (!repairing)
+                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                        transform.position, controller.Faction);
             }
         }
 

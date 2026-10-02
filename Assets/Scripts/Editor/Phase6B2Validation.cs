@@ -48,8 +48,8 @@ namespace TinyKingdom.EditorTools
                     $"{castle.name} has no configured damage presentation.");
             }
 
-            Require(Mathf.Approximately(BuildingDamagePresentation.FireThreshold, 0.70f),
-                "Building fire threshold must be 70 percent.");
+            Require(Mathf.Approximately(BuildingDamagePresentation.FireThreshold, 0.60f),
+                "Building fire threshold must be 60 percent.");
             Require(Mathf.Approximately(BuildingDamagePresentation.FramesPerSecond, 10f),
                 "Building Fire/Explosion playback must be 10 FPS.");
             Require(BuildingHealthBar.FramePixelWidth == 114

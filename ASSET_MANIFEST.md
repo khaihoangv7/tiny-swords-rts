@@ -1010,7 +1010,7 @@ These PNGs previously used automatic tight slicing, which split one logical
 effect frame into separate particle fragments. Phase 6B.2 slices them by the
 verified full frame cells above, with centered pivots, 100 PPU, Point filtering,
 no compression, no mipmaps and Clamp wrapping. The three Fire effects run at
-separate building-local anchors while a completed building is below 70 percent
+separate building-local anchors while a completed building is below 60 percent
 HP. Both Explosion effects play once with a 0.06-second visual offset after
 building gameplay death. These effects have no collider or gameplay authority.
 
@@ -1138,12 +1138,12 @@ catalog once and never looks up an AudioClip by filename during an action.
 | MonkHeal | `Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3` | A valid heal pulse that restores positive HP |
 | PawnMining | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_mining_01.mp3` | Successful Gold transfer during the existing gather impact |
 | PawnChopping | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_chopping_01.mp3` | Successful Wood transfer during the existing gather impact |
-| SheepHurt | `Assets/Audio/SFX/Economy/Food/sfx_sheep_hurt_01.mp3` | Retained in the catalog but no longer requested during Sheep harvesting |
+| SheepHurt | No active clip | Disabled following the explicit Sheep Hurt removal request |
 
-All seven clips retain their source MP3 content. Import uses Decompress On Load,
+The six active clips retain their source MP3 content. Import uses Decompress On Load,
 preloaded audio data, background loading off and the existing source compression
-quality. Source inspection found Sheep, Archer, Lancer, Monk, Mining and Warrior
-encoded as stereo; Chopping is mono. Stereo does not prevent distance attenuation,
+quality. Source inspection found Archer, Lancer, Monk, Mining and Warrior encoded
+as stereo; Chopping is mono. Stereo does not prevent distance attenuation,
 but its positional image should be checked by listening in Play Mode.
 
 The supplied Chopping file is approximately 54 seconds long and its first three
@@ -1152,10 +1152,44 @@ at 3.0 seconds and applies a configurable 1.25-second presentation limit per
 successful gather impact, so the useful sound plays without occupying a pooled
 source for nearly a minute. Pawn Mining uses a substantially reduced provisional
 volume of 0.20, while Pawn Chopping uses 0.65 so axe impacts remain clear. Sheep
-harvesting no longer requests the Sheep Hurt cue. Source files are unchanged.
+harvesting no longer requests the Sheep Hurt cue and its former clip is absent.
 `PawnFoodHarvest` is reserved in the catalog without a clip.
 
 World SFX are camera-aware. Runtime rejects a cue whose source point is outside
 the Main Camera viewport and stops a playing pooled source once camera movement
 takes it off-screen. Sources still use the existing linear distance attenuation
 inside the viewport and retain the established Fog visibility check.
+
+## Phase 6E.2 verified building, Pawn, UI and match audio
+
+The following mappings were verified from the actual MP3 filenames and their Unity
+`.meta` GUIDs. No Gold Mine selection file exists in `Sound Effect`, so no substitute
+mapping is invented.
+
+| Audio event | Exact asset path | Approx. source duration / format | Runtime classification |
+| --- | --- | --- | --- |
+| CastleSelect | `Assets/Audio/SFX/Buildings/Sound Effect/castle_sound.mp3` | 0.862s, 44.1kHz stereo | 2D one-shot |
+| HouseSelect | `Assets/Audio/SFX/Buildings/Sound Effect/house_sound.mp3` | 0.576s, 24kHz stereo | 2D one-shot |
+| BarracksSelect | `Assets/Audio/SFX/Buildings/Sound Effect/barracks_sound.mp3` | 1.698s, 44.1kHz stereo | 2D one-shot |
+| ArcherySelect | `Assets/Audio/SFX/Buildings/Sound Effect/archery_sound.mp3` | 0.836s, 11.025kHz mono | 2D one-shot |
+| MonasterySelect | `Assets/Audio/SFX/Buildings/Sound Effect/monastery_sound.mp3` | 1.907s, 44.1kHz stereo | 2D one-shot |
+| TowerSelect | `Assets/Audio/SFX/Buildings/Sound Effect/tower_sound.mp3` | 2.016s, 48kHz stereo | 2D one-shot |
+| BuildingFire | `Assets/Audio/SFX/Buildings/Destruction/fire.mp3` | 36.519s, 44.1kHz stereo VBR | Positional owner loop |
+| BuildingExplosion | `Assets/Audio/SFX/Buildings/Destruction/building_destroy.mp3` | 2.976s, 24kHz stereo | Positional one-shot |
+| BuildingPlan | `Assets/Audio/SFX/Buildings/Construction/building_plan.mp3` | 0.984s, 48kHz stereo | 2D one-shot |
+| PawnHammer primary | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_01.mp3` | 1.032s, 24kHz stereo | Positional variation |
+| PawnHammer variation | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_02.mp3` | 1.200s, 24kHz stereo | Positional variation |
+| CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | 0.078s, 44.1kHz stereo | 2D one-shot |
+| CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | 0.456s, 48kHz stereo | 2D one-shot |
+| UnitProductionFinished | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D one-shot |
+| Victory | `Assets/Audio/SFX/Match/win.mp3` | 8.098s, 44.1kHz stereo | 2D one-shot |
+| Defeat | `Assets/Audio/SFX/Match/defeat.mp3` | 11.760s, 24kHz stereo | 2D one-shot |
+
+Short SFX use Decompress On Load with preloaded audio. Victory and Defeat use
+Compressed In Memory with preload. The long Fire loop uses Streaming, background
+loading and no preload. All source MP3 files remain unchanged. Fire uses
+`AudioSource.loop`; it is not rescheduled as repeated one-shots.
+
+`Assets/Audio/Music/attack_theme.mp3` was also found (about 10.971s, 44.1kHz
+stereo), but Phase 6E.2 defines no attack-music state machine, so it remains
+unmapped rather than being started from an invented gameplay rule.

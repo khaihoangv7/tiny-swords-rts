@@ -5,6 +5,7 @@ using TinyKingdom.Match;
 using TinyKingdom.Units;
 using UnityEngine;
 using UnityEngine.UI;
+using TinyKingdom.Audio;
 
 namespace TinyKingdom.UI
 {
@@ -197,7 +198,7 @@ namespace TinyKingdom.UI
             {
                 ActionView view = ConfigureClick(shown++, assets.AttackMoveIcon,
                     "Attack Move", "A", MatchManager.AllowsGameplay,
-                    () => commands?.BeginAttackMoveTargeting());
+                    () => commands != null && commands.BeginAttackMoveTargeting());
                 view.Tooltip.ConfigureSimple(tooltip, "Attack Move",
                     "Move toward a target area and engage enemies encountered.", "A");
             }
@@ -251,7 +252,7 @@ namespace TinyKingdom.UI
                 ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay
                         && garrison.InternalCount + garrison.MountedCount > 0,
-                    () => garrison.EjectAll());
+                    () => garrison.EjectAll() > 0);
                 view.Tooltip.ConfigureSimple(tooltip, "Eject All",
                     "Release every internal occupant and mounted Archer from this building.");
             }
@@ -265,7 +266,7 @@ namespace TinyKingdom.UI
             {
                 ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
                     MatchManager.AllowsGameplay && mine.OccupantCount > 0,
-                    () => mine.EjectAll());
+                    () => mine.EjectAll() > 0);
                 view.Tooltip.ConfigureSimple(tooltip, "Eject All",
                     "Release every Pawn currently inside the Gold Mine.");
             }
@@ -342,6 +343,7 @@ namespace TinyKingdom.UI
             if (view.GuardHold.enabled != guardAction)
                 view.GuardHold.enabled = guardAction;
             view.Button.interactable = available;
+            view.Tooltip.ConfigureCommandAudio(available, guardAction);
             view.Background.color = available
                 ? RtsUiFactory.EnabledColor : RtsUiFactory.DisabledColor;
             view.Icon.sprite = icon;
@@ -352,10 +354,14 @@ namespace TinyKingdom.UI
         }
 
         private ActionView ConfigureClick(int index, Sprite icon, string label, string hotkey,
-            bool available, UnityEngine.Events.UnityAction action)
+            bool available, System.Func<bool> action)
         {
             ActionView view = ConfigureView(index, icon, label, hotkey, available);
-            if (action != null) view.Button.onClick.AddListener(action);
+            if (action != null)
+                view.Button.onClick.AddListener(() =>
+                    GameplayAudioService.RequestUi(action()
+                        ? GameplayAudioEvent.CommandClick
+                        : GameplayAudioEvent.CommandRejected));
             return view;
         }
 

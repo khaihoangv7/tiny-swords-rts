@@ -1,12 +1,13 @@
 using TinyKingdom.Buildings;
 using TinyKingdom.Units;
+using TinyKingdom.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace TinyKingdom.UI
 {
     public sealed class CommandTooltipTrigger : MonoBehaviour,
-        IPointerEnterHandler, IPointerExitHandler
+        IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         private enum TooltipKind { None, Unit, Building, Simple }
 
@@ -17,6 +18,9 @@ namespace TinyKingdom.UI
         private string cachedTitle;
         private string cachedDetails;
         private string cachedHotkey;
+        private bool hasCommandAudio;
+        private bool commandAvailable;
+        private bool playAcceptedAudioHere;
 
         public bool HasTooltipData => data != null;
 
@@ -56,6 +60,13 @@ namespace TinyKingdom.UI
             data = CommandTooltipDataBuilder.Simple(title, details, hotkey);
         }
 
+        internal void ConfigureCommandAudio(bool available, bool playAcceptedHere)
+        {
+            hasCommandAudio = true;
+            commandAvailable = available;
+            playAcceptedAudioHere = playAcceptedHere;
+        }
+
         internal void Clear()
         {
             presenter?.Hide(this);
@@ -65,6 +76,9 @@ namespace TinyKingdom.UI
             cachedDetails = null;
             cachedHotkey = null;
             data = null;
+            hasCommandAudio = false;
+            commandAvailable = false;
+            playAcceptedAudioHere = false;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -73,6 +87,15 @@ namespace TinyKingdom.UI
         }
 
         public void OnPointerExit(PointerEventData eventData) => presenter?.Hide(this);
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!hasCommandAudio || eventData.button != PointerEventData.InputButton.Left) return;
+            if (!commandAvailable)
+                GameplayAudioService.RequestUi(GameplayAudioEvent.CommandRejected);
+            else if (playAcceptedAudioHere)
+                GameplayAudioService.RequestUi(GameplayAudioEvent.CommandClick);
+        }
 
         private void OnDisable() => presenter?.Hide(this);
         private void OnDestroy() => presenter?.Hide(this);

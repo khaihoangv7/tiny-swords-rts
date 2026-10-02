@@ -1325,7 +1325,7 @@ empty. Up to three internal Pawns generate 15 Gold each every 5 seconds. A
 partial final payout uses only remaining Gold. Depletion safely ejects Pawns and
 leaves the destroyed visual without an explosion. Combat destruction kills only
 Pawns currently internal, uses normal death authority and leaves the same wreck.
-Its Fire threshold is 0.60; ordinary buildings remain at 0.70.
+Its Fire threshold is 0.60, shared with ordinary completed buildings.
 
 The strategic Gold Mine uses a uniform presentation scale of 2.60 for inactive,
 active and destroyed states. A dedicated visual root adds a +0.92 world-unit Y
@@ -1581,8 +1581,8 @@ the ground destination. It shrinks and fades independently of the red explicit
 Attack marker that follows an enemy. Automatic acquisition and retaliation do
 not create either player-command marker.
 
-A completed damageable building burns while `0 < CurrentHP / MaxHP < 0.70`.
-Repair at or above 70 percent stops the three looping presentation-only Fire
+A completed damageable building burns while `0 < CurrentHP / MaxHP < 0.60`.
+Repair at or above 60 percent stops the three looping presentation-only Fire
 effects; under-construction buildings never burn from construction HP semantics.
 At zero HP, gameplay destruction remains immediate, looping Fire stops and the
 two verified Explosion effects play once as an independent one-shot. Enemy Fire
@@ -1779,19 +1779,22 @@ delay. Phase 7C.3 below adds combat power and strength/casualty retreat. Counter
 production, multiple squads, flanking, focus fire, advanced Monk micro, Gold Mine
 warfare and special final-Castle tactics remain deferred.
 
-# 57. Gameplay SFX Foundation / Initial Audio Integration
+# 57. Gameplay SFX / Phase 6E.2
 
 Gameplay audio is presentation-only and reacts after authoritative actions. It
 must never change combat cooldowns, projectile timing, healing, gathering,
-resource depletion or AI decisions. The initial supported events are Warrior and
-Lancer successful melee attacks, Archer projectile launch, successful Monk heal,
-successful Pawn Gold/Wood gather impacts and positive Sheep resource damage.
+construction, repair, production, match results, resource depletion or AI decisions.
+Supported world events are Warrior/Lancer successful melee attacks, Archer projectile
+launch, successful Monk heal, successful Pawn Gold/Wood impacts, Pawn hammer work,
+building fire and observable building destruction. Sheep Hurt remains disabled.
 
-World SFX uses a fixed pool of twelve positional AudioSources. Provisional per-event
-concurrency is three for Warrior, Lancer and Archer, and two for Monk, mining,
-chopping and Sheep hurt. Master SFX volume defaults to 1.0; per-event volume,
-playback cap, concurrency and optional 0.96-1.04 pitch variation are catalog data.
-These presentation settings do not affect gameplay authority.
+World/UI one-shots start with twelve pooled AudioSources. When all are busy, the pool
+grows by four and reuses the expanded sources. Legitimate instances of the same event
+may overlap without a per-event cap, same-clip cooldown or duplicate suppression. A
+256-source global catastrophic guard exists only to diagnose erroneous frame-spam.
+Fire uses separately owned loop handles so multiple damaged buildings may burn at once.
+Master SFX volume defaults to 1.0; per-event volume, playback cap and optional
+0.96-1.04 pitch variation remain catalog presentation data.
 
 The AudioListener remains on the Main Camera. World SFX uses full 3D spatial blend
 with linear distance rolloff: actions directly below the camera center are loudest,
@@ -1800,12 +1803,18 @@ A world SFX request is accepted only while its source point is inside the Main
 Camera viewport. An active clip stops if camera movement takes its source outside
 the viewport. Fog visibility rules remain an additional requirement.
 
-Own-faction world SFX remains audible. Enemy and neutral SFX is eligible only if
+Own-faction world SFX remains eligible. Enemy and neutral SFX is eligible only if
 the source position is currently visible to the local player's faction through
-TeamVisionSystem, preventing audio from revealing hidden actions through Fog.
-Food harvesting has no Pawn sound yet. Hit impacts, unit death, construction,
-building destruction, fire, command/UI, victory/defeat, ambience and music remain
-future audio work; this does not complete the full Phase 6E audio scope.
+TeamVisionSystem, preventing audio from revealing hidden actions through Fog. Fire
+starts below 60% HP, stops at or above 60%, stops when an enemy building leaves Blue
+vision, and ends before its one observable destruction sound.
+
+Building selection, command accepted/rejected, successful building-plan placement,
+Human unit production completion and MatchManager victory/defeat are 2D player
+feedback. Building buttons use authoritative availability/results, so `click` and
+`cant_click` never both play for one click. Match result audio is once per match and
+restart resets that guard. Food harvesting, generic hit/death, ambience, attack-theme
+music and mixer/options UI remain future work. `AUDIO_SPEC.md` owns the exact mapping.
 
 # 58. Phase 7C.3 Combat Strength, Retreat and Recovery
 

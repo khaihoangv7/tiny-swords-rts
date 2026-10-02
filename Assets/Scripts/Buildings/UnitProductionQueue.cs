@@ -4,6 +4,8 @@ using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
+using TinyKingdom.Vision;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -100,6 +102,8 @@ namespace TinyKingdom.Buildings
             population.ReleaseReservation(data.PopulationCost);
             if (host is Component component)
                 component.GetComponent<BuildingRallyPoint>()?.IssueRallyMove(unit);
+            if (host.Faction == PlayerViewRelation.PlayerViewFaction)
+                GameplayAudioService.RequestUi(GameplayAudioEvent.UnitProductionFinished);
             Changed?.Invoke();
         }
 
