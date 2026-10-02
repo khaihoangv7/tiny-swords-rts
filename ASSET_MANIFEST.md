@@ -1,5 +1,69 @@
 # Tiny Kingdom RL — Asset Manifest
 
+## Straight Lane second map (October 2026)
+
+Map two uses verified Tiny Swords `Tilemap_color1` ground/shore tiles and
+animated `Water Foam.png` to form two base clearings connected by a
+single widened horizontal corridor and round central mine island.
+`Tilemap_color4` marks the five-cell road and circular mine clearing.
+Color3 supplies each height-1 base and outer height-2 Castle court, with one
+finished cliff-foot row r5c5/r5c6/r5c7 per tier. Each gate paints TWO adjacent
+copies of the same native ramp pair: r4c3/r5c3 for Blue (descending right),
+r4c0/r5c0 for Red (descending left). The Color3 source sheet was inspected
+again; no opposing/mirrored ramp pieces are joined within one gate.
+The latest user-confirmed placement is two front/back native copies touching
+with no grass cell between them, now one cell closer: rows 20/21 and 21/22
+share one X and overlap at row 21. Blue gates use x=18/10; Red x=41/49.
+The rear native pair remains on ElevatedGround_L1/L2; the front native pair
+uses StairFront_L1/L2 so neither source pair is replaced or cropped. A native Color3 interior tile backs the
+transparent ramp corners so contrasting Color1 grass cannot open a visual gap.
+No rotation, scale change or flipping is applied to either complete copy.
+The lower tiers expand to 15x16; upper courts remain 7x5 and are
+centered on the existing Castle positions. The October sketch removes the outer
+H2 pine at (3.5,21.5) and its Red counterpart, adds four northern-rim pines per
+side and six extra pines in the marked Blue flank/court corners. Existing other
+pines outside the northern bands keep their positions and variants. The latest
+red-band revision adds six H0 pines per side and brings the existing y=32 row
+inward to y=31, leaving a clear harvest aisle behind it. There are 93 Blue and
+87 Red Wood nodes (28/22 on the tiers); all 232 resource nodes reuse the catalog.
+The source Color3 sheet was re-inspected against the user's single-ramp image;
+the upper r4 and lower r5 pieces stay together in each complete copy.
+Native sprite orientation, 64 PPU, size and tile pivots remain unchanged.
+The user's two pine references were matched by inspecting Tree1.png (dark,
+broad pine) and Tree2.png (bright, narrow pine). Map two uses catalog indices
+0/1 ONLY, preserving verified eight-frame loops and Stump 1/2 depletion.
+Tree3/4 are excluded from this map. Dense forests are real Wood resources;
+20 Sheep and six Gold Rocks per side reuse existing mappings/capacities.
+All Sheep spawn on the first tier (H1); no Sheep remain on the surrounding H0 ground.
+Sheep positions are hand-scattered into different, non-mirrored H1 flocks.
+The previous red-marked Sheep were relocated; the latest four pink-marked Sheep
+are deleted at (7.25,16.55), (11.3,16.8), (54.3,16.7) and (50.7,16.25).
+All other Sheep retain their positions/names: 40 remain, 20 per side.
+Each side's six Gold Rocks form one compact, irregular H1 cluster using the
+inspected Gold Stone 5/6 (large), 3/4 (medium), 2 (small) and 1 (tiny) sprites,
+catalog indices 4/5/2/3/1/0. Existing matched Highlight frames, capacities,
+1.4 scale (Stone 1-5) and 1.55 scale (Stone 6) remain authoritative.
+Existing Blue/Red Castle, Pawn and Sheep mappings are reused for gameplay.
+Static `Bushe3.png` frames the base corners; four additional scattered bushes
+use the first imported frame of Bushe1/2/3/4.png (one of each), at order 8.
+These bushes are static decoration only, not Wood resources or blockers.
+Six decorative Ducks reuse the verified three 32x32 `Rubber duck.png` frames
+at 64 PPU and the existing 10 FPS AmbientSpriteLoop. They float only on water,
+at order 3 and scale 1.6, with no collider, resource value, movement or vision.
+Three yellow-marked patches add 24 static bushes, mixing the first imported
+frames of Bushe1/2/3/4 at 100 PPU with varied 0.8-1.25 presentation scales.
+The two ground rock patches use six static Rock1/2/3/4 sprites at their existing
+100 PPU, varying scale 0.8-1.8. Two water patches add four Water Rocks_02/04
+objects, retaining sixteen native 64x64 frames at 64 PPU, 10 FPS and scale 0.8/1.3.
+Existing water rocks and all six Ducks are retained. None occupies navigation.
+Ten overhead clouds reuse whole native Clouds_01/02/03/04/05/08 PNGs (576x256,
+one centered Sprite at 64 PPU). They are not frame strips: AmbientCloudDrift
+translates the static illustration on slow 52-79 second cycles, with small
+vertical movement. Large illustrations use scale 1.1; small 03/04/08 use 1.8.
+Alpha 0.62-0.72 and order 19 keep the map readable. Their full bounds and travel
+stay inside the map, away from Castles, stairs, Gold clusters and central mine.
+No collider, resource, vision or new gameplay mechanic is introduced.
+
 ## Two Kingdoms battlefield composition (September 2026)
 
 ### Lush island decorations — verified source mapping

@@ -1,0 +1,954 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e199f9a0aa468074d94e3de579b7e99c, type: 3}
+  m_Name: LinearLaneLayout
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Terrain.BattlefieldLayout
+  blueCastle: {x: 6.5, y: 23.5}
+  redCastle: {x: 53.5, y: 23.5}
+  bluePawns:
+  - {x: 5.5, y: 21.5}
+  - {x: 6.5, y: 21.5}
+  - {x: 7.5, y: 21.5}
+  redPawns:
+  - {x: 54.5, y: 21.5}
+  - {x: 53.5, y: 21.5}
+  - {x: 52.5, y: 21.5}
+  redPawnAnimations: {fileID: 11400000, guid: f0bfd6436a20c4347b69b5a2581334d6, type: 2}
+  resources:
+  - name: Blue_Wood_1
+    type: 1
+    position: {x: 3.5, y: 26.5}
+    variant: 1
+  - name: Blue_Wood_2
+    type: 1
+    position: {x: 13.5, y: 26.5}
+    variant: 0
+  - name: Blue_Wood_3
+    type: 1
+    position: {x: 16.5, y: 26.5}
+    variant: 1
+  - name: Blue_Wood_4
+    type: 1
+    position: {x: 14.5, y: 18.5}
+    variant: 0
+  - name: Blue_Wood_5
+    type: 1
+    position: {x: 3.5, y: 15.5}
+    variant: 1
+  - name: Blue_Wood_6
+    type: 1
+    position: {x: 5.5, y: 15.5}
+    variant: 0
+  - name: Blue_Wood_7
+    type: 1
+    position: {x: 7.5, y: 15.5}
+    variant: 1
+  - name: Blue_Wood_8
+    type: 1
+    position: {x: 9.5, y: 15.5}
+    variant: 0
+  - name: Blue_Wood_9
+    type: 1
+    position: {x: 11.5, y: 15.5}
+    variant: 1
+  - name: Blue_Wood_10
+    type: 1
+    position: {x: 13.5, y: 15.5}
+    variant: 0
+  - name: Blue_Wood_11
+    type: 1
+    position: {x: 15.5, y: 15.5}
+    variant: 1
+  - name: Blue_Wood_12
+    type: 1
+    position: {x: 3.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_13
+    type: 1
+    position: {x: 5.5, y: 30.5}
+    variant: 1
+  - name: Blue_Wood_14
+    type: 1
+    position: {x: 7.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_15
+    type: 1
+    position: {x: 9.5, y: 30.5}
+    variant: 1
+  - name: Blue_Wood_16
+    type: 1
+    position: {x: 11.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_17
+    type: 1
+    position: {x: 13.5, y: 30.5}
+    variant: 1
+  - name: Blue_Wood_18
+    type: 1
+    position: {x: 15.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_19
+    type: 1
+    position: {x: 3.5, y: 12.5}
+    variant: 1
+  - name: Blue_Wood_20
+    type: 1
+    position: {x: 5.5, y: 12.5}
+    variant: 0
+  - name: Blue_Wood_21
+    type: 1
+    position: {x: 7.5, y: 12.5}
+    variant: 1
+  - name: Blue_Wood_22
+    type: 1
+    position: {x: 9.5, y: 12.5}
+    variant: 0
+  - name: Blue_Wood_23
+    type: 1
+    position: {x: 11.5, y: 12.5}
+    variant: 1
+  - name: Blue_Wood_24
+    type: 1
+    position: {x: 13.5, y: 12.5}
+    variant: 0
+  - name: Blue_Wood_25
+    type: 1
+    position: {x: 15.5, y: 12.5}
+    variant: 1
+  - name: Blue_Wood_26
+    type: 1
+    position: {x: 17.5, y: 12.5}
+    variant: 0
+  - name: Blue_Wood_27
+    type: 1
+    position: {x: 28.5, y: 14.5}
+    variant: 1
+  - name: Blue_Wood_28
+    type: 1
+    position: {x: 25.5, y: 16.5}
+    variant: 0
+  - name: Blue_Wood_29
+    type: 1
+    position: {x: 27.5, y: 16.5}
+    variant: 1
+  - name: Blue_Wood_30
+    type: 1
+    position: {x: 29.5, y: 16.5}
+    variant: 0
+  - name: Blue_Wood_31
+    type: 1
+    position: {x: 20.5, y: 18.5}
+    variant: 1
+  - name: Blue_Wood_32
+    type: 1
+    position: {x: 22.5, y: 18.5}
+    variant: 0
+  - name: Blue_Wood_33
+    type: 1
+    position: {x: 24.5, y: 18.5}
+    variant: 1
+  - name: Blue_Wood_34
+    type: 1
+    position: {x: 26.5, y: 18.5}
+    variant: 0
+  - name: Blue_Wood_35
+    type: 1
+    position: {x: 20.5, y: 26.5}
+    variant: 1
+  - name: Blue_Wood_36
+    type: 1
+    position: {x: 22.5, y: 26.5}
+    variant: 0
+  - name: Blue_Wood_37
+    type: 1
+    position: {x: 24.5, y: 26.5}
+    variant: 1
+  - name: Blue_Wood_38
+    type: 1
+    position: {x: 26.5, y: 26.5}
+    variant: 0
+  - name: Blue_Wood_39
+    type: 1
+    position: {x: 25.5, y: 28.5}
+    variant: 1
+  - name: Blue_Wood_40
+    type: 1
+    position: {x: 27.5, y: 28.5}
+    variant: 0
+  - name: Blue_Wood_41
+    type: 1
+    position: {x: 29.5, y: 28.5}
+    variant: 1
+  - name: Blue_Wood_42
+    type: 1
+    position: {x: 3.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_43
+    type: 1
+    position: {x: 5.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_44
+    type: 1
+    position: {x: 7.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_45
+    type: 1
+    position: {x: 9.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_46
+    type: 1
+    position: {x: 11.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_47
+    type: 1
+    position: {x: 13.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_48
+    type: 1
+    position: {x: 15.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_49
+    type: 1
+    position: {x: 16.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_50
+    type: 1
+    position: {x: 19.5, y: 19.5}
+    variant: 0
+  - name: Blue_Wood_51
+    type: 1
+    position: {x: 21.5, y: 19.5}
+    variant: 1
+  - name: Blue_Wood_52
+    type: 1
+    position: {x: 23.5, y: 19.5}
+    variant: 0
+  - name: Blue_Wood_53
+    type: 1
+    position: {x: 19.5, y: 25.5}
+    variant: 1
+  - name: Blue_Wood_54
+    type: 1
+    position: {x: 21.5, y: 25.5}
+    variant: 0
+  - name: Blue_Wood_55
+    type: 1
+    position: {x: 23.5, y: 25.5}
+    variant: 1
+  - name: Blue_Wood_56
+    type: 1
+    position: {x: 6.5, y: 11.5}
+    variant: 0
+  - name: Blue_Wood_57
+    type: 1
+    position: {x: 10.5, y: 11.5}
+    variant: 1
+  - name: Blue_Wood_58
+    type: 1
+    position: {x: 14.5, y: 11.5}
+    variant: 0
+  - name: Blue_Wood_59
+    type: 1
+    position: {x: 6.5, y: 33.5}
+    variant: 1
+  - name: Blue_Wood_60
+    type: 1
+    position: {x: 10.5, y: 33.5}
+    variant: 0
+  - name: Blue_Wood_61
+    type: 1
+    position: {x: 14.5, y: 33.5}
+    variant: 1
+  - name: Blue_Wood_62
+    type: 1
+    position: {x: 19.5, y: 27.5}
+    variant: 0
+  - name: Blue_Wood_63
+    type: 1
+    position: {x: 8.5, y: 11.5}
+    variant: 1
+  - name: Blue_Wood_64
+    type: 1
+    position: {x: 28.5, y: 29.5}
+    variant: 0
+  - name: Blue_Wood_65
+    type: 1
+    position: {x: 8.5, y: 33.5}
+    variant: 1
+  - name: Blue_Wood_66
+    type: 1
+    position: {x: 16.5, y: 11.5}
+    variant: 0
+  - name: Blue_Wood_67
+    type: 1
+    position: {x: 19.5, y: 17.5}
+    variant: 1
+  - name: Blue_Wood_68
+    type: 1
+    position: {x: 16.5, y: 33.5}
+    variant: 0
+  - name: Blue_Wood_69
+    type: 1
+    position: {x: 26.5, y: 15.5}
+    variant: 1
+  - name: Blue_Wood_70
+    type: 1
+    position: {x: 21.5, y: 27.5}
+    variant: 0
+  - name: Blue_Wood_71
+    type: 1
+    position: {x: 21.5, y: 17.5}
+    variant: 1
+  - name: Blue_Wood_72
+    type: 1
+    position: {x: 4.5, y: 11.5}
+    variant: 0
+  - name: Blue_Wood_73
+    type: 1
+    position: {x: 4.5, y: 33.5}
+    variant: 1
+  - name: Blue_Wood_74
+    type: 1
+    position: {x: 12.5, y: 11.5}
+    variant: 0
+  - name: Blue_Wood_75
+    type: 1
+    position: {x: 12.5, y: 33.5}
+    variant: 1
+  - name: Blue_Wood_76
+    type: 1
+    position: {x: 25.5, y: 19.5}
+    variant: 0
+  - name: Blue_Wood_77
+    type: 1
+    position: {x: 25.5, y: 25.5}
+    variant: 1
+  - name: Blue_Wood_78
+    type: 1
+    position: {x: 4.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_79
+    type: 1
+    position: {x: 8.5, y: 30.5}
+    variant: 1
+  - name: Blue_Wood_80
+    type: 1
+    position: {x: 12.5, y: 30.5}
+    variant: 0
+  - name: Blue_Wood_81
+    type: 1
+    position: {x: 16.5, y: 30.5}
+    variant: 1
+  - name: Blue_Wood_82
+    type: 1
+    position: {x: 3.5, y: 28.5}
+    variant: 0
+  - name: Blue_Wood_83
+    type: 1
+    position: {x: 4.5, y: 28.5}
+    variant: 1
+  - name: Blue_Wood_84
+    type: 1
+    position: {x: 3.5, y: 18.5}
+    variant: 0
+  - name: Blue_Wood_85
+    type: 1
+    position: {x: 4.5, y: 16.5}
+    variant: 1
+  - name: Blue_Wood_86
+    type: 1
+    position: {x: 3.5, y: 25.5}
+    variant: 0
+  - name: Blue_Wood_87
+    type: 1
+    position: {x: 9.5, y: 25.5}
+    variant: 1
+  - name: Blue_Wood_88
+    type: 1
+    position: {x: 4.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_89
+    type: 1
+    position: {x: 6.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_90
+    type: 1
+    position: {x: 8.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_91
+    type: 1
+    position: {x: 10.5, y: 31.5}
+    variant: 1
+  - name: Blue_Wood_92
+    type: 1
+    position: {x: 12.5, y: 31.5}
+    variant: 0
+  - name: Blue_Wood_93
+    type: 1
+    position: {x: 14.5, y: 31.5}
+    variant: 1
+  - name: Blue_Food_0
+    type: 0
+    position: {x: 5.4, y: 26.75}
+    variant: 0
+  - name: Blue_Food_1
+    type: 0
+    position: {x: 6.2, y: 27.35}
+    variant: 0
+  - name: Blue_Food_2
+    type: 0
+    position: {x: 6.85, y: 29.45}
+    variant: 0
+  - name: Blue_Food_3
+    type: 0
+    position: {x: 8.4, y: 28.15}
+    variant: 0
+  - name: Blue_Food_4
+    type: 0
+    position: {x: 9.65, y: 27.2}
+    variant: 0
+  - name: Blue_Food_5
+    type: 0
+    position: {x: 10.45, y: 29.3}
+    variant: 0
+  - name: Blue_Food_6
+    type: 0
+    position: {x: 11.85, y: 28.55}
+    variant: 0
+  - name: Blue_Food_7
+    type: 0
+    position: {x: 12.3, y: 27.25}
+    variant: 0
+  - name: Blue_Food_8
+    type: 0
+    position: {x: 14.25, y: 28.4}
+    variant: 0
+  - name: Blue_Food_9
+    type: 0
+    position: {x: 15.6, y: 29.15}
+    variant: 0
+  - name: Blue_Food_10
+    type: 0
+    position: {x: 16.25, y: 27.65}
+    variant: 0
+  - name: Blue_Food_11
+    type: 0
+    position: {x: 17.15, y: 28.35}
+    variant: 0
+  - name: Blue_Food_12
+    type: 0
+    position: {x: 5.4, y: 17.75}
+    variant: 0
+  - name: Blue_Food_13
+    type: 0
+    position: {x: 6.7, y: 18.6}
+    variant: 0
+  - name: Blue_Food_15
+    type: 0
+    position: {x: 8.6, y: 19.3}
+    variant: 0
+  - name: Blue_Food_16
+    type: 0
+    position: {x: 9.3, y: 17.35}
+    variant: 0
+  - name: Blue_Food_17
+    type: 0
+    position: {x: 10.7, y: 18.25}
+    variant: 0
+  - name: Blue_Food_19
+    type: 0
+    position: {x: 12.6, y: 19.15}
+    variant: 0
+  - name: Blue_Food_20
+    type: 0
+    position: {x: 13.45, y: 17.65}
+    variant: 0
+  - name: Blue_Food_21
+    type: 0
+    position: {x: 16.2, y: 18.4}
+    variant: 0
+  - name: Blue_Gold_0
+    type: 2
+    position: {x: 11.75, y: 24.25}
+    variant: 4
+  - name: Blue_Gold_1
+    type: 2
+    position: {x: 13.1, y: 24.5}
+    variant: 5
+  - name: Blue_Gold_2
+    type: 2
+    position: {x: 12.2, y: 23.65}
+    variant: 2
+  - name: Blue_Gold_3
+    type: 2
+    position: {x: 13.1, y: 23.55}
+    variant: 3
+  - name: Blue_Gold_4
+    type: 2
+    position: {x: 11.25, y: 23.4}
+    variant: 1
+  - name: Blue_Gold_5
+    type: 2
+    position: {x: 12.1, y: 22.9}
+    variant: 0
+  - name: Red_Wood_1
+    type: 1
+    position: {x: 56.5, y: 26.5}
+    variant: 1
+  - name: Red_Wood_2
+    type: 1
+    position: {x: 46.5, y: 26.5}
+    variant: 0
+  - name: Red_Wood_3
+    type: 1
+    position: {x: 43.5, y: 26.5}
+    variant: 1
+  - name: Red_Wood_4
+    type: 1
+    position: {x: 45.5, y: 18.5}
+    variant: 0
+  - name: Red_Wood_5
+    type: 1
+    position: {x: 56.5, y: 15.5}
+    variant: 1
+  - name: Red_Wood_6
+    type: 1
+    position: {x: 54.5, y: 15.5}
+    variant: 0
+  - name: Red_Wood_7
+    type: 1
+    position: {x: 52.5, y: 15.5}
+    variant: 1
+  - name: Red_Wood_8
+    type: 1
+    position: {x: 50.5, y: 15.5}
+    variant: 0
+  - name: Red_Wood_9
+    type: 1
+    position: {x: 48.5, y: 15.5}
+    variant: 1
+  - name: Red_Wood_10
+    type: 1
+    position: {x: 46.5, y: 15.5}
+    variant: 0
+  - name: Red_Wood_11
+    type: 1
+    position: {x: 44.5, y: 15.5}
+    variant: 1
+  - name: Red_Wood_12
+    type: 1
+    position: {x: 56.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_13
+    type: 1
+    position: {x: 54.5, y: 30.5}
+    variant: 1
+  - name: Red_Wood_14
+    type: 1
+    position: {x: 52.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_15
+    type: 1
+    position: {x: 50.5, y: 30.5}
+    variant: 1
+  - name: Red_Wood_16
+    type: 1
+    position: {x: 48.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_17
+    type: 1
+    position: {x: 46.5, y: 30.5}
+    variant: 1
+  - name: Red_Wood_18
+    type: 1
+    position: {x: 44.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_19
+    type: 1
+    position: {x: 56.5, y: 12.5}
+    variant: 1
+  - name: Red_Wood_20
+    type: 1
+    position: {x: 54.5, y: 12.5}
+    variant: 0
+  - name: Red_Wood_21
+    type: 1
+    position: {x: 52.5, y: 12.5}
+    variant: 1
+  - name: Red_Wood_22
+    type: 1
+    position: {x: 50.5, y: 12.5}
+    variant: 0
+  - name: Red_Wood_23
+    type: 1
+    position: {x: 48.5, y: 12.5}
+    variant: 1
+  - name: Red_Wood_24
+    type: 1
+    position: {x: 46.5, y: 12.5}
+    variant: 0
+  - name: Red_Wood_25
+    type: 1
+    position: {x: 44.5, y: 12.5}
+    variant: 1
+  - name: Red_Wood_26
+    type: 1
+    position: {x: 42.5, y: 12.5}
+    variant: 0
+  - name: Red_Wood_27
+    type: 1
+    position: {x: 31.5, y: 14.5}
+    variant: 1
+  - name: Red_Wood_28
+    type: 1
+    position: {x: 34.5, y: 16.5}
+    variant: 0
+  - name: Red_Wood_29
+    type: 1
+    position: {x: 32.5, y: 16.5}
+    variant: 1
+  - name: Red_Wood_30
+    type: 1
+    position: {x: 30.5, y: 16.5}
+    variant: 0
+  - name: Red_Wood_31
+    type: 1
+    position: {x: 39.5, y: 18.5}
+    variant: 1
+  - name: Red_Wood_32
+    type: 1
+    position: {x: 37.5, y: 18.5}
+    variant: 0
+  - name: Red_Wood_33
+    type: 1
+    position: {x: 35.5, y: 18.5}
+    variant: 1
+  - name: Red_Wood_34
+    type: 1
+    position: {x: 33.5, y: 18.5}
+    variant: 0
+  - name: Red_Wood_35
+    type: 1
+    position: {x: 39.5, y: 26.5}
+    variant: 1
+  - name: Red_Wood_36
+    type: 1
+    position: {x: 37.5, y: 26.5}
+    variant: 0
+  - name: Red_Wood_37
+    type: 1
+    position: {x: 35.5, y: 26.5}
+    variant: 1
+  - name: Red_Wood_38
+    type: 1
+    position: {x: 33.5, y: 26.5}
+    variant: 0
+  - name: Red_Wood_39
+    type: 1
+    position: {x: 34.5, y: 28.5}
+    variant: 1
+  - name: Red_Wood_40
+    type: 1
+    position: {x: 32.5, y: 28.5}
+    variant: 0
+  - name: Red_Wood_41
+    type: 1
+    position: {x: 30.5, y: 28.5}
+    variant: 1
+  - name: Red_Wood_42
+    type: 1
+    position: {x: 56.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_43
+    type: 1
+    position: {x: 54.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_44
+    type: 1
+    position: {x: 52.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_45
+    type: 1
+    position: {x: 50.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_46
+    type: 1
+    position: {x: 48.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_47
+    type: 1
+    position: {x: 46.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_48
+    type: 1
+    position: {x: 44.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_49
+    type: 1
+    position: {x: 43.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_50
+    type: 1
+    position: {x: 40.5, y: 19.5}
+    variant: 0
+  - name: Red_Wood_51
+    type: 1
+    position: {x: 38.5, y: 19.5}
+    variant: 1
+  - name: Red_Wood_52
+    type: 1
+    position: {x: 36.5, y: 19.5}
+    variant: 0
+  - name: Red_Wood_53
+    type: 1
+    position: {x: 40.5, y: 25.5}
+    variant: 1
+  - name: Red_Wood_54
+    type: 1
+    position: {x: 38.5, y: 25.5}
+    variant: 0
+  - name: Red_Wood_55
+    type: 1
+    position: {x: 36.5, y: 25.5}
+    variant: 1
+  - name: Red_Wood_56
+    type: 1
+    position: {x: 53.5, y: 11.5}
+    variant: 0
+  - name: Red_Wood_57
+    type: 1
+    position: {x: 49.5, y: 11.5}
+    variant: 1
+  - name: Red_Wood_58
+    type: 1
+    position: {x: 45.5, y: 11.5}
+    variant: 0
+  - name: Red_Wood_59
+    type: 1
+    position: {x: 53.5, y: 33.5}
+    variant: 1
+  - name: Red_Wood_60
+    type: 1
+    position: {x: 49.5, y: 33.5}
+    variant: 0
+  - name: Red_Wood_61
+    type: 1
+    position: {x: 45.5, y: 33.5}
+    variant: 1
+  - name: Red_Wood_62
+    type: 1
+    position: {x: 40.5, y: 27.5}
+    variant: 0
+  - name: Red_Wood_63
+    type: 1
+    position: {x: 51.5, y: 11.5}
+    variant: 1
+  - name: Red_Wood_64
+    type: 1
+    position: {x: 31.5, y: 29.5}
+    variant: 0
+  - name: Red_Wood_65
+    type: 1
+    position: {x: 51.5, y: 33.5}
+    variant: 1
+  - name: Red_Wood_66
+    type: 1
+    position: {x: 43.5, y: 11.5}
+    variant: 0
+  - name: Red_Wood_67
+    type: 1
+    position: {x: 40.5, y: 17.5}
+    variant: 1
+  - name: Red_Wood_68
+    type: 1
+    position: {x: 43.5, y: 33.5}
+    variant: 0
+  - name: Red_Wood_69
+    type: 1
+    position: {x: 33.5, y: 15.5}
+    variant: 1
+  - name: Red_Wood_70
+    type: 1
+    position: {x: 38.5, y: 27.5}
+    variant: 0
+  - name: Red_Wood_71
+    type: 1
+    position: {x: 38.5, y: 17.5}
+    variant: 1
+  - name: Red_Wood_72
+    type: 1
+    position: {x: 55.5, y: 11.5}
+    variant: 0
+  - name: Red_Wood_73
+    type: 1
+    position: {x: 55.5, y: 33.5}
+    variant: 1
+  - name: Red_Wood_74
+    type: 1
+    position: {x: 47.5, y: 11.5}
+    variant: 0
+  - name: Red_Wood_75
+    type: 1
+    position: {x: 47.5, y: 33.5}
+    variant: 1
+  - name: Red_Wood_76
+    type: 1
+    position: {x: 34.5, y: 19.5}
+    variant: 0
+  - name: Red_Wood_77
+    type: 1
+    position: {x: 34.5, y: 25.5}
+    variant: 1
+  - name: Red_Wood_78
+    type: 1
+    position: {x: 55.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_79
+    type: 1
+    position: {x: 51.5, y: 30.5}
+    variant: 1
+  - name: Red_Wood_80
+    type: 1
+    position: {x: 47.5, y: 30.5}
+    variant: 0
+  - name: Red_Wood_81
+    type: 1
+    position: {x: 43.5, y: 30.5}
+    variant: 1
+  - name: Red_Wood_82
+    type: 1
+    position: {x: 55.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_83
+    type: 1
+    position: {x: 53.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_84
+    type: 1
+    position: {x: 51.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_85
+    type: 1
+    position: {x: 49.5, y: 31.5}
+    variant: 1
+  - name: Red_Wood_86
+    type: 1
+    position: {x: 47.5, y: 31.5}
+    variant: 0
+  - name: Red_Wood_87
+    type: 1
+    position: {x: 45.5, y: 31.5}
+    variant: 1
+  - name: Red_Food_0
+    type: 0
+    position: {x: 55.55, y: 28.1}
+    variant: 0
+  - name: Red_Food_1
+    type: 0
+    position: {x: 54.7, y: 27.4}
+    variant: 0
+  - name: Red_Food_2
+    type: 0
+    position: {x: 53.4, y: 28.15}
+    variant: 0
+  - name: Red_Food_3
+    type: 0
+    position: {x: 52.6, y: 29.55}
+    variant: 0
+  - name: Red_Food_4
+    type: 0
+    position: {x: 51.8, y: 26.55}
+    variant: 0
+  - name: Red_Food_5
+    type: 0
+    position: {x: 51.15, y: 28.7}
+    variant: 0
+  - name: Red_Food_6
+    type: 0
+    position: {x: 49.7, y: 27.8}
+    variant: 0
+  - name: Red_Food_7
+    type: 0
+    position: {x: 48.35, y: 29.35}
+    variant: 0
+  - name: Red_Food_8
+    type: 0
+    position: {x: 47.5, y: 27.2}
+    variant: 0
+  - name: Red_Food_9
+    type: 0
+    position: {x: 45.75, y: 29.15}
+    variant: 0
+  - name: Red_Food_10
+    type: 0
+    position: {x: 44.3, y: 28.5}
+    variant: 0
+  - name: Red_Food_11
+    type: 0
+    position: {x: 43.7, y: 27.4}
+    variant: 0
+  - name: Red_Food_12
+    type: 0
+    position: {x: 55.7, y: 18.2}
+    variant: 0
+  - name: Red_Food_14
+    type: 0
+    position: {x: 53.55, y: 19.3}
+    variant: 0
+  - name: Red_Food_15
+    type: 0
+    position: {x: 52.2, y: 17.55}
+    variant: 0
+  - name: Red_Food_16
+    type: 0
+    position: {x: 51.45, y: 18.6}
+    variant: 0
+  - name: Red_Food_18
+    type: 0
+    position: {x: 49.35, y: 19.35}
+    variant: 0
+  - name: Red_Food_19
+    type: 0
+    position: {x: 48.6, y: 17.4}
+    variant: 0
+  - name: Red_Food_20
+    type: 0
+    position: {x: 47.3, y: 18.1}
+    variant: 0
+  - name: Red_Food_21
+    type: 0
+    position: {x: 43.8, y: 17.6}
+    variant: 0
+  - name: Red_Gold_0
+    type: 2
+    position: {x: 48.25, y: 24.25}
+    variant: 4
+  - name: Red_Gold_1
+    type: 2
+    position: {x: 46.9, y: 24.5}
+    variant: 5
+  - name: Red_Gold_2
+    type: 2
+    position: {x: 47.8, y: 23.65}
+    variant: 2
+  - name: Red_Gold_3
+    type: 2
+    position: {x: 46.9, y: 23.55}
+    variant: 3
+  - name: Red_Gold_4
+    type: 2
+    position: {x: 48.75, y: 23.4}
+    variant: 1
+  - name: Red_Gold_5
+    type: 2
+    position: {x: 47.9, y: 22.9}
+    variant: 0

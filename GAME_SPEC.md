@@ -1334,7 +1334,7 @@ retained. Re-enabling them is a separate future gameplay task.
 
 The first complete playable version contains only:
 
-1 map
+2 selectable maps: Two Kingdoms and Straight Lane
 
 2 factions
 

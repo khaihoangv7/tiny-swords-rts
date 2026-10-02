@@ -149,7 +149,7 @@ namespace TinyKingdom.UI
             buttonRect.anchorMin = buttonRect.anchorMax = buttonRect.pivot =
                 new Vector2(0.5f, 0.5f);
             buttonRect.sizeDelta = new Vector2(112f, 96f);
-            buttonRect.anchoredPosition = new Vector2(0f, -92f);
+            buttonRect.anchoredPosition = new Vector2(-93f, -92f);
             restartImage = buttonRect.gameObject.AddComponent<Image>();
             restartImage.sprite = catalog.VictoryButtonRegular;
             restartImage.preserveAspect = true;
@@ -164,6 +164,26 @@ namespace TinyKingdom.UI
             AddOutline(restartLabel, new Color(0.08f, 0.07f, 0.12f, 0.95f), 1f);
             buttonRect.gameObject.AddComponent<MatchResultButtonVisual>().Configure(
                 restartImage, restartLabel, catalog.VictoryButtonRegular,
+                catalog.VictoryButtonPressed);
+
+            RectTransform mapsRect = Rect("ChooseMap", panel);
+            mapsRect.anchorMin = mapsRect.anchorMax = mapsRect.pivot =
+                new Vector2(0.5f, 0.5f);
+            mapsRect.sizeDelta = new Vector2(112f, 96f);
+            mapsRect.anchoredPosition = new Vector2(93f, -92f);
+            Image mapsImage = mapsRect.gameObject.AddComponent<Image>();
+            mapsImage.sprite = catalog.VictoryButtonRegular;
+            mapsImage.preserveAspect = true;
+            Button mapsButton = mapsRect.gameObject.AddComponent<Button>();
+            mapsButton.transition = Selectable.Transition.None;
+            mapsButton.targetGraphic = mapsImage;
+            mapsButton.onClick.AddListener(ChooseMap);
+            Text mapsLabel = Label("Label", mapsRect, "MAPS", 15, FontStyle.Bold);
+            Stretch(mapsLabel.rectTransform);
+            mapsLabel.alignment = TextAnchor.MiddleCenter;
+            AddOutline(mapsLabel, new Color(0.08f, 0.07f, 0.12f, 0.95f), 1f);
+            mapsRect.gameObject.AddComponent<MatchResultButtonVisual>().Configure(
+                mapsImage, mapsLabel, catalog.VictoryButtonRegular,
                 catalog.VictoryButtonPressed);
 
             root.gameObject.SetActive(false);
@@ -285,6 +305,8 @@ namespace TinyKingdom.UI
             if (scene.buildIndex >= 0) SceneManager.LoadScene(scene.buildIndex);
             else SceneManager.LoadScene(scene.name);
         }
+
+        private static void ChooseMap() => SceneManager.LoadScene("MapSelection");
     }
 
     public sealed class MatchResultButtonVisual : MonoBehaviour, IPointerEnterHandler,
