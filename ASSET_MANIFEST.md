@@ -32,7 +32,7 @@ the main travel lane and Castle construction areas.
 
 The expanded battlefield is 60x44 cells with two tiered Castle bases and a
 flat central mine. Castle bases now have a 16x13 lower terrace at height 1 and
-a nested 12x8 upper terrace at height 2, with two ascent routes per faction.
+a nested 10x7 upper terrace at height 2, with two ascent routes per faction.
 Each route uses two native ramp flights, one per height boundary. Each cliff uses the native
 finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
 omitted, eliminating the doubled visible face. Side ramps retain the verified
@@ -51,7 +51,7 @@ walkable lower landing, never stacked into one wall. The mine remains flat.
 
 Sheep retain the verified Idle/Grass mapping. There are 73: twelve above and
 twelve below each Castle plateau, twelve neutral Sheep, and four at each base's
-lower outer corners, plus five on Blue's upper court.
+lower outer corners, plus two on Blue's upper court and three on its lower terrace.
 Each base uses four existing Tree variants: two at the
 lower terrace's northern rim (height 1) and two at the
 southern corners of the lower terrace.

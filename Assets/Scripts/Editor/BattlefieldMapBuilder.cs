@@ -79,8 +79,8 @@ namespace TinyKingdom.EditorTools
             }
             layout.blueCastle = BattlefieldLayout.BlueCastleStart;
             layout.redCastle = BattlefieldLayout.RedCastleStart;
-            layout.bluePawns = new[] { new Vector2(11.5f,14.5f), new Vector2(12.5f,14.5f), new Vector2(13.5f,14.5f) };
-            layout.redPawns = new[] { new Vector2(46.5f,30.5f), new Vector2(47.5f,30.5f), new Vector2(48.5f,30.5f) };
+            layout.bluePawns = new[] { new Vector2(12f,18.5f), new Vector2(13f,18.5f), new Vector2(14f,18.5f) };
+            layout.redPawns = new[] { new Vector2(46f,34.5f), new Vector2(47f,34.5f), new Vector2(48f,34.5f) };
             layout.redPawnAnimations = MakeRedPawnSet();
             var resources = new List<BattlefieldResource>();
             void Add(string name, ResourceType type, Vector2 p, int variant)
@@ -160,7 +160,7 @@ namespace TinyKingdom.EditorTools
             // Keep the middle courts and both stair approaches free for building.
             Vector2[] rimTrees = { new(8.5f,20.5f),new(18.5f,20.5f),new(5.5f,9.5f),new(20.5f,9.5f) };
             Vector2[] rimSheep = { new(6.5f,8.5f),new(8.5f,9.5f),new(17.5f,8.5f),new(19.5f,9.5f) };
-            Vector2[] rimGold = { new(8.5f,16.5f),new(17.5f,12.5f) };
+            Vector2[] rimGold = { new(8.5f,16.5f),new(17.5f,15.5f) };
             for(int side=0;side<2;side++)
             {
                 string name=side==0?"Blue_Rim_":"Red_Rim_";
@@ -172,10 +172,11 @@ namespace TinyKingdom.EditorTools
                 for(int i=0;i<rimGold.Length;i++)
                     Add(name+"Gold_"+i,ResourceType.Gold,rimGold[i]+offset,i==0?4:1);
             }
-            // Blue Castle edge planting: two dark pines per tier and five upper-court Sheep.
+            // Blue Castle edge planting: two dark pines per tier, two upper-court Sheep,
+            // and three Sheep moved down to the lower terrace to keep the Castle court open.
             Vector2[] terracePines = { new(7.5f,9.5f),new(18.5f,9.5f),new(8.5f,18.5f),new(17.5f,18.5f) };
-            Vector2[] courtSheep = { new(10.5f,19.5f),new(12.5f,18.5f),new(14.5f,19.5f),
-                new(8.5f,12.5f),new(17.5f,14.5f) };
+            Vector2[] courtSheep = { new(10.5f,11.5f),new(13.5f,10.5f),new(16.5f,11.5f),
+                new(9.5f,14.5f),new(17.5f,14.5f) };
             for(int i=0;i<terracePines.Length;i++)
                 Add("Blue_Terrace_Wood_"+i,ResourceType.Wood,terracePines[i],0);
             for(int i=0;i<courtSheep.Length;i++)
