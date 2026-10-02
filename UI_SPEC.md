@@ -261,7 +261,7 @@ code remain available for later work.
 
 ## Phase 6D.3 Command Tooltips and Cursor Interaction Polish
 
-The bottom command grid owns twelve persistent button objects. Each button has
+The bottom command grid owns fourteen persistent button objects. Each button has
 an EventSystem pointer trigger, while one shared `CommandTooltipPresenter`
 creates and reuses a single `CommandTooltip` panel beside the hovered command.
 Tooltip graphics do not receive raycasts, so the panel cannot interrupt the
@@ -340,3 +340,23 @@ completion or loss of a valid work target clears the working state through the
 existing builder lifecycle. Animation never advances construction and does not
 trigger hammer audio. The existing per-Pawn authoritative progress update, build
 duration, interaction slots and work-cycle SFX remain unchanged.
+
+## Phase 6G.2 Formation Commands
+
+When at least two living, friendly, controllable military units are selected, the
+existing bottom Command Panel shows Compact, Wedge, Loose and Line formation
+commands. Military formation eligibility is explicitly limited to Warrior, Lancer,
+Archer and Monk. Pawn does not count toward the two-unit minimum, so Pawn-only and
+one-military-plus-Pawn selections show no formation buttons or formation tooltip
+targets. Mixed selections with at least two military units show the controls, but
+the resulting reform affects only those military units. The selected formation is
+shown with a distinct pale-green command-slot tint, and the preference remains
+active when the player changes selections.
+
+Inspection of the imported Tiny Swords `Icon_01` through `Icon_12` set found no
+formation-specific art. Each command therefore draws a lightweight six-dot UI
+glyph: a block for Compact, widening rows for Wedge, spaced dots for Loose and one
+lateral row for Line. These glyphs are presentation only and introduce no external
+art. Each button reuses the Phase 6D.3 tooltip presenter and concise shape help.
+Clicks use the existing Phase 6E `CommandClick`/`CommandRejected` request path.
+No formation-specific sound is added.

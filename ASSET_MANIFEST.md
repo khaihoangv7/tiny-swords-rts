@@ -1058,6 +1058,20 @@ wrapping and a Max Size large enough for their source. No external UI or audio
 asset is introduced; the project currently has no gameplay audio system or
 imported font asset.
 
+## Phase 6G.2 formation command glyph inspection
+
+The twelve imported Tiny Swords command icons at
+`Assets/UI Elements/UI Elements/Icons/Icon_01.png` through `Icon_12.png` were
+visually inspected before adding formation commands. Their verified subjects are
+Wood, log, coin, meat, sword, shield, green directional arrow, red directional
+arrow, crossed weapons, gear, alert and music. None confidently represents
+Compact, Wedge, Loose or Line formation geometry.
+
+Phase 6G.2 therefore uses small procedural UI dot layouts created by
+`CommandPanelPresenter`; it does not map a misleading Tiny Swords icon and imports
+no external art. The dots are UI presentation only and have no sprite, animation,
+collider, gameplay or navigation authority.
+
 # 13. Important Rule For Codex
 
 Before creating animation code for an entity:

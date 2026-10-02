@@ -1155,3 +1155,44 @@ directional Play Mode, AI regression, Fog regression and Console validation rema
 - [ ] Test obstacle correction, map edge, choke passage and rapid recommand
 - [ ] Verify AttackMove acquisition/resume and direct target Attack regressions
 - [ ] Verify Red RuleBasedCommander, Fog, performance and clean Console
+
+## Phase 6G.2 - Player Formation Commands and Formation Shapes
+
+Status: **NOT COMPLETE** - implementation and automated validator are present;
+Unity Edit Mode validation and the required Play Mode regression matrix remain.
+
+- [x] Define exactly Compact, Wedge, Loose and Line; omit Column/SingleColumn
+- [x] Keep Compact as the match-start default and persist the Human preference
+- [x] Reuse one Phase 6G.1 slot, role assignment and logical-grid correction path
+- [x] Generate adaptive Compact rows at the existing one-cell spacing
+- [x] Generate widening Wedge rows with centered partial final rows
+- [x] Generate Loose from Compact with a provisional 1.65 spacing multiplier
+- [x] Generate Line as exactly one centered lateral rank for even and odd counts
+- [x] Assign Compact/Wedge/Loose roles front-to-rear in canonical priority
+- [x] Assign Line roles center-to-wing in canonical priority
+- [x] Restrict selectable formations to Warrior, Lancer, Archer and Monk
+- [x] Exclude Pawn from formation visibility counts, slots, centroid and reform
+- [x] Preserve Pawn gather/build/repair jobs when a mixed selection reforms
+- [x] Partition normal mixed Move into military formation and generic Pawn destinations
+- [x] Keep Pawn destinations outside cells reserved by the military formation
+- [x] Rotate all shapes with the shared forward/lateral basis
+- [x] Use the selected shape for Human Move and initial ground AttackMove layout
+- [x] Reform the current group in place using last meaningful facing
+- [x] Preserve single-unit and direct-target Attack behavior
+- [x] Add four contextual Command Panel buttons with procedural verified glyphs
+- [x] Add tooltips, active selection tint and existing click/reject audio handling
+- [x] Preserve HUD hierarchy across domain reload with fourteen reusable actions
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6G.2 Formation Commands`
+- [x] Extend validator with military eligibility, mixed slots and centroid isolation
+- [ ] Run the Phase 6G.2 validator in Unity Edit Mode
+- [ ] Verify buttons hidden for Pawn-only and one-military-plus-Pawn selections
+- [ ] Verify buttons visible for two military and mixed two-military-plus-Pawn selections
+- [ ] Test Compact, Wedge, Loose and Line reform while idle and while moving
+- [ ] Test up/down/left/right and four diagonal movement for every shape
+- [ ] Test Line even, odd, two-unit, mixed-role and 20+ unit groups
+- [ ] Verify mixed reform never moves Pawns or cancels gather/build/repair jobs
+- [ ] Verify normal mixed Move still moves Pawns outside military formation slots
+- [ ] Test absent military roles, map edges, obstacles, choke passages and rapid recommands
+- [ ] Verify Move, AttackMove acquisition/resume and direct target Attack regressions
+- [ ] Verify Phase 6D HUD/tooltips, Phase 6E audio and Phase 6F world sorting regressions
+- [ ] Verify RuleBasedCommander, Fog, Console and Profiler/GC regressions

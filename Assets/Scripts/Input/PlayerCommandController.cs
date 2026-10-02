@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
 using TinyKingdom.Economy;
@@ -21,21 +22,57 @@ namespace TinyKingdom.Input
         [SerializeField, Min(1)] private int maximumSearchRadius = 8;
         [SerializeField, Min(RoleFormationPlanner.MinimumSpacing)]
         private float formationSpacing = RoleFormationPlanner.DefaultSpacing;
+        [SerializeField] private FormationType currentFormation = FormationType.Compact;
         [SerializeField] private bool blockWhenPointerIsOverUI = true;
 
         private readonly List<UnitSelection> commandUnits = new();
-        private readonly List<UnitSelection> formationUnits = new();
+        private readonly List<UnitSelection> eligibleCommandUnits = new();
+        private readonly List<UnitSelection> militaryFormationUnits = new();
+        private readonly List<UnitSelection> nonFormationUnits = new();
         private readonly List<FormationAssignment> formationAssignments = new();
+        private readonly HashSet<GridCell> reservedCommandCells = new();
         private bool attackMovePending;
         private BuildingPlacementController placement;
+        private Vector2 lastFormationForward = Vector2.right;
+        private bool hasFormationForward;
 
         public bool IsAttackMoveTargeting => attackMovePending;
         public float FormationSpacing => formationSpacing;
+        public FormationType CurrentFormation => currentFormation;
+        public event Action<FormationType> FormationChanged;
 
         public bool BeginAttackMoveTargeting()
         {
             if (!MatchManager.AllowsGameplay || !HasSelectedCombatUnits()) return false;
             attackMovePending = true;
+            return true;
+        }
+
+        public bool SelectFormation(FormationType formationType)
+        {
+            if (!MatchManager.AllowsGameplay || selectionManager == null
+                || gridManager == null
+                || !Enum.IsDefined(typeof(FormationType), formationType)) return false;
+
+            selectionManager.CopySelectedUnits(commandUnits);
+            CopyEligibleCommandUnits(false);
+            if (!MilitaryFormationEligibility.HasFormationCommandGroup(
+                    militaryFormationUnits.Count)) return false;
+
+            attackMovePending = false;
+            placement ??= GetComponent<BuildingPlacementController>();
+            placement?.Cancel();
+            selectionManager.CancelLeftClickSuppression();
+            if (currentFormation != formationType)
+            {
+                currentFormation = formationType;
+                FormationChanged?.Invoke(currentFormation);
+            }
+
+            Vector3 center = RoleFormationPlanner.CalculateGroupOrigin(
+                militaryFormationUnits);
+            IssueFormationCommand(militaryFormationUnits, center, false,
+                hasFormationForward ? lastFormationForward : Vector2.right);
             return true;
         }
 
@@ -419,15 +456,49 @@ namespace TinyKingdom.Input
 
             selectionManager.CopySelectedUnits(commandUnits);
             CopyEligibleCommandUnits(attackMove);
-            if (formationUnits.Count == 0)
+            if (eligibleCommandUnits.Count == 0)
                 return 0;
 
-            if (!RoleFormationPlanner.RequiresFormation(formationUnits.Count))
-                return IssueSingleGroundCommand(formationUnits[0], worldPosition, attackMove);
+            if (eligibleCommandUnits.Count == 1)
+                return IssueSingleGroundCommand(eligibleCommandUnits[0],
+                    worldPosition, attackMove);
 
-            if (!RoleFormationPlanner.TryPlan(gridManager, formationUnits, worldPosition,
+            reservedCommandCells.Clear();
+            if (!MilitaryFormationEligibility.HasFormationCommandGroup(
+                    militaryFormationUnits.Count))
+                return IssueDistributedGroundCommands(eligibleCommandUnits,
+                    worldPosition, attackMove, reservedCommandCells);
+
+            Vector3 origin = RoleFormationPlanner.CalculateGroupOrigin(
+                militaryFormationUnits);
+            Vector2 delta = (Vector2)(worldPosition - origin);
+            Vector2 forward;
+            if (delta.sqrMagnitude >= RoleFormationPlanner.DirectionEpsilon
+                * RoleFormationPlanner.DirectionEpsilon)
+            {
+                forward = delta.normalized;
+                lastFormationForward = forward;
+                hasFormationForward = true;
+            }
+            else forward = hasFormationForward ? lastFormationForward : Vector2.right;
+            int issued = IssueFormationCommand(militaryFormationUnits,
+                worldPosition, attackMove, forward);
+            for (int i = 0; i < formationAssignments.Count; i++)
+                if (formationAssignments[i].Cell != null)
+                    reservedCommandCells.Add(formationAssignments[i].Cell);
+            if (nonFormationUnits.Count > 0)
+                issued += IssueDistributedGroundCommands(nonFormationUnits,
+                    worldPosition, attackMove, reservedCommandCells);
+            return issued;
+        }
+
+        private int IssueFormationCommand(IReadOnlyList<UnitSelection> units,
+            Vector3 anchor, bool attackMove, Vector2 forward)
+        {
+            if (!RoleFormationPlanner.TryPlan(gridManager, units, anchor,
                     formationSpacing, candidateMultiplier, maximumSearchRadius,
-                    ConcealHiddenOccupancy(worldPosition), formationAssignments))
+                    ConcealHiddenOccupancy(anchor), currentFormation, forward,
+                    formationAssignments))
                 return 0;
 
             int issued = 0;
@@ -438,13 +509,56 @@ namespace TinyKingdom.Input
                 Vector2Int destination = new(assignment.Cell.GridX, assignment.Cell.GridY);
                 bool accepted = attackMove
                     ? selectedUnit.GetComponent<CombatController>()
-                        ?.AttackMove(destination, worldPosition) == true
-                    : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
+                        ?.AttackMove(destination, anchor) == true
+                    : selectedUnit.Movement.TryIssueMove(destination, anchor);
                 if (!accepted) continue;
                 CancelPreviousUnitJob(selectedUnit);
                 issued++;
             }
 
+            return issued;
+        }
+
+        private int IssueDistributedGroundCommands(IReadOnlyList<UnitSelection> units,
+            Vector3 anchor, bool attackMove, HashSet<GridCell> reserved)
+        {
+            List<GridCell> candidates = FindGroundCandidates(anchor,
+                units.Count + reserved.Count);
+            int issued = 0;
+            for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
+            {
+                UnitSelection unit = units[unitIndex];
+                int best = -1;
+                float bestDistance = float.PositiveInfinity;
+                for (int candidateIndex = 0; candidateIndex < candidates.Count;
+                    candidateIndex++)
+                {
+                    GridCell candidate = candidates[candidateIndex];
+                    if (reserved.Contains(candidate)) continue;
+                    float distance = ((Vector2)(unit.transform.position
+                        - candidate.WorldPosition)).sqrMagnitude;
+                    if (distance < bestDistance - 0.0001f
+                        || Mathf.Abs(distance - bestDistance) <= 0.0001f
+                        && IsEarlierCell(candidate, best >= 0 ? candidates[best] : null))
+                    {
+                        best = candidateIndex;
+                        bestDistance = distance;
+                    }
+                }
+                if (best < 0) continue;
+
+                GridCell destinationCell = candidates[best];
+                Vector2Int destination = new(destinationCell.GridX,
+                    destinationCell.GridY);
+                bool accepted = attackMove
+                    ? unit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, anchor) == true
+                    : unit.Movement.TryIssueMove(destination, anchor);
+                if (!accepted) continue;
+                reserved.Add(destinationCell);
+                CancelPreviousUnitJob(unit);
+                issued++;
+            }
             return issued;
         }
 
@@ -469,18 +583,31 @@ namespace TinyKingdom.Input
 
         private void CopyEligibleCommandUnits(bool attackMove)
         {
-            formationUnits.Clear();
+            eligibleCommandUnits.Clear();
+            militaryFormationUnits.Clear();
+            nonFormationUnits.Clear();
             for (int i = 0; i < commandUnits.Count; i++)
             {
                 UnitSelection unit = commandUnits[i];
                 if (unit == null || !unit.Controller.IsAlive
+                    || unit.Movement == null
                     || unit.Controller.Faction != selectionManager.PlayerFaction)
                     continue;
                 if (attackMove && unit.GetComponent<CombatController>()
                     ?.CombatData?.AutoAcquireTargets != true)
                     continue;
-                formationUnits.Add(unit);
+                eligibleCommandUnits.Add(unit);
+                if (MilitaryFormationEligibility.IsFormationMilitaryUnit(unit))
+                    militaryFormationUnits.Add(unit);
+                else nonFormationUnits.Add(unit);
             }
+        }
+
+        private static bool IsEarlierCell(GridCell candidate, GridCell current)
+        {
+            if (current == null) return true;
+            int y = candidate.GridY.CompareTo(current.GridY);
+            return y < 0 || y == 0 && candidate.GridX < current.GridX;
         }
 
         private static void CancelPreviousUnitJob(UnitSelection selectedUnit)

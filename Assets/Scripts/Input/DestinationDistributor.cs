@@ -50,6 +50,31 @@ namespace TinyKingdom.Input
         }
     }
 
+    public enum FormationType
+    {
+        Compact,
+        Wedge,
+        Loose,
+        Line
+    }
+
+    public static class MilitaryFormationEligibility
+    {
+        public static bool IsFormationMilitaryType(UnitType type)
+            => type is UnitType.Warrior or UnitType.Lancer
+                or UnitType.Archer or UnitType.Monk;
+
+        public static bool IsFormationMilitaryUnit(UnitSelection unit)
+        {
+            UnitCombatData data = unit != null
+                ? unit.GetComponent<HealthComponent>()?.CombatData : null;
+            return data != null && IsFormationMilitaryType(data.UnitType);
+        }
+
+        public static bool HasFormationCommandGroup(int eligibleMilitaryCount)
+            => eligibleMilitaryCount >= 2;
+    }
+
     public static class FormationRolePriority
     {
         public const int Warrior = 0;
@@ -112,14 +137,12 @@ namespace TinyKingdom.Input
 
         private readonly struct DesiredSlot
         {
-            public DesiredSlot(int priority, int index, Vector3 position)
+            public DesiredSlot(int index, Vector3 position)
             {
-                Priority = priority;
                 Index = index;
                 Position = position;
             }
 
-            public int Priority { get; }
             public int Index { get; }
             public Vector3 Position { get; }
         }
@@ -139,6 +162,9 @@ namespace TinyKingdom.Input
         public const float DefaultSpacing = 1f;
         public const float MinimumSpacing = 0.5f;
         public const float DirectionEpsilon = 0.05f;
+        public const float LooseSpacingMultiplier = 1.65f;
+        public const float WedgeRowSpacingMultiplier = 0.9f;
+        public const int MaximumFormationSearchRadius = 24;
 
         public static bool RequiresFormation(int unitCount) => unitCount > 1;
 
@@ -170,6 +196,15 @@ namespace TinyKingdom.Input
             Vector3 destination, float spacing, int candidateMultiplier,
             int maximumSearchRadius, bool searchAroundOccupiedCenter,
             List<FormationAssignment> output)
+            => TryPlan(grid, units, destination, spacing, candidateMultiplier,
+                maximumSearchRadius, searchAroundOccupiedCenter, FormationType.Compact,
+                null, output);
+
+        public static bool TryPlan(GridManager grid, IReadOnlyList<UnitSelection> units,
+            Vector3 destination, float spacing, int candidateMultiplier,
+            int maximumSearchRadius, bool searchAroundOccupiedCenter,
+            FormationType formationType, Vector2? forwardOverride,
+            List<FormationAssignment> output)
         {
             output?.Clear();
             if (grid == null || units == null || output == null || units.Count < 2)
@@ -182,12 +217,15 @@ namespace TinyKingdom.Input
             members.Sort(CompareMembers);
 
             Vector3 origin = CalculateGroupOrigin(units);
-            Vector2 forward = ResolveForward(origin, destination);
+            Vector2 forward = forwardOverride.HasValue
+                && forwardOverride.Value.sqrMagnitude
+                    >= DirectionEpsilon * DirectionEpsilon
+                ? forwardOverride.Value.normalized
+                : ResolveForward(origin, destination);
             Vector2 right = new(forward.y, -forward.x);
             float slotSpacing = Mathf.Max(MinimumSpacing, spacing);
-            int columns = ColumnsFor(members.Count);
-            List<DesiredSlot> desired = GenerateDesiredSlots(members, destination,
-                forward, right, columns, slotSpacing);
+            List<DesiredSlot> desired = GenerateDesiredSlots(formationType,
+                members.Count, destination, forward, right, slotSpacing);
 
             Vector2Int center = grid.WorldToGrid(destination);
             int multiplier = Mathf.Max(1, candidateMultiplier);
@@ -216,42 +254,113 @@ namespace TinyKingdom.Input
             float cellSize = grid.NavigationData != null
                 ? Mathf.Max(0.01f, grid.NavigationData.CellSize) : 1f;
             int required = Mathf.CeilToInt(farthest / cellSize) + 1;
-            return Mathf.Clamp(required, 1, Mathf.Max(1, maximumSearchRadius));
+            // Wide explicit shapes (especially Line) may exceed the ordinary
+            // correction radius so their authored extent survives on open terrain.
+            // Small groups keep the original minimal scan, and the hard cap bounds
+            // pathological command-time neighborhoods.
+            int allowed = Mathf.Clamp(maximumSearchRadius, 1,
+                MaximumFormationSearchRadius);
+            if (required > allowed)
+                allowed = Mathf.Min(required, MaximumFormationSearchRadius);
+            return Mathf.Clamp(required, 1, allowed);
         }
 
-        private static List<DesiredSlot> GenerateDesiredSlots(List<Member> members,
-            Vector3 destination, Vector2 forward, Vector2 right, int columns, float spacing)
+        private static List<DesiredSlot> GenerateDesiredSlots(FormationType formationType,
+            int unitCount, Vector3 destination, Vector2 forward, Vector2 right, float spacing)
         {
-            var result = new List<DesiredSlot>(members.Count);
-            int memberIndex = 0;
-            int row = 0;
-            int slotIndex = 0;
-            while (memberIndex < members.Count)
+            var positions = new List<Vector3>(unitCount);
+            switch (formationType)
             {
-                int priority = members[memberIndex].Priority;
-                int roleEnd = memberIndex + 1;
-                while (roleEnd < members.Count && members[roleEnd].Priority == priority)
-                    roleEnd++;
-
-                int remaining = roleEnd - memberIndex;
-                while (remaining > 0)
-                {
-                    int rowCount = Mathf.Min(columns, remaining);
-                    float lateralCenter = (rowCount - 1) * 0.5f;
-                    for (int column = 0; column < rowCount; column++)
-                    {
-                        float lateral = (column - lateralCenter) * spacing;
-                        Vector3 position = destination
-                            - (Vector3)(forward * (row * spacing))
-                            + (Vector3)(right * lateral);
-                        result.Add(new DesiredSlot(priority, slotIndex++, position));
-                    }
-                    remaining -= rowCount;
-                    row++;
-                }
-                memberIndex = roleEnd;
+                case FormationType.Wedge:
+                    GenerateWedge(positions, unitCount, destination, forward, right, spacing);
+                    break;
+                case FormationType.Loose:
+                    GenerateBlock(positions, unitCount, destination, forward, right,
+                        spacing * LooseSpacingMultiplier,
+                        spacing * LooseSpacingMultiplier);
+                    break;
+                case FormationType.Line:
+                    AddCenteredRow(positions, unitCount, destination, right, spacing);
+                    break;
+                default:
+                    GenerateBlock(positions, unitCount, destination, forward, right,
+                        spacing, spacing);
+                    break;
             }
+
+            CenterOnDestination(positions, destination);
+            var result = new List<DesiredSlot>(positions.Count);
+            for (int i = 0; i < positions.Count; i++)
+                result.Add(new DesiredSlot(i, positions[i]));
             return result;
+        }
+
+        private static void GenerateBlock(List<Vector3> output, int unitCount,
+            Vector3 destination, Vector2 forward, Vector2 right,
+            float lateralSpacing, float rowSpacing)
+        {
+            int columns = ColumnsFor(unitCount);
+            int remaining = unitCount;
+            int row = 0;
+            while (remaining > 0)
+            {
+                int rowCount = Mathf.Min(columns, remaining);
+                Vector3 rowCenter = destination - (Vector3)(forward * (row * rowSpacing));
+                AddCenteredRow(output, rowCount, rowCenter, right, lateralSpacing);
+                remaining -= rowCount;
+                row++;
+            }
+        }
+
+        private static void GenerateWedge(List<Vector3> output, int unitCount,
+            Vector3 destination, Vector2 forward, Vector2 right, float spacing)
+        {
+            int remaining = unitCount;
+            int row = 0;
+            float rowSpacing = spacing * WedgeRowSpacingMultiplier;
+            while (remaining > 0)
+            {
+                int rowCount = Mathf.Min(row + 1, remaining);
+                Vector3 rowCenter = destination - (Vector3)(forward * (row * rowSpacing));
+                AddCenteredRow(output, rowCount, rowCenter, right, spacing);
+                remaining -= rowCount;
+                row++;
+            }
+        }
+
+        private static void AddCenteredRow(List<Vector3> output, int count,
+            Vector3 center, Vector2 right, float spacing)
+        {
+            for (int index = 0; index < count; index++)
+            {
+                float lateral;
+                if ((count & 1) == 1)
+                {
+                    if (index == 0) lateral = 0f;
+                    else
+                    {
+                        int step = (index + 1) / 2;
+                        lateral = (index & 1) == 1 ? -step * spacing : step * spacing;
+                    }
+                }
+                else
+                {
+                    int step = index / 2;
+                    float magnitude = (step + 0.5f) * spacing;
+                    lateral = (index & 1) == 0 ? -magnitude : magnitude;
+                }
+                output.Add(center + (Vector3)(right * lateral));
+            }
+        }
+
+        private static void CenterOnDestination(List<Vector3> positions,
+            Vector3 destination)
+        {
+            if (positions.Count == 0) return;
+            Vector3 center = Vector3.zero;
+            for (int i = 0; i < positions.Count; i++) center += positions[i];
+            Vector3 correction = destination - center / positions.Count;
+            for (int i = 0; i < positions.Count; i++) positions[i] += correction;
         }
 
         private static List<ResolvedSlot> ResolveSlots(List<DesiredSlot> desired,
@@ -295,9 +404,8 @@ namespace TinyKingdom.Input
                 int memberEnd = memberStart + 1;
                 while (memberEnd < members.Count && members[memberEnd].Priority == priority)
                     memberEnd++;
-                int slotEnd = slotStart;
-                while (slotEnd < slots.Count && slots[slotEnd].Desired.Priority == priority)
-                    slotEnd++;
+                int slotEnd = Mathf.Min(slots.Count,
+                    slotStart + memberEnd - memberStart);
                 AssignRole(members, memberStart, memberEnd, slots, slotStart, slotEnd, output);
                 memberStart = memberEnd;
                 slotStart = slotEnd;
