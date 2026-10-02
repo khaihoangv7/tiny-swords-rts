@@ -86,7 +86,8 @@ namespace TinyKingdom.Economy
             currentHP = MaximumHP; remainingGold = MaximumGold; state = GoldMineState.Neutral;
             hasOwner = false; incomeRemaining = IncomeSeconds;
             visual = GetComponentInChildren<SpriteRenderer>();
-            GroundSorting.Ensure(gameObject);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, visual));
             interaction = GetComponent<Collider2D>();
             if (!TryGetComponent(out selectionIndicator))
                 selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();

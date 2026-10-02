@@ -81,7 +81,8 @@ namespace TinyKingdom.Buildings
             BuildingSelectionPulse.Ensure(gameObject, visual);
             WorldSelectionHitArea.Ensure(this, visual);
             visual.color = new Color(1f, 1f, 1f, 0.55f);
-            GroundSorting.Ensure(gameObject);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, visual));
             MakeBar();
             (GetComponent<BuildingHealthBar>()
                 ?? gameObject.AddComponent<BuildingHealthBar>()).Configure(this,

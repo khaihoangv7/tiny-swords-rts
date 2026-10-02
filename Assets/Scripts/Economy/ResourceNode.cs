@@ -102,9 +102,12 @@ namespace TinyKingdom.Economy
         public bool HasMemoryPresentation => resourceType == ResourceType.Wood || !IsDepleted;
         public bool IsSelected => selectionIndicator != null && selectionIndicator.IsSelected;
         public event Action<ResourceNode> Depleted;
+        public event Action<ResourceNode, int> Harvested;
 
         private void OnEnable()
         {
+            GroundSorting.Ensure(gameObject, resourceType == ResourceType.Food,
+                SortGroundAnchorYOffset());
             EnsureSelectionIndicator();
             EnsureSelectionHitArea();
             if (!registeredNodes.Contains(this)) registeredNodes.Add(this);
@@ -147,6 +150,8 @@ namespace TinyKingdom.Economy
             selectionIndicator.Configure(width * presentationScale,
                 height * presentationScale, y);
             EnsureSelectionHitArea();
+            GroundSorting.Ensure(gameObject, type == ResourceType.Food,
+                SortGroundAnchorYOffset());
         }
 
         public void SetSelected(bool selected)
@@ -187,6 +192,7 @@ namespace TinyKingdom.Economy
             }
             if (taken > 0 && resourceType == ResourceType.Gold)
                 GetComponent<GoldHarvestHighlight>()?.Play();
+            if (taken > 0) Harvested?.Invoke(this, taken);
             if (IsDepleted)
             {
                 ClearOccupancy();
@@ -271,5 +277,13 @@ namespace TinyKingdom.Economy
                 selectionHitArea = WorldSelectionHitArea.Ensure(this, visual, padding);
             else selectionHitArea.SetSelectionPadding(padding, visual);
         }
+
+        private float SortGroundAnchorYOffset()
+            => resourceType switch
+            {
+                ResourceType.Wood => 0f,
+                ResourceType.Gold => -0.20f * presentationScale,
+                _ => -0.37f * presentationScale
+            };
     }
 }

@@ -56,9 +56,9 @@ Each base uses four existing Tree variants: two at the
 lower terrace's northern rim (height 1) and two at the
 southern corners of the lower terrace.
 Blue additionally uses two native dark Tree1 pines on each tier, retaining the
-existing Tree1/Stump1 mapping. Four edge clusters each contain three static
-Bushe3_0 grass tufts (the inspected dark spiky bush). They render at order 8,
-above both terrace surfaces and below resource visuals, with no colliders.
+existing Tree1/Stump1 mapping. Four edge clusters each contain three animated
+Bushe3 grass tufts (the inspected dark spiky bush). Their ground roots use the
+logical terrain elevation band and within-level Y order, with no colliders.
 The upper court has one large Gold Stone 5 (catalog index 4) and one small
 Gold Stone 2 (index 1), both inspected from their native PNGs. They retain their
 existing matched highlights and resource capacities. Construction space and
@@ -75,8 +75,19 @@ mappings below are retained. No sprite is AI-generated or recolored.
 * `Tilemap_color1` supplies the main island, `color3` Castle plateaus and bright meadow
   patches, `color4` the flat mine clearing and
   approach paths, and `color5` cool coastal vegetation. All are 64x64 tiles.
-* `Terrain/Decorations/Bushes/Bushe1.png` through `Bushe4.png`: first imported
-  sprite only, static ground cover. No new animation mapping.
+* `Terrain/Decorations/Bushes/Bushe1.png`: Aseprite tag `Bush 1`, source frames
+  0..7, exported sprites `Bushe1_0..7`, 100 ms each; LARGE scale 1.50.
+* `Terrain/Decorations/Bushes/Bushe2.png`: Aseprite tag `Bush 2`, source frames
+  8..15, exported sprites `Bushe2_0..7`, 100 ms each; SMALL scale 1.25.
+* `Terrain/Decorations/Bushes/Bushe3.png`: Aseprite tag `Bush 3`, source frames
+  16..23, exported sprites `Bushe3_0..7`, 100 ms each; LARGE scale 1.50.
+* `Terrain/Decorations/Bushes/Bushe4.png`: Aseprite tag `Bush 4`, source frames
+  24..31, exported sprites `Bushe4_0..7`, 100 ms each; SMALL scale 1.25.
+  All four use Multiple sprites, 100 PPU, Point filtering, no mipmaps,
+  uncompressed texture data and Clamp. The prior map setup selected only frame
+  zero; Phase 6F.1 catalogs all eight verified frames and loops them at 10 FPS
+  with deterministic phase offsets. Scaling affects a bottom-anchored visual
+  child and never changes navigation occupancy.
 * `Terrain/Decorations/Rocks/Rock1.png` through `Rock4.png`: static coastal
   boulders on nonwalkable water/shore fringe, away from travel corridors.
 * `Terrain/Decorations/Rocks in the Water/Water Rocks_01.png` through `_04.png`:

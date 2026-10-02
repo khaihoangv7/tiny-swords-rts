@@ -5,6 +5,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Navigation;
+using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
 using TinyKingdom.Units;
 using UnityEditor;
@@ -193,8 +194,12 @@ namespace TinyKingdom.EditorTools
             {
                 Tilemap map=root.Find("ElevatedGround_L"+terrace.Height).GetComponent<Tilemap>();
                 Tilemap shadow=root.Find("Shadow_L"+terrace.Height).GetComponent<Tilemap>();
-                Require(map.GetComponent<TilemapRenderer>().sortingOrder==3+2*terrace.Height
-                    && shadow.GetComponent<TilemapRenderer>().sortingOrder==2+2*terrace.Height,
+                int surfaceOrder=map.GetComponent<TilemapRenderer>().sortingOrder;
+                int shadowOrder=shadow.GetComponent<TilemapRenderer>().sortingOrder;
+                Require((surfaceOrder==GroundSorting.ElevatedTerrainBackgroundOrder(terrace.Height,true)
+                        && shadowOrder==GroundSorting.ElevatedTerrainBackgroundOrder(terrace.Height,false))
+                    || (surfaceOrder==3+2*terrace.Height
+                        && shadowOrder==2+2*terrace.Height),
                     "Terrace layer order invalid.");
                 for(int x=terrace.Surface.xMin;x<terrace.Surface.xMax;x++)
                 for(int y=terrace.Surface.yMin-1;y<terrace.Surface.yMin;y++)

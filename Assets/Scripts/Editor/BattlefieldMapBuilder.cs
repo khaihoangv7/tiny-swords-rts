@@ -34,10 +34,13 @@ namespace TinyKingdom.EditorTools
             BattlefieldLayout layout = MakeLayout();
             GameObject map = GameObject.Find("Map");
             Transform grid = map.transform.Find("Grid");
-            grid.Find("Shadow_L1").GetComponent<TilemapRenderer>().sortingOrder = 4;
-            grid.Find("ElevatedGround_L1").GetComponent<TilemapRenderer>().sortingOrder = 5;
-            grid.Find("Decorations").GetComponent<TilemapRenderer>().sortingOrder = 6;
-            Tilemap meadows = Layer(grid, "MeadowsAndPaths", 3);
+            grid.Find("BG_Color").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(0);
+            grid.Find("WaterFoam").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(1);
+            grid.Find("FlatGround").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(2);
+            grid.Find("Shadow_L1").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.ElevatedTerrainBackgroundOrder(1, false);
+            grid.Find("ElevatedGround_L1").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.ElevatedTerrainBackgroundOrder(1, true);
+            grid.Find("Decorations").GetComponent<TilemapRenderer>().sortingOrder = GroundSorting.TerrainBackgroundOrder(4);
+            Tilemap meadows = Layer(grid, "MeadowsAndPaths", GroundSorting.TerrainBackgroundOrder(3));
             PaintClearings(meadows);
             Transform details = ReplaceRoot(map.transform, "BattlefieldScenery");
             PaintScenery(details, layout);
@@ -284,17 +287,18 @@ namespace TinyKingdom.EditorTools
                     || Vector2.Distance(new(x,y),layout.blueCastle)<4
                     || Vector2.Distance(new(x,y),layout.redCastle)<4
                     || layout.resources.Any(r=>Vector2.Distance(r.position,new(x,y))<.65f)) continue;
-                Sprite sprite = First($"Assets/Terrain/Decorations/Bushes/Bushe{1+i%4}.png");
-                Place(root,"GroundCover_"+i,sprite,new(x,y),6,1f);
+                int variant = i % 4;
+                Sprite[] frames = LoadFrames($"Assets/Terrain/Decorations/Bushes/Bushe{variant+1}.png");
+                PlaceBush(root,"GroundCover_"+i,frames,new(x,y),variant,i*.037f);
             }
             // Native dark grass tufts sit in compact, nonblocking clusters near the Blue court edges.
             Vector2[] grassCenters = { new(7.65f,17.8f),new(18.35f,19.1f),new(10f,8.25f),new(15.5f,8.25f) };
             Vector2[] grassOffsets = { new(-.28f,-.1f),new(.25f,0),new(.03f,.3f) };
-            Sprite grass=First("Assets/Terrain/Decorations/Bushes/Bushe3.png");
+            Sprite[] grass=LoadFrames("Assets/Terrain/Decorations/Bushes/Bushe3.png");
             for(int cluster=0;cluster<grassCenters.Length;cluster++)
                 for(int tuft=0;tuft<grassOffsets.Length;tuft++)
-                    Place(root,$"Blue_Terrace_Grass_{cluster}_{tuft}",grass,
-                        grassCenters[cluster]+grassOffsets[tuft],8,1f);
+                    PlaceBush(root,$"Blue_Terrace_Grass_{cluster}_{tuft}",grass,
+                        grassCenters[cluster]+grassOffsets[tuft],2,(cluster*3+tuft)*.071f);
             Sprite[][] waterFrames=Enumerable.Range(1,4).Select(i=>BattlefieldAmbientAssets.Frames(
                 $"Assets/Terrain/Decorations/Rocks in the Water/Water Rocks_0{i}.png",64,16)).ToArray();
             Sprite[] rockSprites=Enumerable.Range(1,4).Select(i=>First($"Assets/Terrain/Decorations/Rocks/Rock{i}.png")).ToArray();
@@ -394,11 +398,32 @@ namespace TinyKingdom.EditorTools
             return AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().OrderBy(s=>s.name).First();
         }
 
+        private static Sprite[] LoadFrames(string path)
+            => AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>()
+                .OrderBy(sprite =>
+                {
+                    int split = sprite.name.LastIndexOf('_');
+                    return split >= 0 && int.TryParse(sprite.name[(split + 1)..], out int value)
+                        ? value : int.MaxValue;
+                }).ToArray();
+
         private static GameObject Place(Transform parent,string name,Sprite sprite,Vector2 p,int order,float scale)
         {
             var obj=new GameObject(name); obj.transform.SetParent(parent,false);
             obj.transform.position=p; obj.transform.localScale=Vector3.one*scale;
             var renderer=obj.AddComponent<SpriteRenderer>(); renderer.sprite=sprite; renderer.sortingOrder=order;
+            if (!name.StartsWith("Cloud_"))
+                GroundSorting.ApplyStatic(renderer, obj.transform.position, 0f);
+            return obj;
+        }
+
+        private static GameObject PlaceBush(Transform parent, string name, Sprite[] frames,
+            Vector2 position, int variant, float phase)
+        {
+            GameObject obj = Place(parent, name, frames[0], position, 0, 1f);
+            SpriteRenderer source = obj.GetComponent<SpriteRenderer>();
+            BushPresentation bush = BushPresentation.Ensure(obj, source, frames, variant, phase);
+            GroundSorting.ApplyStatic(bush.Visual, obj.transform.position, 0f);
             return obj;
         }
 

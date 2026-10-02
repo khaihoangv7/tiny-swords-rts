@@ -85,6 +85,13 @@ namespace TinyKingdom.EditorTools
                     LoadFrames("Assets/Terrain/Resources/Meat/Sheep/Sheep_Grass.png"),
                     LoadFrames("Assets/Terrain/Resources/Meat/Sheep/Sheep_Move.png"),
                     trees, stumps, gold, highlights, dead);
+                SpriteFrameSet[] bushes = Enumerable.Range(1, 4).Select(i =>
+                {
+                    var set = new SpriteFrameSet();
+                    set.SetFrames(LoadFrames($"Assets/Terrain/Decorations/Bushes/Bushe{i}.png"));
+                    return set;
+                }).ToArray();
+                catalog.SetBushes(bushes);
                 EditorUtility.SetDirty(catalog);
                 AssetDatabase.SaveAssets();
             }
@@ -169,6 +176,8 @@ namespace TinyKingdom.EditorTools
                 paths.Add($"Assets/Terrain/Resources/Gold/Gold Stones/Gold Stone {i}.png");
                 paths.Add($"Assets/Terrain/Resources/Gold/Gold Stones/Gold Stone {i}_Highlight.png");
             }
+            for (int i = 1; i <= 4; i++)
+                paths.Add($"Assets/Terrain/Decorations/Bushes/Bushe{i}.png");
             return paths.ToArray();
         }
 

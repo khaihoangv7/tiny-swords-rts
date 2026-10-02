@@ -2701,6 +2701,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.9499999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &70057443
 SpriteRenderer:
   serializedVersion: 3
@@ -3009,6 +3012,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.21
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &71536556
 SpriteRenderer:
   serializedVersion: 3
@@ -3133,6 +3139,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.86
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &71889162
 SpriteRenderer:
   serializedVersion: 3
@@ -3257,6 +3266,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.8999999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &76591628
 SpriteRenderer:
   serializedVersion: 3
@@ -3473,6 +3485,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.6399999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &77228393
 SpriteRenderer:
   serializedVersion: 3
@@ -4504,6 +4519,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.142
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &97957088
 SpriteRenderer:
   serializedVersion: 3
@@ -7796,6 +7814,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.213
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &192664671
 SpriteRenderer:
   serializedVersion: 3
@@ -10128,6 +10149,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.04
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &247823448
 SpriteRenderer:
   serializedVersion: 3
@@ -17666,6 +17690,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.065
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &255584994
 SpriteRenderer:
   serializedVersion: 3
@@ -19368,6 +19395,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.0699997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &296888689
 SpriteRenderer:
   serializedVersion: 3
@@ -19571,6 +19601,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.92300004
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &298808842
 SpriteRenderer:
   serializedVersion: 3
@@ -20234,6 +20267,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.852
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &313265971
 SpriteRenderer:
   serializedVersion: 3
@@ -21108,6 +21144,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.13
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &339749039
 SpriteRenderer:
   serializedVersion: 3
@@ -21232,6 +21271,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.4699998
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &340538261
 SpriteRenderer:
   serializedVersion: 3
@@ -21648,7 +21690,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 4
+  m_SortingOrder: -2070
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 1, y: 1, z: 0}
@@ -27068,6 +27110,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.81
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &385373782
 SpriteRenderer:
   serializedVersion: 3
@@ -30320,6 +30365,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.9399996
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &475486328
 SpriteRenderer:
   serializedVersion: 3
@@ -30628,6 +30676,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.8199999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &478807054
 SpriteRenderer:
   serializedVersion: 3
@@ -31935,6 +31986,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &519225691
 SpriteRenderer:
   serializedVersion: 3
@@ -33163,6 +33217,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.46
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &540392361
 SpriteRenderer:
   serializedVersion: 3
@@ -34408,6 +34465,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.33
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &577050647
 SpriteRenderer:
   serializedVersion: 3
@@ -63938,6 +63998,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.568
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &632235374
 SpriteRenderer:
   serializedVersion: 3
@@ -64815,6 +64878,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.3
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &649125731
 SpriteRenderer:
   serializedVersion: 3
@@ -65951,6 +66017,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.5099998
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &687417748
 SpriteRenderer:
   serializedVersion: 3
@@ -66811,6 +66880,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.34
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &707217475
 SpriteRenderer:
   serializedVersion: 3
@@ -67395,6 +67467,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.72
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &716844241
 SpriteRenderer:
   serializedVersion: 3
@@ -69359,6 +69434,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.5899997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &772593309
 SpriteRenderer:
   serializedVersion: 3
@@ -69776,6 +69854,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.90999997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &774826293
 SpriteRenderer:
   serializedVersion: 3
@@ -70084,6 +70165,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.26
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &783554632
 SpriteRenderer:
   serializedVersion: 3
@@ -70484,6 +70568,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.43
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &790405675
 SpriteRenderer:
   serializedVersion: 3
@@ -70687,6 +70774,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.35500002
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &797137317
 SpriteRenderer:
   serializedVersion: 3
@@ -71258,6 +71348,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.071
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &808301455
 SpriteRenderer:
   serializedVersion: 3
@@ -72762,6 +72855,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.77
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &851739084
 SpriteRenderer:
   serializedVersion: 3
@@ -75755,6 +75851,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.52
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &948980695
 SpriteRenderer:
   serializedVersion: 3
@@ -84003,6 +84102,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.426
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1001829055
 SpriteRenderer:
   serializedVersion: 3
@@ -85616,6 +85718,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.39
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1027892705
 SpriteRenderer:
   serializedVersion: 3
@@ -85756,7 +85861,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 5
+  m_SortingOrder: -2069
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
@@ -90532,6 +90637,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.71000004
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1033716706
 SpriteRenderer:
   serializedVersion: 3
@@ -91116,6 +91224,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.3799999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1042628497
 SpriteRenderer:
   serializedVersion: 3
@@ -94290,6 +94401,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 6.1099997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1104719201
 SpriteRenderer:
   serializedVersion: 3
@@ -94861,6 +94975,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.781
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1116824235
 SpriteRenderer:
   serializedVersion: 3
@@ -96365,6 +96482,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.78
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1143775937
 SpriteRenderer:
   serializedVersion: 3
@@ -97055,6 +97175,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.17
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1149410066
 SpriteRenderer:
   serializedVersion: 3
@@ -98099,6 +98222,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.73
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1174049007
 SpriteRenderer:
   serializedVersion: 3
@@ -101107,6 +101233,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.0299997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1251970804
 SpriteRenderer:
   serializedVersion: 3
@@ -102460,7 +102589,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 6
+  m_SortingOrder: -2068
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 1, y: 1, z: 0}
@@ -106573,7 +106702,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 7
+  m_SortingOrder: -2067
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
@@ -115423,6 +115552,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.639
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1468556584
 SpriteRenderer:
   serializedVersion: 3
@@ -115639,6 +115771,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.6
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1473192104
 SpriteRenderer:
   serializedVersion: 3
@@ -116697,6 +116832,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.9799995
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1489690549
 SpriteRenderer:
   serializedVersion: 3
@@ -117189,6 +117327,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.2
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1505926349
 SpriteRenderer:
   serializedVersion: 3
@@ -118636,6 +118777,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.6899999
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1523219945
 SpriteRenderer:
   serializedVersion: 3
@@ -119312,6 +119456,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.5499997
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1533548498
 SpriteRenderer:
   serializedVersion: 3
@@ -119528,6 +119675,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.68
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1536273549
 SpriteRenderer:
   serializedVersion: 3
@@ -123439,6 +123589,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.65
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1630427581
 SpriteRenderer:
   serializedVersion: 3
@@ -124776,6 +124929,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 1.56
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1668962323
 SpriteRenderer:
   serializedVersion: 3
@@ -125193,6 +125349,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.16
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1680492806
 SpriteRenderer:
   serializedVersion: 3
@@ -126329,6 +126488,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 5.85
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1706880468
 SpriteRenderer:
   serializedVersion: 3
@@ -127390,6 +127552,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.12
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1733483861
 SpriteRenderer:
   serializedVersion: 3
@@ -128894,6 +129059,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 3.25
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1772331128
 SpriteRenderer:
   serializedVersion: 3
@@ -152504,6 +152672,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.497
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1818396503
 SpriteRenderer:
   serializedVersion: 3
@@ -155112,6 +155283,9 @@ MonoBehaviour:
   - {fileID: 1411207517, guid: 7e07d749bd69ced42811b0a77dadde47, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.9899998
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1880901500
 SpriteRenderer:
   serializedVersion: 3
@@ -156156,6 +156330,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 2.08
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1902570515
 SpriteRenderer:
   serializedVersion: 3
@@ -157279,6 +157456,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.284
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1935390023
 SpriteRenderer:
   serializedVersion: 3
@@ -159090,6 +159270,9 @@ MonoBehaviour:
   - {fileID: -925702044, guid: ad7fefb2bf88b1d4ebe7ef9ef9792fd6, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &1987689493
 SpriteRenderer:
   serializedVersion: 3
@@ -164474,6 +164657,9 @@ MonoBehaviour:
   - {fileID: -98644068, guid: ef0cf368a3861de48aa2242fe51b3433, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.42
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &2111465514
 SpriteRenderer:
   serializedVersion: 3
@@ -165045,6 +165231,9 @@ MonoBehaviour:
   - {fileID: -1156861809, guid: 5b8aca2b929e51b45ab49915a68a45bc, type: 3}
   framesPerSecond: 10
   phaseSeconds: 0.994
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &2128622194
 SpriteRenderer:
   serializedVersion: 3
@@ -165445,6 +165634,9 @@ MonoBehaviour:
   - {fileID: -12985274, guid: 7577d294df308ff4883328e03694776e, type: 3}
   framesPerSecond: 10
   phaseSeconds: 4.29
+  preserveBottomAnchor: 0
+  anchoredScale: 1
+  sourceFrameWidthPixels: 128
 --- !u!212 &2137517906
 SpriteRenderer:
   serializedVersion: 3

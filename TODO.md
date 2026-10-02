@@ -1055,3 +1055,38 @@ remain required before PASS. This is not the full Phase 6E audio phase.
 - [ ] Verify camera distance attenuation, multi-unit concurrency and economy load
 - [ ] Verify Match End/Restart, Blue controls, Red AI, Fog and clean Console
 - [ ] Add Pawn Food, impacts, death, building, UI/result, ambience and music later
+
+## Phase 6F.1 - Elevation-Aware World Sorting, Animated Bushes and Tree Chop Feedback
+
+Status: **PASS** - implementation and projected-depth hotfix compile cleanly;
+manual Play Mode visual/regression validation was confirmed on 2026-10-02.
+
+- [x] Make logical `GridCell.HeightLevel` authoritative for projected world depth
+- [x] Replace absolute elevation bands with one global projected ground-depth domain
+- [x] Project each ground contact by one visual cell per logical elevation level
+- [x] Dynamically update all unit types and wandering Sheep across connectors
+- [x] Interpolate presentation elevation continuously across reciprocal connectors
+- [x] Resolve Trees, Gold, buildings, mine and decorative props from their ground cell
+- [x] Keep full terrain Tilemaps background-only and in Chunk mode
+- [x] Give southern cliff faces and official stair halves projected foreground copies
+- [x] Keep world orders below existing Fog/presentation overlays
+- [x] Verify Bushe1..4 paths, Aseprite tags, eight-frame sequences and 100 ms timing
+- [x] Classify Bushe1/3 as LARGE (1.50) and Bushe2/4 as SMALL (1.25)
+- [x] Preserve Point, 100 PPU, uncompressed, no-mipmap, Clamp bush imports
+- [x] Animate bushes through one shared frame scheduler with deterministic phases
+- [x] Trigger one 3.5 degree / 0.22 second Tree wobble per successful Wood take
+- [x] Refresh rather than queue repeated impacts and restore exact rotation safely
+- [x] Preserve roots, hit areas, navigation, Fog authority and chopping SFX
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6F.1 World Presentation`
+- [ ] Run the Phase 6F.1 validator in Edit and Play Mode when Unity licensing is available
+- [x] Reproduce lower Sheep vs higher Tree and lower Pawn vs upper cliff cases
+- [x] Verify same-level Pawn/Sheep vs Tree/Bush front/back Y sorting
+- [x] Verify level 1 Pawn, Sheep and building can cover level 2/3 background props
+- [x] Verify a genuinely foreground higher-level object still covers a lower-level object
+- [x] Verify level 1/2/3 objects can interleave by projected depth without level blocks
+- [x] Verify projected southern cliff faces occlude only at the intended contact depth
+- [x] Move Pawn, Warrior, Archer, Lancer and Monk through official stairs without flicker
+- [x] Verify Sheep, Tree, Gold, Castle and all constructible buildings across valid levels
+- [x] Observe all four Bush loops for sharpness, frame order, stable pivots and desynchronization
+- [x] Verify single/multiple Pawn chop wobble, stable Hand cursor and safe final depletion
+- [x] Confirm Fog, health bars, selection rings, Console, Profiler and GC regressions

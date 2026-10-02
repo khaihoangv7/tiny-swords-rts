@@ -1,4 +1,5 @@
 using System;
+using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
 using UnityEditor;
 using UnityEngine;
@@ -23,8 +24,10 @@ namespace TinyKingdom.EditorTools
             }
             for (int level=1;level<=BattlefieldTerraces.MaxHeight;level++)
             {
-                shadows[level]=Layer(grid,"Shadow_L"+level,2+2*level);
-                surfaces[level]=Layer(grid,"ElevatedGround_L"+level,3+2*level);
+                shadows[level]=Layer(grid,"Shadow_L"+level,
+                    GroundSorting.ElevatedTerrainBackgroundOrder(level, false));
+                surfaces[level]=Layer(grid,"ElevatedGround_L"+level,
+                    GroundSorting.ElevatedTerrainBackgroundOrder(level, true));
                 shadows[level].ClearAllTiles(); surfaces[level].ClearAllTiles();
             }
             foreach(TerraceDefinition terrace in BattlefieldTerraces.Platforms)

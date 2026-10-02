@@ -577,9 +577,12 @@ Units cannot be trained if the population cap would be exceeded.
 Normal faction building art is rendered at presentation scale 1.7 on a
 ground-anchored visual child. The gameplay root remains scale 1.0. Logical
 footprints, construction occupancy, A* blockers, interaction slots, rally,
-drop-off and combat authority do not derive from sprite bounds. Custom-axis Y
-sorting allows a unit north of a building's ground line to pass behind upper
-roof artwork while south-side units remain in front. Health/construction bars,
+drop-off and combat authority do not derive from sprite bounds. Elevation-aware
+sorting projects the building's logical elevation into its ground contact using
+`projectedY = groundY - elevation * cellSize`, then uses that value in the same
+global depth domain as units, resources and terrain foreground faces. This allows
+a lower foreground unit to render over a higher object behind it and a unit north
+of a building's ground line to pass behind upper roof artwork. Health/construction bars,
 damage effects and mounted Archer anchors are positioned from the scaled visual
 but do not inherit its transform scale. Gold Mine keeps its separately tuned
 2.60 presentation scale.
@@ -591,6 +594,17 @@ The front approach remains open for Castle drop-off and garrison entry.
 
 `Building Visual Bounds != Building Physical Footprint.` `BuildingRoot` stays
 at `(1,1,1)`; only its `VisualRoot` may use presentation scale.
+
+Phase 6F.1 applies unified projected ground-depth sorting to units, Sheep, Trees,
+Gold, buildings, decorative world props, southern cliff faces and official stairs.
+Unit feet and resource/building ground contacts are sort anchors. Full terrain
+Tilemaps stay background-only and in Chunk mode. This is presentation only:
+navigation, occupancy, combat, economy, Fog authority and balance values are unchanged.
+
+Every successful positive Wood harvest may trigger one subtle Tree visual
+wobble (3.5 degrees for 0.22 seconds). The resource root and interaction area
+remain fixed, repeated impacts refresh the current wobble, and chopping audio
+remains independently driven by the authoritative gather impact.
 
 Clicking a selectable friendly normal building plays one presentation-only
 vertical pulse: 0.94 squash, 1.035 stretch, then recovery to its configured

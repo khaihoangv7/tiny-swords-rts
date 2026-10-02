@@ -22,6 +22,8 @@ namespace TinyKingdom.Units
         private Transform originalParent;
         private IUnitStationHost pendingHost;
         private SortingGroup sortingGroup;
+        private ElevationSortingGroup elevationSorting;
+        private int originalAdditionalOrder;
         private int originalGroupOrder = GroundSorting.WorldOrder;
 
         public UnitStationingMode Mode { get; private set; } = UnitStationingMode.World;
@@ -68,7 +70,11 @@ namespace TinyKingdom.Units
             transform.localPosition = Vector3.zero;
             foreach ((SpriteRenderer renderer, _) in spriteOrders)
                 if (renderer != null) renderer.sortingOrder = Mathf.Max(renderer.sortingOrder, 15);
-            if (sortingGroup != null) sortingGroup.sortingOrder = 15;
+            if (elevationSorting != null)
+                elevationSorting.SetAdditionalOrder(GroundSorting.MountedPresentationAdditionalOrder);
+            else if (sortingGroup != null)
+                sortingGroup.sortingOrder = originalGroupOrder
+                    + GroundSorting.MountedPresentationAdditionalOrder;
             combat?.SetMountedContext(true, damageMultiplier, rangeMultiplier);
             return true;
         }
@@ -85,7 +91,8 @@ namespace TinyKingdom.Units
                 if (collider != null) collider.enabled = enabled;
             foreach ((SpriteRenderer renderer, int order) in spriteOrders)
                 if (renderer != null) renderer.sortingOrder = order;
-            if (sortingGroup != null) sortingGroup.sortingOrder = originalGroupOrder;
+            if (elevationSorting != null) elevationSorting.SetAdditionalOrder(originalAdditionalOrder);
+            else if (sortingGroup != null) sortingGroup.sortingOrder = originalGroupOrder;
             renderers.Clear();
             colliders.Clear();
             spriteOrders.Clear();
@@ -111,7 +118,9 @@ namespace TinyKingdom.Units
             colliders.Clear();
             spriteOrders.Clear();
             TryGetComponent(out sortingGroup);
+            TryGetComponent(out elevationSorting);
             if (sortingGroup != null) originalGroupOrder = sortingGroup.sortingOrder;
+            if (elevationSorting != null) originalAdditionalOrder = elevationSorting.AdditionalOrder;
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
                 renderers.Add((renderer, renderer.enabled));
             foreach (SpriteRenderer renderer in GetComponentsInChildren<SpriteRenderer>(true))
@@ -141,6 +150,7 @@ namespace TinyKingdom.Units
             selection ??= GetComponent<UnitSelection>();
             combat ??= GetComponent<CombatController>();
             if (sortingGroup == null) TryGetComponent(out sortingGroup);
+            if (elevationSorting == null) TryGetComponent(out elevationSorting);
         }
     }
 }

@@ -226,8 +226,9 @@ namespace TinyKingdom.EditorTools
                         new Vector2(site.Footprint.x, site.Footprint.y)) < 0.01f,
                         $"{site.name}: collider no longer matches logical footprint.");
                     bool hasBuildingGroup = site.TryGetComponent(out SortingGroup buildingGroup);
-                    Require(hasBuildingGroup && buildingGroup != null
-                        && buildingGroup.sortingOrder == 10,
+                    ElevationSortingGroup buildingSorter = site.GetComponent<ElevationSortingGroup>();
+                    Require(hasBuildingGroup && buildingGroup != null && buildingSorter != null
+                        && buildingGroup.sortingOrder == buildingSorter.CalculatedOrder,
                         $"{site.name}: ground sorting group is missing.");
                     Transform progress = site.transform.Find("ConstructionProgressBar");
                     Require(progress == null || !progress.IsChildOf(visual.transform),
@@ -267,7 +268,11 @@ namespace TinyKingdom.EditorTools
                     SortingGroup unitGroup = null;
                     bool hasUnitGroup = unit != null
                         && unit.TryGetComponent(out unitGroup);
-                    Require(hasUnitGroup && unitGroup != null && unitGroup.sortingOrder >= 10,
+                    ElevationSortingGroup unitSorter = unit != null
+                        ? unit.GetComponent<ElevationSortingGroup>() : null;
+                    Require(hasUnitGroup && unitGroup != null && unitSorter != null
+                        && unitSorter.TrackMovement
+                        && unitGroup.sortingOrder == unitSorter.CalculatedOrder,
                         $"{unit?.name}: unit ground sorting group is missing.");
                 }
             }

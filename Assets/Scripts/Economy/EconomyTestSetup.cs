@@ -455,7 +455,8 @@ namespace TinyKingdom.Economy
             visual.gameObject.name = "VisualRoot";
             BuildingVisualPresentation.Apply(visual, BuildingType.Castle,
                 visual.transform.localPosition);
-            GroundSorting.Ensure(obj);
+            GroundSorting.Ensure(obj, false,
+                GroundSorting.GroundOffsetFromVisual(obj.transform, visual));
             BoxCollider2D collider = obj.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(3f, 2f);
             collider.offset = new Vector2(0f, 0.5f);

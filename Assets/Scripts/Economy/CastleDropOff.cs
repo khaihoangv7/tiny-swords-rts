@@ -97,6 +97,8 @@ namespace TinyKingdom.Economy
             currentHP = castleData != null ? castleData.MaxHP : 0f;
             BuildingSelectionPulse.Ensure(gameObject, PresentationRenderer);
             WorldSelectionHitArea.Ensure(this, PresentationRenderer);
+            GroundSorting.Ensure(gameObject, false,
+                GroundSorting.GroundOffsetFromVisual(transform, PresentationRenderer));
             if (castleData != null)
                 (GetComponent<BuildingVisionSource>()
                     ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
