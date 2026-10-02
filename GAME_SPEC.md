@@ -1875,7 +1875,31 @@ update and never by animation frames or events. Builder removal, death,
 reassignment and completion stop the presentation through the existing job state.
 Repair continues to use the same working animation and authoritative repair impact.
 
-# 60. Source of Truth
+# 60. Phase 6G.1 Role-Based Army Movement
+
+Human multi-unit Move and ground AttackMove commands arrange final destinations in
+a compact formation oriented from the selected units' ground-position centroid
+toward the clicked point. The local forward axis points toward the command and the
+lateral axis is perpendicular to it, so the layout supports arbitrary directions.
+A near-zero direction deterministically falls back to world right.
+
+The canonical front-to-rear priority is Warrior, Lancer, Archer, Monk and Pawn.
+Missing roles leave no empty row. Future or non-player unit types use a safe
+middle/rear priority. Each present role receives one or more compact rows with a
+default one-cell spacing; additional rows for a role are filled before the next
+role begins. Within a role, deterministic nearest-pair matching minimizes travel
+and uses stable EntityId order to resolve ties.
+
+Desired geometry is corrected through the existing logical grid destination
+distribution. Final cells must be unique, walkable, unoccupied and on the clicked
+cell's logical height. Slot scoring performs no path searches; each assigned unit
+uses its existing A* request only when the command is issued. Single-unit commands
+retain their previous clicked-destination behavior. Formation is an arrival layout,
+not a rigid leader/follower system: A*, UnitSeparation and combat behavior remain
+authoritative during travel and engagement. Phase 6G.1 changes only Human group
+commands; RuleBasedCommander movement keeps its existing APIs and assignments.
+
+# 61. Source of Truth
 
 This file defines gameplay rules.
 

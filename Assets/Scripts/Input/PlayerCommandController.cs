@@ -19,13 +19,18 @@ namespace TinyKingdom.Input
         [SerializeField] private GridManager gridManager;
         [SerializeField, Min(1)] private int candidateMultiplier = 4;
         [SerializeField, Min(1)] private int maximumSearchRadius = 8;
+        [SerializeField, Min(RoleFormationPlanner.MinimumSpacing)]
+        private float formationSpacing = RoleFormationPlanner.DefaultSpacing;
         [SerializeField] private bool blockWhenPointerIsOverUI = true;
 
         private readonly List<UnitSelection> commandUnits = new();
+        private readonly List<UnitSelection> formationUnits = new();
+        private readonly List<FormationAssignment> formationAssignments = new();
         private bool attackMovePending;
         private BuildingPlacementController placement;
 
         public bool IsAttackMoveTargeting => attackMovePending;
+        public float FormationSpacing => formationSpacing;
 
         public bool BeginAttackMoveTargeting()
         {
@@ -413,59 +418,95 @@ namespace TinyKingdom.Input
                 return 0;
 
             selectionManager.CopySelectedUnits(commandUnits);
-            if (commandUnits.Count == 0)
+            CopyEligibleCommandUnits(attackMove);
+            if (formationUnits.Count == 0)
                 return 0;
 
-            List<GridCell> candidates = FindGroundCandidates(worldPosition, commandUnits.Count);
-            if (candidates.Count == 0)
+            if (!RoleFormationPlanner.RequiresFormation(formationUnits.Count))
+                return IssueSingleGroundCommand(formationUnits[0], worldPosition, attackMove);
+
+            if (!RoleFormationPlanner.TryPlan(gridManager, formationUnits, worldPosition,
+                    formationSpacing, candidateMultiplier, maximumSearchRadius,
+                    ConcealHiddenOccupancy(worldPosition), formationAssignments))
                 return 0;
 
             int issued = 0;
-            var assigned = new HashSet<GridCell>();
-            foreach (UnitSelection selectedUnit in commandUnits)
+            for (int i = 0; i < formationAssignments.Count; i++)
             {
-                if (selectedUnit == null || !selectedUnit.Controller.IsAlive
-                    || selectedUnit.Controller.Faction != selectionManager.PlayerFaction)
-                    continue;
-                if (attackMove && selectedUnit.GetComponent<CombatController>()
-                    ?.CombatData?.AutoAcquireTargets != true)
-                    continue;
-
-                foreach (GridCell candidate in candidates)
-                {
-                    if (assigned.Contains(candidate))
-                        continue;
-                    Vector2Int destination = new(candidate.GridX, candidate.GridY);
-                    bool accepted = attackMove
-                        ? selectedUnit.GetComponent<CombatController>()
-                            ?.AttackMove(destination, worldPosition) == true
-                        : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
-                    if (!accepted)
-                        continue;
-
-                    selectedUnit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
-                    selectedUnit.GetComponent<PawnGatherer>()?.CancelJob();
-                    selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
-
-                    assigned.Add(candidate);
-                    issued++;
-                    break;
-                }
+                FormationAssignment assignment = formationAssignments[i];
+                UnitSelection selectedUnit = assignment.Unit;
+                Vector2Int destination = new(assignment.Cell.GridX, assignment.Cell.GridY);
+                bool accepted = attackMove
+                    ? selectedUnit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, worldPosition) == true
+                    : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
+                if (!accepted) continue;
+                CancelPreviousUnitJob(selectedUnit);
+                issued++;
             }
 
             return issued;
         }
 
+        private int IssueSingleGroundCommand(UnitSelection selectedUnit,
+            Vector3 worldPosition, bool attackMove)
+        {
+            List<GridCell> candidates = FindGroundCandidates(worldPosition, 1);
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                GridCell candidate = candidates[i];
+                Vector2Int destination = new(candidate.GridX, candidate.GridY);
+                bool accepted = attackMove
+                    ? selectedUnit.GetComponent<CombatController>()
+                        ?.AttackMove(destination, worldPosition) == true
+                    : selectedUnit.Movement.TryIssueMove(destination, worldPosition);
+                if (!accepted) continue;
+                CancelPreviousUnitJob(selectedUnit);
+                return 1;
+            }
+            return 0;
+        }
+
+        private void CopyEligibleCommandUnits(bool attackMove)
+        {
+            formationUnits.Clear();
+            for (int i = 0; i < commandUnits.Count; i++)
+            {
+                UnitSelection unit = commandUnits[i];
+                if (unit == null || !unit.Controller.IsAlive
+                    || unit.Controller.Faction != selectionManager.PlayerFaction)
+                    continue;
+                if (attackMove && unit.GetComponent<CombatController>()
+                    ?.CombatData?.AutoAcquireTargets != true)
+                    continue;
+                formationUnits.Add(unit);
+            }
+        }
+
+        private static void CancelPreviousUnitJob(UnitSelection selectedUnit)
+        {
+            selectedUnit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
+            selectedUnit.GetComponent<PawnGatherer>()?.CancelJob();
+            selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
+        }
+
         private List<GridCell> FindGroundCandidates(Vector3 worldPosition, int unitCount)
         {
             Vector2Int center = gridManager.WorldToGrid(worldPosition);
-            TeamVisionSystem vision = TeamVisionSystem.Instance;
-            bool concealHiddenOccupancy = vision != null && selectionManager != null
-                && vision.GetVisionState(selectionManager.PlayerFaction, center)
-                    != VisionState.Visible;
             return DestinationDistributor.FindNearbyDestinations(
                 gridManager, center, unitCount * candidateMultiplier, maximumSearchRadius,
-                concealHiddenOccupancy);
+                ConcealHiddenOccupancy(center));
+        }
+
+        private bool ConcealHiddenOccupancy(Vector3 worldPosition)
+            => ConcealHiddenOccupancy(gridManager.WorldToGrid(worldPosition));
+
+        private bool ConcealHiddenOccupancy(Vector2Int center)
+        {
+            TeamVisionSystem vision = TeamVisionSystem.Instance;
+            return vision != null && selectionManager != null
+                && vision.GetVisionState(selectionManager.PlayerFaction, center)
+                    != VisionState.Visible;
         }
 
         public void Configure(Camera cameraReference, SelectionManager selection, GridManager grid)

@@ -1131,3 +1131,27 @@ manual Play Mode visual/regression validation was confirmed on 2026-10-02.
 - [x] Observe all four Bush loops for sharpness, frame order, stable pivots and desynchronization
 - [x] Verify single/multiple Pawn chop wobble, stable Hand cursor and safe final depletion
 - [x] Confirm Fog, health bars, selection rings, Console, Profiler and GC regressions
+
+## Phase 6G.1 - Role-Based Army Movement and Frontline Ordering
+
+Status: **NOT COMPLETE** - implementation and automated validator are present;
+directional Play Mode, AI regression, Fog regression and Console validation remain.
+
+- [x] Centralize Warrior, Lancer, Archer, Monk and Pawn formation priority
+- [x] Derive forward/right axes from group centroid toward the Human command point
+- [x] Generate compact role rows with configurable one-cell spacing
+- [x] Collapse absent roles without reserving empty rows
+- [x] Assign same-role units by deterministic nearest-pair matching and EntityId ties
+- [x] Correct desired slots through existing bounded logical-grid distribution
+- [x] Preserve unique, walkable, unoccupied, same-height destination cells
+- [x] Keep one selected unit on the previous command path without formation offsets
+- [x] Apply the planner to Human Move and eligible ground AttackMove commands
+- [x] Preserve direct-target Attack, A*, UnitSeparation, combat and unit speeds
+- [x] Leave FactionCommandService and RuleBasedCommander call sites unchanged
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6G.1 Role Formation`
+- [ ] Run the Phase 6G.1 validator in Unity Edit Mode
+- [ ] Test right, left, up, down and four diagonal Human group commands
+- [ ] Test mixed roles, ranged-only, Pawn-inclusive and same-role groups
+- [ ] Test obstacle correction, map edge, choke passage and rapid recommand
+- [ ] Verify AttackMove acquisition/resume and direct target Attack regressions
+- [ ] Verify Red RuleBasedCommander, Fog, performance and clean Console
