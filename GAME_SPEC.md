@@ -1334,7 +1334,7 @@ interaction collider remain unchanged. Its enlarged Fire presentation uses
 scale 2.47 with anchors (-0.585, 0.13), (0, 0.546), (0.585, 0.156). Its building
 Explosion scale is 2.08. The current 60x44 map places the Gold Mine on flat
 central ground, with its 2x2 footprint beginning at (29,21). Both main Castles
-stand on height-2 upper courts (12x8), nested within spacious 16x13 height-1
+stand on height-2 upper courts (10x7), nested within spacious 16x13 height-1
 terraces. Each base has two independent side routes, each with two ramp flights.
 Single cliff rows are separated by a walkable landing. Each visible Castle ramp and its exact logical height
 transition come from one shared connector definition. Sheep graze above and

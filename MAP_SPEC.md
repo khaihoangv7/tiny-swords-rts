@@ -115,8 +115,10 @@ on-screen diagonal in both ascent and descent.
 The central objective is a flat clearing at height 0. The 2x2 mine starts
 at (29,21), with open approaches from both factions and no mine-side ramps.
 Blue's lower terrace occupies x=5..20, y=8..20 and Red's x=39..54, y=24..36
-at height 1. The height-2 Castle courts are inset: Blue x=7..18, y=12..19;
-Red x=41..52, y=28..35. Single cliff rows sit immediately south of each tier;
+at height 1. The height-2 Castle courts are inset: Blue x=8..17, y=14..20;
+Red x=42..51, y=30..36. Each 10 x 7 court is one cell narrower on both
+sides than the previous court, begins two cells farther north, and extends to
+the rear edge of its lower terrace. Single cliff rows sit immediately south of each tier;
 the lower landing visibly separates them. `BattlefieldTerraces` defines all
 four platforms and eight ramp flights: two independent ascent routes per base,
 on opposite flanks, each connecting ground -> lower terrace -> upper court.
@@ -155,21 +157,25 @@ Current expanded size:
 60 x 44 cells (previously 40 x 28). `BattlefieldLayout.Width/Height` are the
 shared authored dimensions. Terrain, navigation, camera bounds, zoom and fog
 must cover the full map. Each Castle base has a 16 x 13 lower terrace and an
-inset 12 x 8 upper court, with at least 171 unobstructed cells at Blue and 180 at Red across both tiers.
+inset 10 x 7 upper court, with at least 171 unobstructed cells at Blue and 180 at Red across both tiers.
 
 The current Two Kingdoms composition has an irregular, approximately mirrored
 island shoreline. Its exact authored row insets are shared by
 `BattlefieldLayout.IsLand` and baked separately into Tilemaps and navigation.
 The central mine stands on flat ground; only the Castle bases are elevated.
-Blue Castle is at (12.5, 16.5), Red Castle at (47.5, 32.5); both start with three
-Pawns and open construction space. There are 24
+Blue Castle is at (13, 19.5), Red Castle at (47, 35.5); each Castle is centered
+left-to-right on its 10 x 7 upper court, with its 3 x 2 footprint occupying the
+two northernmost rows.
+Both start with three Pawns and open construction space. There are 24
 Sheep per faction: twelve scattered on low meadows above its Castle plateau and
 twelve below its cliff foot, plus twelve additional Sheep in neutral meadows.
 Each Castle base also has two Trees along the lower terrace's northern rim and two at the
 southern corners of its lower terrace. One large and one small Gold Rock sit at
 the upper court's edges, with four Sheep near
 the lower landing's corners. Blue additionally has two dark Tree1 pines on each
-tier and five Sheep near the upper court's edges (73 Sheep total). Four compact
+tier, two Sheep near the upper court's lower corners, and three Sheep on the
+lower terrace (73 Sheep total). This keeps the Castle court and its starting
+Pawn row clear. Four compact
 clusters of three native Bushe3 tufts decorate Blue's terrace edges. These additions
 leave the central building space and both stair routes clear, with at least
 171 free cells at Blue and 180 at Red across the tiers. Two

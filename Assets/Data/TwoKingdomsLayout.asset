@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e199f9a0aa468074d94e3de579b7e99c, type: 3}
   m_Name: TwoKingdomsLayout
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Terrain.BattlefieldLayout
-  blueCastle: {x: 12.5, y: 16.5}
-  redCastle: {x: 47.5, y: 32.5}
+  blueCastle: {x: 13, y: 19.5}
+  redCastle: {x: 47, y: 35.5}
   bluePawns:
-  - {x: 11.5, y: 14.5}
-  - {x: 12.5, y: 14.5}
-  - {x: 13.5, y: 14.5}
+  - {x: 12, y: 18.5}
+  - {x: 13, y: 18.5}
+  - {x: 14, y: 18.5}
   redPawns:
-  - {x: 46.5, y: 30.5}
-  - {x: 47.5, y: 30.5}
-  - {x: 48.5, y: 30.5}
+  - {x: 46, y: 34.5}
+  - {x: 47, y: 34.5}
+  - {x: 48, y: 34.5}
   redPawnAnimations: {fileID: 11400000, guid: f99e8f48276242848a6962d1be0f83de, type: 2}
   resources:
   - name: Blue_Wood_1
@@ -1670,7 +1670,7 @@ MonoBehaviour:
     variant: 4
   - name: Blue_Rim_Gold_1
     type: 2
-    position: {x: 17.5, y: 12.5}
+    position: {x: 17.5, y: 15.5}
     variant: 1
   - name: Red_Rim_Wood_0
     type: 1
@@ -1710,7 +1710,7 @@ MonoBehaviour:
     variant: 4
   - name: Red_Rim_Gold_1
     type: 2
-    position: {x: 51.5, y: 28.5}
+    position: {x: 51.5, y: 31.5}
     variant: 1
   - name: Blue_Terrace_Wood_0
     type: 1
@@ -1730,19 +1730,19 @@ MonoBehaviour:
     variant: 0
   - name: Blue_Terrace_Sheep_0
     type: 0
-    position: {x: 10.5, y: 19.5}
+    position: {x: 10.5, y: 11.5}
     variant: 0
   - name: Blue_Terrace_Sheep_1
     type: 0
-    position: {x: 12.5, y: 18.5}
+    position: {x: 13.5, y: 10.5}
     variant: 1
   - name: Blue_Terrace_Sheep_2
     type: 0
-    position: {x: 14.5, y: 19.5}
+    position: {x: 16.5, y: 11.5}
     variant: 2
   - name: Blue_Terrace_Sheep_3
     type: 0
-    position: {x: 8.5, y: 12.5}
+    position: {x: 9.5, y: 14.5}
     variant: 3
   - name: Blue_Terrace_Sheep_4
     type: 0

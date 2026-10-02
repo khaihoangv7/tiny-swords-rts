@@ -300,7 +300,7 @@ namespace TinyKingdom.EditorTools
             Transform root=GameObject.Find("Map").transform.Find("BattlefieldScenery");
             var visuals=root.GetComponentsInChildren<SpriteRenderer>();
             Require(layout.resources.Count(r=>r.type==ResourceType.Wood)>=300,"Dense woodland is missing.");
-            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==73,"Expected 60 meadow Sheep, 8 Castle-rim Sheep and 5 Blue upper-court Sheep.");
+            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==73,"Expected 60 meadow Sheep, 8 Castle-rim Sheep and 5 Blue terrace Sheep.");
             Require(visuals.Count(r=>r.name.StartsWith("Cloud_"))==16,"Expected 16 full-cloud illustrations.");
             AmbientCloudDrift[] clouds=root.GetComponentsInChildren<AmbientCloudDrift>();
             Require(clouds.Length==16 && clouds.Count(c=>BattlefieldLayout.IsPond((int)c.Anchor.x,(int)c.Anchor.y))==2,
