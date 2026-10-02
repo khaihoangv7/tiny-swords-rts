@@ -34,27 +34,57 @@ namespace TinyKingdom.UI
         };
         private static readonly Vector2[] CompactGlyphPoints =
         {
-            new(-8f, 5f), new(0f, 5f), new(8f, 5f),
-            new(-8f, -5f), new(0f, -5f), new(8f, -5f)
+            new(-17f, 10f), new(0f, 10f), new(17f, 10f),
+            new(-17f, -10f), new(0f, -10f), new(17f, -10f)
         };
         private static readonly Vector2[] WedgeGlyphPoints =
         {
-            new(0f, 9f), new(-5f, 1f), new(5f, 1f),
-            new(-10f, -7f), new(0f, -7f), new(10f, -7f)
+            new(0f, 20f), new(-11f, 3f), new(11f, 3f),
+            new(-21f, -16f), new(0f, -16f), new(21f, -16f)
         };
         private static readonly Vector2[] LooseGlyphPoints =
         {
-            new(-11f, 8f), new(11f, 7f), Vector2.zero,
-            new(-10f, -8f), new(10f, -9f)
+            new(-24f, 17f), new(24f, 16f), Vector2.zero,
+            new(-23f, -17f), new(23f, -18f)
         };
         private static readonly Vector2[] LineGlyphPoints =
         {
-            new(-12f, 0f), new(-6f, 0f), Vector2.zero,
-            new(6f, 0f), new(12f, 0f)
+            new(-26f, 0f), new(-13f, 0f), Vector2.zero,
+            new(13f, 0f), new(26f, 0f)
         };
 
         public const int ActionViewCount = 14;
         public const int FormationButtonCount = 4;
+        public const float MinimumPanelWidth = 240f;
+        public const float MaximumPanelWidth = 1288f;
+        public const float PanelWidth = MaximumPanelWidth;
+        public const float MinimumPanelHeight = 188f;
+        public const float MaximumPanelHeight = MinimumPanelHeight;
+        public const float LargeButtonWidth = 104f;
+        public const float LargeButtonHeight = 112f;
+        public const float MinimumButtonWidth = 76f;
+        public const float MinimumButtonHeight = 82f;
+        public const float ButtonWidth = LargeButtonWidth;
+        public const float ButtonHeight = LargeButtonHeight;
+        public const float LargeIconSize = 68f;
+        public const float MinimumIconSize = 48f;
+        public const float IconWidth = LargeIconSize;
+        public const float IconHeight = LargeIconSize;
+        public const int LargeLabelFontSize = 15;
+        public const int MinimumLabelFontSize = 12;
+        public const int LargeCostFontSize = 13;
+        public const int MinimumCostFontSize = 10;
+        public const int LargeHotkeyFontSize = 13;
+        public const int MinimumHotkeyFontSize = 10;
+        public const int LabelFontSize = LargeLabelFontSize;
+        public const int CostFontSize = LargeCostFontSize;
+        public const int HotkeyFontSize = LargeHotkeyFontSize;
+        public const float HorizontalPadding = 12f;
+        public const float HorizontalSpacing = 6f;
+        // Resource occupies x=0..220 and Selection x=224..604. Command owns
+        // the independent region beginning after the original four-unit gap.
+        public const float FixedPanelLeftX = 608f;
+        private const float TitleBandHeight = 32f;
         public static readonly Color FormationActiveColor =
             new(0.72f, 0.94f, 0.62f, 1f);
 
@@ -64,11 +94,13 @@ namespace TinyKingdom.UI
             internal Image Background;
             internal Image Icon;
             internal Text Label;
+            internal Text Cost;
             internal Text Hotkey;
             internal GuardButtonHold GuardHold;
             internal CommandTooltipTrigger Tooltip;
             internal RectTransform FormationGlyph;
             internal Image[] FormationDots;
+            internal FormationType? Formation;
         }
 
         private readonly ActionView[] views = new ActionView[ActionViewCount];
@@ -80,11 +112,26 @@ namespace TinyKingdom.UI
         private RtsHudAssetCatalog assets;
         private CommandTooltipPresenter tooltip;
         private RectTransform root;
+        private RectTransform content;
         private Text title;
         private float refreshAt;
+        private int lastVisibleCount = -1;
+        private float lastLayoutWidth = -1f;
+        private float lastParentWidth = -1f;
+        private float currentButtonWidth = LargeButtonWidth;
+        private float currentButtonHeight = LargeButtonHeight;
+        private int currentColumns;
+        private int currentRows;
 
         public RectTransform Root => root;
+        public RectTransform ContentRoot => content;
         public bool IsVisible => root != null && root.gameObject.activeSelf;
+        public int VisibleActionCount => Mathf.Max(0, lastVisibleCount);
+        public int CurrentColumnCount => currentColumns;
+        public int CurrentRowCount => currentRows;
+        public float CurrentButtonWidth => currentButtonWidth;
+        public float CurrentButtonHeight => currentButtonHeight;
+        public float CurrentPanelHeight => root != null ? root.rect.height : 0f;
         public int TooltipTriggerCount
         {
             get
@@ -110,6 +157,7 @@ namespace TinyKingdom.UI
             assets = catalog;
             tooltip = tooltipPresenter;
             if (root == null) Build(hudParent);
+            ApplyPanelPresentation();
             if (selection != null) selection.SelectionChanged += HandleSelectionChanged;
             Refresh();
         }
@@ -138,24 +186,59 @@ namespace TinyKingdom.UI
         {
             root = RtsUiFactory.Rect("CommandPanel", hudParent);
             RtsUiFactory.Anchor(root, Vector2.zero, Vector2.zero,
-                new Vector2(608f, 0f), new Vector2(650f, 160f));
+                new Vector2(FixedPanelLeftX, 0f),
+                new Vector2(MinimumPanelWidth, MinimumPanelHeight));
             RtsUiFactory.BuildPanelFrame("SpecialPaper", root, assets.SpecialPaper, 0.5f);
-            title = RtsUiFactory.Label("Title", root, "COMMANDS", 16,
+            title = RtsUiFactory.Label("Title", root, "COMMANDS", 18,
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             RtsUiFactory.Anchor(title.rectTransform, new Vector2(0.5f, 1f),
-                new Vector2(0.5f, 1f), new Vector2(0f, -5f), new Vector2(180f, 18f));
+                new Vector2(0.5f, 1f), new Vector2(0f, -5f), new Vector2(200f, 22f));
+
+            EnsureContentRoot();
 
             for (int i = 0; i < views.Length; i++)
                 views[i] = CreateActionView(i);
             root.gameObject.SetActive(false);
         }
 
+        private void ApplyPanelPresentation()
+        {
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.zero;
+            root.pivot = Vector2.zero;
+            root.anchoredPosition = new Vector2(FixedPanelLeftX, 0f);
+            root.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                Mathf.Clamp(root.rect.width, MinimumPanelWidth, MaximumPanelWidth));
+            root.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                MinimumPanelHeight);
+            EnsureContentRoot();
+            if (title == null)
+                title = root.Find("Title")?.GetComponent<Text>();
+            if (title != null)
+            {
+                title.fontSize = 18;
+                RtsUiFactory.Anchor(title.rectTransform, new Vector2(0.5f, 1f),
+                    new Vector2(0.5f, 1f), new Vector2(0f, -5f),
+                    new Vector2(200f, 22f));
+            }
+            foreach (ActionView view in views)
+            {
+                if (view?.Button == null) continue;
+                if (view.Button.transform.parent != content)
+                    view.Button.transform.SetParent(content, false);
+                ApplyActionPresentation(view);
+            }
+            lastVisibleCount = -1;
+            lastLayoutWidth = -1f;
+            lastParentWidth = -1f;
+        }
+
         private ActionView CreateActionView(int index)
         {
-            RectTransform rect = RtsUiFactory.Rect("Action" + index, root);
+            EnsureContentRoot();
+            RectTransform rect = RtsUiFactory.Rect("Action" + index, content);
             RtsUiFactory.Anchor(rect, Vector2.zero, Vector2.zero,
-                new Vector2(22f + (index % 7) * 68f, 76f - (index / 7) * 66f),
-                new Vector2(60f, 58f));
+                Vector2.zero, new Vector2(ButtonWidth, ButtonHeight));
             Image background = rect.gameObject.AddComponent<Image>();
             background.sprite = assets.CommandSlot;
             background.preserveAspect = false;
@@ -173,22 +256,25 @@ namespace TinyKingdom.UI
             button.colors = colors;
             Image icon = RtsUiFactory.Image("Icon", rect, null);
             RtsUiFactory.Anchor(icon.rectTransform, new Vector2(0.5f, 1f),
-                new Vector2(0.5f, 1f), new Vector2(0f, -5f), new Vector2(30f, 30f));
+                new Vector2(0.5f, 1f), new Vector2(0f, -4f),
+                new Vector2(IconWidth, IconHeight));
             CreateFormationGlyph(rect, out RectTransform formationGlyph,
                 out Image[] formationDots);
-            Text label = RtsUiFactory.Label("Label", rect, "", 9,
+            Text label = RtsUiFactory.Label("Label", rect, "", LabelFontSize,
                 TextAnchor.LowerCenter, FontStyle.Bold);
-            RtsUiFactory.Stretch(label.rectTransform, 2f, 2f, 2f, 36f);
-            Text hotkey = RtsUiFactory.Label("Hotkey", rect, "", 10,
+            Text cost = RtsUiFactory.Label("Cost", rect, "", CostFontSize,
+                TextAnchor.LowerCenter, FontStyle.Bold);
+            Text hotkey = RtsUiFactory.Label("Hotkey", rect, "", HotkeyFontSize,
                 TextAnchor.UpperRight, FontStyle.Bold);
             RtsUiFactory.Anchor(hotkey.rectTransform, Vector2.one, Vector2.one,
-                new Vector2(-2f, -2f), new Vector2(18f, 16f));
+                new Vector2(-4f, -4f), new Vector2(22f, 20f));
             var view = new ActionView
             {
                 Button = button,
                 Background = background,
                 Icon = icon,
                 Label = label,
+                Cost = cost,
                 Hotkey = hotkey,
                 GuardHold = rect.gameObject.AddComponent<GuardButtonHold>(),
                 Tooltip = rect.gameObject.AddComponent<CommandTooltipTrigger>(),
@@ -219,6 +305,7 @@ namespace TinyKingdom.UI
             else if (selection.SelectedGoldMine != null)
                 shown = ShowMineCommands(selection.SelectedGoldMine, shown);
             HideUnusedViews(shown);
+            ApplyAdaptiveLayout(shown);
             root.gameObject.SetActive(shown > 0);
         }
 
@@ -344,7 +431,8 @@ namespace TinyKingdom.UI
         {
             foreach (ActionView view in views)
                 if (view == null || view.Button == null || view.Background == null
-                    || view.Icon == null || view.Label == null || view.Hotkey == null
+                    || view.Icon == null || view.Label == null || view.Cost == null
+                    || view.Hotkey == null
                     || view.GuardHold == null || view.Tooltip == null)
                     return false;
             return true;
@@ -356,16 +444,26 @@ namespace TinyKingdom.UI
         private bool TryRebindViews()
         {
             if (root == null) return false;
+            EnsureContentRoot();
             for (int i = 0; i < views.Length; i++)
             {
-                Transform action = root.Find("Action" + i);
+                Transform action = FindAction(i);
                 if (action == null)
                 {
                     views[i] = CreateActionView(i);
                     continue;
                 }
+                if (action.parent != content)
+                    action.SetParent(content, false);
                 Transform iconObject = action.Find("Icon");
                 Transform labelObject = action.Find("Label");
+                Transform costObject = action.Find("Cost");
+                if (costObject == null)
+                {
+                    Text createdCost = RtsUiFactory.Label("Cost", action, "",
+                        CostFontSize, TextAnchor.LowerCenter, FontStyle.Bold);
+                    costObject = createdCost.transform;
+                }
                 Transform hotkeyObject = action.Find("Hotkey");
                 var rebound = new ActionView
                 {
@@ -373,20 +471,219 @@ namespace TinyKingdom.UI
                     Background = action.GetComponent<Image>(),
                     Icon = iconObject != null ? iconObject.GetComponent<Image>() : null,
                     Label = labelObject != null ? labelObject.GetComponent<Text>() : null,
+                    Cost = costObject.GetComponent<Text>(),
                     Hotkey = hotkeyObject != null ? hotkeyObject.GetComponent<Text>() : null,
                     GuardHold = action.GetComponent<GuardButtonHold>(),
                     Tooltip = action.GetComponent<CommandTooltipTrigger>()
                 };
                 BindOrCreateFormationGlyph(action, rebound);
                 if (rebound.Button == null || rebound.Background == null
-                    || rebound.Icon == null || rebound.Label == null
+                    || rebound.Icon == null || rebound.Label == null || rebound.Cost == null
                     || rebound.Hotkey == null || rebound.GuardHold == null
                     || rebound.Tooltip == null || rebound.FormationGlyph == null
                     || !FormationDotsAreBound(rebound.FormationDots))
                     return false;
+                ApplyActionPresentation(rebound);
                 views[i] = rebound;
             }
             return true;
+        }
+
+        private void ApplyAdaptiveLayout(int visibleCount)
+        {
+            float parentWidth = root.parent is RectTransform parent
+                ? parent.rect.width : RtsHudController.HudSize.x;
+            if (visibleCount <= 0)
+            {
+                if (lastVisibleCount == 0
+                    && Mathf.Approximately(root.rect.width, MinimumPanelWidth)
+                    && Mathf.Approximately(root.rect.height, MinimumPanelHeight)
+                    && Mathf.Approximately(lastParentWidth, parentWidth)) return;
+                root.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                    MinimumPanelWidth);
+                root.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                    MinimumPanelHeight);
+                currentColumns = 0;
+                currentRows = 0;
+                currentButtonWidth = LargeButtonWidth;
+                currentButtonHeight = LargeButtonHeight;
+                lastVisibleCount = 0;
+                lastLayoutWidth = MinimumPanelWidth;
+                lastParentWidth = parentWidth;
+                return;
+            }
+
+            if (lastVisibleCount == visibleCount
+                && Mathf.Approximately(lastParentWidth, parentWidth)
+                && Mathf.Approximately(root.rect.width, lastLayoutWidth)
+                && Mathf.Approximately(root.rect.height, MinimumPanelHeight))
+                return;
+
+            float maximumSafeWidth = CalculateMaximumSafePanelWidth();
+            float buttonWidth = CalculateButtonWidth(visibleCount, maximumSafeWidth);
+            float buttonHeight = CalculateButtonHeight(buttonWidth);
+            float width = CalculatePanelWidth(visibleCount, maximumSafeWidth);
+            float height = MinimumPanelHeight;
+            if (lastVisibleCount == visibleCount
+                && Mathf.Approximately(lastLayoutWidth, width)
+                && Mathf.Approximately(lastParentWidth, parentWidth)
+                && Mathf.Approximately(currentButtonWidth, buttonWidth)
+                && Mathf.Approximately(root.rect.width, width)
+                && Mathf.Approximately(root.rect.height, height)) return;
+
+            currentColumns = visibleCount;
+            currentRows = 1;
+            currentButtonWidth = buttonWidth;
+            currentButtonHeight = buttonHeight;
+            root.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            root.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+
+            float contentWidth = visibleCount * buttonWidth
+                + Mathf.Max(0, visibleCount - 1) * HorizontalSpacing;
+            float bottom = Mathf.Round((height - TitleBandHeight - buttonHeight) * 0.5f);
+            ApplyContentGeometry(bottom, buttonHeight);
+            float startX = Mathf.Round((content.rect.width - contentWidth) * 0.5f);
+            for (int index = 0; index < visibleCount; index++)
+            {
+                ActionView view = views[index];
+                ApplyActionPresentation(view, buttonWidth, buttonHeight);
+                if (view.Formation.HasValue)
+                    ConfigureFormationGlyph(view, view.Formation.Value);
+                RectTransform rect = view.Button.transform as RectTransform;
+                rect.anchoredPosition = new Vector2(
+                    startX + index * (buttonWidth + HorizontalSpacing), 0f);
+            }
+
+            lastVisibleCount = visibleCount;
+            lastLayoutWidth = width;
+            lastParentWidth = parentWidth;
+        }
+
+        private float CalculateMaximumSafePanelWidth()
+        {
+            if (root.parent is not RectTransform parent)
+                return MaximumPanelWidth;
+            return CalculateMaximumSafePanelWidth(parent.rect.width,
+                FixedPanelLeftX);
+        }
+
+        public static int CalculateUsedColumns(int visibleCount)
+            => Mathf.Clamp(visibleCount, 0, ActionViewCount);
+
+        public static float CalculateButtonWidth(int visibleCount,
+            float maximumSafePanelWidth)
+        {
+            if (visibleCount <= 0) return LargeButtonWidth;
+            float available = maximumSafePanelWidth - HorizontalPadding * 2f
+                - Mathf.Max(0, visibleCount - 1) * HorizontalSpacing;
+            return Mathf.Clamp(available / visibleCount,
+                MinimumButtonWidth, LargeButtonWidth);
+        }
+
+        public static float CalculateButtonHeight(float buttonWidth)
+            => Mathf.Lerp(MinimumButtonHeight, LargeButtonHeight,
+                CalculateCardScale(buttonWidth));
+
+        public static float CalculatePanelWidth(int visibleCount,
+            float maximumSafePanelWidth)
+        {
+            if (visibleCount <= 0) return MinimumPanelWidth;
+            float buttonWidth = CalculateButtonWidth(visibleCount,
+                maximumSafePanelWidth);
+            float desired = HorizontalPadding * 2f + visibleCount * buttonWidth
+                + Mathf.Max(0, visibleCount - 1) * HorizontalSpacing;
+            return Mathf.Clamp(desired, MinimumPanelWidth, maximumSafePanelWidth);
+        }
+
+        public static float CalculateMaximumSafePanelWidth(float hudWidth,
+            float panelLeftX)
+            => Mathf.Clamp(hudWidth - panelLeftX,
+                MinimumPanelWidth, MaximumPanelWidth);
+
+        private void EnsureContentRoot()
+        {
+            if (content == null)
+                content = root.Find("CommandContent") as RectTransform;
+            if (content == null)
+                content = RtsUiFactory.Rect("CommandContent", root);
+            ApplyContentGeometry(0f, LargeButtonHeight);
+        }
+
+        private void ApplyContentGeometry(float bottom, float height)
+        {
+            content.anchorMin = new Vector2(0f, 0f);
+            content.anchorMax = new Vector2(1f, 0f);
+            content.pivot = new Vector2(0.5f, 0f);
+            content.anchoredPosition = new Vector2(0f, bottom);
+            content.sizeDelta = new Vector2(-HorizontalPadding * 2f, height);
+        }
+
+        private Transform FindAction(int index)
+        {
+            Transform action = content != null ? content.Find("Action" + index) : null;
+            return action != null ? action : root.Find("Action" + index);
+        }
+
+        public static int CalculateRequiredRows(int visibleCount, int columns)
+            => visibleCount <= 0 ? 0 : 1;
+
+        public static float CalculatePanelHeight(int rowCount)
+            => MinimumPanelHeight;
+
+        public static float CalculateIconSize(float buttonWidth)
+            => Mathf.Lerp(MinimumIconSize, LargeIconSize,
+                CalculateCardScale(buttonWidth));
+
+        public static int CalculateLabelFontSize(float buttonWidth)
+            => Mathf.RoundToInt(Mathf.Lerp(MinimumLabelFontSize,
+                LargeLabelFontSize, CalculateCardScale(buttonWidth)));
+
+        public static int CalculateCostFontSize(float buttonWidth)
+            => Mathf.RoundToInt(Mathf.Lerp(MinimumCostFontSize,
+                LargeCostFontSize, CalculateCardScale(buttonWidth)));
+
+        public static int CalculateHotkeyFontSize(float buttonWidth)
+            => Mathf.RoundToInt(Mathf.Lerp(MinimumHotkeyFontSize,
+                LargeHotkeyFontSize, CalculateCardScale(buttonWidth)));
+
+        private static float CalculateCardScale(float buttonWidth)
+            => Mathf.InverseLerp(MinimumButtonWidth, LargeButtonWidth,
+                buttonWidth);
+
+        private static void ApplyActionPresentation(ActionView view)
+            => ApplyActionPresentation(view, LargeButtonWidth, LargeButtonHeight);
+
+        private static void ApplyActionPresentation(ActionView view, float buttonWidth,
+            float buttonHeight)
+        {
+            RectTransform rect = view.Button.transform as RectTransform;
+            rect.sizeDelta = new Vector2(buttonWidth, buttonHeight);
+            float iconSize = CalculateIconSize(buttonWidth);
+            int labelSize = CalculateLabelFontSize(buttonWidth);
+            int costSize = CalculateCostFontSize(buttonWidth);
+            int hotkeySize = CalculateHotkeyFontSize(buttonWidth);
+            RtsUiFactory.Anchor(view.Icon.rectTransform, new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f), new Vector2(0f, -4f),
+                new Vector2(iconSize, iconSize));
+            view.Label.fontSize = labelSize;
+            RtsUiFactory.Anchor(view.Label.rectTransform, new Vector2(0.5f, 0f),
+                new Vector2(0.5f, 0f), new Vector2(0f, costSize + 4f),
+                new Vector2(buttonWidth - 6f, labelSize + 4f));
+            view.Cost.fontSize = costSize;
+            view.Cost.color = RtsUiFactory.MutedTextColor;
+            RtsUiFactory.Anchor(view.Cost.rectTransform, new Vector2(0.5f, 0f),
+                new Vector2(0.5f, 0f), new Vector2(0f, 2f),
+                new Vector2(buttonWidth - 6f, costSize + 3f));
+            view.Hotkey.fontSize = hotkeySize;
+            RtsUiFactory.Anchor(view.Hotkey.rectTransform, Vector2.one, Vector2.one,
+                new Vector2(-3f, -3f), new Vector2(hotkeySize + 9f,
+                    hotkeySize + 7f));
+            RtsUiFactory.Anchor(view.FormationGlyph, new Vector2(0.5f, 1f),
+                new Vector2(0.5f, 1f), new Vector2(0f, -5f),
+                new Vector2(iconSize, iconSize - 4f));
+            float dotSize = Mathf.Lerp(5.5f, 8f, CalculateCardScale(buttonWidth));
+            foreach (Image dot in view.FormationDots)
+                dot.rectTransform.sizeDelta = new Vector2(dotSize, dotSize);
         }
 
         private static bool FormationDotsAreBound(Image[] dots)
@@ -423,7 +720,11 @@ namespace TinyKingdom.UI
             view.Icon.gameObject.SetActive(icon != null);
             if (view.FormationGlyph != null)
                 view.FormationGlyph.gameObject.SetActive(false);
-            view.Label.text = label;
+            view.Formation = null;
+            int lineBreak = label.IndexOf('\n');
+            view.Label.text = lineBreak >= 0 ? label[..lineBreak] : label;
+            view.Cost.text = lineBreak >= 0 ? label[(lineBreak + 1)..] : "";
+            view.Cost.gameObject.SetActive(view.Cost.text.Length > 0);
             view.Hotkey.text = hotkey;
             return view;
         }
@@ -433,6 +734,7 @@ namespace TinyKingdom.UI
         {
             ActionView view = ConfigureClick(index, null, FormationLabel(type), "",
                 available, action);
+            view.Formation = type;
             ConfigureFormationGlyph(view, type);
             view.Background.color = available
                 ? active ? FormationActiveColor : RtsUiFactory.EnabledColor
@@ -487,11 +789,12 @@ namespace TinyKingdom.UI
                 FormationType.Line => LineGlyphPoints,
                 _ => CompactGlyphPoints
             };
+            float scale = view.FormationGlyph.rect.width / LargeIconSize;
             int count = Mathf.Min(points.Length, view.FormationDots.Length);
             for (int i = 0; i < count; i++)
             {
                 Image dot = view.FormationDots[i];
-                dot.rectTransform.anchoredPosition = points[i];
+                dot.rectTransform.anchoredPosition = points[i] * scale;
                 dot.gameObject.SetActive(true);
             }
         }
@@ -501,14 +804,14 @@ namespace TinyKingdom.UI
         {
             glyph = RtsUiFactory.Rect("FormationGlyph", parent);
             RtsUiFactory.Anchor(glyph, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -5f), new Vector2(32f, 30f));
+                new Vector2(0f, -6f), new Vector2(68f, 64f));
             dots = new Image[6];
             for (int i = 0; i < dots.Length; i++)
             {
                 dots[i] = RtsUiFactory.Image("Dot" + i, glyph, null, false);
                 dots[i].color = RtsUiFactory.TextColor;
                 RtsUiFactory.Anchor(dots[i].rectTransform, new Vector2(0.5f, 0.5f),
-                    new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(4f, 4f));
+                    new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(8f, 8f));
             }
             glyph.gameObject.SetActive(false);
         }

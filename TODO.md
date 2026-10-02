@@ -569,10 +569,10 @@ Mode inspection remain required. No later gameplay, AI or RL phase has started.
 - [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
 - [x] Fix legacy SelectionSummary event cleanup to prevent MissingReferenceException after selecting a unit
 - [x] Diagnose the WoodTable 238x258 source geometry and remove the undersized nine-cell assembly
-- [x] Add a 1920x1080 responsive 1258x160 bottom HUD root with a shared baseline and safe margin
+- [x] Add a 1920x1080 responsive full-width 1896x188 safe HUD region with a shared baseline and 12-unit margins
 - [x] Replace tiled WoodTable/SpecialPaper centers with one continuous surface plus simple border pieces
-- [x] Compact resources to 220x160, selection to 380x160 and commands to 650x160
-- [x] Reduce command buttons from 84x72 to 60x58 and use a seven-column grid
+- [x] Size Resources to 220x188, keep Selection at 380x188 and adapt Commands from 240x188 through a 1288x188 safe maximum
+- [x] Use one row of shared command buttons adapting from 104x112 down to 76x82
 - [x] Extend the validator for anchors, viewport bounds, panel/button sizes, continuous surfaces and raycast blocking
 - [ ] Run `Tools > Tiny Kingdom > Prepare RTS HUD` after Unity recompiles
 - [ ] Run `Tools > Tiny Kingdom > Validate RTS HUD` in Edit Mode and Play Mode
@@ -661,6 +661,46 @@ Play Mode tests remain required before PASS.
 - [ ] Manual: all builders stop on completion and repair animation still works
 - [ ] Compare construction duration before/after with equal builder count
 - [ ] Verify gathering, Castle drop-off, building placement, combat, Red AI and audio regressions
+- [ ] Confirm Unity Console has no new errors or warnings
+
+## Phase 6D.5 - HUD Scale and Adaptive Command Panel Polish
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime/
+Editor compile checks pass with 0 errors and 0 warnings. Unity validation and
+manual Play Mode visual tests remain required before PASS.
+
+- [x] Preserve fourteen reusable command actions and four formation actions
+- [x] Increase every shared command button from the initial 60x58 through 76x72 and 88x82 to 104x112
+- [x] Increase aspect-preserving command icons from the initial 30x30 through 44x44 and 52x52 to 68x68
+- [x] Keep every supported visible-command count from 1 through 14 on exactly one row
+- [x] Grow the Command frame horizontally before shrinking all active cards uniformly
+- [x] Keep Command height fixed at 188 for every active-command count
+- [x] Lock Resources at x=0/220x188 and Selection at x=224/380x188 independently of Command count
+- [x] Restore Command to fixed HUD x=608 with lower-left anchor/pivot and rightward-only growth
+- [x] Calculate Command maximum width from the fixed left edge to the safe right boundary
+- [x] Avoid hierarchy rebuilds and skip layout work when count/width are unchanged
+- [x] Keep Selection at 380x188 while increasing single portrait to 96x96 and title/details to 24/16
+- [x] Adapt multi-selection rows inside the fixed panel: 52x52/21 for two types, 40x40/19 for four and 34x34/18 for five
+- [x] Derive Command width only from active actions: minimum 240, two commands 240, six 678, seven 788, reference cap 1288
+- [x] Adapt icons 68→48, labels 15→12, secondary costs 13→10 and hotkeys 13→10 with card size
+- [x] Preserve readable 13/14-action cards at approximately 91.69x98.81 and 84.71x91.34
+- [x] Add a padded CommandContent rect so every active card remains inside the frame
+- [x] Keep the Command left edge stable and resize the actual surface/raycast blocker with the frame
+- [x] Increase Resources panel to 220x188, rows to 36, icons to 34x34 and values to bold 22
+- [x] Preserve WoodTable/SpecialPaper continuous surfaces, frame pieces and UI raycast blocking
+- [x] Preserve the 1920x1080 CanvasScaler, tooltips, UI audio and command authority
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.5 HUD Scale`
+- [x] Document Phase 6D.5 layout rules in `UI_SPEC.md`
+- [x] Run independent Runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6D.5 validator in Unity Edit Mode and Play Mode
+- [ ] Manual: verify 1, 2, 6, 7, 13 and synthetic 14 visible command counts stay on one row
+- [ ] Manual: verify Pawn Build commands and military Formation commands use the same size
+- [ ] Manual: verify single unit, Pawn x3, mixed military and Castle selection readability
+- [ ] Manual: verify Population/Wood/Gold/Food values including 0, 999, 1000+ and 15/20
+- [ ] Manual: verify 1280x720 and 2560x1440 at Game View Scale 100 percent
+- [ ] Manual: verify tooltip hover/clamping, disabled hover, active formation tint and no clipping
+- [ ] Manual: verify command click/reject audio and UI-over-world input blocking
+- [ ] Manual: recompile during Play Mode and verify no duplicate/missing pooled actions
 - [ ] Confirm Unity Console has no new errors or warnings
 
 ## Phase 7A - Rule-Based Commander Foundation
