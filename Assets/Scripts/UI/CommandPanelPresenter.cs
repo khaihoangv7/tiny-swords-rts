@@ -109,6 +109,7 @@ namespace TinyKingdom.UI
         private GuardInputController guard;
         private BuildingSystem buildingSystem;
         private BuildingPlacementController placement;
+        private ResourceStockpile stockpile;
         private RtsHudAssetCatalog assets;
         private CommandTooltipPresenter tooltip;
         private RectTransform root;
@@ -145,7 +146,8 @@ namespace TinyKingdom.UI
 
         public void Configure(SelectionManager manager, PlayerCommandController commandInput,
             GuardInputController guardInput, BuildingSystem buildings,
-            BuildingPlacementController buildingPlacement, RtsHudAssetCatalog catalog,
+            BuildingPlacementController buildingPlacement, ResourceStockpile resources,
+            RtsHudAssetCatalog catalog,
             CommandTooltipPresenter tooltipPresenter, RectTransform hudParent)
         {
             if (selection != null) selection.SelectionChanged -= HandleSelectionChanged;
@@ -154,6 +156,7 @@ namespace TinyKingdom.UI
             guard = guardInput;
             buildingSystem = buildings;
             placement = buildingPlacement;
+            stockpile = resources;
             assets = catalog;
             tooltip = tooltipPresenter;
             if (root == null) Build(hudParent);
@@ -314,6 +317,7 @@ namespace TinyKingdom.UI
             bool combat = false;
             bool canGuard = false;
             bool hasPawn = false;
+            UnitController scoutCandidate = null;
             int militaryFormationCount = 0;
             foreach (UnitSelection unit in selection.SelectedUnits)
             {
@@ -321,6 +325,12 @@ namespace TinyKingdom.UI
                 combat |= unit.GetComponent<CombatController>()?.CombatData?.AutoAcquireTargets == true;
                 canGuard |= unit.GetComponent<UnitGuard>() != null;
                 hasPawn |= unit.GetComponent<PawnBuilder>() != null;
+                HealthComponent health = unit.GetComponent<HealthComponent>();
+                if (scoutCandidate == null && unit.Controller != null
+                    && unit.Controller.IsAlive
+                    && unit.Controller.Faction == selection.PlayerFaction
+                    && health?.CombatData?.UnitType == UnitType.Pawn)
+                    scoutCandidate = unit.Controller;
                 if (unit.Controller != null && unit.Controller.IsAlive
                     && unit.Controller.Faction == selection.PlayerFaction
                     && unit.Movement != null
@@ -355,6 +365,19 @@ namespace TinyKingdom.UI
                         () => commands.SelectFormation(type));
                     ConfigureFormationTooltip(view, type);
                 }
+            }
+            if (scoutCandidate != null)
+            {
+                PawnScoutEligibility eligibility = PawnScoutPromotion.Evaluate(
+                    scoutCandidate, selection.PlayerFaction, stockpile,
+                    assets.ScoutFireFrames);
+                bool available = eligibility == PawnScoutEligibility.Eligible;
+                ActionView view = ConfigureClick(shown++, assets.ScoutIcon,
+                    "Scout\n50W", "", available,
+                    () => PawnScoutPromotion.TryPromote(scoutCandidate,
+                        selection.PlayerFaction, stockpile, assets.ScoutFireFrames));
+                view.Tooltip.ConfigureScout(tooltip,
+                    PawnScoutPromotion.TooltipDetails(eligibility));
             }
             if (!hasPawn || buildingSystem == null || placement == null) return shown;
             foreach ((BuildingType type, HouseVariant variant, string name) in BuildActions)

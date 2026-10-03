@@ -1302,4 +1302,40 @@ Phase 6H.2 Unity Play Mode validation is successful.
 - [x] Place buildings over one/multiple Sheep and verify distinct safe evacuation
 - [x] Verify Sheep hover/select/Gather, building blocking and clean Console
 - [x] Verify combat, formation, Fog, AI, economy values and House respawn regressions
-- [x] Phase 6H.3 has not begun
+- [x] Phase 6H.3 started only after Phase 6H.2 passed manual validation
+
+## Phase 6H.3 - Pawn Scout Promotion
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Runtime and Editor compile
+checks pass; the Unity validator and Play Mode matrix still need to be run.
+
+- [x] Add the human Pawn `Scout` command at an authoritative 50 Wood cost
+- [x] Reject non-Pawns, enemies, dead Pawns, ended matches and unaffordable requests
+- [x] Enforce one living promoted Scout per human faction without scene-wide polling
+- [x] Preserve Pawn type, gathering, building, repair, deposit, health and damage
+- [x] Preserve Pawn exclusion from Phase 6G.2 military formations
+- [x] Derive Scout vision from authoritative Pawn vision with a 2.0 multiplier
+- [x] Recompute Team Vision immediately after successful promotion
+- [x] Release the registry and normal vision contribution on Scout death/despawn
+- [x] Map the seven verified full flame frames from `Assets/Particle FX/Fire.png`
+- [x] Use verified `Fire_0` as the Scout command icon
+- [x] Add a small collider-free child fire marker with internal sorting offset
+- [x] Increase the verified Scout fire marker presentation scale to 0.70
+- [x] Trigger squash/stretch promotion feedback without the red hit-flash overlay
+- [x] Keep the existing unit-spawn completion sound at successful spawn time
+- [x] Add a dedicated ScoutPromotion event using the verified finish notification clip
+- [x] Reuse positional `BuildingFire` audio with a dedicated 0.35 loop multiplier
+- [x] Preserve existing camera, distance and Fog audio attenuation
+- [x] Show disabled command reasons and standard red 50 Wood tooltip affordability
+- [x] Reuse `CommandClick` and `CommandRejected` UI audio
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.3 Pawn Scout`
+- [x] Compile Runtime and Editor checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.3 validator in Unity Edit Mode
+- [ ] Promote a Pawn and verify exactly 50 Wood is deducted
+- [ ] Verify a second promotion is rejected without spending Wood
+- [ ] Kill/despawn the Scout and verify fire/audio cleanup plus re-promotion
+- [ ] Verify the visible Fog radius is Pawn base vision x2.0
+- [ ] Verify Scout movement, gather, build, repair and deposit remain functional
+- [ ] Verify Scout stays excluded from military formation membership
+- [ ] Verify near/far/off-camera fire ambience and clean Console
+- [ ] Verify Red RuleBasedCommander and AI scouting behavior are unchanged

@@ -85,6 +85,14 @@ namespace TinyKingdom.UI
                 Hotkey = hotkey
             };
 
+        internal static CommandTooltipData Scout(string details)
+            => new()
+            {
+                Title = "SCOUT",
+                WoodCost = PawnScoutPromotion.WoodCost,
+                Details = details
+            };
+
         private static string MilitaryRole(UnitType type)
         {
             string role = type switch

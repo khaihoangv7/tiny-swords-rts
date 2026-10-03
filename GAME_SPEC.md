@@ -2032,3 +2032,31 @@ MAP_SPEC.md.
 Reinforcement Learning rules belong in:
 
 RL_SPEC.md.
+
+---
+
+# 64. Phase 6H.3 Human Pawn Scout Promotion
+
+The human player may designate one living friendly Pawn as a Scout while the
+match is Playing. Promotion costs 50 Wood and is rejected without spending
+resources when the Pawn is invalid, unaffordable, already promoted, or another
+living promoted Scout exists for the human faction.
+
+The promoted unit remains `UnitType.Pawn`. Movement, gathering, building,
+repairing, depositing, health and damage continue through the normal Pawn
+components, and the unit remains excluded from military formation membership.
+Its current vision radius is derived from the authoritative Pawn vision radius
+with a 2.0 multiplier; no duplicate absolute Scout radius is stored.
+
+Promotion adds a seven-frame fire marker above the Pawn at presentation scale
+0.70 and reuses the
+positional `BuildingFire` ambience at a 0.35 per-loop volume multiplier. This
+marker is identification only and never enters building damage, HP threshold or
+explosion logic. Scout death stops the loop, hides the marker, removes the
+vision contribution through normal unit death, and releases the faction's
+single active Scout slot without refunding Wood.
+
+Successful promotion triggers the existing unit squash/stretch presentation
+without the red hit-flash overlay, then plays the verified `ScoutPromotion`
+success notification. Completed human unit production continues to play
+`UnitProductionFinished` only after the unit is actually spawned.

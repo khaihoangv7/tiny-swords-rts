@@ -38,6 +38,13 @@ building value 5 remains provisional. Tower remains 7; Phase 6B.1 increases
 the main Castle from 8 to 9. VisionRadius is independent from attack range and
 aggro radius.
 
+Phase 6H.3 adds a human-only promoted Pawn Scout without changing the base Pawn
+data above. While the promoted Pawn is alive in the world, its vision source
+returns `Pawn VisionRadius × 2.0` (currently 6.0 from the authoritative 3.0).
+Promotion triggers an immediate `TeamVisionSystem` recompute. Death removes the
+unit source through the existing lifecycle; exploration memory and all Blue/Red
+isolation rules remain unchanged.
+
 Rally Point placement uses the same faction exploration map. Friendly
 Rally-enabled buildings may accept valid ground in `Visible` or `Explored`
 cells, but reject `Unexplored` cells. The selection-only Rally flag is

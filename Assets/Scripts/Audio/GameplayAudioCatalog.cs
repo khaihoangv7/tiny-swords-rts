@@ -151,6 +151,7 @@ namespace TinyKingdom.Audio
                 GameplayAudioEvent.CommandClick => (0.70f, 0f, 0f),
                 GameplayAudioEvent.CommandRejected => (0.75f, 0f, 0f),
                 GameplayAudioEvent.UnitProductionFinished => (0.80f, 0f, 0f),
+                GameplayAudioEvent.ScoutPromotion => (0.75f, 0f, 0f),
                 GameplayAudioEvent.Victory or GameplayAudioEvent.Defeat => (0.85f, 0f, 0f),
                 _ => (0.75f, 0f, 0f)
             };

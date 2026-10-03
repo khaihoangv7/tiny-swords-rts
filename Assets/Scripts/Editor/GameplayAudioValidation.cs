@@ -62,6 +62,8 @@ namespace TinyKingdom.EditorTools
                 "Assets/Audio/SFX/UI/Notification/cant_click.mp3"),
             new(GameplayAudioEvent.UnitProductionFinished,
                 "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
+            new(GameplayAudioEvent.ScoutPromotion,
+                "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
             new(GameplayAudioEvent.Victory,
                 "Assets/Audio/SFX/Match/win.mp3", AudioClipLoadType.CompressedInMemory),
             new(GameplayAudioEvent.Defeat,

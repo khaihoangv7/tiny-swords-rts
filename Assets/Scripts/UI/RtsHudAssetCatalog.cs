@@ -21,6 +21,8 @@ namespace TinyKingdom.UI
         [SerializeField] private Sprite archerAvatar;
         [SerializeField] private Sprite monkAvatar;
         [SerializeField] private Sprite pawnAvatar;
+        [SerializeField] private Sprite scoutIcon;
+        [SerializeField] private Sprite[] scoutFireFrames = System.Array.Empty<Sprite>();
 
         public Sprite[] WoodTable => woodTable;
         public Sprite[] SpecialPaper => specialPaper;
@@ -32,6 +34,19 @@ namespace TinyKingdom.UI
         public Sprite AttackMoveIcon => attackMoveIcon;
         public Sprite EjectAllIcon => ejectAllIcon;
         public Sprite GuardIcon => guardIcon;
+        public Sprite ScoutIcon => scoutIcon;
+        public Sprite[] ScoutFireFrames => scoutFireFrames;
+        public bool HasScoutPresentation
+        {
+            get
+            {
+                if (scoutIcon == null || scoutFireFrames == null
+                    || scoutFireFrames.Length != 7) return false;
+                for (int i = 0; i < scoutFireFrames.Length; i++)
+                    if (scoutFireFrames[i] == null) return false;
+                return true;
+            }
+        }
         public bool IsComplete => woodTable.Length == 9 && specialPaper.Length == 9
             && commandSlot != null && populationIcon != null && woodIcon != null
             && goldIcon != null && foodIcon != null && attackMoveIcon != null
@@ -73,6 +88,12 @@ namespace TinyKingdom.UI
             archerAvatar = archer;
             monkAvatar = monk;
             pawnAvatar = pawn;
+        }
+
+        public void SetScout(Sprite scout, Sprite[] scoutFire)
+        {
+            scoutIcon = scout;
+            scoutFireFrames = scoutFire ?? System.Array.Empty<Sprite>();
         }
 #endif
     }

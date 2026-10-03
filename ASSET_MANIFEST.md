@@ -1143,6 +1143,30 @@ at 10 FPS and releases its projectile at the start of zero-based frame 6
 (0.60 seconds), when the held explosive disappears from the hand. The generic
 Dead/Buried VFX remains responsible for death presentation.
 
+## Phase 6H.3 Pawn Scout Fire Marker
+
+`Assets/Particle FX/Fire.png` was inspected as a horizontal atlas. Its importer
+contains fourteen sliced sprites: seven complete flame drawings plus seven small
+detached particle slices. The Scout animation uses only the verified complete
+flame drawings, ordered left to right by source rectangle:
+
+| Playback index | Sprite name |
+| --- | --- |
+| 0 | `Fire_0` |
+| 1 | `Fire_10` |
+| 2 | `Fire_8` |
+| 3 | `Fire_11` |
+| 4 | `Fire_12` |
+| 5 | `Fire_13` |
+| 6 | `Fire_7` |
+
+`Fire_0` is also the verified Scout command icon. Runtime plays the seven
+frames at 10 FPS on a child renderer scaled to 0.70 and positioned above the
+Pawn. The detached slices `Fire_1` through `Fire_6` and `Fire_9` are not used as
+animation frames. The source PNG and `.meta` remain locally ignored by the
+repository's existing Particle FX ignore rule; the tracked HUD catalog stores
+their current GUID references.
+
 ## Gameplay SFX Foundation / Initial Audio Integration
 
 The following user-provided MP3 assets are referenced directly by
@@ -1201,6 +1225,7 @@ mapping is invented.
 | CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | 0.078s, 44.1kHz stereo | 2D one-shot |
 | CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | 0.456s, 48kHz stereo | 2D one-shot |
 | UnitProductionFinished | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D one-shot |
+| ScoutPromotion | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D promotion success one-shot |
 | Victory | `Assets/Audio/SFX/Match/win.mp3` | 8.098s, 44.1kHz stereo | 2D one-shot |
 | Defeat | `Assets/Audio/SFX/Match/defeat.mp3` | 11.760s, 24kHz stereo | 2D one-shot |
 
