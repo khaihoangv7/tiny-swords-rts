@@ -182,6 +182,13 @@ namespace TinyKingdom.EditorTools
                 Require(map.GetTile<Tile>(new(stair.VisualX,stair.LowerY,0))?.sprite?.name==stair.LowerSpriteName
                     && map.GetTile<Tile>(new(stair.VisualX,stair.UpperY,0))?.sprite?.name==stair.UpperSpriteName,
                     "Visible ramp pair is not in its original shared column: "+i);
+                Require(map.GetTile<Tile>(new(stair.UpperX,stair.UpperY,0))?.sprite?.name
+                        ==BattlefieldTerraces.SurfaceConnectionSpriteName(stair),
+                    "Ramp exit still uses a closed plateau edge instead of a centre connection: "+i);
+                if(BattlefieldTerraces.RequiresCliffConnection(stair))
+                    Require(map.GetTile<Tile>(new(stair.UpperX,stair.UpperY-1,0))?.sprite?.name
+                            ==BattlefieldTerraces.CliffConnectionSpriteName(stair),
+                        "Cliff-side ramp still uses a closed corner below its opening: "+i);
                 Require(Mathf.Abs(stair.UpperX-stair.LowerX)==1
                     && stair.UpperY-stair.LowerY==1,
                     "Side ramp must cross its height boundary diagonally: "+i);

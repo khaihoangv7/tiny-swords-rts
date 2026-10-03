@@ -37,12 +37,22 @@ Each route uses two native ramp flights, one per height boundary. Each cliff use
 finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
 omitted, eliminating the doubled visible face. Side ramps retain the verified
 64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching Color3 and
-their original same-column visual assembly. Navigation is separate: each ramp
-uses explicit diagonally adjacent logical endpoints so units follow the visible
-left/right slope while crossing each height boundary. `DescendsRight` uses an
-upper-left to lower-right descent (and the exact reverse ascent), while
-`DescendsLeft` mirrors that direction. Unit separation is suppressed only for
-the short connector segment so it cannot deflect this authored diagonal.
+their original same-column visual assembly. The verified runtime paths are
+`Assets/Tiles/Terrain/Color3/Tilemap_color3_r4c0.asset`, `r5c0.asset`,
+`r4c3.asset` and `r5c3.asset`; all reference centered 64x64 sprites from
+`Assets/Terrain/Tileset/Tilemap_color3.png` at 64 PPU. The ramp halves remain
+in one outside visual column, while the diagonally adjacent logical upper exit
+must replace its left/right plateau edge with the matching center tile from
+column 6. Interior exits use `r1c6`. South-edge exits use `r2c6`, and the cliff
+cell immediately below uses `r5c6` instead of the closed `r5c5/r5c7` corner.
+This is the verified Tiny Swords opening: the ramp plus an open surface
+connection, with a second cliff connection piece only where a cliff is present.
+Navigation is separate: each ramp uses explicit diagonally adjacent logical
+endpoints so units follow the visible left/right slope while crossing each height
+boundary. `DescendsRight` uses an upper-left to lower-right descent (and the exact
+reverse ascent), while `DescendsLeft` mirrors that direction. Unit separation is
+constrained to the authored axis for the short connector segment so it cannot
+deflect this diagonal into a cliff.
 Movement extends the two logical connector waypoints horizontally by 0.25 cell
 inside their respective cells. The segment still crosses the cells' shared
 corner, while its wider horizontal run keeps the unit ground pivot centered on

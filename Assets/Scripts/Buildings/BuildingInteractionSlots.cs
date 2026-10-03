@@ -56,7 +56,7 @@ namespace TinyKingdom.Buildings
                     Vector2Int candidate = site.Origin + new Vector2Int(x, y);
                     if (reservations.ContainsValue(candidate)) continue;
                     GridCell cell = grid.GetCell(candidate.x, candidate.y);
-                    if (cell == null || !cell.Walkable || cell.Occupied
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || cell.HeightLevel != footprintCell.HeightLevel) continue;
                     float distance = ((Vector2)(cell.WorldPosition
                         - builder.transform.position)).sqrMagnitude;

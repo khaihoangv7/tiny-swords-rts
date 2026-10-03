@@ -173,7 +173,7 @@ namespace TinyKingdom.Economy
                     if (x > minX && x < maxX && y > minY && y < maxY) continue;
                     Vector2Int candidate = house.Origin + new Vector2Int(x, y);
                     GridCell cell = grid.GetCell(candidate.x, candidate.y);
-                    if (cell == null || !cell.Walkable || cell.Occupied
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || cell.HeightLevel != footprintCell.HeightLevel
                         || ContainsLivingUnit(candidate)) continue;
                     float distance = ((Vector2)(cell.WorldPosition

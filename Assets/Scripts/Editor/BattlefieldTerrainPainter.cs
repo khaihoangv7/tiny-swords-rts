@@ -58,6 +58,21 @@ namespace TinyKingdom.EditorTools
                 int level=stair.LowerHeight+1;
                 surfaces[level].SetTile(new(stair.VisualX,stair.UpperY,0),Get(stair.UpperSpriteName));
                 surfaces[level].SetTile(new(stair.VisualX,stair.LowerY,0),Get(stair.LowerSpriteName));
+                // The ramp pair sits outside the terrace, but its top joins the
+                // diagonally adjacent logical exit. Replace that exit's side/corner
+                // tile with the verified centre connection so the grassy border
+                // does not continue through the stair opening.
+                surfaces[level].SetTile(new(stair.SurfaceConnectionCell.x,
+                        stair.SurfaceConnectionCell.y,0),
+                    Get(BattlefieldTerraces.SurfaceConnectionSpriteName(stair)));
+                if(BattlefieldTerraces.RequiresCliffConnection(stair))
+                {
+                    // Official guide case 2: when a cliff is directly below the
+                    // exit, its side corner is replaced by the centre cliff piece.
+                    surfaces[level].SetTile(new(stair.CliffConnectionCell.x,
+                            stair.CliffConnectionCell.y,0),
+                        Get(BattlefieldTerraces.CliffConnectionSpriteName(stair)));
+                }
                 shadows[level].SetTile(new(stair.VisualX,stair.LowerY,0),null);
             }
         }

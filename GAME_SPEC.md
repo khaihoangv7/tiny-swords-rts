@@ -1986,11 +1986,17 @@ filter without gaining a second knowledge path.
 # 63. Phase 6H.2 Navigation and Sheep Interaction
 
 Authored height connectors remain reciprocal diagonal edges. Runtime movement
-consumes each connector endpoint separately, temporarily suppresses local unit
-separation only on that short connector traversal, and validates the reciprocal
+consumes each connector endpoint separately, constrains local unit separation
+to the connector axis during that short traversal, and validates the reciprocal
 pair directly instead of classifying the connector's exact shared corner as an
 orthogonal cliff cell. A 0.75-second no-progress watchdog may request one
 throttled recovery route; normal traversal never teleports.
+
+The lower and upper endpoint cells are a two-cell transit-only corridor. They
+remain pathable but cannot be reserved as a gather, build/repair, garrison,
+drop-off, production spawn, rally-issued/formation or other persistent standing slot.
+Building footprints cannot overlap either endpoint. Nearby same-height ground
+remains available when it satisfies the existing occupancy and reachability rules.
 
 Sheep are selectable Food resources with trigger-only interaction coverage and
 soft navigation occupancy. Units and A* may pass through them. Sheep alone do
