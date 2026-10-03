@@ -11,6 +11,7 @@ namespace TinyKingdom.Units
         private static readonly List<UnitController> RegisteredWorldUnits = new();
         [SerializeField] private Faction faction = Faction.Blue;
         [SerializeField] private UnitState currentState = UnitState.Idle;
+        private IUnitVisionModifier visionModifier;
 
         public event Action<UnitState> StateChanged;
 
@@ -24,17 +25,23 @@ namespace TinyKingdom.Units
         public bool IsTargetable => IsAlive && IsWorldParticipant && !IsProtected;
         public bool IsVisionActive => FactionRelations.IsPlayable(faction)
             && IsAlive && IsWorldParticipant;
-        public float VisionRadius => GetComponent<HealthComponent>()?.CombatData?.VisionRadius ?? 0f;
+        public float BaseVisionRadius => GetComponent<HealthComponent>()?.CombatData?.VisionRadius ?? 0f;
+        public float VisionRadius => BaseVisionRadius
+            * Mathf.Max(0f, visionModifier?.VisionMultiplier ?? 1f);
         public Vector3 VisionPosition => transform.position;
 
         private void OnEnable()
         {
+            RefreshVisionModifier();
             GroundSorting.Ensure(gameObject, true);
             if (IsAlive && !RegisteredUnits.Contains(this)) RegisteredUnits.Add(this);
             if (IsAlive && IsWorldParticipant && !RegisteredWorldUnits.Contains(this))
                 RegisteredWorldUnits.Add(this);
             VisionSourceRegistry.Register(this);
         }
+
+        public void RefreshVisionModifier()
+            => visionModifier = GetComponent<IUnitVisionModifier>();
 
         private void OnDisable()
         {

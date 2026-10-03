@@ -65,7 +65,7 @@ namespace TinyKingdom.UI
             resources.Configure(stockpile, population, catalog, hudRoot);
             selectionInfo.Configure(selection, catalog, hudRoot);
             commands.Configure(selection, commandInput, guardInput,
-                buildingSystem, placement, catalog, tooltip, hudRoot);
+                buildingSystem, placement, stockpile, catalog, tooltip, hudRoot);
             tooltip.Configure(catalog, stockpile, population, hudRoot);
         }
 

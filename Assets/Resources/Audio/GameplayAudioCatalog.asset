@@ -152,6 +152,12 @@ MonoBehaviour:
     volume: 0.85
     startTimeSeconds: 0
     maxPlaybackSeconds: 0
+  - eventId: 23
+    clip: {fileID: 8300000, guid: 89cf3dfc95cb9354aae1dc11b6f0d12c, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
   poolSize: 12
   poolGrowthSize: 4
   catastrophicSourceLimit: 256

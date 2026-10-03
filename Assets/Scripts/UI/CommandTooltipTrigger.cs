@@ -60,6 +60,20 @@ namespace TinyKingdom.UI
             data = CommandTooltipDataBuilder.Simple(title, details, hotkey);
         }
 
+        internal void ConfigureScout(CommandTooltipPresenter owner, string details)
+        {
+            presenter = owner;
+            if (source == null && kind == TooltipKind.Simple
+                && cachedTitle == "Scout" && cachedDetails == details
+                && cachedHotkey == "") return;
+            source = null;
+            kind = TooltipKind.Simple;
+            cachedTitle = "Scout";
+            cachedDetails = details;
+            cachedHotkey = "";
+            data = CommandTooltipDataBuilder.Scout(details);
+        }
+
         internal void ConfigureCommandAudio(bool available, bool playAcceptedHere)
         {
             hasCommandAudio = true;

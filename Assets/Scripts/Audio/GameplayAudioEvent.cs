@@ -24,6 +24,7 @@ namespace TinyKingdom.Audio
         CommandRejected,
         UnitProductionFinished,
         Victory,
-        Defeat
+        Defeat,
+        ScoutPromotion
     }
 }
