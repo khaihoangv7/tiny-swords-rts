@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Navigation;
@@ -24,6 +25,7 @@ namespace TinyKingdom.Economy
         public Vector3 WorldPosition => site != null ? site.transform.position : transform.position;
         public EntityId RuntimeId => this.GetEntityId();
         public int ReservationCount => reservations.Count;
+        public event Action<ResourceType, int> Deposited;
 
         private void OnEnable()
         {
@@ -121,6 +123,7 @@ namespace TinyKingdom.Economy
         {
             if (amount <= 0 || !IsAvailable) return false;
             stockpile.Add(type, amount);
+            Deposited?.Invoke(type, amount);
             return true;
         }
     }

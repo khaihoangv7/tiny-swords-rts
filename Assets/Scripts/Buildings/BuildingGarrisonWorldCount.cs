@@ -7,7 +7,7 @@ namespace TinyKingdom.Buildings
     // Presentation only. BuildingGarrison remains the authoritative count.
     public sealed class BuildingGarrisonWorldCount : MonoBehaviour
     {
-        public const int WorldFontSize = 48;
+        public const int WorldFontSize = 112;
         public const float WorldCharacterSize = 0.05f;
         private const float VisibilityRefreshInterval = 0.10f;
 

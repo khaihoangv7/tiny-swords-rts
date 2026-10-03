@@ -5,6 +5,8 @@ namespace TinyKingdom.Economy
 {
     public sealed class EconomyFeedback : MonoBehaviour
     {
+        public const float DepositPopupHeight = 1.9f;
+
         [SerializeField] private Sprite foodIcon;
         [SerializeField] private Sprite woodIcon;
         [SerializeField] private Sprite goldIcon;
@@ -31,7 +33,19 @@ namespace TinyKingdom.Economy
             castle.Deposited += (type, amount) =>
             {
                 if (castle != null)
-                    ResourceGainPopup.Show(castle.transform.position + Vector3.up * 1.3f,
+                    ResourceGainPopup.ShowDeposit(
+                        castle.transform.position + Vector3.up * DepositPopupHeight,
+                        Icon(type), amount);
+            };
+        }
+
+        public void Watch(BuildingResourceDropOff tower)
+        {
+            tower.Deposited += (type, amount) =>
+            {
+                if (tower != null)
+                    ResourceGainPopup.ShowDeposit(
+                        tower.transform.position + Vector3.up * DepositPopupHeight,
                         Icon(type), amount);
             };
         }

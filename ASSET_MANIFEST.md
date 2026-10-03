@@ -308,7 +308,8 @@ Tiny Swords Pawn construction animation.
 
 Loop:
 
-YES while construction is active.
+One impact cycle per authoritative work event, followed by the verified Idle
+Hammer recovery while construction remains active.
 
 Gameplay effects are controlled by BuildingSystem, not by animation frames.
 
@@ -574,6 +575,14 @@ the animation uses `_0`, `_1`, `_2`, `_3`, `_4`, `_6` in that order. The other
 Hammer slices were preserved. Construction and repair timing are controlled by
 gameplay code. Repair uses a 0.8-second gameplay cycle with its successful
 impact at 0.35 seconds; that semantic impact triggers the mild building pulse.
+
+Phase 6H.5 keeps these exact Blue and Red frame mappings. The three-frame impact
+plays once over 0.6 seconds, followed by 0.2 seconds of the mapped Idle Hammer
+presentation. Hammer is never continuously looped during active work. The two
+verified `PawnHammer` clips remain random variations; their playback is capped
+at 0.7 seconds so a single Pawn's next 0.8-second work event cannot overlap the
+previous tail. Animation frames and audio remain presentation-only and never
+advance construction or apply repair.
 
 ### Phase 5C1 building and resource additions
 
@@ -882,7 +891,13 @@ Verified resource popup icons: Food uses
 Wood uses `Assets/Terrain/Resources/Wood/Wood Resource/Wood Resource.png`
 (`Wood Resource_0`), and Gold uses
 `Assets/Terrain/Resources/Gold/Gold Resource/Gold_Resource.png`
-(`Gold_Resource_0`).
+(`Gold_Resource_0`). Deposit feedback at the player Castle and completed Towers
+uses the same verified icon mapping. Its presentation-only icon size is 0.60
+world units and the `+amount` TextMesh uses font size 72. The deposit-only
+layout keeps the icon and amount separated and vertically centered, appearing
+1.9 world units above the Castle or Tower origin. Internal garrison
+counts use font size 112; resource amounts, drop-off rules, capacity and garrison
+capacity remain unchanged.
 
 The health bar uses `Assets/UI Elements/UI Elements/Bars/SmallBar_Base.png`
 (`SmallBar_Base_0`, `_1`, `_2` for left, middle, right) and

@@ -798,8 +798,8 @@ namespace TinyKingdom.EditorTools
                     Require(builder != null && visual != null && visual.AnimationSet != null
                         && visual.AnimationSet.Hammer.Length > 1,
                         $"{unit.name}: Pawn construction presentation is incomplete.");
-                    Require(!builder.IsWorking || visual.IsBuildAnimationActive,
-                        $"{unit.name}: active builder is not looping its Hammer animation.");
+                    Require(!builder.IsWorking || visual.IsBuildFeedbackActive,
+                        $"{unit.name}: active builder has no one-shot Hammer feedback state.");
                     Require(visual.VisualRenderer != null
                         && visual.VisualRenderer.transform.parent == unit.transform
                         && pawnVisuals.Add(visual.VisualRenderer),
@@ -811,7 +811,9 @@ namespace TinyKingdom.EditorTools
                             + $"atSlot={builder.IsAtInteraction}, working={builder.IsWorking}, "
                             + $"contributor={builder.IsWorking}, visual={visual.CurrentAnimationName}, "
                             + $"frame={visual.CurrentFrameIndex}, normalized={visual.CurrentFrameNormalizedTime:F2}, "
-                            + $"loop={visual.IsLooping}, repairing={builder.IsRepairing}, "
+                            + $"loop={visual.IsLooping}, swing={visual.BuildSwingRemaining:F2}, "
+                            + $"recovery={visual.BuildRecoveryRemaining:F2}, "
+                            + $"queued={visual.HasQueuedBuildSwing}, repairing={builder.IsRepairing}, "
                             + $"movement={unit.CurrentState}, moving={unit.GetComponent<UnitMovement>()?.IsMoving}");
                 }
 
@@ -822,7 +824,7 @@ namespace TinyKingdom.EditorTools
 
             Debug.Log("Phase 6D.4 interaction polish validation passed: sprite-bound query-only "
                 + "selection areas, unchanged gameplay colliders, Hand cursor assignment and "
-                + "continuous active-builder Hammer presentation verified."
+                + "work-event Hammer swing/recovery presentation verified."
                 + (Application.isPlaying ? " Runtime objects verified." :
                     " Run again in Play Mode for runtime hit-area and active-builder checks."));
         }

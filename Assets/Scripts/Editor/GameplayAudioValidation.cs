@@ -165,6 +165,8 @@ namespace TinyKingdom.EditorTools
         {
             if (!catalog.TryGetCue(GameplayAudioEvent.PawnHammer, out GameplayAudioCue cue)) return;
             Check(cue.ClipCount == 2, "PawnHammer must contain exactly two clips.", ref valid);
+            Check(Mathf.Approximately(cue.MaxPlaybackSeconds, 0.7f),
+                "PawnHammer playback must end before the next 0.8-second work cycle.", ref valid);
             Check(cue.Variations.Length == 1 && cue.Variations[0] != null,
                 "PawnHammer second variation is missing.", ref valid);
             if (cue.Variations.Length == 0 || cue.Variations[0] == null) return;

@@ -1366,4 +1366,36 @@ checks must pass; the Unity validator and Play Mode matrix still need to be run.
 - [ ] Verify a target killed during windup receives no delayed damage
 - [ ] Verify stationary combat, Guard, Move, retreat and AttackMove cancellation
 - [ ] Verify Archer/Lancer, Fog, AI, audio and clean Console regressions
-- [ ] Do not begin Phase 6H.5 before explicit instruction
+- [x] Begin Phase 6H.5 only after explicit instruction
+
+## Phase 6H.5 - Pawn Construction Hammer Feedback
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Compile checks and the new
+validator must pass; the Play Mode timing matrix still needs to be run.
+
+- [x] Preserve the authoritative 0.8-second Pawn work cycle
+- [x] Preserve continuous construction progress and additive multi-builder rate
+- [x] Preserve the 0.35-second positive repair impact and repair amount
+- [x] Trigger one three-frame Hammer swing from each valid work cycle
+- [x] Play the Hammer impact once over 0.6 seconds with 0.2-second recovery
+- [x] Replace continuous Hammer looping with verified Idle Hammer recovery
+- [x] Bound early triggers to at most one queued swing
+- [x] Clear swing/recovery state when work stops, completes or becomes invalid
+- [x] Move construction audio to the successful cycle impact
+- [x] Keep repair audio conditional on positive restored HP
+- [x] Preserve both random Hammer clips and legitimate multi-Pawn overlap
+- [x] Cap each Hammer clip at 0.7 seconds to avoid same-Pawn tail overlap
+- [x] Enlarge Castle/Tower deposit icons and amount labels slightly
+- [x] Show the same deposit feedback for completed player Towers
+- [x] Enlarge the internal building garrison count without changing capacity
+- [x] Update the Phase 6D.4 validator for event-paced Hammer presentation
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.5 Construction Feedback`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.5 validator in Unity Edit Mode and Play Mode
+- [ ] Compare one-Pawn construction completion time before/after
+- [ ] Test one, two and three-plus Pawns building the same site
+- [ ] Resume an unfinished construction job and verify cadence
+- [ ] Damage and repair a completed building and verify impact/pulse cadence
+- [ ] Cancel with Move, complete/destroy the site and kill a Pawn during work
+- [ ] Verify both Hammer variations, camera/Fog attenuation and clean Console
+- [ ] Do not commit or push Phase 6H.5 automatically

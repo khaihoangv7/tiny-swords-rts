@@ -1876,9 +1876,9 @@ AttackMove retain higher cursor priority. Fog-hidden objects never produce
 selectable hover feedback.
 
 Every assigned Pawn becomes an active construction contributor only after reaching
-its reserved interaction position and entering `PawnBuilder.IsWorking`. All active
-contributors loop the verified Hammer animation; walking or waiting builders do
-not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
+its reserved interaction position and entering `PawnBuilder.IsWorking`. Active
+contributors receive one verified Hammer swing for each authoritative work cycle;
+walking or waiting builders do not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
 that UnitSeparation may apply when a path completes at a reserved slot; builders
 still require movement completion and their own valid reservation before working.
 Construction progress continues to be added by the existing PawnBuilder gameplay
@@ -2082,3 +2082,26 @@ after recovery and the Warrior chases before it may start another attack.
 The existing 1.1-second Warrior attack interval remains the start-to-start
 cooldown. One committed strike applies damage at most once. Archer projectile
 release and Lancer/Pawn immediate melee delivery do not inherit commitment.
+
+# 66. Phase 6H.5 Pawn Construction Hammer Feedback
+
+Pawn construction and repair retain the authoritative 0.8-second work cycle.
+Construction progress continues to advance from `Time.deltaTime` while each Pawn
+is actively contributing, so animation timing never changes building completion
+time or additive multi-builder BuildPower. Repair still applies its existing
+0.8-second amount at the authoritative 0.35-second impact point.
+
+Each valid work cycle triggers one three-frame Hammer swing lasting 0.6 seconds,
+followed by 0.2 seconds using the verified Idle Hammer recovery presentation.
+The Hammer impact animation does not loop continuously. A trigger received while
+a swing or recovery is active may set one pending swing; further triggers cannot
+grow a queue. Cancelling the job, moving, completion, destruction or Pawn death
+clears the feedback through the existing builder state.
+
+Construction Hammer audio moves from cycle start to the 0.35-second semantic
+impact, after that cycle has made positive construction progress. Repair audio
+remains conditional on positive restored HP at the same impact. One centralized
+request is made per successful Pawn work cycle. Both verified Hammer clips remain
+random variations, and each one-shot is limited to 0.7 seconds so one Pawn's next
+0.8-second event does not overlap its previous tail. Different Pawns remain free
+to produce simultaneous legitimate work sounds.

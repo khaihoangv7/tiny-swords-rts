@@ -19,10 +19,15 @@ namespace TinyKingdom.Economy
         private float elapsed;
         private float attackRemaining;
         private float workVisualRemaining;
+        private float buildSwingRemaining;
+        private float buildRecoveryRemaining;
+        private bool buildSwingQueued;
         private bool loop;
         private bool facingLeft;
 
         private const float WorkAnimationDuration = 0.5f;
+        public const float BuildSwingDuration = 0.6f;
+        public const float BuildSwingRecoverySeconds = 0.2f;
         private const float FacingEpsilon = 0.01f;
 
         public SpriteRenderer VisualRenderer => visual;
@@ -32,7 +37,14 @@ namespace TinyKingdom.Economy
             ? frame / (float)(frames.Length - 1) : 0f;
         public bool IsLooping => loop;
         public bool IsBuildAnimationActive => builder != null && builder.IsWorking
-            && animationSet != null && ReferenceEquals(frames, animationSet.Hammer) && loop;
+            && buildSwingRemaining > 0f && animationSet != null
+            && ReferenceEquals(frames, animationSet.Hammer) && !loop;
+        public bool IsBuildFeedbackActive => builder != null && builder.IsWorking
+            && (buildSwingRemaining > 0f || buildRecoveryRemaining > 0f
+                || buildSwingQueued);
+        public float BuildSwingRemaining => buildSwingRemaining;
+        public float BuildRecoveryRemaining => buildRecoveryRemaining;
+        public bool HasQueuedBuildSwing => buildSwingQueued;
         public string CurrentAnimationName
         {
             get
@@ -74,14 +86,22 @@ namespace TinyKingdom.Economy
             source.enabled = false;
             if (gatherer != null) gatherer.WorkCycleStarted += OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed += OnAttackPerformed;
-            if (builder != null) builder.RepairImpact += OnRepairImpact;
+            if (builder != null)
+            {
+                builder.WorkCycleStarted += OnBuildWorkCycleStarted;
+                builder.RepairImpact += OnRepairImpact;
+            }
         }
 
         private void OnDestroy()
         {
             if (gatherer != null) gatherer.WorkCycleStarted -= OnWorkCycleStarted;
             if (combat != null) combat.AttackPerformed -= OnAttackPerformed;
-            if (builder != null) builder.RepairImpact -= OnRepairImpact;
+            if (builder != null)
+            {
+                builder.WorkCycleStarted -= OnBuildWorkCycleStarted;
+                builder.RepairImpact -= OnRepairImpact;
+            }
         }
 
         private void Update()
@@ -93,6 +113,7 @@ namespace TinyKingdom.Economy
                 workVisualRemaining = 0f;
             else if (workVisualRemaining > 0f)
                 workVisualRemaining = Mathf.Max(0f, workVisualRemaining - Time.deltaTime);
+            UpdateBuildFeedback(Time.deltaTime);
             if (attackRemaining > 0f)
             {
                 attackRemaining -= Time.deltaTime;
@@ -101,9 +122,11 @@ namespace TinyKingdom.Economy
             if (attackRemaining <= 0f) ChooseStateVisual(false);
             if (frames == null || frames.Length <= 1) return;
             elapsed += Time.deltaTime;
-            float frameDuration = (workVisualRemaining > 0f
-                || builder != null && builder.IsWorking)
-                    ? WorkAnimationDuration / frames.Length : 0.1f;
+            float activeWorkDuration = buildSwingRemaining > 0f
+                && ReferenceEquals(frames, animationSet.Hammer)
+                    ? BuildSwingDuration : WorkAnimationDuration;
+            float frameDuration = (workVisualRemaining > 0f || buildSwingRemaining > 0f)
+                ? activeWorkDuration / frames.Length : 0.1f;
             while (elapsed >= frameDuration)
             {
                 elapsed -= frameDuration;
@@ -137,6 +160,66 @@ namespace TinyKingdom.Economy
             Begin(animationSet.Knife, false);
         }
 
+        private void OnBuildWorkCycleStarted()
+        {
+            if (animationSet == null || animationSet.Hammer.Length == 0
+                || builder == null || !builder.IsWorking || !controller.IsAlive) return;
+            if (attackRemaining > 0f || buildSwingRemaining > 0f
+                || buildRecoveryRemaining > 0f)
+            {
+                buildSwingQueued = true;
+                return;
+            }
+            BeginBuildSwing();
+        }
+
+        private void UpdateBuildFeedback(float deltaTime)
+        {
+            if (builder == null || !builder.IsWorking || !controller.IsAlive)
+            {
+                ClearBuildFeedback();
+                return;
+            }
+            if (buildSwingRemaining > 0f)
+            {
+                buildSwingRemaining = Mathf.Max(0f, buildSwingRemaining - deltaTime);
+                if (buildSwingRemaining <= 0f)
+                {
+                    buildRecoveryRemaining = BuildSwingRecoverySeconds;
+                    ChooseStateVisual(true);
+                }
+                return;
+            }
+            if (buildRecoveryRemaining > 0f)
+            {
+                buildRecoveryRemaining = Mathf.Max(0f, buildRecoveryRemaining - deltaTime);
+                if (buildRecoveryRemaining > 0f) return;
+            }
+            if (!buildSwingQueued || attackRemaining > 0f) return;
+            buildSwingQueued = false;
+            BeginBuildSwing();
+        }
+
+        private void BeginBuildSwing()
+        {
+            buildSwingQueued = false;
+            buildSwingRemaining = BuildSwingDuration;
+            buildRecoveryRemaining = 0f;
+            FaceTowards(builder?.Target != null
+                ? builder.Target.transform.position - transform.position : Vector2.zero);
+            Begin(animationSet.Hammer, false);
+        }
+
+        private void ClearBuildFeedback()
+        {
+            if (buildSwingRemaining <= 0f && buildRecoveryRemaining <= 0f
+                && !buildSwingQueued) return;
+            buildSwingRemaining = 0f;
+            buildRecoveryRemaining = 0f;
+            buildSwingQueued = false;
+            if (attackRemaining <= 0f) ChooseStateVisual(true);
+        }
+
         private static void OnRepairImpact(BuildingSite site)
         {
             if (site != null && site.TryGetComponent(out BuildingSelectionPulse pulse))
@@ -152,7 +235,7 @@ namespace TinyKingdom.Economy
             {
                 chosen = moving && animationSet.RunHammer.Length > 0
                     ? animationSet.RunHammer
-                    : builder.IsWorking
+                    : buildSwingRemaining > 0f
                         ? animationSet.Hammer
                         : animationSet.IdleHammer.Length > 0
                             ? animationSet.IdleHammer : animationSet.Idle;
@@ -182,7 +265,9 @@ namespace TinyKingdom.Economy
                 };
             }
             else chosen = moving ? animationSet.Run : animationSet.Idle;
-            if (force || !ReferenceEquals(frames, chosen)) Begin(chosen, true);
+            if (force || !ReferenceEquals(frames, chosen))
+                Begin(chosen, !(buildSwingRemaining > 0f
+                    && ReferenceEquals(chosen, animationSet.Hammer)));
         }
 
         private void Begin(Sprite[] chosen, bool repeat)
