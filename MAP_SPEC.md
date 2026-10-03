@@ -135,16 +135,21 @@ presentation artwork extends beyond that footprint horizontally, its runtime
 navigation occupancy adds one side-clearance cell on both the left and right.
 The southern approach stays open for the existing drop-off and garrison slots.
 
-Mobile neutral resources such as Sheep may change their occupied logical cell.
-If this invalidates an active unit route, `UnitMovement` requests a replacement
-A* route no more frequently than once per 0.35 seconds while blocked. Sheep do
-not choose a wander destination currently containing a living unit. A unit
-already caught inside a newly occupied start cell may leave that cell, but no
-unit may enter another occupied cell.
+Mobile Sheep track a logical cell for wandering and interaction but do not set
+the grid's permanent `Occupied` flag. They are soft entities: A*, normal units
+and local separation do not treat them as blockers. Their selection coverage is
+a trigger and remains independent from navigation. Wandering avoids a destination
+currently containing a living unit where practical.
+
+Sheep occupancy alone does not invalidate building placement. Once placement is
+successfully committed, Sheep inside the final logical or physical footprint move
+to distinct valid cells found on the nearest bounded ring outside it. The new
+building footprint still becomes a permanent navigation blocker immediately.
 
 Building footprints may occupy FlatGround or ElevatedGround at any authored
 height, including both Castle tiers. All footprint cells must share one height
-and remain clear of resources, buildings and units. Water, Cliff, Stairs and
+and remain clear of static resources, buildings and units; soft Sheep are the
+only resource exception and evacuate after successful placement. Water, Cliff, Stairs and
 footprints spanning height boundaries are invalid. A selected Pawn must have
 a route to an adjacent work cell at the building's height.
 

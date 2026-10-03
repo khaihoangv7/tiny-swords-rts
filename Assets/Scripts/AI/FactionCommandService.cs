@@ -107,6 +107,7 @@ namespace TinyKingdom.AI
                 : gatherer.Gather(target,
                     candidate => candidate != null && safety.IsEligibleEconomicPosition(
                         knowledge, candidate.transform.position),
+                    position => safety.IsEligibleEconomicPosition(knowledge, position),
                     safety.CivilianTraversal))
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;

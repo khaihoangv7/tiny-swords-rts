@@ -165239,6 +165239,7 @@ MonoBehaviour:
   candidateMultiplier: 4
   maximumSearchRadius: 8
   formationSpacing: 1
+  currentFormation: 0
   blockWhenPointerIsOverUI: 1
 --- !u!114 &2201000004
 MonoBehaviour:

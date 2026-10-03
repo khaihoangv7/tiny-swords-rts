@@ -12,6 +12,26 @@ namespace TinyKingdom.Economy
         private readonly Dictionary<UnitController, Vector2Int> reservations = new();
         public int ReservationCount => reservations.Count;
 
+        public bool HasAvailableCapacity(GridManager grid)
+        {
+            if (grid == null) return false;
+            Vector2Int center = grid.WorldToGrid(transform.position);
+            GridCell targetCell = grid.GetCell(center.x, center.y);
+            if (targetCell == null) return false;
+            for (int y = -cellRadius; y <= cellRadius; y++)
+            for (int x = -cellRadius; x <= cellRadius; x++)
+            {
+                if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != cellRadius) continue;
+                Vector2Int candidate = center + new Vector2Int(x, y);
+                GridCell cell = grid.GetCell(candidate.x, candidate.y);
+                if (cell == null || !cell.Walkable || cell.Occupied
+                    || cell.HeightLevel != targetCell.HeightLevel
+                    || reservations.ContainsValue(candidate)) continue;
+                return true;
+            }
+            return false;
+        }
+
         public void Configure(int radius) => cellRadius = Mathf.Max(1, radius);
 
         public bool TryReserve(UnitController worker, GridManager grid, PathfindingSystem paths,

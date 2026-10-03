@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Economy.EconomyConfig
   gatherSecondsPerUnit: 1.5
   gatherImpactDelay: 0.45
-  amountPerStep: 1
+  amountPerStep: 2
+  pawnCarryCapacity: 20
   sheepCapacity: 200
+  houseSheepRespawnSeconds: 90
   treeCapacity: 100
   goldCapacity: 100
   goldStoneCapacities:

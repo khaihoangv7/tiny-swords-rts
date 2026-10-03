@@ -145,13 +145,21 @@ namespace TinyKingdom.AI
                     retreatRequests.Add(worker);
                     continue;
                 }
-                if (assignment.Mode == AssignmentMode.Gathering
-                    && gatherer != null && gatherer.State != WorkerState.Idle
+                if (gatherer != null && gatherer.State != WorkerState.Idle
                     && gatherer.Target != null
                     && gatherer.Target.ResourceType == assignment.Type)
                 {
                     assignment.TargetId = gatherer.Target.GetEntityId();
                     assignment.LastKnownPosition = gatherer.Target.transform.position;
+                    assignment.Mode = AssignmentMode.Gathering;
+                    continue;
+                }
+                if (assignment.Mode == AssignmentMode.Gathering && gatherer != null
+                    && gatherer.IsSeekingRememberedResource)
+                {
+                    assignment.TargetId = gatherer.RememberedResourceId;
+                    assignment.LastKnownPosition = gatherer.RememberedResourcePosition;
+                    assignment.Mode = AssignmentMode.SeekingMemory;
                     continue;
                 }
 

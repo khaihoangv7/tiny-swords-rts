@@ -5,6 +5,7 @@ using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
+using TinyKingdom.Economy;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -53,6 +54,7 @@ namespace TinyKingdom.Buildings
             ? interactionSlots.ReservationCount : 0;
         public bool CanAssign(PawnBuilder pawn) => pawn != null && !assignedBuilders.Contains(pawn);
         public event Action<BuildingSite> Changed;
+        public event Action<BuildingSite> Completed;
         public event Action DefenseHostDestroyed;
         public event Action DefenseHostHealthChanged;
 
@@ -60,7 +62,8 @@ namespace TinyKingdom.Buildings
 
         public void Configure(BuildingData definition, Faction owner, Vector2Int gridOrigin,
             GridManager navigation, FactionPopulation ownerPopulation,
-            HouseVariant variant = HouseVariant.A)
+            HouseVariant variant = HouseVariant.A, ResourceStockpile ownerResources = null,
+            EconomyConfig economyConfig = null)
         {
             data = definition;
             Faction = owner;
@@ -98,6 +101,14 @@ namespace TinyKingdom.Buildings
             occupied = true;
             interactionSlots = gameObject.AddComponent<BuildingInteractionSlots>();
             interactionSlots.Configure(this, grid);
+            if (data.Type == BuildingType.Tower)
+                (GetComponent<BuildingResourceDropOff>()
+                    ?? gameObject.AddComponent<BuildingResourceDropOff>()).Configure(
+                        this, ownerResources, grid);
+            else if (data.Type == BuildingType.House && economyConfig != null)
+                (GetComponent<HouseSheepSpawner>()
+                    ?? gameObject.AddComponent<HouseSheepSpawner>()).Configure(
+                        this, grid, economyConfig, PresentationAssetCatalog.Load());
             (GetComponent<BuildingVisionSource>()
                 ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
             if (BuildingRallyPoint.Supports(data.Type))
@@ -126,6 +137,7 @@ namespace TinyKingdom.Buildings
                     population?.AddCap(data.PopulationBonus);
                     bonusApplied = true;
                 }
+                Completed?.Invoke(this);
             }
             UpdateBar();
             Changed?.Invoke(this);

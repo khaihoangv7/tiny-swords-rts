@@ -50,8 +50,8 @@ namespace TinyKingdom.EditorTools
                     $"Gold Stone {i + 1} mapping is incomplete.");
 
             foreach (PawnGatherer gatherer in UnityEngine.Object.FindObjectsByType<PawnGatherer>())
-                Require(Mathf.Approximately(gatherer.AutoResourceSearchRadius, 6f),
-                    $"{gatherer.name} AutoResourceSearchRadius is not 6.");
+                Require(Mathf.Approximately(gatherer.AutoResourceSearchRadius, 0f),
+                    $"{gatherer.name} must search all legally explored resource memory.");
 
             var nodes = new Dictionary<string, ResourceNode>();
             foreach (ResourceNode node in UnityEngine.Object.FindObjectsByType<ResourceNode>())
@@ -100,7 +100,7 @@ namespace TinyKingdom.EditorTools
                     $"{site.name} builder interaction slots are missing.");
 
             Debug.Log("Phase 5C2.1 presentation validation passed: rooftop anchors, catalog, "
-                + "world garrison counters, builder slots, 6-unit resource chaining, Sheep, "
+                + "world garrison counters, builder slots, explored resource chaining, Sheep, "
                 + "four Tree/Stump pairs, six Gold capacities/ambient highlights, valid Dead "
                 + "VFX frames and unit retaliation configuration.");
         }

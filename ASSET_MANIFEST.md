@@ -67,6 +67,11 @@ uses the same four verified Tree/Stump pairs as real resource nodes. Only the
 verified ambient Duck and water-rock animations described above are added;
 no gameplay animation, recoloring or AI-created artwork is introduced.
 
+Phase 6H.1 House-generated Sheep reuse this exact verified Idle/Grass/Move frame
+mapping, 1.6 presentation scale and normal Sheep harvest presentation. They add
+no new sprite, animation clip or animation-driven gameplay. House completion and
+the 90-second replacement timer remain gameplay authority.
+
 The supplied local Free Pack was visually inspected, including all terrain color
 sheets, four trees, four bushes, four rocks, four water-rock sheets, eight clouds,
 the Blue/Red Castle pair and Red Pawn Idle/Run. Existing gameplay animation

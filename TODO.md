@@ -145,7 +145,7 @@ The next gameplay phase has not begun.
 
 Status: **PASS** — user completed manual Unity Play Mode validation; Console had no errors.
 
-- [x] Read GAME_SPEC.md economy values; Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off
+- [x] Recorded the original Phase 5A baseline: Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off (carry/drop-off superseded by Phase 6H.1)
 - [x] Store the 1.5-second gather cycle and Sheep/Tree/base Gold capacities 200/100/100 in Phase5AEconomy ScriptableObject (Tree/base Gold remain provisional)
 - [x] Separate Blue and Red ResourceStockpile, explicit ResourceType, deterministic ResourceNode depletion
 - [x] PawnGatherer capability uses existing UnitMovement and A*; cargo, return, deposit and command interruption implemented
@@ -176,7 +176,7 @@ Status: **PASS** — user completed manual Unity Play Mode validation; Console h
 
 Status: **STABLE per user report** — detailed Phase 5B1 checklist below remains unreported.
 
-- [x] Verified House 100 Wood/+5 population, Barracks 150 Wood, Tower 100 Wood/50 Gold, and free MVP repair against GAME_SPEC.md
+- [x] Verified the original Phase 5B1 House 100 Wood/+5 population baseline (House cost superseded by Phase 6H.1), Barracks/Tower costs and free MVP repair
 - [x] Recorded provisional HP, build seconds, footprints, and repair rate in separate BuildingData assets
 - [x] Verified Blue/Red House, Barracks, Tower and Castle sprites and Blue Pawn Hammer sheets in ASSET_MANIFEST.md
 - [x] Added placement UI, preview, grid footprint validation, resource spending, builder assignment, construction, building selection and repair commands
@@ -906,8 +906,8 @@ Editor compilation pass. Unity Play Mode visual and regression validation remain
 - [x] Keep Gold Stone 1-5 mining positions close while using extra outward clearance for Gold Stone 6
 - [x] Add one navigation-clearance cell to each horizontal side of the 1.7x Main Castle art
 - [x] Prevent Sheep wandering into cells currently occupied by living units
-- [x] Recalculate active routes when moving Sheep invalidate a future waypoint, throttled to 0.35 seconds
-- [x] Allow a unit already caught in a newly occupied start cell to exit without allowing entry into blockers
+- [x] Historical moving-Sheep repath behavior implemented (superseded by Phase 6H.2 soft Sheep)
+- [x] Preserve blocker exit behavior for true static occupancy; Sheep no longer creates it in Phase 6H.2
 - [x] Preserve verified animation anchors across Idle, Run, Attack, Guard and work frames
 - [x] Raise the unscaled unit health-bar anchor from 0.78 to 1.01
 - [x] Scale unit selection-ring geometry and ground offset by 1.3 to restore foot alignment
@@ -926,8 +926,8 @@ Editor compilation pass. Unity Play Mode visual and regression validation remain
 - [ ] Verify Gold Stone 1-5 Pawns stand close, Gold Stone 6 Pawns stay outside, and all mining animations face the node
 - [ ] Damage each constructible building and verify every successful Hammer repair impact triggers one mild pulse
 - [ ] Verify units route around both visible Main Castle side edges while drop-off/garrison entry still works
-- [ ] Verify Move, AttackMove, chase and worker routes detour around Sheep that wander onto the original path
-- [ ] Verify clustered units do not trigger recurring pathfinding or Console spam around Sheep
+- [x] Superseded by Phase 6H.2: units now pass through Sheep instead of detouring
+- [ ] Verify clustered units pass through Sheep without pathfinding or Console spam
 - [ ] Verify repeated building clicks restart one pulse and always recover to scale 1.7
 - [ ] Verify movement, combat, gathering, construction, garrison, cursor and clean Console regressions
 
@@ -1236,3 +1236,70 @@ Unity Edit Mode validation and the required Play Mode regression matrix remain.
 - [ ] Verify Move, AttackMove acquisition/resume and direct target Attack regressions
 - [ ] Verify Phase 6D HUD/tooltips, Phase 6E audio and Phase 6F world sorting regressions
 - [ ] Verify RuleBasedCommander, Fog, Console and Profiler/GC regressions
+
+## Phase 6H.1 - Economy and Worker Logistics
+
+Status: **PASS** - implementation compiles cleanly and the user confirmed the
+Phase 6H.1 Unity Play Mode validation is successful.
+
+- [x] Generalize Castle/Tower deposits through `IResourceDropOff` and one registry
+- [x] Accept Food, Wood and Gold at living completed friendly Towers
+- [x] Rank drop-offs by squared distance and stable EntityId before route checks
+- [x] Recalculate when a selected drop-off is destroyed, invalid or unreachable
+- [x] Change authoritative House cost from 100 Wood to 80 Wood
+- [x] Give every completed House at most one generated Sheep
+- [x] Spawn House Sheep outside the footprint on bounded valid walkable rings
+- [x] Respawn a depleted House Sheep after 90 gameplay seconds
+- [x] Cancel future respawn on House destruction while preserving a living Sheep
+- [x] Redirect slot-overflow Pawns to a same-type visible node with free capacity
+- [x] Continue depleted jobs across visible and legally remembered same-type resources
+- [x] Exclude unexplored resources and defer hidden live-state resolution until visible
+- [x] Preserve stable reservations until invalidation or explicit manual override
+- [x] Change authoritative Pawn carry capacity from 10 to 20
+- [x] Change authoritative gather amount from 1 to 2 per successful work tick
+- [x] Preserve the 19-to-20 cap edge without removing the unused resource unit
+- [x] Pass AI safety filtering to visible and remembered continuation positions
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.1 Economy & Worker Logistics`
+- [x] Compile temporary Runtime and Editor checks with 0 errors and 0 warnings
+- [x] Refresh scripts in the active Unity Editor and confirm Console compilation
+- [x] Run the Phase 6H.1 validator in Edit Mode
+- [x] Run the Phase 6H.1 validator in Play Mode
+- [x] Test Tower versus Castle nearest drop-off and Tower destruction fallback
+- [x] Build House A/B/C, verify 80 Wood and one Sheep outside each footprint
+- [x] Deplete House Sheep, verify no duplicate and one replacement after 90 seconds
+- [x] Destroy House before/after Sheep depletion and verify ownership cleanup rules
+- [x] Saturate one Tree/Sheep/Gold node with a Pawn group and verify redistribution
+- [x] Deplete each resource type and verify same-type visible/memory continuation
+- [x] Verify unexplored resources are never automatically targeted
+- [x] Verify carry 20, +2 ticks, 19-to-20 edge and no negative remaining amount
+- [x] Verify Blue controls, Red AI, production, combat, Fog, construction, garrison,
+  rally, navigation, Console and Profiler/GC regressions
+- [x] Phase 6H.2 was explicitly started after Phase 6H.1 validation
+
+## Phase 6H.2 - Navigation and Sheep Interaction Polish
+
+Status: **PASS** - implementation compiles cleanly and the user confirmed the
+Phase 6H.2 Unity Play Mode validation is successful.
+
+- [x] Preserve reciprocal lower-to-upper and upper-to-lower stair edges
+- [x] Consume connector endpoints one at a time during continuous movement
+- [x] Validate authored connector traversal without ambiguous shared-corner sampling
+- [x] Suppress local separation only during the short connector waypoint traversal
+- [x] Add a 0.75-second connector no-progress watchdog with throttled repath
+- [x] Preserve the 0.35-second blocked-route repath cooldown after successful rebuild
+- [x] Remove Sheep from hard logical navigation occupancy and A* blocking
+- [x] Keep Sheep gameplay and selection colliders as nonblocking triggers
+- [x] Exclude only Sheep from resource-based placement rejection
+- [x] Find distinct Sheep escape cells with a bounded four-ring search
+- [x] Move all affected Sheep after successful building placement
+- [x] Preserve authoritative building footprint blocking and Sheep Food semantics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.2 Navigation & Sheep`
+- [x] Run the Phase 6H.2 validator in Unity Edit Mode
+- [x] Repeat Pawn and Warrior ascent/descent on every intended connector
+- [x] Move 5+ units through one stair and test opposing directions
+- [x] Verify units path directly through stationary and moving Sheep
+- [x] Verify building preview remains legal over Sheep on otherwise valid terrain
+- [x] Place buildings over one/multiple Sheep and verify distinct safe evacuation
+- [x] Verify Sheep hover/select/Gather, building blocking and clean Console
+- [x] Verify combat, formation, Fog, AI, economy values and House respawn regressions
+- [x] Phase 6H.3 has not begun
