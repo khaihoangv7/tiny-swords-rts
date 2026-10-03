@@ -51,7 +51,8 @@ namespace TinyKingdom.EditorTools
                 && monk.TrainingSeconds == 7f, "Monk production values mismatch.");
             Require(!monk.AutoAcquireTargets && !monk.CanRetaliateWhenDamaged,
                 "Monk must have no attack acquisition/retaliation.");
-            Require(MonkHealer.HealAmount == 5 && MonkHealer.HealInterval == 4f
+            Require(Mathf.Approximately(MonkHealer.HealAmount, 6.25f)
+                && MonkHealer.HealInterval == 2f
                 && MonkHealer.HealRange == 2f && MonkHealer.AutoDetectionRange == 4f,
                 "Monk healing values mismatch.");
             Require(GoldMineObjective.MaximumHP == 1500

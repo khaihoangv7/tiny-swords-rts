@@ -1167,6 +1167,16 @@ animation frames. The source PNG and `.meta` remain locally ignored by the
 repository's existing Particle FX ignore rule; the tracked HUD catalog stores
 their current GUID references.
 
+## Phase 6H.4 Warrior Committed Attack Presentation
+
+Phase 6H.4 continues to use the verified four-frame
+`Assets/Units/{Blue|Red} Units/Warrior/Warrior_Attack1.png` mapping at 10 FPS.
+No sprite sheet, slice or frame order changes. The 0.2-second hit point and
+0.4-second committed duration are explicit gameplay data on
+`WarriorCombatData`; animation frames remain presentation-only and cannot apply
+damage. Holding `UnitState.Attacking` for that configured duration prevents the
+existing Run transition from cutting off a legally started Warrior attack.
+
 ## Gameplay SFX Foundation / Initial Audio Integration
 
 The following user-provided MP3 assets are referenced directly by

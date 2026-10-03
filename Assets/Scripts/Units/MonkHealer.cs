@@ -8,8 +8,8 @@ namespace TinyKingdom.Units
     [RequireComponent(typeof(UnitController), typeof(UnitMovement), typeof(HealthComponent))]
     public sealed class MonkHealer : MonoBehaviour
     {
-        public const int HealAmount = 5;
-        public const float HealInterval = 4f;
+        public const float HealAmount = 6.25f;
+        public const float HealInterval = 2f;
         public const float HealRange = 2f;
         public const float AutoDetectionRange = 4f;
         private const float ScanInterval = 0.25f;

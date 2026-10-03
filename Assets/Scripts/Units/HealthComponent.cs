@@ -12,6 +12,7 @@ namespace TinyKingdom.Units
 
         private UnitController controller;
         private bool initialized;
+        private float fractionalHealing;
 
         public event Action<HealthComponent> Died;
         public event Action<HealthComponent, int, bool> DamageReceived;
@@ -32,6 +33,7 @@ namespace TinyKingdom.Units
         {
             combatData = data;
             currentHP = data != null ? data.MaxHP : 0;
+            fractionalHealing = 0f;
             initialized = data != null;
         }
 
@@ -51,14 +53,24 @@ namespace TinyKingdom.Units
             return ApplyDamage(final, guarding && final < damage);
         }
 
-        public int Heal(int amount)
+        public int Heal(int amount) => Heal((float)amount);
+
+        public int Heal(float amount)
         {
             Initialize();
             if (!IsAlive || amount <= 0 || currentHP >= MaxHP) return 0;
+            float accumulated = amount + fractionalHealing;
+            int wholeAmount = Mathf.FloorToInt(accumulated + 0.0001f);
+            fractionalHealing = accumulated - wholeAmount;
+            if (wholeAmount <= 0) return 0;
             int before = currentHP;
-            currentHP = Mathf.Min(MaxHP, currentHP + amount);
+            currentHP = Mathf.Min(MaxHP, currentHP + wholeAmount);
             int restored = currentHP - before;
-            if (restored > 0) HealthChanged?.Invoke(this);
+            if (restored > 0)
+            {
+                if (currentHP >= MaxHP) fractionalHealing = 0f;
+                HealthChanged?.Invoke(this);
+            }
             return restored;
         }
 
@@ -68,6 +80,7 @@ namespace TinyKingdom.Units
             if (!IsAlive) return false;
             int before = currentHP;
             currentHP = 0;
+            fractionalHealing = 0f;
             DamageReceived?.Invoke(this, before, false);
             HealthChanged?.Invoke(this);
             Controller.MarkDead();
@@ -114,6 +127,7 @@ namespace TinyKingdom.Units
             else
             {
                 Vector3 deathPosition = transform.position;
+                fractionalHealing = 0f;
                 Controller.MarkDead();
                 if (FogWorldVisibility.ShouldPresentDeath(Controller.Faction, deathPosition))
                     UnitDeathVfx.Spawn(deathPosition);

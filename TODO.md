@@ -1339,3 +1339,31 @@ checks pass; the Unity validator and Play Mode matrix still need to be run.
 - [ ] Verify Scout stays excluded from military formation membership
 - [ ] Verify near/far/off-camera fire ambience and clean Console
 - [ ] Verify Red RuleBasedCommander and AI scouting behavior are unchanged
+
+## Phase 6H.4 - Combat and Support Balance
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Runtime and Editor compile
+checks must pass; the Unity validator and Play Mode matrix still need to be run.
+
+- [x] Change Monk heal interval from 4 seconds to 2 seconds
+- [x] Change authoritative Monk heal amount from 5 HP to 6.25 HP
+- [x] Preserve integer HP with deterministic fractional-heal carry
+- [x] Preserve Monk targeting, range, movement, cost and no-attack behavior
+- [x] Add Warrior-only committed melee configuration
+- [x] Validate attack start through the existing visibility, height and range rules
+- [x] Resolve the committed hit once at 0.2 seconds without a second range check
+- [x] Hold Warrior attack presentation through the 0.4-second recovery window
+- [x] Resume normal chase rules after a surviving target leaves melee range
+- [x] Cancel safely when the target or attacker dies before the hit
+- [x] Preserve the 1.1-second Warrior interval, damage and counter values
+- [x] Keep Archer projectile and Lancer/Pawn melee delivery unchanged
+- [x] Prevent inactive House lifecycle callbacks from starting Sheep coroutines
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.4 Combat Support`
+- [x] Compile Runtime and Editor checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.4 validator in Unity Play Mode
+- [ ] Observe several Monk heal cycles and verify 6/6/6/7 integer restoration
+- [ ] Verify a fleeing target receives one committed hit and is chased afterward
+- [ ] Verify a target killed during windup receives no delayed damage
+- [ ] Verify stationary combat, Guard, Move, retreat and AttackMove cancellation
+- [ ] Verify Archer/Lancer, Fog, AI, audio and clean Console regressions
+- [ ] Do not begin Phase 6H.5 before explicit instruction
