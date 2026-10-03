@@ -235,7 +235,7 @@ namespace TinyKingdom.Buildings
                 Vector2Int candidate = origin + new Vector2Int(x, y);
                 if (pending.Exists(item => grid.WorldToGrid(item.Position) == candidate)) continue;
                 GridCell cell = grid.GetCell(candidate.x, candidate.y);
-                if (cell == null || !cell.Walkable || cell.Occupied
+                if (!TerrainRules.IsStableStandingCell(cell)
                     || cell.HeightLevel != footprint.HeightLevel
                     || paths.FindPath(start, candidate).Count == 0) continue;
                 float distance = ((Vector2)(cell.WorldPosition - unit.transform.position)).sqrMagnitude;

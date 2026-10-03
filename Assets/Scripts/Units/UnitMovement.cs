@@ -37,6 +37,7 @@ namespace TinyKingdom.Units
         private float blockedRepathCooldown;
         private float connectorNoProgressSeconds;
         private float connectorRecoveryCooldown;
+        private bool connectorRecoveryAttempted;
         private Vector2 lastMovementDirection = Vector2.right;
 
         public float MovementSpeed => movementSpeed;
@@ -316,14 +317,17 @@ namespace TinyKingdom.Units
                 else blockedRepathCooldown = 0f;
             }
 
-            // A side ramp is a narrow authored diagonal. Applying lateral separation
-            // while the unit is crossing it can turn the visible trajectory vertical
-            // or push the unit into the cliff art. Follow the path waypoint exactly
-            // for this short segment; separation resumes as soon as the ramp endpoint
-            // has been reached.
+            // Preserve only separation along the connector axis. Lateral pushes can
+            // leave the painted corridor, while a small axial response lets same- or
+            // opposite-direction groups queue without replacing the stair waypoint.
             Vector3 resolved = connectorWaypoint
-                ? desired
+                ? UnitSeparation.ApplyAlongAxis(this, desired, deltaTime, gridManager,
+                    connectorTarget - current)
                 : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
+            bool resolvedSafe = crossingHeightConnector
+                ? IsSafeConnectorStep(current, resolved, connectorTarget)
+                : UnitSeparation.IsSafeSegment(gridManager, current, resolved);
+            if (!resolvedSafe) resolved = desired;
             Vector2 movement = resolved - current;
             if (hadPath && movement.sqrMagnitude > 0.000001f)
                 lastMovementDirection = movement.normalized;
@@ -394,21 +398,27 @@ namespace TinyKingdom.Units
             if (afterDistance + 0.001f < beforeDistance)
             {
                 connectorNoProgressSeconds = 0f;
+                connectorRecoveryAttempted = false;
                 return;
             }
 
             connectorNoProgressSeconds += Mathf.Max(0f, deltaTime);
             if (connectorNoProgressSeconds < ConnectorStuckSeconds
-                || connectorRecoveryCooldown > 0f) return;
+                || connectorRecoveryCooldown > 0f || connectorRecoveryAttempted) return;
             connectorNoProgressSeconds = 0f;
             connectorRecoveryCooldown = BlockedPathRepathInterval;
+            connectorRecoveryAttempted = true;
             TryRepathBlockedRoute(0f);
+            // TrySetActivePath resets connector state. Preserve the one-recovery
+            // guard until actual forward progress resumes or traversal ends.
+            connectorRecoveryAttempted = true;
         }
 
         private void ResetConnectorProgress()
         {
             connectorNoProgressSeconds = 0f;
             connectorRecoveryCooldown = 0f;
+            connectorRecoveryAttempted = false;
         }
 
         private void HandleStateChanged(UnitState state)

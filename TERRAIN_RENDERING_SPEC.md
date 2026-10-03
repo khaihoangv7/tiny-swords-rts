@@ -1,7 +1,7 @@
 # Tiny Swords expanded battlefield
 
 The map is 60x44 cells on a native 64x64 pixel tile grid. Each Castle has a
-16x13 lower terrace and a 12x8 upper court. The central Gold Mine stays at height 0.
+16x13 lower terrace and a 10x7 upper court. The central Gold Mine stays at height 0.
 Visual Tilemaps and baked navigation are separate.
 
 ## Elevation-aware layer order (Phase 6F.1)
@@ -42,10 +42,22 @@ Use one row of finished cliff feet (`r5c5/r5c6/r5c7`) immediately below each
 surface. Do not stack row 4 and row 5; that doubles the visible cliff height.
 
 The two ascent routes per Castle each contain two flights using matching Color3 native
-left pair r4c0/r5c0 or right pair r4c3/r5c3. Each visual endpoint is painted
-at the corresponding logical stair cell. A route is on each flank, with a landing
-between its flights. Closing either route must leave the other fully usable.
+left pair r4c0/r5c0 or right pair r4c3/r5c3. Each flight is painted as one
+native same-column pair immediately outside the matching plateau edge. Its
+logical lower endpoint is in that outside column and its logical upper endpoint
+is the diagonally adjacent walkable surface cell. The edge tile at that upper
+exit must be replaced by the Color3 center connection tile; leaving `c5/c7`
+there recreates the invalid red-X seam from the official guide. Interior exits
+use `r1c6`. A south-edge exit beside a cliff uses `r2c6` at the walkable top and
+`r5c6` directly below, replacing the closed `r2c5/r2c7` plus `r5c5/r5c7`
+corner. The full cliff/side border must never continue through a stair opening.
+Rendering never infers the elevation edge. A route is on each flank, with a landing between its flights.
+Closing either route must leave the other fully usable.
 The central mine has no ramps.
+
+Phase 6H.2 stabilization preserves these verified ramp and connection tiles and projected sorting.
+Only the two reciprocal logical endpoints are reserved as the connector corridor;
+debug endpoint/corridor Gizmos are optional and disabled by default.
 
 Shadow.png stays at native 192x192, 64 PPU, beneath the plateau. Shadows are
 offset one cell south with contact shadow at the single cliff foot. The lower

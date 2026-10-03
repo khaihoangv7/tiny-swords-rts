@@ -87,6 +87,10 @@ namespace TinyKingdom.Buildings
                 && stockpile.CanAfford(data.FoodCost, data.WoodCost, data.GoldCost);
         }
 
+        public static bool IsValidPlacementCell(GridCell cell, int requiredHeight)
+            => TerrainRules.IsStableStandingCell(cell)
+                && (requiredHeight < 0 || cell.HeightLevel == requiredHeight);
+
         public bool CanPlace(BuildingType type, Vector2Int origin)
         {
             BuildingData data = GetData(type);
@@ -98,11 +102,8 @@ namespace TinyKingdom.Buildings
             {
                 Vector2Int cellPosition = origin + new Vector2Int(x, y);
                 GridCell cell = grid.GetCell(cellPosition.x, cellPosition.y);
-                if (cell == null || cell.Occupied
-                    || (cell.TerrainType != TerrainType.FlatGround
-                        && cell.TerrainType != TerrainType.ElevatedGround)
-                    // Use the authored level: elevated courts can be higher than level 1.
-                    || (height >= 0 && cell.HeightLevel != height)) return false;
+                // Use the authored level: elevated courts can be higher than level 1.
+                if (!IsValidPlacementCell(cell, height)) return false;
                 height = cell.HeightLevel;
             }
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
@@ -234,10 +235,8 @@ namespace TinyKingdom.Buildings
                     if (x > minX && x < maxX && y > minY && y < maxY) continue;
                     Vector2Int candidate = new(x, y);
                     GridCell cell = grid.GetCell(x, y);
-                    if (cell == null || !cell.Walkable || cell.Occupied
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || cell.HeightLevel != heightLevel
-                        || (cell.TerrainType != TerrainType.FlatGround
-                            && cell.TerrainType != TerrainType.ElevatedGround)
                         || reservedSheepEscapeCells.Contains(candidate)
                         || ContainsLivingUnit(candidate)
                         || ContainsOtherSheep(candidate)) continue;
@@ -385,7 +384,7 @@ namespace TinyKingdom.Buildings
                     if ((tried & (1UL << candidateIndex)) != 0) continue;
                     Vector2Int target = origin + new Vector2Int(x, y);
                     GridCell cell = grid.GetCell(target.x, target.y);
-                    if (cell == null || !cell.Walkable || cell.Occupied
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || cell.HeightLevel != footprintHeight) continue;
                     Vector3 candidatePoint = cell.WorldPosition;
                     float distance = ((Vector2)(candidatePoint

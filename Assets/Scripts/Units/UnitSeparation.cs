@@ -27,23 +27,64 @@ namespace TinyKingdom.Units
             GridManager grid)
         {
             if (self == null || grid == null || deltaTime <= 0f) return desired;
+            CollectNeighbors(self);
+            return Resolve(desired, self.SeparationRadius, self.SeparationSpeed, deltaTime,
+                self.GetHashCode(), Nearby, grid);
+        }
+
+        public static Vector3 ApplyAlongAxis(UnitMovement self, Vector3 desired,
+            float deltaTime, GridManager grid, Vector2 axis)
+        {
+            if (self == null || grid == null || deltaTime <= 0f
+                || axis.sqrMagnitude < 0.000001f) return desired;
+            CollectNeighbors(self);
+            Vector2 displacement = CalculateDisplacement(desired,
+                self.SeparationRadius, self.SeparationSpeed, deltaTime,
+                self.GetHashCode(), Nearby);
+            Vector2 direction = axis.normalized;
+            Vector2 constrained = direction * Vector2.Dot(displacement, direction);
+            Vector3 candidate = desired + new Vector3(constrained.x, constrained.y, 0f);
+            return IsSafeSegment(grid, desired, candidate) ? candidate : desired;
+        }
+
+        private static void CollectNeighbors(UnitMovement self)
+        {
             Nearby.Clear();
             foreach (UnitSelection selection in UnitSelection.ActiveUnits)
             {
-                if (selection == null || !selection.Controller.IsAlive || selection.gameObject == self.gameObject)
-                    continue;
+                if (selection == null || !selection.Controller.IsAlive
+                    || selection.gameObject == self.gameObject) continue;
                 UnitMovement other = selection.Movement;
                 Nearby.Add(new Neighbor(other.transform.position, other.SeparationRadius,
                     other.GetHashCode()));
             }
-            return Resolve(desired, self.SeparationRadius, self.SeparationSpeed, deltaTime,
-                self.GetHashCode(), Nearby, grid);
         }
 
         public static Vector3 Resolve(Vector3 desired, float radius, float speed, float deltaTime,
             int id, IReadOnlyList<Neighbor> neighbors, GridManager grid)
         {
             if (grid == null || neighbors == null || deltaTime <= 0f) return desired;
+            Vector2 displacement = CalculateDisplacement(desired, radius, speed,
+                deltaTime, id, neighbors);
+            if (displacement.sqrMagnitude < 0.000001f) return desired;
+            Vector3 candidate = desired + new Vector3(displacement.x, displacement.y, 0f);
+            if (IsSafeSegment(grid, desired, candidate)) return candidate;
+
+            // Sliding along an edge is safer than pushing through a blocked tile.
+            Vector3 slideX = desired + new Vector3(displacement.x, 0f, 0f);
+            Vector3 slideY = desired + new Vector3(0f, displacement.y, 0f);
+            bool validX = IsSafeSegment(grid, desired, slideX);
+            bool validY = IsSafeSegment(grid, desired, slideY);
+            if (validX && validY)
+                return Mathf.Abs(displacement.x) >= Mathf.Abs(displacement.y) ? slideX : slideY;
+            if (validX) return slideX;
+            if (validY) return slideY;
+            return desired;
+        }
+
+        private static Vector2 CalculateDisplacement(Vector3 desired, float radius,
+            float speed, float deltaTime, int id, IReadOnlyList<Neighbor> neighbors)
+        {
             Vector2 push = Vector2.zero;
             bool overlapping = false;
             foreach (Neighbor other in neighbors)
@@ -58,24 +99,11 @@ namespace TinyKingdom.Units
                     : CoincidentDirection(id, other.Id);
                 push += direction * (required - distance);
             }
-            if (!overlapping) return desired;
+            if (!overlapping) return Vector2.zero;
             if (push.sqrMagnitude < 0.000001f)
                 push = CoincidentDirection(id, 0);
-            Vector2 displacement = Vector2.ClampMagnitude(push,
+            return Vector2.ClampMagnitude(push,
                 speed * Mathf.Max(0f, deltaTime));
-            Vector3 candidate = desired + new Vector3(displacement.x, displacement.y, 0f);
-            if (IsSafeSegment(grid, desired, candidate)) return candidate;
-
-            // Sliding along an edge is safer than pushing through a blocked tile.
-            Vector3 slideX = desired + new Vector3(displacement.x, 0f, 0f);
-            Vector3 slideY = desired + new Vector3(0f, displacement.y, 0f);
-            bool validX = IsSafeSegment(grid, desired, slideX);
-            bool validY = IsSafeSegment(grid, desired, slideY);
-            if (validX && validY)
-                return Mathf.Abs(displacement.x) >= Mathf.Abs(displacement.y) ? slideX : slideY;
-            if (validX) return slideX;
-            if (validY) return slideY;
-            return desired;
         }
 
         public static bool IsSafeSegment(GridManager grid, Vector3 from, Vector3 to)

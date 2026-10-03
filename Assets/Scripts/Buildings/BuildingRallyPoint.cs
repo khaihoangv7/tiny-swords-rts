@@ -208,7 +208,7 @@ namespace TinyKingdom.Buildings
         private bool CanReach(Vector2Int start, GridCell footprint, Vector2Int destination)
         {
             GridCell cell = grid.GetCell(start.x, start.y);
-            return cell != null && cell.Walkable && !cell.Occupied
+            return TerrainRules.IsStableStandingCell(cell)
                 && cell.HeightLevel == footprint.HeightLevel
                 && paths.FindPath(start, destination).Count > 0;
         }

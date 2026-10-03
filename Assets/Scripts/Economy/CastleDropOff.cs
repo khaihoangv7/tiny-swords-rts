@@ -142,7 +142,7 @@ namespace TinyKingdom.Economy
                     Vector3 point = transform.position + (Vector3)FrontSlots[i];
                     Vector2Int cell = navigation.WorldToGrid(point);
                     GridCell destination = navigation.GetCell(cell.x, cell.y);
-                    if (destination == null || !destination.Walkable || destination.Occupied
+                    if (!TerrainRules.IsStableStandingCell(destination)
                         || !UnitSeparation.IsSafeSegment(navigation,
                             navigation.GridToWorld(cell.x, cell.y), point)) continue;
                     float distance = ((Vector2)(point - worker.transform.position)).sqrMagnitude;

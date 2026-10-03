@@ -425,8 +425,7 @@ namespace TinyKingdom.Economy
                 for (int fx = 0; fx < size.x; fx++)
                 {
                     GridCell cell = navigation.GetCell(x + fx, y + fy);
-                    if (cell == null || !cell.Walkable || cell.Occupied
-                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || (height >= 0 && height != cell.HeightLevel)) { valid = false; break; }
                     height = cell.HeightLevel;
                 }
@@ -483,8 +482,7 @@ namespace TinyKingdom.Economy
                 for (int fx = 0; fx < data.Footprint.x; fx++)
                 {
                     GridCell cell = navigation.GetCell(x + fx, y + fy);
-                    if (cell == null || !cell.Walkable || cell.Occupied
-                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || (height >= 0 && cell.HeightLevel != height))
                     {
                         valid = false;

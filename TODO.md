@@ -1303,3 +1303,47 @@ Phase 6H.2 Unity Play Mode validation is successful.
 - [x] Verify Sheep hover/select/Gather, building blocking and clean Console
 - [x] Verify combat, formation, Fog, AI, economy values and House respawn regressions
 - [x] Phase 6H.3 has not begun
+
+### Phase 6H.2 Stairs / Elevation Connector Stabilization
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. The prior Phase 6H.2 pass
+remains historical; this focused stabilization requires the new full connector,
+resource and building Play Mode matrix before it can be marked PASS.
+
+- [x] Verify the active Color3 r4c0/r5c0 and r4c3/r5c3 native stair pairs
+- [x] Preserve the valid same-column visual pair beside diagonal logical endpoints
+- [x] Preserve all eight reciprocal height connectors and global no-corner-cutting
+- [x] Reserve each lower/upper endpoint pair as a transit-only corridor
+- [x] Exclude connector cells from resource gather reservations
+- [x] Exclude connector cells from building footprints and interaction slots
+- [x] Exclude connector cells from drop-off, garrison, spawn and group destinations
+- [x] Constrain local separation to the stair axis during traversal
+- [x] Keep one bounded recovery attempt per stalled connector interval
+- [x] Add optional connector endpoint/corridor Gizmos, disabled by default
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.2 Stairs Navigation`
+- [ ] Run the updated validator in Unity Edit Mode and Play Mode
+- [ ] Repeat Pawn and Warrior up/down traversal on all eight connectors
+- [ ] Test 5+ units and opposite-direction traffic on every route
+- [ ] Test rapid recommands and AttackMove while midway on stairs
+- [ ] Test Tree, Sheep and Gold gather slots above and below stairs
+- [ ] Test many Pawns gathering near stairs and 6H.1 resource fallback
+- [ ] Reject building overlap on each corridor and accept legal adjacent footprints
+- [ ] Build beside stairs, then repeat bidirectional traversal
+- [ ] Verify Console, path request frequency and gameplay regressions
+- [x] Do not begin Phase 6H.3 as part of this task
+
+### Phase 6H.2 Critical Stair Terrain Hotfix
+
+Status: **IMPLEMENTED - VISUAL AND PLAY MODE VALIDATION PENDING**.
+
+- [x] Compare the authored terrain with the official Tiny Swords stair guide
+- [x] Identify closed `c5/c7` plateau edges at all eight ramp exits
+- [x] Replace six interior exits with the Color3 `r1c6` center connection
+- [x] Replace two south-edge exits with `r2c6` and their cliff corners with `r5c6`
+- [x] Preserve the eight reciprocal logical connectors and their exact corridors
+- [x] Extend the validator to reject closed surface/cliff pieces at stair openings
+- [x] Extend optional debug Gizmos for endpoints, corridor and nearby blockers
+- [ ] Reload/open `Map.unity` and visually compare all eight openings in Unity
+- [ ] Run the full mandatory up/down, group, gather and building Play Mode matrix
+- [ ] Confirm the final stairs visibly differ from the previous screenshot
+- [x] Do not begin Phase 6H.3 as part of this hotfix
