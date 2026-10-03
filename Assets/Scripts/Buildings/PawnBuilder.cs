@@ -21,7 +21,8 @@ namespace TinyKingdom.Buildings
         private bool repairing;
         private bool working;
         private float visualCycle;
-        private bool repairImpactApplied;
+        private bool workImpactApplied;
+        private bool constructionProgressedThisCycle;
 
         public bool HasJob => target != null;
         public bool IsWorking => working;
@@ -65,7 +66,8 @@ namespace TinyKingdom.Buildings
             repairing = repair;
             working = false;
             visualCycle = 0f;
-            repairImpactApplied = false;
+            workImpactApplied = false;
+            constructionProgressedThisCycle = false;
             return true;
         }
 
@@ -75,7 +77,8 @@ namespace TinyKingdom.Buildings
             target = null;
             working = false;
             visualCycle = 0f;
-            repairImpactApplied = false;
+            workImpactApplied = false;
+            constructionProgressedThisCycle = false;
         }
 
         private void Update()
@@ -102,37 +105,54 @@ namespace TinyKingdom.Buildings
                 movement.Stop();
                 working = true;
                 visualCycle = 0f;
-                repairImpactApplied = false;
+                workImpactApplied = false;
+                constructionProgressedThisCycle = false;
                 WorkCycleStarted?.Invoke();
-                if (!repairing)
-                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
-                        transform.position, controller.Faction);
             }
             visualCycle += Time.deltaTime;
             if (repairing)
             {
-                if (!repairImpactApplied && visualCycle >= RepairImpactDelay)
+                if (!workImpactApplied && visualCycle >= RepairImpactDelay)
                 {
-                    repairImpactApplied = true;
+                    workImpactApplied = true;
                     if (target.Repair(WorkCycleSeconds) > 0f)
                     {
                         RepairImpact?.Invoke(target);
-                        GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
-                            transform.position, controller.Faction);
+                        PlayHammerImpact();
                     }
                 }
             }
-            else target.AdvanceConstruction(Time.deltaTime);
+            else
+            {
+                float progressBefore = target.ConstructionProgress;
+                target.AdvanceConstruction(Time.deltaTime);
+                constructionProgressedThisCycle |= target.ConstructionProgress > progressBefore;
+                if (!workImpactApplied && constructionProgressedThisCycle
+                    && (visualCycle >= RepairImpactDelay
+                        || target.State != BuildingState.UnderConstruction))
+                {
+                    workImpactApplied = true;
+                    PlayHammerImpact();
+                }
+            }
+            if (repairing ? !target.NeedsRepair
+                : target.State != BuildingState.UnderConstruction)
+            {
+                CancelJob();
+                return;
+            }
             if (visualCycle >= WorkCycleSeconds)
             {
                 visualCycle -= WorkCycleSeconds;
-                repairImpactApplied = false;
+                workImpactApplied = false;
+                constructionProgressedThisCycle = false;
                 WorkCycleStarted?.Invoke();
-                if (!repairing)
-                    GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
-                        transform.position, controller.Faction);
             }
         }
+
+        private void PlayHammerImpact()
+            => GameplayAudioService.Request(GameplayAudioEvent.PawnHammer,
+                transform.position, controller.Faction);
 
         private void OnStateChanged(UnitState state)
         {

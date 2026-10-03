@@ -261,7 +261,13 @@ namespace TinyKingdom.Economy
                     site.gameObject.AddComponent<UnitProductionQueue>().Configure(
                         site, blue, population, navigation, unitData,
                         (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
-                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
+                if (site.Type == BuildingType.Tower)
+                {
+                    SetupDefense(site, navigation);
+                    BuildingResourceDropOff tower =
+                        site.GetComponent<BuildingResourceDropOff>();
+                    if (tower != null) feedback.Watch(tower);
+                }
             };
             BuildingSystem redBuildingSystem = area.AddComponent<BuildingSystem>();
             redBuildingSystem.Configure(navigation, red, redPopulation, buildings,

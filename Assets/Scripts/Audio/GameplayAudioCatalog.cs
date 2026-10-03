@@ -147,7 +147,7 @@ namespace TinyKingdom.Audio
                 GameplayAudioEvent.SheepHurt => (0.45f, 0f, 0.8f),
                 GameplayAudioEvent.BuildingFire => (0.35f, 0f, 0f),
                 GameplayAudioEvent.BuildingExplosion => (0.75f, 0f, 0f),
-                GameplayAudioEvent.PawnHammer => (0.55f, 0f, 0f),
+                GameplayAudioEvent.PawnHammer => (0.55f, 0f, 0.7f),
                 GameplayAudioEvent.CommandClick => (0.70f, 0f, 0f),
                 GameplayAudioEvent.CommandRejected => (0.75f, 0f, 0f),
                 GameplayAudioEvent.UnitProductionFinished => (0.80f, 0f, 0f),
