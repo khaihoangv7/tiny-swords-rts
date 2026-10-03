@@ -41,6 +41,10 @@ namespace TinyKingdom.Units
         private float attackCooldown;
         private float rangedWindupRemaining;
         private bool rangedShotPending;
+        private bool committedMeleeAttackPending;
+        private bool committedMeleeHitApplied;
+        private float committedMeleeHitRemaining;
+        private float committedMeleeRecoveryRemaining;
         private CombatOrder order;
         private Vector2Int attackMoveDestination;
         private Vector3 attackMoveCommandPosition;
@@ -75,6 +79,9 @@ namespace TinyKingdom.Units
         public bool IsRetaliating => retaliationTarget;
         public CombatDirective Directive => directive;
         public bool HasAttackPresentationListener => AttackPerformed != null;
+        public bool IsMeleeAttackCommitted => committedMeleeAttackPending;
+        public bool HasAppliedCommittedMeleeHit => committedMeleeAttackPending
+            && committedMeleeHitApplied;
 
         private void Awake()
         {
@@ -260,6 +267,11 @@ namespace TinyKingdom.Units
             if (!controller.IsAlive || stationedInternal
                 || controller.CurrentState == UnitState.Guarding)
                 return;
+            if (committedMeleeAttackPending)
+            {
+                TickCommittedMeleeAttack(elapsedTime);
+                if (committedMeleeAttackPending || target == null) return;
+            }
             if (mounted)
             {
                 TickMountedCombat(deltaTime);
@@ -412,15 +424,72 @@ namespace TinyKingdom.Units
                 {
                     attackCooldown = combatData.AttackInterval;
                     Vector2 direction = target.transform.position - transform.position;
-                    AttackPerformed?.Invoke(direction);
-                    bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
-                        combatData.UnitType, combatData.AttackDelivery, 1f, true,
-                        controller);
-                    if (damaged) PlayMeleeAttackSound();
+                    if (combatData.CommitsMeleeAttack)
+                        BeginCommittedMeleeAttack(direction);
+                    else
+                    {
+                        AttackPerformed?.Invoke(direction);
+                        bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
+                            combatData.UnitType, combatData.AttackDelivery, 1f, true,
+                            controller);
+                        if (damaged) PlayMeleeAttackSound();
+                    }
                 }
                 return;
             }
             controller.SetState(UnitState.Chasing);
+        }
+
+        private void BeginCommittedMeleeAttack(Vector2 direction)
+        {
+            committedMeleeAttackPending = true;
+            committedMeleeHitApplied = false;
+            committedMeleeHitRemaining = combatData.CommittedMeleeHitDelay;
+            committedMeleeRecoveryRemaining = combatData.CommittedMeleeDuration;
+            if (movement.IsMoving) movement.Stop();
+            controller.SetState(UnitState.Attacking);
+            AttackPerformed?.Invoke(direction);
+            TickCommittedMeleeAttack(0f);
+        }
+
+        private void TickCommittedMeleeAttack(float elapsedTime)
+        {
+            if (!committedMeleeAttackPending) return;
+            if (!controller.IsAlive || !health.IsAlive || target == null
+                || targetHealth == null || !targetHealth.IsTargetable
+                || !FactionRelations.AreHostile(controller.Faction, target.Faction))
+            {
+                CancelCommittedMeleeAttack();
+                return;
+            }
+
+            if (movement.IsMoving) movement.Stop();
+            controller.SetState(UnitState.Attacking);
+            committedMeleeHitRemaining -= elapsedTime;
+            committedMeleeRecoveryRemaining -= elapsedTime;
+            if (!committedMeleeHitApplied && committedMeleeHitRemaining <= 0f)
+            {
+                // Mark first because a lethal hit synchronously clears the target.
+                committedMeleeHitApplied = true;
+                bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
+                    combatData.UnitType, combatData.AttackDelivery, 1f, true,
+                    controller);
+                if (damaged) PlayMeleeAttackSound();
+            }
+            if (!committedMeleeAttackPending || committedMeleeRecoveryRemaining > 0f)
+                return;
+
+            committedMeleeAttackPending = false;
+            committedMeleeHitRemaining = 0f;
+            committedMeleeRecoveryRemaining = 0f;
+        }
+
+        private void CancelCommittedMeleeAttack()
+        {
+            committedMeleeAttackPending = false;
+            committedMeleeHitApplied = false;
+            committedMeleeHitRemaining = 0f;
+            committedMeleeRecoveryRemaining = 0f;
         }
 
         private void TickRangedCombat(float deltaTime, GridCell own, GridCell enemy,
@@ -973,6 +1042,7 @@ namespace TinyKingdom.Units
 
         private void ClearTarget()
         {
+            CancelCommittedMeleeAttack();
             rangedShotPending = false;
             rangedWindupRemaining = 0f;
             MeleeEngagementSlots.Release(controller);

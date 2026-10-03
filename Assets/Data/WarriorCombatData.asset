@@ -18,6 +18,10 @@ MonoBehaviour:
   baseDamage: 28
   attackRange: 1
   attackInterval: 1.1
+  rangedReleaseDelay: 0
+  commitsMeleeAttack: 1
+  committedMeleeHitDelay: 0.2
+  committedMeleeDuration: 0.4
   moveSpeed: 3
   foodCost: 100
   woodCost: 0

@@ -17,8 +17,11 @@ MonoBehaviour:
   maxHP: 80
   baseDamage: 1
   attackRange: 2
-  attackInterval: 4
+  attackInterval: 2
   rangedReleaseDelay: 0
+  commitsMeleeAttack: 0
+  committedMeleeHitDelay: 0
+  committedMeleeDuration: 0
   moveSpeed: 3
   foodCost: 60
   woodCost: 0

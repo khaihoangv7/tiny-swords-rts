@@ -42,7 +42,10 @@ namespace TinyKingdom.EditorTools
                 "Warrior must start at 260 HP.");
             UnitCombatData stats = blueCombat.CombatData;
             Require(stats != null && stats.BaseDamage == 28 && stats.AttackRange == 1f
-                && Mathf.Approximately(stats.AttackInterval, 1.1f) && stats.MoveSpeed == 3f,
+                && Mathf.Approximately(stats.AttackInterval, 1.1f) && stats.MoveSpeed == 3f
+                && stats.CommitsMeleeAttack
+                && Mathf.Approximately(stats.CommittedMeleeHitDelay, 0.2f)
+                && Mathf.Approximately(stats.CommittedMeleeDuration, 0.4f),
                 "Warrior stats differ from GAME_SPEC.md.");
             Require(red.CurrentState == UnitState.Idle && redCombat.Target == null,
                 "Red must stay idle until commanded.");
@@ -65,11 +68,20 @@ namespace TinyKingdom.EditorTools
             Require(redHP.CurrentHP == 232, "First valid hit must deal exactly 28 damage.");
             Require(!blueMovement.IsMoving && blue.CurrentState == UnitState.Attacking,
                 "Attacker did not stop within attack range.");
-            blueCombat.TickCombat(1.09f);
+            blueCombat.TickCombat(0.89f);
             Require(redHP.CurrentHP == 232, "Warrior attacked before 1.1 seconds.");
             blueCombat.TickCombat(0.02f);
+            Require(redHP.CurrentHP == 232 && blueCombat.IsMeleeAttackCommitted,
+                "Second Warrior cycle did not start with its committed windup.");
+            blueCombat.TickCombat(0.19f);
+            Require(redHP.CurrentHP == 232,
+                "Second Warrior hit landed before the configured hit time.");
+            blueCombat.TickCombat(0.02f);
             Require(redHP.CurrentHP == 204, "Second attack after cooldown must deal 28 damage.");
-            Require(redCombat.Attack(blue) && blueHP.CurrentHP == 232,
+            Require(redCombat.Attack(blue) && blueHP.CurrentHP == 260,
+                "Programmatic mutual-combat order did not begin its windup.");
+            redCombat.TickCombat(0.21f);
+            Require(blueHP.CurrentHP == 232,
                 "Programmatic mutual-combat order did not deal exactly 28 damage.");
             redCombat.StopCombat();
             Require(red.CurrentState == UnitState.Idle,

@@ -24,6 +24,21 @@ namespace TinyKingdom.Economy
         public float RespawnDelaySeconds => economy != null
             ? economy.HouseSheepRespawnSeconds : 0f;
 
+        private void OnEnable()
+        {
+            if (house == null || house.Type != BuildingType.House
+                || house.State != BuildingState.Completed || ownedSheep != null
+                || pendingSpawn != null) return;
+            if (!TrySpawn()) ScheduleSpawn(0.5f);
+        }
+
+        private void OnDisable()
+        {
+            if (pendingSpawn == null) return;
+            StopCoroutine(pendingSpawn);
+            pendingSpawn = null;
+        }
+
         public void Configure(BuildingSite owner, GridManager navigation,
             EconomyConfig config, PresentationAssetCatalog assets)
         {
@@ -49,19 +64,38 @@ namespace TinyKingdom.Economy
 
         private void HandleHouseCompleted(BuildingSite completed)
         {
-            if (completed != house || OwnedSheep != null || pendingSpawn != null) return;
-            if (!TrySpawn()) pendingSpawn = StartCoroutine(SpawnWhenSpaceAvailable(0.5f));
+            if (completed != house || ownedSheep != null || pendingSpawn != null
+                || !isActiveAndEnabled) return;
+            if (!TrySpawn()) ScheduleSpawn(0.5f);
         }
 
         private void HandleSheepUnavailable(ResourceNode sheep)
         {
             if (sheep != ownedSheep) return;
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+            {
+                // ResourceNode.Removed is raised while Unity disables a scene.
+                // Keep a live Sheep reference across that temporary lifecycle;
+                // a truly depleted Sheep is released and respawned on re-enable.
+                if (sheep.IsDepleted) ReleaseOwnedSheep(sheep);
+                return;
+            }
+            ReleaseOwnedSheep(sheep);
+            ScheduleSpawn(economy.HouseSheepRespawnSeconds);
+        }
+
+        private void ReleaseOwnedSheep(ResourceNode sheep)
+        {
             sheep.Depleted -= HandleSheepUnavailable;
             sheep.Removed -= HandleSheepUnavailable;
             ownedSheep = null;
-            if (pendingSpawn == null && IsHouseValid())
-                pendingSpawn = StartCoroutine(SpawnWhenSpaceAvailable(
-                    economy.HouseSheepRespawnSeconds));
+        }
+
+        private void ScheduleSpawn(float delay)
+        {
+            if (!isActiveAndEnabled || !gameObject.activeInHierarchy
+                || pendingSpawn != null || ownedSheep != null || !IsHouseValid()) return;
+            pendingSpawn = StartCoroutine(SpawnWhenSpaceAvailable(delay));
         }
 
         private IEnumerator SpawnWhenSpaceAvailable(float initialDelay)
@@ -167,7 +201,8 @@ namespace TinyKingdom.Economy
         }
 
         private bool IsHouseValid()
-            => house != null && house.IsAlive && house.Type == BuildingType.House
+            => isActiveAndEnabled && gameObject.activeInHierarchy
+                && house != null && house.IsAlive && house.Type == BuildingType.House
                 && house.State == BuildingState.Completed && grid != null && economy != null
                 && MatchManager.AllowsGameplay;
     }

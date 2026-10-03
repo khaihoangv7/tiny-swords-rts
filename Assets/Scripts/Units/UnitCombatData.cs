@@ -12,6 +12,9 @@ namespace TinyKingdom.Units
         [SerializeField, Min(0.01f)] private float attackRange = 1f;
         [SerializeField, Min(0.01f)] private float attackInterval = 1.1f;
         [SerializeField, Min(0f)] private float rangedReleaseDelay = 0f;
+        [SerializeField] private bool commitsMeleeAttack = false;
+        [SerializeField, Min(0f)] private float committedMeleeHitDelay = 0f;
+        [SerializeField, Min(0f)] private float committedMeleeDuration = 0f;
         [SerializeField, Min(0.01f)] private float moveSpeed = 3f;
         [SerializeField, Min(0)] private int foodCost = 100;
         [SerializeField, Min(0)] private int woodCost = 0;
@@ -34,6 +37,11 @@ namespace TinyKingdom.Units
         public float AttackRange => attackRange;
         public float AttackInterval => attackInterval;
         public float RangedReleaseDelay => rangedReleaseDelay;
+        public bool CommitsMeleeAttack => commitsMeleeAttack
+            && attackDelivery == AttackDelivery.Melee;
+        public float CommittedMeleeHitDelay => committedMeleeHitDelay;
+        public float CommittedMeleeDuration => Mathf.Max(committedMeleeHitDelay,
+            committedMeleeDuration);
         public float MoveSpeed => moveSpeed;
         public int FoodCost => foodCost;
         public int WoodCost => woodCost;

@@ -1321,7 +1321,7 @@ RL_SPEC.md.
 
 Monk is a support unit trained by Monastery. Provisional MVP values are 80 HP,
 1 population, speed 3, 60 Food + 60 Gold and 7 seconds training. Monk has no
-normal attack or retaliation. It restores 5 HP every 4 seconds at range 2.
+normal attack or retaliation. It restores 6.25 HP every 2 seconds at range 2.
 Automatic healing detects injured same-faction units within range 4 and chooses
 lowest HP ratio, then nearest distance, then stable registry order. Manual
 right-click healing has no acquisition-distance limit and ends when resolved or
@@ -2060,3 +2060,25 @@ Successful promotion triggers the existing unit squash/stretch presentation
 without the red hit-flash overlay, then plays the verified `ScoutPromotion`
 success notification. Completed human unit production continues to play
 `UnitProductionFinished` only after the unit is actually spawned.
+
+# 65. Phase 6H.4 Combat and Support Balance
+
+Monk healing keeps its existing targeting, range and movement rules. Each valid
+heal pulse has an authoritative value of 6.25 HP and the interval is 2 seconds.
+Unit HP remains integer-based; the HealthComponent carries fractional healing
+forward deterministically, so four unobstructed 6.25-HP pulses restore exactly
+25 HP without changing damage, maximum HP or the rest of the health model.
+
+Warrior uses a committed melee strike. A new strike may begin only after the
+normal live-enemy, current-observation, equal-height and one-world-unit range
+checks pass. The gameplay hit resolves once at 0.2 seconds and the committed
+presentation/recovery window ends at 0.4 seconds. Target movement and distance
+changes during that window do not cancel the authorized hit or switch the
+Warrior to Run. A dead or invalid target, dead attacker, Guard, explicit Move,
+retreat or another existing hard combat cancellation safely clears the pending
+strike. If the target survives, normal visibility, range and path rules resume
+after recovery and the Warrior chases before it may start another attack.
+
+The existing 1.1-second Warrior attack interval remains the start-to-start
+cooldown. One committed strike applies damage at most once. Archer projectile
+release and Lancer/Pawn immediate melee delivery do not inherit commitment.
