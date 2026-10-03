@@ -11,11 +11,28 @@ namespace TinyKingdom.Buildings
     // Shared gameplay authority for player input and future computer commanders.
     public sealed class BuildingSystem : MonoBehaviour
     {
+        public const int SheepEscapeMaximumRing = 4;
+
+        private readonly struct SheepEscapePlan
+        {
+            public readonly ResourceNode Sheep;
+            public readonly Vector2Int Destination;
+
+            public SheepEscapePlan(ResourceNode sheep, Vector2Int destination)
+            {
+                Sheep = sheep;
+                Destination = destination;
+            }
+        }
+
         private readonly Dictionary<BuildingType, BuildingData> definitions = new();
+        private readonly List<SheepEscapePlan> sheepEscapePlans = new();
+        private readonly HashSet<Vector2Int> reservedSheepEscapeCells = new();
         private GridManager grid;
         private PathfindingSystem paths;
         private ResourceStockpile stockpile;
         private FactionPopulation population;
+        private EconomyConfig economyConfig;
         private Faction owner;
         public event Action<BuildingSite> BuildingPlaced;
 
@@ -30,12 +47,14 @@ namespace TinyKingdom.Buildings
             && HasValidData(BuildingType.Monastery);
 
         public void Configure(GridManager navigation, ResourceStockpile resources,
-            FactionPopulation population, IEnumerable<BuildingData> data)
+            FactionPopulation population, IEnumerable<BuildingData> data,
+            EconomyConfig economy = null)
         {
             grid = navigation;
             paths = grid != null ? grid.GetComponent<PathfindingSystem>() : null;
             stockpile = resources;
             this.population = population;
+            economyConfig = economy;
             owner = resources != null ? resources.Faction : Faction.Blue;
             definitions.Clear();
             foreach (BuildingData item in data)
@@ -93,7 +112,11 @@ namespace TinyKingdom.Buildings
             Vector2 size = new(data.Footprint.x * grid.NavigationData.CellSize,
                 data.Footprint.y * grid.NavigationData.CellSize);
             foreach (Collider2D hit in Physics2D.OverlapBoxAll(center, size, 0f))
-                if (hit.GetComponent<ResourceNode>()?.IsAvailable == true) return false;
+            {
+                ResourceNode resource = hit.GetComponent<ResourceNode>();
+                if (resource != null && resource.IsAvailable
+                    && !resource.IsSoftNavigationEntity) return false;
+            }
             foreach (UnitController unit in UnitController.ActiveUnits)
             {
                 if (unit == null || !unit.IsAlive) continue;
@@ -135,15 +158,18 @@ namespace TinyKingdom.Buildings
             }
             SetFootprint(origin, data.Footprint, false);
             if (chosen == null || !CanPlace(type, origin)) return false;
+            if (!TryPlanSheepEscapes(origin, data.Footprint)) return false;
             if (!stockpile.Spend(data.FoodCost, data.WoodCost, data.GoldCost)) return false;
 
             var obj = new GameObject($"{owner}{type}{(type == BuildingType.House ? variant.ToString() : string.Empty)}");
             obj.transform.SetParent(transform, false);
             site = obj.AddComponent<BuildingSite>();
-            site.Configure(data, owner, origin, grid, population, variant);
+            site.Configure(data, owner, origin, grid, population, variant,
+                stockpile, economyConfig);
             int assigned = AssignAll(site, candidates, false);
             if (assigned > 0)
             {
+                EvacuatePlannedSheep();
                 BuildingPlaced?.Invoke(site);
                 return true;
             }
@@ -155,6 +181,126 @@ namespace TinyKingdom.Buildings
             if (data.WoodCost > 0) stockpile.Add(ResourceType.Wood, data.WoodCost);
             if (data.GoldCost > 0) stockpile.Add(ResourceType.Gold, data.GoldCost);
             site = null;
+            return false;
+        }
+
+        private bool TryPlanSheepEscapes(Vector2Int origin, Vector2Int footprint)
+        {
+            sheepEscapePlans.Clear();
+            reservedSheepEscapeCells.Clear();
+            GridCell footprintCell = grid != null ? grid.GetCell(origin.x, origin.y) : null;
+            if (footprintCell == null) return false;
+
+            IReadOnlyList<ResourceNode> resources = ResourceNode.ActiveNodes;
+            for (int i = 0; i < resources.Count; i++)
+            {
+                ResourceNode sheep = resources[i];
+                if (sheep == null || !sheep.IsAvailable
+                    || !sheep.IsSoftNavigationEntity) continue;
+                Vector2Int logicalCell = sheep.OccupiedCell;
+                Vector2Int physicalCell = grid.WorldToGrid(sheep.transform.position);
+                if (!Contains(origin, footprint, logicalCell)
+                    && !Contains(origin, footprint, physicalCell)) continue;
+                if (sheep.GetComponent<SheepPresentation>() == null
+                    || !TryFindSheepEscape(origin, footprint,
+                        footprintCell.HeightLevel, sheep.transform.position,
+                        out Vector2Int destination))
+                {
+                    sheepEscapePlans.Clear();
+                    reservedSheepEscapeCells.Clear();
+                    return false;
+                }
+                reservedSheepEscapeCells.Add(destination);
+                sheepEscapePlans.Add(new SheepEscapePlan(sheep, destination));
+            }
+            return true;
+        }
+
+        private bool TryFindSheepEscape(Vector2Int origin, Vector2Int footprint,
+            int heightLevel, Vector3 sheepPosition, out Vector2Int result)
+        {
+            result = default;
+            bool found = false;
+            float bestDistance = float.PositiveInfinity;
+            for (int ring = 1; ring <= SheepEscapeMaximumRing; ring++)
+            {
+                int minX = origin.x - ring;
+                int maxX = origin.x + footprint.x - 1 + ring;
+                int minY = origin.y - ring;
+                int maxY = origin.y + footprint.y - 1 + ring;
+                for (int y = minY; y <= maxY; y++)
+                for (int x = minX; x <= maxX; x++)
+                {
+                    if (x > minX && x < maxX && y > minY && y < maxY) continue;
+                    Vector2Int candidate = new(x, y);
+                    GridCell cell = grid.GetCell(x, y);
+                    if (cell == null || !cell.Walkable || cell.Occupied
+                        || cell.HeightLevel != heightLevel
+                        || (cell.TerrainType != TerrainType.FlatGround
+                            && cell.TerrainType != TerrainType.ElevatedGround)
+                        || reservedSheepEscapeCells.Contains(candidate)
+                        || ContainsLivingUnit(candidate)
+                        || ContainsOtherSheep(candidate)) continue;
+                    float distance = ((Vector2)(cell.WorldPosition
+                        - sheepPosition)).sqrMagnitude;
+                    if (found && distance >= bestDistance) continue;
+                    found = true;
+                    bestDistance = distance;
+                    result = candidate;
+                }
+                if (found) return true;
+            }
+            return false;
+        }
+
+        private void EvacuatePlannedSheep()
+        {
+            for (int i = 0; i < sheepEscapePlans.Count; i++)
+            {
+                SheepEscapePlan plan = sheepEscapePlans[i];
+                if (plan.Sheep == null || !plan.Sheep.IsAvailable) continue;
+                IReadOnlyList<UnitController> units = UnitController.ActiveUnits;
+                for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
+                {
+                    PawnGatherer gatherer = units[unitIndex] != null
+                        ? units[unitIndex].GetComponent<PawnGatherer>() : null;
+                    if (gatherer != null && gatherer.Target == plan.Sheep)
+                        gatherer.CancelJob();
+                }
+                plan.Sheep.GetComponent<SheepPresentation>()
+                    ?.TryEvacuateBuildingFootprint(plan.Destination);
+            }
+            sheepEscapePlans.Clear();
+            reservedSheepEscapeCells.Clear();
+        }
+
+        private bool ContainsLivingUnit(Vector2Int candidate)
+        {
+            IReadOnlyList<UnitController> units = UnitController.ActiveUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                if (unit != null && unit.IsAlive
+                    && grid.WorldToGrid(unit.transform.position) == candidate) return true;
+            }
+            return false;
+        }
+
+        private static bool Contains(Vector2Int origin, Vector2Int size,
+            Vector2Int point)
+            => point.x >= origin.x && point.x < origin.x + size.x
+                && point.y >= origin.y && point.y < origin.y + size.y;
+
+        private static bool ContainsOtherSheep(Vector2Int candidate)
+        {
+            IReadOnlyList<ResourceNode> resources = ResourceNode.ActiveNodes;
+            for (int i = 0; i < resources.Count; i++)
+            {
+                ResourceNode resource = resources[i];
+                if (resource != null && resource.IsAvailable
+                    && resource.IsSoftNavigationEntity
+                    && resource.OccupiedCell == candidate) return true;
+            }
             return false;
         }
 

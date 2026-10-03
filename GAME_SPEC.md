@@ -96,10 +96,10 @@ Sheep.
 
 Each Sheep contains 200 Food.
 
-Ambient Sheep wandering must not select a logical cell currently occupied by a
-living unit. If a Sheep moves onto a previously planned route, the affected unit
-recalculates around the new occupied cell with a short throttled retry instead
-of abandoning its existing Move, AttackMove, chase or worker command.
+Sheep are soft world entities. Their interaction colliders remain selectable
+triggers, but Sheep do not reserve logical navigation cells, block A*, take part
+in unit separation, or physically block units. Ambient wandering still avoids
+choosing a cell occupied by a living unit where practical.
 
 Used for:
 
@@ -167,7 +167,7 @@ Cost:
 
 Carry capacity:
 
-10 resource units.
+20 resource units.
 
 ---
 
@@ -200,7 +200,8 @@ The gather loop is:
 Each Pawn's successful resource gather uses a 1.5-second cycle for Wood, Gold,
 and Food. Work animation playback is independent of that gameplay timer;
 resource gain occurs at a configured gameplay impact time, followed by a
-recovery delay until the next cycle.
+recovery delay until the next cycle. Each successful impact collects up to 2
+units without exceeding the resource remainder or Pawn carry capacity.
 
 Gold gathering uses a reserved adjacent navigation cell. Gold Stone 1-5 use a
 small inward interaction offset so the Pawn remains visibly close enough to the
@@ -213,7 +214,7 @@ Move to resource
 
 → Inventory reaches carry capacity
 
-→ Return to Castle
+→ Return to nearest valid friendly Castle or completed Tower
 
 → Deposit resources
 
@@ -650,9 +651,10 @@ Phase 5C2 defensive data:
 
 The main Castle has VisionRadius 9. When a Pawn physically reaches the main
 Castle and successfully enters its internal garrison, any carried resource is
-deposited through the existing Castle drop-off transaction before the Pawn is
-hidden. Cancelling the approach does not deposit cargo. Tower entry never
-deposits resources.
+deposited through the shared drop-off transaction before the Pawn is hidden.
+Cancelling the approach does not deposit cargo. A completed friendly Tower is
+also a normal external Food/Wood/Gold drop-off; this does not require garrison
+entry and never makes an enemy or incomplete Tower valid.
 
 ---
 
@@ -660,7 +662,7 @@ deposits resources.
 
 Cost:
 
-100 Wood.
+80 Wood.
 
 Function:
 
@@ -669,6 +671,12 @@ Increase population capacity by 5.
 The player may build multiple Houses. House1, House2 and House3 are visual
 variants of the same House gameplay type; each has the same cost, HP, logical
 footprint, construction behavior and +5 population bonus.
+
+Each completed House owns at most one generated Sheep. The initial Sheep spawns
+on a nearby valid walkable cell outside the House footprint. If that Sheep is
+depleted, the still-living completed House creates one replacement after 90
+seconds of gameplay time. Destroying the House cancels future replacement but
+does not destroy an already living Sheep.
 
 ---
 
@@ -1467,12 +1475,15 @@ at placement. Interrupting one builder removes only that Pawn's contribution;
 the other builders continue and accumulated progress never resets.
 
 A Pawn keeps the ResourceType of its active gathering job when a node is
-depleted. It searches once at depletion or invalidation for the nearest
-deterministically ordered, reachable, non-depleted node of the same type within
-`AutoResourceSearchRadius`. The MVP radius is 6 world/grid units and remains
-configurable. Full cargo returns to the Castle before the next search. Partial
-cargo continues at a nearby same-type node; when none exists in range, the Pawn
-deposits the partial cargo and becomes Idle. Any explicit player command ends
+depleted or its requested interaction slots are full. It first searches for the
+nearest currently visible same-type node with reservable capacity. It may then
+travel to the frozen position of a same-type resource previously captured by
+that faction's Fog memory. Unexplored resources and hidden live amount/state are
+never queried for target choice. A remembered target is resolved to a live node
+only after the Pawn reveals it. Candidate ordering uses distance then EntityId.
+Full cargo returns to the nearest reachable completed friendly Castle or Tower.
+Partial cargo continues across same-type nodes; if no legal known target exists,
+the Pawn deposits that cargo and becomes Idle. Any explicit player command ends
 the automatic chain.
 
 Gold Stone capacities are gameplay data and do not depend on sprite size:
@@ -1952,7 +1963,43 @@ or facing, but their normal Move still cancels their previous job as it did befo
 Ground AttackMove preserves its existing combat-unit eligibility and applies the
 formation only to formation-eligible military participants.
 
-# 62. Source of Truth
+# 62. Phase 6H.1 Economy and Worker Logistics
+
+Pawn carry capacity is 20. Each successful 1.5-second work cycle transfers up to
+2 units at the existing 0.45-second gameplay impact, capped by both remaining
+resource amount and free cargo space. A Pawn carrying 19 therefore takes exactly
+1 and leaves the unused unit in the node.
+
+`IResourceDropOff` and its registry are the shared authority for Castle and Tower
+deposits. Selection sorts valid same-faction, living, completed candidates by
+cheap squared distance and stable EntityId before requesting a reachable reserved
+slot. An invalidated destination is released and recalculated without losing
+cargo. Deposits continue to update the faction's one authoritative stockpile.
+
+Resource overflow and depletion continuation are transition-driven rather than
+per-frame searches. Visible candidates require a real free interaction slot.
+Hidden candidates come only from immutable faction Fog snapshots and are approached
+through explored cells; their current amount, movement and existence remain hidden
+until re-observed. Rule-Based AI uses the same Pawn mechanics and safety position
+filter without gaining a second knowledge path.
+
+# 63. Phase 6H.2 Navigation and Sheep Interaction
+
+Authored height connectors remain reciprocal diagonal edges. Runtime movement
+consumes each connector endpoint separately, temporarily suppresses local unit
+separation only on that short connector traversal, and validates the reciprocal
+pair directly instead of classifying the connector's exact shared corner as an
+orthogonal cliff cell. A 0.75-second no-progress watchdog may request one
+throttled recovery route; normal traversal never teleports.
+
+Sheep are selectable Food resources with trigger-only interaction coverage and
+soft navigation occupancy. Units and A* may pass through them. Sheep alone do
+not invalidate an otherwise legal building footprint. After successful placement,
+every Sheep physically or logically inside the footprint receives a deterministic
+destination on the nearest bounded walkable ring outside it; destinations are
+distinct where possible and construction occupancy remains authoritative for units.
+
+# 64. Source of Truth
 
 This file defines gameplay rules.
 

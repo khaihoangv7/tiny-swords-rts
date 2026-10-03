@@ -8,6 +8,7 @@ namespace TinyKingdom.Units
     public sealed class UnitMovement : MonoBehaviour
     {
         public const float BlockedPathRepathInterval = 0.35f;
+        public const float ConnectorStuckSeconds = 0.75f;
         // The painted side ramp is visually wider than one centre-to-centre grid
         // diagonal. Extending each endpoint by a quarter cell horizontally makes
         // the on-screen route follow the middle of that artwork.
@@ -34,6 +35,8 @@ namespace TinyKingdom.Units
         private Vector3? chaseFinalPosition;
         private IPathTraversalPolicy activeTraversalPolicy;
         private float blockedRepathCooldown;
+        private float connectorNoProgressSeconds;
+        private float connectorRecoveryCooldown;
         private Vector2 lastMovementDirection = Vector2.right;
 
         public float MovementSpeed => movementSpeed;
@@ -231,6 +234,7 @@ namespace TinyKingdom.Units
             chaseFinalPosition = null;
             activeTraversalPolicy = null;
             blockedRepathCooldown = 0f;
+            ResetConnectorProgress();
             unitController ??= GetComponent<UnitController>();
             if (unitController.IsAlive)
                 unitController.SetState(UnitState.Idle);
@@ -239,7 +243,11 @@ namespace TinyKingdom.Units
         public void SetSuspended(bool value)
         {
             suspended = value;
-            if (value) activePath.Clear();
+            if (value)
+            {
+                activePath.Clear();
+                ResetConnectorProgress();
+            }
         }
 
         public float ApplyDeterministicKnockback(Vector3 origin, float distance)
@@ -281,14 +289,24 @@ namespace TinyKingdom.Units
             Vector3 current = transform.position;
             Vector3 desired = current;
             bool hadPath = activePath.HasRemainingWaypoints;
-            bool crossingHeightConnector = hadPath && IsCrossingHeightConnector(current);
+            bool crossingHeightConnector = false;
+            bool connectorWaypoint = hadPath && IsConnectorWaypoint(current,
+                out crossingHeightConnector);
+            Vector3 connectorTarget = connectorWaypoint
+                ? activePath.CurrentWaypoint : default;
             bool completed = false;
             int previousWaypoint = activePath.NextWaypointIndex;
             if (hadPath)
             {
-                desired = activePath.Advance(current, movementSpeed, deltaTime,
-                    arrivalTolerance, out completed);
-                if (!UnitSeparation.IsSafeSegment(gridManager, current, desired))
+                desired = connectorWaypoint
+                    ? activePath.AdvanceCurrentWaypoint(current, movementSpeed, deltaTime,
+                        arrivalTolerance, out completed)
+                    : activePath.Advance(current, movementSpeed, deltaTime,
+                        arrivalTolerance, out completed);
+                bool safe = crossingHeightConnector
+                    ? IsSafeConnectorStep(current, desired, connectorTarget)
+                    : UnitSeparation.IsSafeSegment(gridManager, current, desired);
+                if (!safe)
                 {
                     activePath.RestoreNextWaypoint(previousWaypoint);
                     desired = current;
@@ -303,19 +321,23 @@ namespace TinyKingdom.Units
             // or push the unit into the cliff art. Follow the path waypoint exactly
             // for this short segment; separation resumes as soon as the ramp endpoint
             // has been reached.
-            Vector3 resolved = crossingHeightConnector
+            Vector3 resolved = connectorWaypoint
                 ? desired
                 : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
             Vector2 movement = resolved - current;
             if (hadPath && movement.sqrMagnitude > 0.000001f)
                 lastMovementDirection = movement.normalized;
             transform.position = resolved;
+            UpdateConnectorProgress(connectorWaypoint, connectorTarget,
+                current, resolved, deltaTime);
             if (hadPath && completed)
                 Stop();
         }
 
-        private bool IsCrossingHeightConnector(Vector3 currentPosition)
+        private bool IsConnectorWaypoint(Vector3 currentPosition,
+            out bool crossingHeightConnector)
         {
+            crossingHeightConnector = false;
             if (gridManager == null || !activePath.HasRemainingWaypoints)
                 return false;
 
@@ -335,14 +357,67 @@ namespace TinyKingdom.Units
             if (currentGrid == targetGrid)
                 return currentCell.HeightConnection.HasValue;
 
-            return currentCell.HeightConnection == targetGrid
+            crossingHeightConnector = currentCell.HeightConnection == targetGrid
                 && targetCell.HeightConnection == currentGrid;
+            return crossingHeightConnector;
+        }
+
+        private bool IsSafeConnectorStep(Vector3 current, Vector3 desired,
+            Vector3 connectorTarget)
+        {
+            if (gridManager == null) return false;
+            Vector2Int fromPosition = gridManager.WorldToGrid(current);
+            Vector2Int targetPosition = gridManager.WorldToGrid(connectorTarget);
+            GridCell from = gridManager.GetCell(fromPosition.x, fromPosition.y);
+            GridCell target = gridManager.GetCell(targetPosition.x, targetPosition.y);
+            if (!IsReciprocalHeightConnector(from, target) || target.Occupied) return false;
+
+            // The authored diagonal is authoritative. Generic segment sampling can
+            // classify its exact shared corner as either orthogonal cliff-side cell.
+            Vector2Int desiredPosition = gridManager.WorldToGrid(desired);
+            return desiredPosition == fromPosition || desiredPosition == targetPosition;
+        }
+
+        private void UpdateConnectorProgress(bool connectorWaypoint, Vector3 connectorTarget,
+            Vector3 before, Vector3 after, float deltaTime)
+        {
+            if (!connectorWaypoint || !activePath.HasRemainingWaypoints)
+            {
+                ResetConnectorProgress();
+                return;
+            }
+
+            connectorRecoveryCooldown = Mathf.Max(0f,
+                connectorRecoveryCooldown - Mathf.Max(0f, deltaTime));
+            float beforeDistance = Vector2.Distance(before, connectorTarget);
+            float afterDistance = Vector2.Distance(after, connectorTarget);
+            if (afterDistance + 0.001f < beforeDistance)
+            {
+                connectorNoProgressSeconds = 0f;
+                return;
+            }
+
+            connectorNoProgressSeconds += Mathf.Max(0f, deltaTime);
+            if (connectorNoProgressSeconds < ConnectorStuckSeconds
+                || connectorRecoveryCooldown > 0f) return;
+            connectorNoProgressSeconds = 0f;
+            connectorRecoveryCooldown = BlockedPathRepathInterval;
+            TryRepathBlockedRoute(0f);
+        }
+
+        private void ResetConnectorProgress()
+        {
+            connectorNoProgressSeconds = 0f;
+            connectorRecoveryCooldown = 0f;
         }
 
         private void HandleStateChanged(UnitState state)
         {
             if (state == UnitState.Dead)
+            {
                 activePath.Clear();
+                ResetConnectorProgress();
+            }
         }
 
         private void TryRepathBlockedRoute(float deltaTime)
@@ -359,8 +434,7 @@ namespace TinyKingdom.Units
             if (!TryFindPath(destination, activeTraversalPolicy,
                     out List<GridCell> replacement))
                 return;
-            if (TrySetActivePath(replacement, finalPosition))
-                blockedRepathCooldown = 0f;
+            TrySetActivePath(replacement, finalPosition);
         }
 
         private bool TrySetActivePath(IReadOnlyList<GridCell> path,
@@ -394,6 +468,7 @@ namespace TinyKingdom.Units
                     finalPosition.Value.y, transform.position.z));
             }
             activePath.Set(worldPath, transform.position, arrivalTolerance);
+            ResetConnectorProgress();
             return true;
         }
 

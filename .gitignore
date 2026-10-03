@@ -39,6 +39,7 @@ phase2-path.txt
 /Assets/Particle FX/**/*.png
 /Assets/Particle FX/**/*.aseprite
 /Assets/Particle FX/Fire.png.meta
+/Assets/Particle FX/Fire.aseprite.meta
 
 /Assets/Terrain/**/*.png
 /Assets/Terrain/**/*.aseprite

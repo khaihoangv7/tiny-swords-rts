@@ -34,6 +34,10 @@ namespace TinyKingdom.Economy
         private int frame;
         private int directionIndex;
         private bool configured;
+        private bool evacuatingBuildingFootprint;
+        private Vector2Int evacuationCell;
+
+        public bool IsEvacuatingBuildingFootprint => evacuatingBuildingFootprint;
 
         public void Configure(ResourceNode source, SpriteRenderer visual,
             Sprite[] idleFrames, Sprite[] grassFrames, Sprite[] moveFrames)
@@ -58,7 +62,7 @@ namespace TinyKingdom.Economy
         private void Update()
         {
             if (!configured || node == null || !node.IsAvailable) return;
-            if (slots != null && slots.ReservationCount > 0)
+            if (!evacuatingBuildingFootprint && slots != null && slots.ReservationCount > 0)
             {
                 StopForHarvest();
                 Animate(Time.deltaTime);
@@ -72,6 +76,11 @@ namespace TinyKingdom.Economy
                 if ((transform.position - destination).sqrMagnitude <= 0.0001f)
                 {
                     transform.position = destination;
+                    if (evacuatingBuildingFootprint)
+                    {
+                        evacuatingBuildingFootprint = false;
+                        originCell = evacuationCell;
+                    }
                     SetState(directionIndex % 2 == 0 ? VisualState.Idle : VisualState.Grass);
                 }
             }
@@ -86,9 +95,24 @@ namespace TinyKingdom.Economy
 
         public void StopForHarvest()
         {
-            if (!configured || state != VisualState.Moving) return;
+            if (!configured || evacuatingBuildingFootprint
+                || state != VisualState.Moving) return;
             node.SnapToOccupiedCell();
             SetState(VisualState.Idle);
+        }
+
+        public bool TryEvacuateBuildingFootprint(Vector2Int safeCell)
+        {
+            if (!configured || node == null || !node.IsAvailable) return false;
+            grid ??= FindAnyObjectByType<GridManager>();
+            if (grid == null || !node.TryMoveOccupancy(safeCell, out destination))
+                return false;
+            slots?.ReleaseAll();
+            evacuationCell = safeCell;
+            evacuatingBuildingFootprint = true;
+            renderer.flipX = destination.x < transform.position.x;
+            SetState(VisualState.Moving);
+            return true;
         }
 
         private bool TryBeginWander()

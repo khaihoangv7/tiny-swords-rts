@@ -15,7 +15,7 @@ MonoBehaviour:
   buildingType: 1
   maxHP: 150
   foodCost: 0
-  woodCost: 100
+  woodCost: 80
   goldCost: 0
   footprint: {x: 2, y: 2}
   constructionSeconds: 5

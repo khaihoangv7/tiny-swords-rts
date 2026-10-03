@@ -74,8 +74,12 @@ Valid active gather assignments remain stable. A worker is reconsidered only aft
 death, scout reservation, an invalid/depleted job, an unexpected Idle state or a
 failed remembered-resource approach. Visible targets are selected by validity,
 distance and stable EntityId. Failed targets receive a four-second retry cooldown.
-The existing interaction slots, gather cycle, cargo, Castle drop-off and same-type
-resource chaining remain authoritative.
+The existing interaction slots, gather cycle, cargo, shared Castle/Tower drop-off
+and same-type resource continuation remain authoritative. Phase 6H.1 lets the
+core Pawn keep a stable assignment across visible slot overflow and depletion.
+Hidden continuation uses only frozen Fog-memory positions; the AI safety policy
+filters both visible nodes and remembered positions without receiving hidden live
+resource state.
 
 ## Scouting policy
 

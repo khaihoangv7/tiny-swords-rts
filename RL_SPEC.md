@@ -242,3 +242,12 @@ kill attribution and complete historical aggregate counters remain deferred unti
 small shared metrics contract is designed. Phase 8A may consume the same legal
 interfaces; Phase 7D adds no ML-Agents dependency, tensors, actions, rewards or
 training loop.
+
+## Phase 6H.1 shared worker logistics
+
+Pawn carry, gather amount, resource-slot overflow, explored-resource continuation
+and nearest Castle/Tower deposit are normal low-level gameplay mechanics. The
+Rule-Based Commander and a future RL Commander receive the same behavior without
+new direct movement control or free resources. Remembered continuation consumes
+only faction Fog snapshots and resolves live resource state after current vision
+is restored. Phase 6H.1 adds no RL observation, action, reward or package.
