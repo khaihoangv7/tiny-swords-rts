@@ -432,7 +432,7 @@ namespace TinyKingdom.Units
                         bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
                             combatData.UnitType, combatData.AttackDelivery, 1f, true,
                             controller);
-                        if (damaged) PlayMeleeAttackSound();
+                        if (damaged) PlayMeleeAttackSound(target.transform.position);
                     }
                 }
                 return;
@@ -471,10 +471,11 @@ namespace TinyKingdom.Units
             {
                 // Mark first because a lethal hit synchronously clears the target.
                 committedMeleeHitApplied = true;
+                Vector3 hitPosition = target.transform.position;
                 bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
                     combatData.UnitType, combatData.AttackDelivery, 1f, true,
                     controller);
-                if (damaged) PlayMeleeAttackSound();
+                if (damaged) PlayMeleeAttackSound(hitPosition);
             }
             if (!committedMeleeAttackPending || committedMeleeRecoveryRemaining > 0f)
                 return;
@@ -669,7 +670,9 @@ namespace TinyKingdom.Units
                     AttackPerformed?.Invoke(attackDirection);
                     bool damaged = buildingTarget.ReceiveAttack(combatData.BaseDamage,
                         combatData.UnitType, combatData.AttackDelivery);
-                    if (damaged) PlayMeleeAttackSound();
+                    if (damaged && combatData.UnitType == UnitType.Lancer)
+                        PlayMeleeAttackSound(buildingTarget.AttackPresentationPoint(
+                            transform.position));
                 }
                 return;
             }
@@ -940,7 +943,7 @@ namespace TinyKingdom.Units
             PlayArcherAttackSound();
         }
 
-        private void PlayMeleeAttackSound()
+        private void PlayMeleeAttackSound(Vector3 hitPosition)
         {
             GameplayAudioEvent? eventId = combatData.UnitType switch
             {
@@ -949,7 +952,7 @@ namespace TinyKingdom.Units
                 _ => null
             };
             if (eventId.HasValue)
-                GameplayAudioService.Request(eventId.Value, transform.position,
+                GameplayAudioService.Request(eventId.Value, hitPosition,
                     controller.Faction);
         }
 

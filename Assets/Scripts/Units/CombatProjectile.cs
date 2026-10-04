@@ -1,3 +1,4 @@
+using TinyKingdom.Audio;
 using UnityEngine;
 
 namespace TinyKingdom.Units
@@ -76,9 +77,13 @@ namespace TinyKingdom.Units
             if (progress >= 1f)
             {
                 transform.position = destination;
-                target.ReceiveAttack(authorizedBaseDamage, attackerType,
+                bool unitTarget = targetObject is HealthComponent;
+                bool damaged = target.ReceiveAttack(authorizedBaseDamage, attackerType,
                     AttackDelivery.Projectile, sourceMultiplier, applyCounterMultiplier,
                     damageSource);
+                if (damaged && unitTarget && attackerType == UnitType.Archer)
+                    GameplayAudioService.Request(GameplayAudioEvent.ArcherArrowImpact,
+                        destination, owner);
                 Resolve();
                 return;
             }

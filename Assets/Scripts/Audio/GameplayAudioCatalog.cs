@@ -152,6 +152,10 @@ namespace TinyKingdom.Audio
                 GameplayAudioEvent.CommandRejected => (0.75f, 0f, 0f),
                 GameplayAudioEvent.UnitProductionFinished => (0.80f, 0f, 0f),
                 GameplayAudioEvent.ScoutPromotion => (0.75f, 0f, 0f),
+                GameplayAudioEvent.BuildingCompleted => (0.80f, 0f, 0f),
+                GameplayAudioEvent.ArcherArrowImpact => (0.70f, 0f, 0f),
+                GameplayAudioEvent.GenericCommandVoice => (0.75f, 0f, 0f),
+                GameplayAudioEvent.ArmyCommandVoice => (0.80f, 0f, 0f),
                 GameplayAudioEvent.Victory or GameplayAudioEvent.Defeat => (0.85f, 0f, 0f),
                 _ => (0.75f, 0f, 0f)
             };

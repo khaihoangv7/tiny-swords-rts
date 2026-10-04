@@ -1827,6 +1827,25 @@ feedback. Building buttons use authoritative availability/results, so `click` an
 restart resets that guard. Food harvesting, generic hit/death, ambience, attack-theme
 music and mixer/options UI remain future work. `AUDIO_SPEC.md` owns the exact mapping.
 
+## Phase 6E audio expansion
+
+Normal constructed buildings request one positional completion cue on their first
+authoritative `UnderConstruction` to `Completed` transition. Archer release audio is
+requested only when a projectile is actually created. Archer impact audio is
+requested only after that projectile successfully damages a unit, including a
+lethal hit. Warrior hit audio uses seven uniformly selectable clips and is requested
+only after successful melee damage to a unit. These world cues retain camera and Fog
+audibility rules and do not reveal hidden enemy actions.
+
+An accepted Human command may request at most one 2D acknowledgement. A command with
+strictly more than three accepted, living Warrior/Lancer/Archer recipients uses the
+army category: 40 percent chance and a 10 game-second cooldown. Every other accepted
+unit command uses the generic category: 30 percent chance and a 30 game-second
+cooldown. Pawn, Pawn Scout and Monk do not count toward the army threshold. Category
+selection is mutually exclusive, an army roll never falls back to generic, and a
+cooldown starts only after playback succeeds. AI command services never request
+these Human acknowledgements.
+
 # 58. Phase 7C.3 Combat Strength, Retreat and Recovery
 
 The Red Army strategic states are `Forming`, `Ready`, `PreparingAttack`,

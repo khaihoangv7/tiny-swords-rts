@@ -143,7 +143,7 @@ The next gameplay phase has not begun.
 
 ## Phase 5A Economy Foundation
 
-Status: **PASS** — user completed manual Unity Play Mode validation; Console had no errors.
+Status: **PASS** â€” user completed manual Unity Play Mode validation; Console had no errors.
 
 - [x] Recorded the original Phase 5A baseline: Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off (carry/drop-off superseded by Phase 6H.1)
 - [x] Store the 1.5-second gather cycle and Sheep/Tree/base Gold capacities 200/100/100 in Phase5AEconomy ScriptableObject (Tree/base Gold remain provisional)
@@ -174,7 +174,7 @@ Status: **PASS** — user completed manual Unity Play Mode validation; Console h
 
 ## Phase 5B1 Building Construction Foundation
 
-Status: **STABLE per user report** — detailed Phase 5B1 checklist below remains unreported.
+Status: **STABLE per user report** â€” detailed Phase 5B1 checklist below remains unreported.
 
 - [x] Verified the original Phase 5B1 House 100 Wood/+5 population baseline (House cost superseded by Phase 6H.1), Barracks/Tower costs and free MVP repair
 - [x] Recorded provisional HP, build seconds, footprints, and repair rate in separate BuildingData assets
@@ -189,7 +189,7 @@ Status: **STABLE per user report** — detailed Phase 5B1 checklist below remain
 
 ## Phase 5C1 Unit Production, Building Roster and Resource Feedback
 
-Status: **PASS** — automated checks and user-completed Unity Play Mode validation passed; Console had no errors.
+Status: **PASS** â€” automated checks and user-completed Unity Play Mode validation passed; Console had no errors.
 
 - [x] Replace generic Barracks roster in GAME_SPEC.md with Castle Pawn, Barracks Warrior/Lancer, Archery Archer, Monastery future Monk
 - [x] Set Pawn base damage to 2 without enabling Pawn auto acquisition
@@ -210,7 +210,7 @@ Status: **PASS** — automated checks and user-completed Unity Play Mode validat
 
 ## Phase 5C2 Tower / Castle Defense and Garrison
 
-Status: **PASS** — final manual Unity Play Mode validation completed; Console had no new errors or warnings.
+Status: **PASS** â€” final manual Unity Play Mode validation completed; Console had no new errors or warnings.
 
 - [x] Add data-driven Tower 2-internal/1-mounted and Castle 5-internal/3-mounted capacities
 - [x] Add approach reservations, physical entry, worker cancellation with retained Pawn cargo, protected stationing and safe Eject All
@@ -267,7 +267,7 @@ presentation, economy, construction, retaliation, death VFX and regression check
 
 ## Phase 6A Team Vision and Fog of War Foundation
 
-Status: **PASS** — implementation, compilation and user-completed Unity Play Mode
+Status: **PASS** â€” implementation, compilation and user-completed Unity Play Mode
 validation passed; Console had no new errors or warnings. Phase 6B has not started.
 
 - [x] Add authoritative per-faction `Visible` / `Explored` / `Unexplored` state on the existing 40x28 logical grid
@@ -287,11 +287,11 @@ validation passed; Console had no new errors or warnings. Phase 6B has not start
 - [x] Manual Play Mode: Tower strategic reveal and Blue/Red visibility isolation
 - [x] Manual Play Mode: enemy presentation hiding and UI/cursor/selection information-leak checks
 - [x] Manual Play Mode: reduced unit radii and world-grid fog alignment
-- [x] Manual Play Mode: pan/zoom and Phase 1–5 gameplay regression; Console had no new errors or warnings
+- [x] Manual Play Mode: pan/zoom and Phase 1â€“5 gameplay regression; Console had no new errors or warnings
 
 ## Phase 6B Fog-Aware Combat, Targeting and Combat Awareness
 
-Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
+Status: **PASS** â€” Unity Play Mode validation completed before Phase 6C.
 
 - [x] Add one authoritative `CombatVisibility` gameplay query backed by `TeamVisionSystem`
 - [x] Require faction visibility for passive unit acquisition and AttackMove interruption
@@ -315,7 +315,7 @@ Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
 
 ## Phase 6B.1 RTS Controls, Building UI, Castle QoL and Rally Points
 
-Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
+Status: **PASS** â€” Unity Play Mode validation completed before Phase 6C.
 
 - [x] Reserve A for Warrior/Archer/Lancer AttackMove and remove WASD camera movement
 - [x] Add normalized Arrow-key and configurable 16-pixel eight-direction edge scrolling within existing bounds
@@ -682,7 +682,7 @@ manual Play Mode visual tests remain required before PASS.
 - [x] Keep Selection at 380x188 while increasing single portrait to 96x96 and title/details to 24/16
 - [x] Adapt multi-selection rows inside the fixed panel: 52x52/21 for two types, 40x40/19 for four and 34x34/18 for five
 - [x] Derive Command width only from active actions: minimum 240, two commands 240, six 678, seven 788, reference cap 1288
-- [x] Adapt icons 68→48, labels 15→12, secondary costs 13→10 and hotkeys 13→10 with card size
+- [x] Adapt icons 68â†’48, labels 15â†’12, secondary costs 13â†’10 and hotkeys 13â†’10 with card size
 - [x] Preserve readable 13/14-action cards at approximately 91.69x98.81 and 84.71x91.34
 - [x] Add a padded CommandContent rect so every active card remains inside the frame
 - [x] Keep the Command left edge stable and resize the actual surface/raycast blocker with the frame
@@ -1637,3 +1637,24 @@ Status: **IMPLEMENTED - UNITY VALIDATION PENDING**.
 - [ ] Confirm Console and Phase 7E.1/7E.2 gameplay regressions
 - [x] Do not begin Phase 7E.4
 - [x] Do not commit, push or merge Phase 7E.3 automatically
+
+## Phase 6E - Audio Expansion: completion, combat impacts and command voices
+
+Status: **IMPLEMENTED, UNITY VALIDATION PENDING**
+
+- [x] Add one Fog-aware building completion cue at the authoritative completion transition
+- [x] Replace Archer release mapping with `sfx_arrow_sound.mp3` at projectile creation
+- [x] Add unit-only Archer impact audio after successful projectile damage
+- [x] Add seven uniform Warrior unit-hit variations after successful damage
+- [x] Add generic Human command voice with 30% chance and 30 game-second cooldown
+- [x] Add army Human command voice with 40% chance and 10 game-second cooldown
+- [x] Count only accepted Warrior/Lancer/Archer recipients and require a count above three
+- [x] Keep voice categories exclusive and start cooldown only after successful playback
+- [x] Keep AI command paths outside Human command voice feedback
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6E Audio Expansion`
+- [x] Compile Runtime and Editor assemblies with zero errors and warnings
+- [ ] Run Phase 6E Audio Expansion validator in Edit Mode
+- [ ] Run Phase 6E Audio Expansion validator in Play Mode
+- [ ] Manually verify completion/release/impact/hit sounds, Fog gating and lethal impacts
+- [ ] Manually verify command probabilities, thresholds, independent cooldowns and no AI voice
+- [ ] Confirm Unity Console remains clean during the manual matrix
