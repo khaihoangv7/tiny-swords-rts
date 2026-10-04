@@ -77,6 +77,17 @@ namespace TinyKingdom.EditorTools
             BeginCapture(300f, path);
         }
 
+        [MenuItem("Tools/Tiny Kingdom/Profile Phase 7E.3 Reactive Production x10 (5 minutes)")]
+        public static void RunReactiveProductionInteractive()
+        {
+            if (!EditorApplication.isPlaying)
+                throw new InvalidOperationException(
+                    "Enter Play Mode, enable Observer, select x10, then start this capture.");
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../Logs/Phase7E3ReactiveProduction.json"));
+            BeginCapture(300f, path);
+        }
+
         private static void BeginBatch()
         {
             if (!batchRequested || activeCapture != null) return;
@@ -169,6 +180,14 @@ namespace TinyKingdom.EditorTools
             public long economyReassignments;
             public long economicClusterRefreshes;
             public int economicClusterCount;
+            public long productionEnqueueAttempts;
+            public long successfulProductionEnqueues;
+            public long rejectedOrDedupedProductionAttempts;
+            public long productionInfrastructureRequests;
+            public double productionEnqueueAttemptsPerSecond;
+            public double successfulProductionEnqueuesPerSecond;
+            public double rejectedOrDedupedProductionAttemptsPerSecond;
+            public double productionInfrastructureRequestsPerSecond;
             public double moveCommandsPerSecond;
             public double scoutMoveCommandsPerSecond;
             public double gatherCommandsPerSecond;
@@ -253,6 +272,7 @@ namespace TinyKingdom.EditorTools
                 FactionCommandService.ResetPerformanceCounters();
                 BuildingCommanderPolicy.ResetPerformanceCounters();
                 EconomicResourceClusterPlanner.ResetPerformanceCounters();
+                ProductionCommanderPolicy.ResetPerformanceCounters();
                 BuildingSite.ResetPerformanceCounters();
                 previousPathRequests = 0;
                 for (int i = 0; i < MarkerNames.Length; i++)
@@ -391,6 +411,13 @@ namespace TinyKingdom.EditorTools
                     economicClusterRefreshes = EconomicResourceClusterPlanner.RefreshCount,
                     economicClusterCount = commander?.BuildingPolicy?.ClusterPlanner != null
                         ? commander.BuildingPolicy.ClusterPlanner.Clusters.Count : 0,
+                    productionEnqueueAttempts = ProductionCommanderPolicy.EnqueueAttemptCount,
+                    successfulProductionEnqueues =
+                        ProductionCommanderPolicy.SuccessfulEnqueueCount,
+                    rejectedOrDedupedProductionAttempts =
+                        ProductionCommanderPolicy.RejectedOrDedupedCount,
+                    productionInfrastructureRequests =
+                        ProductionCommanderPolicy.InfrastructureRequestCount,
                     maximumPathRequestsInFrame = maximumPathRequestsInFrame,
                     baseFullyDeveloped = commander != null
                         && commander.BuildingPolicy.CompletedCoreInfrastructure >= 3
@@ -417,6 +444,15 @@ namespace TinyKingdom.EditorTools
                         report.constructionSiteBuilderPathRequests / report.durationSeconds;
                     report.buildingCandidatesPerSecond = report.buildingCandidateEvaluations
                         / report.durationSeconds;
+                    report.productionEnqueueAttemptsPerSecond =
+                        report.productionEnqueueAttempts / report.durationSeconds;
+                    report.successfulProductionEnqueuesPerSecond =
+                        report.successfulProductionEnqueues / report.durationSeconds;
+                    report.rejectedOrDedupedProductionAttemptsPerSecond =
+                        report.rejectedOrDedupedProductionAttempts
+                        / report.durationSeconds;
+                    report.productionInfrastructureRequestsPerSecond =
+                        report.productionInfrastructureRequests / report.durationSeconds;
                 }
                 long commanderRequests = report.commanderMovePathRequests
                     + report.commanderGatherPathRequests + report.commanderBuildPathRequests
