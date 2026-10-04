@@ -10,7 +10,9 @@ namespace TinyKingdom.Navigation
         CommanderMove,
         CommanderGather,
         CommanderBuild,
-        CommanderRally
+        CommanderRally,
+        CommanderScout,
+        EconomyReturn
     }
 
     public sealed class PathfindingSystem : MonoBehaviour
@@ -18,7 +20,8 @@ namespace TinyKingdom.Navigation
         private static readonly ProfilerMarker FindPathMarker =
             new("TinyKingdom.Pathfinding.FindPath");
         [System.ThreadStatic] private static PathfindingRequestSource currentSource;
-        private static readonly long[] RequestsBySource = new long[5];
+        private static readonly long[] RequestsBySource = new long[
+            System.Enum.GetValues(typeof(PathfindingRequestSource)).Length];
 
         public readonly struct RequestSourceScope : System.IDisposable
         {

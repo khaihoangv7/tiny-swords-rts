@@ -1359,7 +1359,7 @@ checks pass; the Unity validator and Play Mode matrix still need to be run.
 - [x] Enforce one living promoted Scout per human faction without scene-wide polling
 - [x] Preserve Pawn type, gathering, building, repair, deposit, health and damage
 - [x] Preserve Pawn exclusion from Phase 6G.2 military formations
-- [x] Derive Scout vision from authoritative Pawn vision with a 2.0 multiplier
+- [x] Derive Scout vision from authoritative Pawn vision with a 2.5 multiplier
 - [x] Recompute Team Vision immediately after successful promotion
 - [x] Release the registry and normal vision contribution on Scout death/despawn
 - [x] Map the seven verified full flame frames from `Assets/Particle FX/Fire.png`
@@ -1379,7 +1379,7 @@ checks pass; the Unity validator and Play Mode matrix still need to be run.
 - [ ] Promote a Pawn and verify exactly 50 Wood is deducted
 - [ ] Verify a second promotion is rejected without spending Wood
 - [ ] Kill/despawn the Scout and verify fire/audio cleanup plus re-promotion
-- [ ] Verify the visible Fog radius is Pawn base vision x2.0
+- [ ] Verify the visible Fog radius is Pawn base vision x2.5
 - [ ] Verify Scout movement, gather, build, repair and deposit remain functional
 - [ ] Verify Scout stays excluded from military formation membership
 - [ ] Verify near/far/off-camera fire ambience and clean Console
@@ -1444,3 +1444,132 @@ validator must pass; the Play Mode timing matrix still needs to be run.
 - [ ] Cancel with Move, complete/destroy the site and kill a Pawn during work
 - [ ] Verify both Hammer variations, camera/Fog attenuation and clean Console
 - [ ] Do not commit or push Phase 6H.5 automatically
+
+## Phase 7E.1 - Adaptive Scout and Exploration 2.0
+
+Status: **IMPLEMENTED - UNITY VALIDATION AND PLAY MODE MATRIX PENDING**.
+
+- [x] Create `feature/phase-7e1-scout-exploration` from `integration/full-game`
+- [x] Remove Lancer, Warrior and Archer dedicated-Scout fallback selection
+- [x] Add faction-authoritative Pawn Scout promotion through `FactionCommandService`
+- [x] Preserve exact 50 Wood cost and one-active-Scout gameplay registry
+- [x] Use authoritative Pawn vision x2.5 and shared fire presentation/audio
+- [x] Suppress hidden enemy promotion UI audio and preserve positional Fog gating
+- [x] Reserve active promoted Scouts in `CommanderPawnRoles`
+- [x] Exclude active Scout from Economy, Builder, ArmyGroup and formations
+- [x] Select only idle, low-disruption Economy Pawns with stable EntityId tie-break
+- [x] Preserve the planned unpaid building Wood cost before Scout promotion
+- [x] Add bounded promotion retry and strategic Scout-need checks
+- [x] Generate reusable frontier candidates and score at most 48 per evaluation
+- [x] Score information gain, novelty, travel and `StrategicSafetyMap` risk
+- [x] Keep exploration targets stable with a three-second reevaluation gate
+- [x] Add visible-army and known-danger local evasion/reposition behavior
+- [x] Keep unknown terrain viable rather than treating it as danger
+- [x] Preserve stable frontier exhaustion without Scout role churn
+- [x] Add legal building/resource last-seen timestamps to Fog memory snapshots
+- [x] Add stale strategic building/resource re-scout scoring
+- [x] Keep target state value-only with no hidden live enemy/resource references
+- [x] Add Scout candidate/frontier/re-scout profiler markers and runtime diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.1 Scout & Exploration`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.1 validator in Unity Edit Mode
+- [ ] Verify Red with less than 50 Wood creates no Scout and steals no military unit
+- [ ] Verify deterministic Pawn promotion spends exactly 50 Wood
+- [ ] Verify second Scout rejection and death/replacement cooldown behavior
+- [ ] Verify Economy and Builder continue with remaining Pawns
+- [ ] Verify high-information frontier can beat a nearer low-information frontier
+- [ ] Verify known Tower/Castle danger, visible-army evasion and unknown exploration
+- [ ] Exhaust frontier and verify stale-building/resource re-scout behavior
+- [ ] Destroy a remembered hidden building and verify no update before re-observation
+- [ ] Verify hidden Red Scout fire is inaudible to Blue
+- [ ] Run extended Profiler command/path/GC checks
+- [ ] Run at least one complete Red Rule-Based match and regression matrix
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge Phase 7E.1 automatically
+
+### Phase 7E.1 Full-Match Stability Hotfix
+
+Status: **IMPLEMENTED - EXTENDED PLAY MODE PROFILING PENDING**.
+
+- [x] Put friendly-unit trap prevention in shared authoritative `BuildingSystem`
+- [x] Evaluate the hypothetical footprint without spawning a construction site
+- [x] Use bounded reusable flood-fill buffers and authoritative stair/elevation edges
+- [x] Reject only newly sealed components and preserve legal narrow exits
+- [x] Exclude Sheep from controllable-unit trap rejection
+- [x] Preserve AI candidate iteration after an invalid trap placement
+- [x] Recover idle Economy-role Pawns carrying cargo through command authority
+- [x] Keep current ReturnResource commands deduplicated
+- [x] Fall back from unreachable/destroyed Castle or Tower drop-offs
+- [x] Add bounded no-drop-off retry backoff and no-progress recovery
+- [x] Preserve post-deposit resource intent and equivalent-resource chaining
+- [x] Keep Scout and manual player command ownership excluded from global recovery
+- [x] Add placement reason and optional per-Pawn economy diagnostics
+- [x] Split Scout/Return path counters and command-attempt counters
+- [x] Record building candidate, GC, knowledge and audio-pool diagnostics
+- [x] Prune destroyed entities from the Observer/Fog presentation gate cache
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.1 Full-Match Stability`
+- [ ] Run the new validator in Unity Edit Mode
+- [ ] Run two-building trap, legal close placement and AI alternate-candidate tests
+- [ ] Run Castle, Tower, unreachable Tower and destroyed drop-off tests
+- [ ] Run depletion, full-slot and multi-Pawn long economy tests
+- [ ] Run x1/x5/x10 early and extended captures with Observer enabled
+- [ ] Run at least five real minutes of active x10 full-match stress
+- [ ] Confirm Scout, stairs, multi-builder, Fog and Console regressions
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge this hotfix automatically
+
+### Phase 7E.1 Scout Intelligence Hotfix
+
+- [x] Diagnose frontier-first selection, one-cell novelty memory and row-order sampling
+- [x] Add explicit Search, Explore, Enemy Base Recon, Military Observe, ReScout and Evasion intent
+- [x] Add bounded deep-frontier selection using unknown-region value and home-relative depth
+- [x] Add fixed eight-entry recent target suppression to prevent A/B oscillation
+- [x] Derive enemy-interest regions only from legal building memory and military sightings
+- [x] Generate at most 40 Castle/production/Tower/House/military perimeter candidates
+- [x] Keep Castle/Tower centers forbidden while allowing Risky perimeter reconnaissance
+- [x] Add separate centralized frontier and reconnaissance scoring weights
+- [x] Add recon dwell, mission cooldown, multiple-angle history and evasion re-entry cooldown
+- [x] Add frozen value-only Warrior/Archer/Lancer/Monk last-observed summary
+- [x] Keep production composition unchanged and preserve anti-wallhack rules
+- [x] Add disabled-by-default intent, score, staleness, Castle, military and history diagnostics
+- [x] Extend the Phase 7E.1 validator for bounded recon, risk budgets and value-only memory
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run Phase 7E.1 validator in Unity Edit Mode
+- [ ] Play Mode: no enemy known progresses beyond middle without A/B oscillation
+- [ ] Play Mode: House-first discovery increases local exploration and can reveal Castle naturally
+- [ ] Play Mode: Castle recon uses perimeter, multiple angles, dwell and cooldown
+- [ ] Play Mode: known Tower range is not crossed unnecessarily
+- [ ] Play Mode: visible military refreshes counts and hidden training leaves snapshot frozen
+- [ ] Play Mode: evasion overrides recon and does not immediately re-enter the same route
+- [ ] Play Mode: x1/x5/x10 command, path request and GC profiling remains bounded
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge this hotfix automatically
+
+### Phase 7E.1 Red AI Construction Reliability Hotfix
+
+Status: **IMPLEMENTED - PLAY MODE STRESS MATRIX PENDING**.
+
+- [x] Trace player and Red construction into the shared `BuildingSystem` / `PawnBuilder` path
+- [x] Reject footprints with no usable perimeter construction access after footprint blocking
+- [x] Generate one shared deterministic perimeter-slot layout for preview and runtime
+- [x] Keep site-owned, unique and stable Pawn-to-slot reservations
+- [x] Reserve a reachable slot before issuing builder movement
+- [x] Cap Red Builder assignment by free usable slots and preserve minimum Economy Pawns
+- [x] Deduplicate valid same-Pawn/same-site resume commands without resetting movement
+- [x] Add 0.2 enter / 0.48 exit work hysteresis
+- [x] Suppress destructive same-site separation near the reserved final slot
+- [x] Add bounded same-slot repath followed by bounded alternate-slot recovery
+- [x] Add a three-game-second site progress watchdog with two-second cooldown
+- [x] Add per-site/global builder command and path request counters
+- [x] Add disabled-by-default slot gizmos and Commander site/Builder diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Multi-Builder Construction Reliability`
+- [x] Run the multi-builder validator through Unity batch Edit Mode
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run House 1-Pawn and 3-Pawn same-side scenarios
+- [ ] Run Barracks 5-Pawn and Barracks-to-Archery scenarios
+- [ ] Run tight-corridor, stairs-adjacent and multiple-site scenarios
+- [ ] Run builder-death and manual-displacement recovery scenarios
+- [ ] Run Observer x10 extended construction profiling and record commands/path requests per second
+- [ ] Confirm human construction, Scout isolation, economy, stairs and clean Console regressions
+- [x] Do not begin Phase 7E.2
+- [x] Keep this hotfix uncommitted and unpushed after the requested checkpoint

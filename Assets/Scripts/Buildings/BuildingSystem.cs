@@ -8,6 +8,16 @@ using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
+    public enum BuildingPlacementFailureReason
+    {
+        None,
+        InvalidFootprint,
+        BlockedByResource,
+        OccupiedByUnit,
+        WouldTrapFriendlyUnits,
+        NoConstructionAccess
+    }
+
     // Shared gameplay authority for player input and future computer commanders.
     public sealed class BuildingSystem : MonoBehaviour
     {
@@ -28,6 +38,8 @@ namespace TinyKingdom.Buildings
         private readonly Dictionary<BuildingType, BuildingData> definitions = new();
         private readonly List<SheepEscapePlan> sheepEscapePlans = new();
         private readonly HashSet<Vector2Int> reservedSheepEscapeCells = new();
+        private readonly BuildingTrapValidator trapValidator = new();
+        private readonly List<PawnBuilder> orderedBuilders = new();
         private GridManager grid;
         private PathfindingSystem paths;
         private ResourceStockpile stockpile;
@@ -38,6 +50,13 @@ namespace TinyKingdom.Buildings
 
         public Faction Owner => owner;
         public GridManager Grid => grid;
+        public BuildingPlacementFailureReason LastPlacementFailureReason { get; private set; }
+        public int LastPlacementTrappedUnitCount { get; private set; }
+        public int LastReachableBuilderSlotCount { get; private set; }
+        public string LastPlacementDiagnostic => LastPlacementFailureReason
+            == BuildingPlacementFailureReason.WouldTrapFriendlyUnits
+                ? $"Placement rejected: would trap {LastPlacementTrappedUnitCount} friendly units"
+                : LastPlacementFailureReason.ToString();
 
         public bool IsReady => grid != null && paths != null && stockpile != null
             && HasValidData(BuildingType.House)
@@ -56,6 +75,7 @@ namespace TinyKingdom.Buildings
             this.population = population;
             economyConfig = economy;
             owner = resources != null ? resources.Faction : Faction.Blue;
+            trapValidator.Configure(grid);
             definitions.Clear();
             foreach (BuildingData item in data)
             {
@@ -93,9 +113,15 @@ namespace TinyKingdom.Buildings
 
         public bool CanPlace(BuildingType type, Vector2Int origin)
         {
+            LastPlacementFailureReason = BuildingPlacementFailureReason.None;
+            LastPlacementTrappedUnitCount = 0;
+            LastReachableBuilderSlotCount = 0;
             BuildingData data = GetData(type);
             if (data == null || grid == null || data.Footprint.x < 1 || data.Footprint.y < 1)
+            {
+                LastPlacementFailureReason = BuildingPlacementFailureReason.InvalidFootprint;
                 return false;
+            }
             int height = -1;
             for (int y = 0; y < data.Footprint.y; y++)
             for (int x = 0; x < data.Footprint.x; x++)
@@ -103,7 +129,11 @@ namespace TinyKingdom.Buildings
                 Vector2Int cellPosition = origin + new Vector2Int(x, y);
                 GridCell cell = grid.GetCell(cellPosition.x, cellPosition.y);
                 // Use the authored level: elevated courts can be higher than level 1.
-                if (!IsValidPlacementCell(cell, height)) return false;
+                if (!IsValidPlacementCell(cell, height))
+                {
+                    LastPlacementFailureReason = BuildingPlacementFailureReason.InvalidFootprint;
+                    return false;
+                }
                 height = cell.HeightLevel;
             }
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
@@ -116,7 +146,11 @@ namespace TinyKingdom.Buildings
             {
                 ResourceNode resource = hit.GetComponent<ResourceNode>();
                 if (resource != null && resource.IsAvailable
-                    && !resource.IsSoftNavigationEntity) return false;
+                    && !resource.IsSoftNavigationEntity)
+                {
+                    LastPlacementFailureReason = BuildingPlacementFailureReason.BlockedByResource;
+                    return false;
+                }
             }
             foreach (UnitController unit in UnitController.ActiveUnits)
             {
@@ -124,7 +158,33 @@ namespace TinyKingdom.Buildings
                 Vector2Int cell = grid.WorldToGrid(unit.transform.position);
                 if (cell.x >= origin.x && cell.x < origin.x + data.Footprint.x
                     && cell.y >= origin.y && cell.y < origin.y + data.Footprint.y)
+                {
+                    LastPlacementFailureReason = BuildingPlacementFailureReason.OccupiedByUnit;
                     return false;
+                }
+            }
+            if (trapValidator.WouldTrapFriendlyUnits(grid, owner, origin,
+                    data.Footprint, out int trappedUnits))
+            {
+                LastPlacementFailureReason =
+                    BuildingPlacementFailureReason.WouldTrapFriendlyUnits;
+                LastPlacementTrappedUnitCount = trappedUnits;
+                return false;
+            }
+            SetFootprint(origin, data.Footprint, true);
+            try
+            {
+                LastReachableBuilderSlotCount = CountPotentialConstructionSlots(data, origin);
+            }
+            finally
+            {
+                SetFootprint(origin, data.Footprint, false);
+            }
+            if (LastReachableBuilderSlotCount == 0)
+            {
+                LastPlacementFailureReason =
+                    BuildingPlacementFailureReason.NoConstructionAccess;
+                return false;
             }
             return true;
         }
@@ -332,20 +392,42 @@ namespace TinyKingdom.Buildings
 
         private int AssignAll(BuildingSite site, IReadOnlyList<PawnBuilder> candidates, bool repair)
         {
-            var ordered = new List<PawnBuilder>();
+            orderedBuilders.Clear();
             foreach (PawnBuilder pawn in candidates)
-                if (IsEligible(pawn) && site.CanAssign(pawn)) ordered.Add(pawn);
-            ordered.Sort((a, b) =>
+                if (IsEligible(pawn) && site.CanAssign(pawn)) orderedBuilders.Add(pawn);
+            Vector3 sitePosition = site.transform.position;
+            for (int i = 1; i < orderedBuilders.Count; i++)
             {
-                float da = ((Vector2)(a.transform.position - site.transform.position)).sqrMagnitude;
-                float db = ((Vector2)(b.transform.position - site.transform.position)).sqrMagnitude;
-                int distance = da.CompareTo(db);
-                return distance != 0 ? distance : string.CompareOrdinal(a.name, b.name);
-            });
+                PawnBuilder value = orderedBuilders[i];
+                float valueDistance = ((Vector2)(value.transform.position - sitePosition))
+                    .sqrMagnitude;
+                int j = i - 1;
+                while (j >= 0 && ComesAfter(orderedBuilders[j], value,
+                    sitePosition, valueDistance))
+                {
+                    orderedBuilders[j + 1] = orderedBuilders[j];
+                    j--;
+                }
+                orderedBuilders[j + 1] = value;
+            }
             int assigned = 0;
-            foreach (PawnBuilder pawn in ordered)
+            for (int i = 0; i < orderedBuilders.Count
+                && site.FreeBuilderSlotCount > 0; i++)
+            {
+                PawnBuilder pawn = orderedBuilders[i];
                 if (pawn.Assign(site, repair)) assigned++;
+            }
             return assigned;
+        }
+
+        private static bool ComesAfter(PawnBuilder current, PawnBuilder candidate,
+            Vector3 sitePosition, float candidateDistance)
+        {
+            float currentDistance = ((Vector2)(current.transform.position - sitePosition))
+                .sqrMagnitude;
+            return currentDistance > candidateDistance + 0.0001f
+                || Mathf.Abs(currentDistance - candidateDistance) <= 0.0001f
+                    && string.CompareOrdinal(current.name, candidate.name) > 0;
         }
 
         private bool IsEligible(PawnBuilder pawn)
@@ -360,8 +442,7 @@ namespace TinyKingdom.Buildings
             point = default;
             if (grid == null || paths == null) return false;
             Vector2Int start = grid.WorldToGrid(pawn.transform.position);
-            int footprintHeight = grid.GetCell(origin.x, origin.y).HeightLevel;
-            int slotCount = data.Footprint.x * 2 + data.Footprint.y * 2;
+            int slotCount = ConstructionSlotUtility.SlotCount(data.Footprint);
             ulong tried = 0UL;
             for (int attempt = 0; attempt < slotCount && attempt < 64; attempt++)
             {
@@ -369,23 +450,15 @@ namespace TinyKingdom.Buildings
                 Vector2Int bestTarget = default;
                 Vector3 bestPoint = default;
                 float bestDistance = float.PositiveInfinity;
-                int index = 0;
-                for (int y = -1; y <= data.Footprint.y; y++)
-                for (int x = -1; x <= data.Footprint.x; x++)
+                for (int candidateIndex = 0; candidateIndex < slotCount;
+                    candidateIndex++)
                 {
-                    // Edge-adjacent cells only; no diagonal interaction through corners.
-                    bool edge = (x == -1 || x == data.Footprint.x)
-                            && y >= 0 && y < data.Footprint.y
-                        || (y == -1 || y == data.Footprint.y)
-                            && x >= 0 && x < data.Footprint.x;
-                    if (!edge) continue;
-                    int candidateIndex = index++;
-                    if (candidateIndex >= 64) continue;
                     if ((tried & (1UL << candidateIndex)) != 0) continue;
-                    Vector2Int target = origin + new Vector2Int(x, y);
+                    if (!ConstructionSlotUtility.IsValid(grid, origin,
+                        data.Footprint, candidateIndex)) continue;
+                    Vector2Int target = ConstructionSlotUtility.CellAt(origin,
+                        data.Footprint, candidateIndex);
                     GridCell cell = grid.GetCell(target.x, target.y);
-                    if (!TerrainRules.IsStableStandingCell(cell)
-                        || cell.HeightLevel != footprintHeight) continue;
                     Vector3 candidatePoint = cell.WorldPosition;
                     float distance = ((Vector2)(candidatePoint
                         - pawn.transform.position)).sqrMagnitude;
@@ -402,6 +475,16 @@ namespace TinyKingdom.Buildings
                 return true;
             }
             return false;
+        }
+
+        private int CountPotentialConstructionSlots(BuildingData data, Vector2Int origin)
+        {
+            int count = 0;
+            int slotCount = ConstructionSlotUtility.SlotCount(data.Footprint);
+            for (int slot = 0; slot < slotCount; slot++)
+                if (ConstructionSlotUtility.IsValid(grid, origin,
+                    data.Footprint, slot)) count++;
+            return count;
         }
 
         private void SetFootprint(Vector2Int origin, Vector2Int size, bool occupied)

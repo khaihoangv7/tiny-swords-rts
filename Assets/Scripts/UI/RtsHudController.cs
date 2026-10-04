@@ -18,6 +18,7 @@ namespace TinyKingdom.UI
         private SelectionInfoPanelPresenter selectionInfo;
         private CommandPanelPresenter commands;
         private CommandTooltipPresenter tooltip;
+        private DebugMatchControlsPresenter debugControls;
         private RectTransform hudRoot;
 
         public RectTransform HudRoot => hudRoot;
@@ -25,6 +26,7 @@ namespace TinyKingdom.UI
         public SelectionInfoPanelPresenter SelectionPanel => selectionInfo;
         public CommandPanelPresenter CommandPanel => commands;
         public CommandTooltipPresenter CommandTooltip => tooltip;
+        public DebugMatchControlsPresenter DebugControls => debugControls;
         public bool IsReady => resources != null && resources.IsReady
             && selectionInfo != null && commands != null
             && tooltip != null && tooltip.HasValidReferences;
@@ -62,11 +64,14 @@ namespace TinyKingdom.UI
                 ?? gameObject.AddComponent<CommandPanelPresenter>();
             tooltip = GetComponent<CommandTooltipPresenter>()
                 ?? gameObject.AddComponent<CommandTooltipPresenter>();
+            debugControls = GetComponent<DebugMatchControlsPresenter>()
+                ?? gameObject.AddComponent<DebugMatchControlsPresenter>();
             resources.Configure(stockpile, population, catalog, hudRoot);
             selectionInfo.Configure(selection, catalog, hudRoot);
             commands.Configure(selection, commandInput, guardInput,
                 buildingSystem, placement, stockpile, catalog, tooltip, hudRoot);
             tooltip.Configure(catalog, stockpile, population, hudRoot);
+            debugControls.Configure(catalog);
         }
 
         private void ApplyHudGeometry()

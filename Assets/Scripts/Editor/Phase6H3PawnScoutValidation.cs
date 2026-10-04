@@ -35,8 +35,8 @@ namespace TinyKingdom.EditorTools
                 UnitCombatData pawnData = AssetDatabase.LoadAssetAtPath<UnitCombatData>(PawnDataPath);
                 UnitCombatData warriorData = AssetDatabase.LoadAssetAtPath<UnitCombatData>(WarriorDataPath);
                 Require(PawnScoutPromotion.WoodCost == 50, "Scout cost must be exactly 50 Wood.");
-                Require(Mathf.Approximately(PawnScoutPromotion.ScoutVisionMultiplier, 2f),
-                    "Scout vision multiplier must be exactly 2.0.");
+                Require(Mathf.Approximately(PawnScoutPromotion.ScoutVisionMultiplier, 2.5f),
+                    "Scout vision multiplier must be exactly 2.5.");
                 Require(Mathf.Approximately(PawnScoutPromotion.FireVisualScale, 0.7f),
                     "Scout fire marker scale must be exactly 0.70.");
                 Require(hud != null && hud.HasScoutPresentation,
@@ -91,7 +91,7 @@ namespace TinyKingdom.EditorTools
                     "Scout fire visual scale is not configured.");
                 Require(Mathf.Approximately(first.VisionRadius,
                         first.BaseVisionRadius * PawnScoutPromotion.ScoutVisionMultiplier),
-                    "Scout vision must derive from authoritative Pawn vision x2.0.");
+                    "Scout vision must derive from authoritative Pawn vision x2.5.");
 
                 int woodBeforeRejected = stockpile.GetAmount(ResourceType.Wood);
                 Require(PawnScoutPromotion.Evaluate(second, Faction.Blue, stockpile,
@@ -110,7 +110,7 @@ namespace TinyKingdom.EditorTools
                     "A new Pawn must be promotable after Scout death.");
 
                 Debug.Log("Phase 6H.3 Pawn Scout validation PASS: 50W cost, Pawn-only "
-                    + "eligibility, one-active registry, x2.0 derived vision, verified Fire.png "
+                    + "eligibility, one-active registry, x2.5 derived vision, verified Fire.png "
                     + "visual, quiet BuildingFire loop reuse and non-military formation status.");
             }
             catch (Exception exception)

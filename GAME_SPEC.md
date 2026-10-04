@@ -2052,7 +2052,7 @@ The promoted unit remains `UnitType.Pawn`. Movement, gathering, building,
 repairing, depositing, health and damage continue through the normal Pawn
 components, and the unit remains excluded from military formation membership.
 Its current vision radius is derived from the authoritative Pawn vision radius
-with a 2.0 multiplier; no duplicate absolute Scout radius is stored.
+with a 2.5 multiplier; no duplicate absolute Scout radius is stored.
 
 Promotion adds a seven-frame fire marker above the Pawn at presentation scale
 0.70 and reuses the
@@ -2066,6 +2066,13 @@ Successful promotion triggers the existing unit squash/stretch presentation
 without the red hit-flash overlay, then plays the verified `ScoutPromotion`
 success notification. Completed human unit production continues to play
 `UnitProductionFinished` only after the unit is actually spawned.
+
+The underlying promotion authority is faction-neutral so human and Rule-Based
+Commanders share the same cost, Pawn validation, one-active limit, vision modifier,
+visual and death cleanup. Human UI still validates against the human faction. AI
+requests promotion only through `FactionCommandService`; enemy promotion does not
+play a hidden global UI notification, and its positional fire loop remains subject
+to camera and player-vision audio gating.
 
 # 65. Phase 6H.4 Combat and Support Balance
 
@@ -2111,3 +2118,61 @@ request is made per successful Pawn work cycle. Both verified Hammer clips remai
 random variations, and each one-shot is limited to 0.7 seconds so one Pawn's next
 0.8-second event does not overlap its previous tail. Different Pawns remain free
 to produce simultaneous legitimate work sounds.
+
+# 67. Phase 7E.1 Full-Match Stability
+
+All construction placement, whether requested by the player or a Commander, must
+reject a footprint that newly seals friendly controllable units inside a local
+walkable pocket. Connectivity follows authoritative logical navigation, including
+occupancy, elevation and authored stair links. Existing disconnected terrain is not
+retroactively invalidated, narrow passages remain legal while an exit exists, and
+Sheep continue to use their dedicated footprint evacuation behavior.
+
+An AI Economy Pawn carrying resources prioritizes a reachable completed friendly
+Castle or Tower. An unreachable, congested, destroyed or otherwise invalid drop-off
+cannot leave the Pawn permanently idle: selection falls through to another reachable
+drop-off and retry is bounded. After deposit, the Pawn retains its legal resource
+intent and resumes equivalent-resource chaining. This recovery is role gated and
+does not override a promoted Scout or a human player's explicit Move command.
+
+# 68. Phase 7E.1 Scout Intelligence Hotfix
+
+The promoted Red Pawn Scout has two strategic jobs: explore unknown territory until
+hostile presence is found, then periodically observe legally known hostile regions.
+Exploration rewards large unknown regions and progressive depth from Red's own Castle
+without assuming Blue's spawn or using hidden objects. A bounded recent-target history
+prevents repeated middle-map oscillation.
+
+Hostile Castle, House, Barracks, Archery, Monastery, Tower and military sightings may
+create reconnaissance interest only after Red vision or Fog memory knows them. The
+Scout observes from a small walkable perimeter candidate set and never targets a
+Castle/Tower center. Safe destinations remain preferred; a high-value recon mission
+may use a Risky perimeter, while Dangerous defensive cores and unsafe paths remain
+forbidden. Visible nearby military always overrides recon with a Safe retreat.
+
+Faction knowledge stores only the last legally visible Warrior, Archer, Lancer and
+Monk counts, timestamp and observation region. This summary freezes under Fog and does
+not affect production in Phase 7E.1. Recon completes after a short observation dwell,
+then cooldown and stale-memory rules prevent camping while permitting later views from
+another perimeter angle.
+
+# 69. Phase 7E.1 Construction Reliability Hotfix
+
+A legal construction footprint must expose at least one usable perimeter work slot
+after that footprint is treated as occupied. Work slots are edge-adjacent, outside the
+footprint, on stable unoccupied ground at the same elevation, outside authored stair
+connector corridors, and connected to surrounding walkable navigation. Compact bases
+remain legal when only one or two slots are usable. Human and Commander placement use
+the same validation and reservation path.
+
+Each assigned Pawn owns one site-controlled slot and moves directly to it. Slots cannot
+be shared. Builder count is limited by actual free slot capacity, so overflow Pawns keep
+their Economy jobs. A valid assignment survives Commander reevaluation and small
+physical nudges. Construction begins within 0.2 world units of the assigned slot and
+continues until displacement exceeds 0.48 units.
+
+A displaced Builder keeps its reservation and makes bounded attempts to return to the
+same slot before considering another free reachable slot. If an unfinished site has
+assigned Pawns but no working Pawn and no progress for three game seconds, the site
+requests bounded recovery and waits two game seconds before another attempt. Invalid
+or dead owners are pruned independently so other builders continue contributing.

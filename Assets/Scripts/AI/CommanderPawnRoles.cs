@@ -42,8 +42,11 @@ namespace TinyKingdom.AI
             {
                 UnitController pawn = units[i];
                 if (!IsPawn(pawn, knowledge.Faction)) continue;
+                PawnScoutPromotion promotion = pawn.GetComponent<PawnScoutPromotion>();
                 PawnBuilder builder = pawn.GetComponent<PawnBuilder>();
-                if (builder != null && builder.HasJob)
+                if (promotion != null && promotion.IsPromoted)
+                    roles[pawn] = CommanderPawnRole.Scout;
+                else if (builder != null && builder.HasJob)
                     roles[pawn] = CommanderPawnRole.Builder;
                 else if (!roles.TryGetValue(pawn, out CommanderPawnRole role)
                     || role == CommanderPawnRole.Builder)
@@ -63,6 +66,8 @@ namespace TinyKingdom.AI
         public bool TryAssign(UnitController pawn, CommanderPawnRole role)
         {
             if (pawn == null || pawn.GetComponent<PawnGatherer>() == null) return false;
+            bool promotedScout = pawn.GetComponent<PawnScoutPromotion>()?.IsPromoted == true;
+            if (promotedScout != (role == CommanderPawnRole.Scout)) return false;
             roles[pawn] = role;
             RefreshCounts();
             return true;
@@ -72,6 +77,8 @@ namespace TinyKingdom.AI
         {
             if (pawn == null || !roles.TryGetValue(pawn, out CommanderPawnRole current)
                 || current != role) return;
+            if (role == CommanderPawnRole.Scout
+                && pawn.GetComponent<PawnScoutPromotion>()?.IsPromoted == true) return;
             roles[pawn] = CommanderPawnRole.Economy;
             RefreshCounts();
         }

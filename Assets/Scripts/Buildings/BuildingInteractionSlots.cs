@@ -1,18 +1,34 @@
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
+using TinyKingdom.Units;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
-    // Per-building reservations keep concurrent builders on distinct reachable cells.
+    // The site is the single authoritative owner of construction-slot reservations.
     public sealed class BuildingInteractionSlots : MonoBehaviour
     {
-        private readonly Dictionary<PawnBuilder, Vector2Int> reservations = new();
+        private readonly Dictionary<PawnBuilder, int> reservations = new();
+        private readonly List<PawnBuilder> staleBuilders = new();
         private BuildingSite site;
         private GridManager grid;
         private PathfindingSystem paths;
 
         public int ReservationCount => reservations.Count;
+        public int ValidSlotCount
+        {
+            get
+            {
+                if (site == null || grid == null) return 0;
+                int valid = 0;
+                int count = ConstructionSlotUtility.SlotCount(site.Footprint);
+                for (int slot = 0; slot < count; slot++)
+                    if (ConstructionSlotUtility.IsValid(grid, site.Origin,
+                        site.Footprint, slot)) valid++;
+                return valid;
+            }
+        }
+        public int FreeSlotCount => Mathf.Max(0, ValidSlotCount - reservations.Count);
 
         public void Configure(BuildingSite owner, GridManager navigation)
         {
@@ -26,53 +42,79 @@ namespace TinyKingdom.Buildings
             position = default;
             if (builder == null || site == null || grid == null || paths == null)
                 return false;
-            if (reservations.TryGetValue(builder, out Vector2Int existing))
+            if (reservations.TryGetValue(builder, out int existing))
             {
-                position = grid.GridToWorld(existing.x, existing.y);
-                return true;
-            }
-
-            Vector2Int start = grid.WorldToGrid(builder.transform.position);
-            GridCell footprintCell = grid.GetCell(site.Origin.x, site.Origin.y);
-            if (footprintCell == null) return false;
-            Vector2Int size = site.Data.Footprint;
-            int slotCount = size.x * 2 + size.y * 2;
-            ulong tried = 0UL;
-            for (int attempt = 0; attempt < slotCount && attempt < 64; attempt++)
-            {
-                int bestIndex = -1;
-                Vector2Int bestCell = default;
-                float bestDistance = float.PositiveInfinity;
-                int index = 0;
-                for (int y = -1; y <= size.y; y++)
-                for (int x = -1; x <= size.x; x++)
+                if (ConstructionSlotUtility.IsValid(grid, site.Origin,
+                    site.Footprint, existing))
                 {
-                    bool edge = (x == -1 || x == size.x) && y >= 0 && y < size.y
-                        || (y == -1 || y == size.y) && x >= 0 && x < size.x;
-                    if (!edge) continue;
-                    int candidateIndex = index++;
-                    if (candidateIndex >= 64) continue;
-                    if ((tried & (1UL << candidateIndex)) != 0) continue;
-                    Vector2Int candidate = site.Origin + new Vector2Int(x, y);
-                    if (reservations.ContainsValue(candidate)) continue;
-                    GridCell cell = grid.GetCell(candidate.x, candidate.y);
-                    if (!TerrainRules.IsStableStandingCell(cell)
-                        || cell.HeightLevel != footprintCell.HeightLevel) continue;
-                    float distance = ((Vector2)(cell.WorldPosition
-                        - builder.transform.position)).sqrMagnitude;
-                    if (bestIndex >= 0 && distance >= bestDistance) continue;
-                    bestIndex = candidateIndex;
-                    bestCell = candidate;
-                    bestDistance = distance;
+                    position = SlotWorld(existing);
+                    return true;
                 }
-                if (bestIndex < 0) return false;
-                tried |= 1UL << bestIndex;
-                if (paths.FindPath(start, bestCell).Count == 0) continue;
-                reservations.Add(builder, bestCell);
-                position = grid.GridToWorld(bestCell.x, bestCell.y);
-                return true;
+                reservations.Remove(builder);
             }
+            if (!TryFindReachableFreeSlot(builder, -1, out int slot)) return false;
+            reservations.Add(builder, slot);
+            position = SlotWorld(slot);
+            return true;
+        }
+
+        public bool TryReassign(PawnBuilder builder, out Vector3 position)
+        {
+            position = default;
+            if (builder == null || site == null || grid == null || paths == null)
+                return false;
+            int existing = reservations.TryGetValue(builder, out int value) ? value : -1;
+            if (!TryFindReachableFreeSlot(builder, existing, out int replacement))
+                return false;
+            reservations[builder] = replacement;
+            position = SlotWorld(replacement);
+            return true;
+        }
+
+        public bool TryGetReservation(PawnBuilder builder, out int slotId,
+            out Vector2Int cell, out Vector3 position)
+        {
+            slotId = -1;
+            cell = default;
+            position = default;
+            if (builder == null || site == null || grid == null
+                || !reservations.TryGetValue(builder, out slotId)) return false;
+            cell = ConstructionSlotUtility.CellAt(site.Origin, site.Footprint, slotId);
+            position = grid.GridToWorld(cell.x, cell.y);
+            return true;
+        }
+
+        public bool HasReservation(PawnBuilder builder)
+            => builder != null && reservations.ContainsKey(builder);
+
+        public bool TryGetOwner(int slotId, out PawnBuilder owner)
+        {
+            foreach (KeyValuePair<PawnBuilder, int> item in reservations)
+                if (item.Value == slotId)
+                {
+                    owner = item.Key;
+                    return owner != null;
+                }
+            owner = null;
             return false;
+        }
+
+        public void PruneInvalidReservations()
+        {
+            staleBuilders.Clear();
+            foreach (KeyValuePair<PawnBuilder, int> item in reservations)
+            {
+                PawnBuilder builder = item.Key;
+                UnitController controller = builder != null
+                    ? builder.GetComponent<UnitController>() : null;
+                if (builder == null || controller == null || !controller.IsAlive
+                    || builder.Target != site
+                    || !ConstructionSlotUtility.IsValid(grid, site.Origin,
+                        site.Footprint, item.Value))
+                    staleBuilders.Add(builder);
+            }
+            for (int i = 0; i < staleBuilders.Count; i++)
+                reservations.Remove(staleBuilders[i]);
         }
 
         public void Release(PawnBuilder builder)
@@ -80,6 +122,59 @@ namespace TinyKingdom.Buildings
             if (builder != null) reservations.Remove(builder);
         }
 
-        public void ReleaseAll() => reservations.Clear();
+        public void ReleaseAll()
+        {
+            reservations.Clear();
+            staleBuilders.Clear();
+        }
+
+        private bool TryFindReachableFreeSlot(PawnBuilder builder, int excludedSlot,
+            out int result)
+        {
+            result = -1;
+            Vector2Int start = grid.WorldToGrid(builder.transform.position);
+            int count = ConstructionSlotUtility.SlotCount(site.Footprint);
+            ulong tried = 0UL;
+            for (int attempt = 0; attempt < count; attempt++)
+            {
+                int bestSlot = -1;
+                float bestDistance = float.PositiveInfinity;
+                for (int slot = 0; slot < count; slot++)
+                {
+                    if (slot == excludedSlot || (tried & (1UL << slot)) != 0
+                        || IsOwnedByOther(slot, builder)
+                        || !ConstructionSlotUtility.IsValid(grid, site.Origin,
+                            site.Footprint, slot)) continue;
+                    Vector3 world = SlotWorld(slot);
+                    float distance = ((Vector2)(world - builder.transform.position))
+                        .sqrMagnitude;
+                    if (bestSlot >= 0 && distance >= bestDistance) continue;
+                    bestSlot = slot;
+                    bestDistance = distance;
+                }
+                if (bestSlot < 0) return false;
+                tried |= 1UL << bestSlot;
+                Vector2Int target = ConstructionSlotUtility.CellAt(site.Origin,
+                    site.Footprint, bestSlot);
+                if (paths.FindPath(start, target).Count == 0) continue;
+                result = bestSlot;
+                return true;
+            }
+            return false;
+        }
+
+        private bool IsOwnedByOther(int slot, PawnBuilder builder)
+        {
+            foreach (KeyValuePair<PawnBuilder, int> item in reservations)
+                if (item.Key != builder && item.Value == slot) return true;
+            return false;
+        }
+
+        private Vector3 SlotWorld(int slot)
+        {
+            Vector2Int cell = ConstructionSlotUtility.CellAt(site.Origin,
+                site.Footprint, slot);
+            return grid.GridToWorld(cell.x, cell.y);
+        }
     }
 }

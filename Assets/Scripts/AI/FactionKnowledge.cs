@@ -47,12 +47,37 @@ namespace TinyKingdom.AI
         public float MoveSpeed { get; }
     }
 
+    // Value-only memory built exclusively from enemy units that were visible during
+    // a knowledge refresh. It deliberately carries no live unit references.
+    public readonly struct MilitaryObservationSnapshot
+    {
+        public MilitaryObservationSnapshot(int warriorCount, int archerCount,
+            int lancerCount, int monkCount, float lastSeenTime, Vector3 observationRegion)
+        {
+            WarriorCount = warriorCount;
+            ArcherCount = archerCount;
+            LancerCount = lancerCount;
+            MonkCount = monkCount;
+            LastSeenTime = lastSeenTime;
+            ObservationRegion = observationRegion;
+        }
+
+        public int WarriorCount { get; }
+        public int ArcherCount { get; }
+        public int LancerCount { get; }
+        public int MonkCount { get; }
+        public int TotalCount => WarriorCount + ArcherCount + LancerCount + MonkCount;
+        public float LastSeenTime { get; }
+        public Vector3 ObservationRegion { get; }
+        public bool HasObservation => TotalCount > 0;
+    }
+
     public readonly struct BuildingKnowledgeSnapshot
     {
         public BuildingKnowledgeSnapshot(EntityId id, BuildingType type, Faction faction,
             Vector3 position, Vector2Int footprintOrigin, Vector2Int footprint,
             bool completed, float constructionProgress, float healthRatio,
-            float defensiveAttackRange)
+            float defensiveAttackRange, float lastSeenTime)
         {
             RuntimeId = id;
             BuildingType = type;
@@ -64,6 +89,7 @@ namespace TinyKingdom.AI
             LastSeenConstructionProgress = constructionProgress;
             LastSeenHealthRatio = healthRatio;
             DefensiveAttackRange = defensiveAttackRange;
+            LastSeenTime = lastSeenTime;
         }
 
         public EntityId RuntimeId { get; }
@@ -76,12 +102,13 @@ namespace TinyKingdom.AI
         public float LastSeenConstructionProgress { get; }
         public float LastSeenHealthRatio { get; }
         public float DefensiveAttackRange { get; }
+        public float LastSeenTime { get; }
     }
 
     public readonly struct ResourceKnowledgeSnapshot
     {
         public ResourceKnowledgeSnapshot(EntityId id, ResourceType type, Vector3 position,
-            Vector2Int cell, int remainingAmount, int maximumAmount)
+            Vector2Int cell, int remainingAmount, int maximumAmount, float lastSeenTime)
         {
             RuntimeId = id;
             ResourceType = type;
@@ -89,6 +116,7 @@ namespace TinyKingdom.AI
             LogicalCell = cell;
             LastSeenRemainingAmount = remainingAmount;
             MaximumAmount = maximumAmount;
+            LastSeenTime = lastSeenTime;
         }
 
         public EntityId RuntimeId { get; }
@@ -97,6 +125,7 @@ namespace TinyKingdom.AI
         public Vector2Int LogicalCell { get; }
         public int LastSeenRemainingAmount { get; }
         public int MaximumAmount { get; }
+        public float LastSeenTime { get; }
     }
 
     // The only observation surface used by Commanders. Enemy observations are copied
@@ -131,6 +160,8 @@ namespace TinyKingdom.AI
             => knownEnemyBuildings;
         public IReadOnlyList<ResourceNode> VisibleResources => visibleResources;
         public IReadOnlyList<ResourceKnowledgeSnapshot> KnownResources => knownResources;
+        public MilitaryObservationSnapshot LastMilitaryObservation
+            => lastMilitaryObservation;
         public int ExploredCellCount { get; private set; }
         public int TotalCellCount => teamVision != null && teamVision.GridManager != null
             ? teamVision.GridManager.Width * teamVision.GridManager.Height : 0;
@@ -141,6 +172,8 @@ namespace TinyKingdom.AI
             && fogMemory.IsInitialized && stockpile != null && stockpile.Faction == faction
             && population != null && population.Faction == faction;
 
+        private MilitaryObservationSnapshot lastMilitaryObservation;
+
         public void Configure(Faction owner, TeamVisionSystem vision, FogMemorySystem memory,
             ResourceStockpile resources, FactionPopulation factionPopulation)
         {
@@ -149,6 +182,7 @@ namespace TinyKingdom.AI
             fogMemory = memory;
             stockpile = resources;
             population = factionPopulation;
+            lastMilitaryObservation = default;
             Refresh();
         }
 
@@ -184,6 +218,8 @@ namespace TinyKingdom.AI
                 }
             }
 
+            RefreshMilitaryObservation(Time.time);
+
             IReadOnlyList<IVisionSource> sources = VisionSourceRegistry.ActiveSources;
             for (int i = 0; i < sources.Count; i++)
             {
@@ -218,6 +254,34 @@ namespace TinyKingdom.AI
             for (int x = 0; x < grid.Width; x++)
                 if (teamVision.GetVisionState(faction, new Vector2Int(x, y))
                     != VisionState.Unexplored) ExploredCellCount++;
+        }
+
+        private void RefreshMilitaryObservation(float observationTime)
+        {
+            int warriors = 0;
+            int archers = 0;
+            int lancers = 0;
+            int monks = 0;
+            Vector3 region = Vector3.zero;
+            for (int i = 0; i < visibleEnemyUnits.Count; i++)
+            {
+                VisibleUnitObservation observation = visibleEnemyUnits[i];
+                switch (observation.UnitType)
+                {
+                    case UnitType.Warrior: warriors++; break;
+                    case UnitType.Archer: archers++; break;
+                    case UnitType.Lancer: lancers++; break;
+                    case UnitType.Monk: monks++; break;
+                    default: continue;
+                }
+                region += observation.Position;
+            }
+
+            int total = warriors + archers + lancers + monks;
+            if (total == 0) return;
+            region /= total;
+            lastMilitaryObservation = new MilitaryObservationSnapshot(warriors,
+                archers, lancers, monks, observationTime, region);
         }
 
         public bool IsCellVisible(Vector2Int cell)
@@ -315,16 +379,18 @@ namespace TinyKingdom.AI
                 host.HostTransform.position, host.FootprintOrigin, host.Footprint,
                 host.IsProductionReady, progress,
                 host.MaxHP > 0 ? Mathf.Clamp01(host.CurrentHP / host.MaxHP) : 0f,
-                host.DefenseData != null ? host.DefenseData.DefensiveAttackRange : 0f);
+                host.DefenseData != null ? host.DefenseData.DefensiveAttackRange : 0f,
+                Time.time);
         }
 
         private static BuildingKnowledgeSnapshot CopyBuilding(BuildingMemorySnapshot item)
             => new(item.RuntimeId, item.BuildingType, item.Faction, item.LogicalPosition,
                 item.FootprintOrigin, item.Footprint, item.Completed,
-                item.ConstructionProgress, item.HealthRatio, item.DefensiveAttackRange);
+                item.ConstructionProgress, item.HealthRatio, item.DefensiveAttackRange,
+                item.LastSeenTime);
 
         private static ResourceKnowledgeSnapshot CopyResource(ResourceMemorySnapshot item)
             => new(item.RuntimeId, item.ResourceType, item.LogicalPosition, item.LogicalCell,
-                item.RemainingAmount, item.MaximumAmount);
+                item.RemainingAmount, item.MaximumAmount, item.LastSeenTime);
     }
 }
