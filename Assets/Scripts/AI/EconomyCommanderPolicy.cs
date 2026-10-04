@@ -75,6 +75,7 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety)
         {
             CollectWorkers(context.Knowledge, roles);
+            RecoverIdleCargo(context, roles, safety);
             PruneRetreats(context, roles, safety);
             PruneAssignments(context, roles, safety);
             if (safety != null)
@@ -96,10 +97,28 @@ namespace TinyKingdom.AI
             {
                 UnitController worker = workers[i];
                 if (assignments.ContainsKey(worker) || retreats.ContainsKey(worker)) continue;
+                PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
+                if (gatherer != null && gatherer.CarriedAmount > 0) continue;
                 ResourceType type = NextDeficit(food, wood, gold);
                 if (TryAssignWithFallback(context, worker, type, safety,
                     food, wood, gold,
                     out ResourceType assigned)) Increment(assigned);
+            }
+        }
+
+        private static void RecoverIdleCargo(CommanderDecisionContext context,
+            CommanderPawnRoles roles, StrategicSafetyMap safety)
+        {
+            IReadOnlyList<UnitController> units = context.Knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController worker = units[i];
+                if (worker == null || !worker.IsAlive || roles == null
+                    || roles.GetRole(worker) != CommanderPawnRole.Economy) continue;
+                PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
+                if (gatherer == null || gatherer.CarriedAmount <= 0
+                    || gatherer.State != WorkerState.Idle) continue;
+                context.Commands.TryReturnResources(worker, safety);
             }
         }
 
@@ -136,6 +155,10 @@ namespace TinyKingdom.AI
                 PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
                 UnitMovement movement = worker.GetComponent<UnitMovement>();
                 WorkerAssignment assignment = item.Value;
+                if (gatherer != null && gatherer.CarriedAmount > 0
+                    && gatherer.State is WorkerState.ReturningToDropOff
+                        or WorkerState.WaitingForDropOff)
+                    continue;
                 if (safety != null && IsUnsafeAssignment(context, worker, assignment,
                     gatherer, movement, safety))
                 {

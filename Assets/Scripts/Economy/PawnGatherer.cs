@@ -5,6 +5,7 @@ using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
 using TinyKingdom.Vision;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -22,6 +23,15 @@ namespace TinyKingdom.Economy
     [RequireComponent(typeof(UnitController), typeof(UnitMovement))]
     public sealed class PawnGatherer : MonoBehaviour
     {
+        public const float CargoRecoveryTimeoutSeconds = 3f;
+        public const float DropOffRetryBaseSeconds = 1f;
+        public const float DropOffRetryMaximumSeconds = 8f;
+        public const float FailedDropOffCooldownSeconds = 5f;
+
+        private static readonly ProfilerMarker EconomyTickMarker =
+            new("TinyKingdom.Economy.PawnTick");
+        private static readonly ProfilerMarker CargoRecoveryMarker =
+            new("TinyKingdom.Economy.CargoRecovery");
         private static readonly Vector2Int[] RememberedApproachOffsets =
         {
             Vector2Int.left, Vector2Int.right, Vector2Int.down, Vector2Int.up,
@@ -46,6 +56,17 @@ namespace TinyKingdom.Economy
         private Vector2Int interactionCell;
         private float gatherTimer;
         private float dropOffRetry;
+        private int consecutiveDropOffFailures;
+        private int dropOffPathFailureCount;
+        private int cargoRecoveryCount;
+        private bool hasRejectedDropOff;
+        private EntityId rejectedDropOffId;
+        private float rejectedDropOffUntil;
+        private float timeSinceLastEconomicProgress;
+        private Vector3 lastEconomicPosition;
+        private int lastEconomicCarriedAmount;
+        private WorkerState lastEconomicState;
+        private bool economicProgressInitialized;
         private bool impactApplied;
         private Vector3 interactionPosition;
         private ResourceType carriedType;
@@ -74,6 +95,14 @@ namespace TinyKingdom.Economy
         public int CarriedAmount => carriedAmount;
         public ResourceType CarriedResourceType => carriedType;
         public ResourceNode Target => target;
+        public bool HasDropOffTarget => ResourceDropOffRegistry.IsUsable(dropOff,
+            controller != null ? controller.Faction : default);
+        public EntityId DropOffTargetId => HasDropOffTarget ? dropOff.RuntimeId : default;
+        public bool HasResourceJob => resourceJobActive;
+        public Vector2Int ReservedGatherCell => interactionCell;
+        public int DropOffPathFailureCount => dropOffPathFailureCount;
+        public int CargoRecoveryCount => cargoRecoveryCount;
+        public float TimeSinceLastEconomicProgress => timeSinceLastEconomicProgress;
         public float AutoResourceSearchRadius => autoResourceSearchRadius;
         public bool IsSeekingRememberedResource => hasRememberedResource;
         public EntityId RememberedResourceId => rememberedResourceId;
@@ -163,8 +192,43 @@ namespace TinyKingdom.Economy
             // same resource intent and reserve another legal same-type node.
             bool accepted = BeginGatherTrip(false);
             if (!accepted) accepted = TryAutoRetarget();
-            if (!accepted) CancelJob();
+            if (!accepted)
+            {
+                // Never discard the resource intent while cargo still needs to be
+                // delivered. The commander may have selected a depleted/crowded node.
+                if (carriedAmount > 0) accepted = BeginReturn();
+                else CancelJob();
+            }
             return accepted;
+        }
+
+        // Used by the authoritative AI command service for economy-role workers.
+        // It is deliberately not called globally, so manual player movement and the
+        // promoted Scout role retain ownership of their Pawn.
+        public bool TryRecoverCargoReturn(Predicate<ResourceNode> retargetEligibility,
+            Predicate<Vector3> retargetPositionEligibility,
+            IPathTraversalPolicy traversalPolicy)
+        {
+            if (!MatchManager.AllowsGameplay || controller == null || !controller.IsAlive
+                || carriedAmount <= 0) return false;
+            if (State == WorkerState.ReturningToDropOff
+                && ResourceDropOffRegistry.IsUsable(dropOff, controller.Faction)
+                && movement.IsMoving) return true;
+            if (State == WorkerState.WaitingForDropOff) return true;
+
+            if (!resourceJobActive)
+            {
+                resourceJobActive = true;
+                resourceJobType = carriedType;
+                rejectedRememberedResources.Clear();
+            }
+            if (retargetEligibility != null)
+                autoRetargetEligibility = retargetEligibility;
+            if (retargetPositionEligibility != null)
+                autoRetargetPositionEligibility = retargetPositionEligibility;
+            if (traversalPolicy != null) strategicTraversal = traversalPolicy;
+            cargoRecoveryCount++;
+            return BeginReturn();
         }
 
         // Called only for a successful explicit Move command. Cargo is retained.
@@ -177,6 +241,9 @@ namespace TinyKingdom.Economy
             gatherTimer = 0f;
             impactApplied = false;
             dropOffRetry = 0f;
+            consecutiveDropOffFailures = 0;
+            hasRejectedDropOff = false;
+            ResetEconomicProgress();
             resourceJobActive = false;
             autoRetargetEligibility = null;
             autoRetargetPositionEligibility = null;
@@ -198,7 +265,19 @@ namespace TinyKingdom.Economy
         public void Tick(float deltaTime)
         {
             if (!MatchManager.AllowsGameplay || controller == null
-                || !controller.IsAlive || State == WorkerState.Idle) return;
+                || !controller.IsAlive) return;
+            using var marker = EconomyTickMarker.Auto();
+            UpdateEconomicProgress(deltaTime);
+            if (State == WorkerState.Idle)
+            {
+                if (resourceJobActive && carriedAmount > 0
+                    && timeSinceLastEconomicProgress >= CargoRecoveryTimeoutSeconds)
+                {
+                    cargoRecoveryCount++;
+                    BeginReturn();
+                }
+                return;
+            }
             switch (State)
             {
                 case WorkerState.MovingToResource:
@@ -260,10 +339,11 @@ namespace TinyKingdom.Economy
                     }
                     else if (!movement.IsMoving)
                     {
+                        RejectCurrentDropOff();
                         dropOff.Release(controller);
                         dropOff = null;
                         State = WorkerState.WaitingForDropOff;
-                        dropOffRetry = 0.5f;
+                        ScheduleDropOffRetry();
                     }
                     break;
                 case WorkerState.WaitingForDropOff:
@@ -300,6 +380,9 @@ namespace TinyKingdom.Economy
 
         private bool BeginReturn()
         {
+            using var marker = CargoRecoveryMarker.Auto();
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.EconomyReturn);
             if (target != null)
                 target.GetComponent<ResourceInteractionSlots>()?.Release(controller);
             if (carriedAmount <= 0) { CancelJob(); return false; }
@@ -318,6 +401,8 @@ namespace TinyKingdom.Economy
             for (int i = 0; i < dropOffCandidates.Count; i++)
             {
                 IResourceDropOff candidate = dropOffCandidates[i];
+                if (hasRejectedDropOff && Time.time < rejectedDropOffUntil
+                    && candidate.RuntimeId.CompareTo(rejectedDropOffId) == 0) continue;
                 if (!candidate.TryReserve(controller, grid, paths, strategicTraversal,
                     out Vector3 position)) continue;
                 bool moved = strategicTraversal == null
@@ -331,12 +416,15 @@ namespace TinyKingdom.Economy
                 dropOff = candidate;
                 interactionPosition = position;
                 State = WorkerState.ReturningToDropOff;
+                consecutiveDropOffFailures = 0;
+                ResetEconomicProgress();
                 return true;
             }
             if (logRouteFailures && State != WorkerState.WaitingForDropOff)
                 Debug.LogWarning($"No reachable Castle/Tower drop-off slot for {name}; waiting with cargo.", this);
             State = WorkerState.WaitingForDropOff;
-            dropOffRetry = 0.5f;
+            dropOffPathFailureCount++;
+            ScheduleDropOffRetry();
             return true;
         }
 
@@ -388,6 +476,11 @@ namespace TinyKingdom.Economy
 
         private void HandleUnavailableResource()
         {
+            if (carriedAmount > 0)
+            {
+                FinishResourceSearch();
+                return;
+            }
             if (resourceJobActive && TryAutoRetarget()) return;
             FinishResourceSearch();
         }
@@ -396,8 +489,8 @@ namespace TinyKingdom.Economy
         {
             if (carriedAmount > 0)
             {
-                // No legal same-type replacement: deposit partial cargo, then stop.
-                resourceJobActive = false;
+                // Deposit partial cargo first. Retain the resource intent so a newly
+                // available equivalent node can be selected after the deposit.
                 BeginReturn();
             }
             else CancelJob();
@@ -623,6 +716,65 @@ namespace TinyKingdom.Economy
             if (dropOff == null) return;
             if (dropOff is UnityEngine.Object unityObject && unityObject == null) return;
             dropOff.Release(controller);
+        }
+
+        private void UpdateEconomicProgress(float deltaTime)
+        {
+            if (!economicProgressInitialized)
+            {
+                ResetEconomicProgress();
+                return;
+            }
+            bool progressed = State != lastEconomicState
+                || carriedAmount != lastEconomicCarriedAmount
+                || ((Vector2)(transform.position - lastEconomicPosition)).sqrMagnitude
+                    >= 0.0025f;
+            if (progressed)
+            {
+                ResetEconomicProgress();
+                return;
+            }
+            timeSinceLastEconomicProgress += Mathf.Max(0f, deltaTime);
+            if (State != WorkerState.ReturningToDropOff || !movement.IsMoving
+                || timeSinceLastEconomicProgress < CargoRecoveryTimeoutSeconds) return;
+
+            // A path can be topologically valid yet make no physical progress because
+            // its reserved edge is congested. Release it once and let the bounded
+            // retry choose the next reachable Castle/Tower.
+            movement.Stop();
+            RejectCurrentDropOff();
+            ReleaseDropOffReservation();
+            dropOff = null;
+            State = WorkerState.WaitingForDropOff;
+            dropOffPathFailureCount++;
+            cargoRecoveryCount++;
+            ScheduleDropOffRetry();
+            ResetEconomicProgress();
+        }
+
+        private void ResetEconomicProgress()
+        {
+            economicProgressInitialized = true;
+            timeSinceLastEconomicProgress = 0f;
+            lastEconomicPosition = transform.position;
+            lastEconomicCarriedAmount = carriedAmount;
+            lastEconomicState = State;
+        }
+
+        private void RejectCurrentDropOff()
+        {
+            if (!ResourceDropOffRegistry.IsUsable(dropOff,
+                    controller != null ? controller.Faction : default)) return;
+            hasRejectedDropOff = true;
+            rejectedDropOffId = dropOff.RuntimeId;
+            rejectedDropOffUntil = Time.time + FailedDropOffCooldownSeconds;
+        }
+
+        private void ScheduleDropOffRetry()
+        {
+            consecutiveDropOffFailures = Mathf.Min(consecutiveDropOffFailures + 1, 4);
+            dropOffRetry = Mathf.Min(DropOffRetryMaximumSeconds,
+                DropOffRetryBaseSeconds * (1 << (consecutiveDropOffFailures - 1)));
         }
 
         private void OnUnitStateChanged(UnitState state)

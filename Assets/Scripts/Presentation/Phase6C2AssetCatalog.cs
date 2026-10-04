@@ -82,7 +82,7 @@ namespace TinyKingdom.Presentation
             player.visual.sortingOrder = sortingOrder;
             player.visual.sprite = source[0];
             player.visual.enabled = Vision.FogWorldVisibility.Instance == null
-                || Vision.FogWorldVisibility.Instance.CanObserve(owner, position);
+                || Vision.FogWorldVisibility.Instance.ShouldPresent(owner, position);
         }
 
         private void Update()
@@ -92,7 +92,8 @@ namespace TinyKingdom.Presentation
             if (frame >= frames.Length) { Destroy(gameObject); return; }
             visual.sprite = frames[frame];
             visual.enabled = Vision.FogWorldVisibility.Instance == null
-                || Vision.FogWorldVisibility.Instance.CanObserve(observedOwner, transform.position);
+                || Vision.FogWorldVisibility.Instance.ShouldPresent(
+                    observedOwner, transform.position);
         }
     }
 }

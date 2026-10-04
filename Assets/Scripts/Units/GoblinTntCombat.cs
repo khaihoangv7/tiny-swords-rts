@@ -178,7 +178,7 @@ namespace TinyKingdom.Units
             if (projectile.frames != null && projectile.frames.Length > 0)
                 projectile.visual.sprite = projectile.frames[0];
             projectile.visual.enabled = Vision.FogWorldVisibility.Instance == null
-                || Vision.FogWorldVisibility.Instance.CanObserve(Faction.Goblin, origin);
+                || Vision.FogWorldVisibility.Instance.ShouldPresent(Faction.Goblin, origin);
         }
 
         private void Update()
@@ -191,7 +191,8 @@ namespace TinyKingdom.Units
             if (frames != null && frames.Length > 0)
                 visual.sprite = frames[Mathf.FloorToInt(elapsed * 12f) % frames.Length];
             visual.enabled = Vision.FogWorldVisibility.Instance == null
-                || Vision.FogWorldVisibility.Instance.CanObserve(Faction.Goblin, transform.position);
+                || Vision.FogWorldVisibility.Instance.ShouldPresent(
+                    Faction.Goblin, transform.position);
             if (t >= 1f) Impact();
         }
 

@@ -43,6 +43,9 @@ namespace TinyKingdom.AI
         public int CompletedCoreInfrastructure { get; private set; }
         public uint SuccessfulCommandSerial { get; private set; }
         public float LastSuccessfulCommandTime { get; private set; } = -1f;
+        public static long CandidateEvaluationCount { get; private set; }
+
+        public static void ResetPerformanceCounters() => CandidateEvaluationCount = 0;
 
         public void Reset(CommanderPawnRoles roles = null)
         {
@@ -106,6 +109,9 @@ namespace TinyKingdom.AI
                 while (candidateIndex < candidates.Count && attempts < attemptsPerThink)
                 {
                     Vector2Int origin = candidates[candidateIndex++];
+#if UNITY_EDITOR || UNITY_INCLUDE_INSTRUMENTATION
+                    CandidateEvaluationCount++;
+#endif
                     if (!IsPolicyCandidate(context.Knowledge, data, origin)
                         || !IsFootprintSafe(context.Knowledge, data, origin, safety))
                         continue;

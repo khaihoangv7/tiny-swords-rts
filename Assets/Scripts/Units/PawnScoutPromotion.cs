@@ -3,6 +3,7 @@ using TinyKingdom.Audio;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
+using TinyKingdom.UI;
 using TinyKingdom.Vision;
 using UnityEngine;
 
@@ -25,13 +26,14 @@ namespace TinyKingdom.Units
     public sealed class PawnScoutPromotion : MonoBehaviour, IUnitVisionModifier
     {
         public const int WoodCost = 50;
-        public const float ScoutVisionMultiplier = 2f;
+        public const float ScoutVisionMultiplier = 2.5f;
         public const float FireAudioVolumeMultiplier = 0.35f;
         public const float FireFramesPerSecond = 10f;
         public const float FireVisualScale = 0.7f;
         public static readonly Vector3 FireLocalPosition = new(0f, 1.00f, -0.05f);
 
         private static readonly List<PawnScoutPromotion> ActivePromotions = new();
+        private static RtsHudAssetCatalog sharedPresentation;
         private UnitController controller;
         private HealthComponent health;
         private PawnScoutFirePlayer firePlayer;
@@ -117,21 +119,28 @@ namespace TinyKingdom.Units
         public static PawnScoutEligibility Evaluate(UnitController pawn,
             Faction humanFaction, ResourceStockpile stockpile, Sprite[] fireFrames)
         {
+            if (MatchManager.Instance != null
+                && MatchManager.Instance.HumanFaction != humanFaction)
+                return PawnScoutEligibility.WrongFaction;
+            return EvaluateForFaction(pawn, humanFaction, stockpile, fireFrames);
+        }
+
+        public static PawnScoutEligibility EvaluateForFaction(UnitController pawn,
+            Faction ownerFaction, ResourceStockpile stockpile, Sprite[] fireFrames)
+        {
             HealthComponent health = pawn != null ? pawn.GetComponent<HealthComponent>() : null;
             if (pawn == null || !pawn.IsAlive || !pawn.IsWorldParticipant || health == null
                 || health.CombatData == null || health.CombatData.UnitType != UnitType.Pawn)
                 return PawnScoutEligibility.InvalidPawn;
-            if (pawn.Faction != humanFaction || stockpile == null
-                || stockpile.Faction != humanFaction
-                || (MatchManager.Instance != null
-                    && MatchManager.Instance.HumanFaction != humanFaction))
+            if (pawn.Faction != ownerFaction || stockpile == null
+                || stockpile.Faction != ownerFaction)
                 return PawnScoutEligibility.WrongFaction;
             if (!MatchManager.AllowsGameplay)
                 return PawnScoutEligibility.MatchNotPlaying;
             PawnScoutPromotion existing = pawn.GetComponent<PawnScoutPromotion>();
             if (existing != null && existing.IsPromoted)
                 return PawnScoutEligibility.AlreadyPromoted;
-            if (ActiveFor(humanFaction) != null)
+            if (ActiveFor(ownerFaction) != null)
                 return PawnScoutEligibility.ActiveScoutExists;
             if (!stockpile.CanAfford(0, WoodCost, 0))
                 return PawnScoutEligibility.InsufficientWood;
@@ -140,12 +149,46 @@ namespace TinyKingdom.Units
             return PawnScoutEligibility.Eligible;
         }
 
+        public static PawnScoutEligibility EvaluateForFaction(UnitController pawn,
+            Faction ownerFaction, ResourceStockpile stockpile)
+        {
+            sharedPresentation ??= RtsHudAssetCatalog.Load();
+            return EvaluateForFaction(pawn, ownerFaction, stockpile,
+                sharedPresentation != null ? sharedPresentation.ScoutFireFrames : null);
+        }
+
         public static bool TryPromote(UnitController pawn, Faction humanFaction,
             ResourceStockpile stockpile, Sprite[] fireFrames)
         {
             if (Evaluate(pawn, humanFaction, stockpile, fireFrames)
-                != PawnScoutEligibility.Eligible || !stockpile.Spend(0, WoodCost, 0))
+                != PawnScoutEligibility.Eligible)
                 return false;
+
+            return PromoteValidated(pawn, stockpile, fireFrames);
+        }
+
+        public static bool TryPromoteForFaction(UnitController pawn, Faction ownerFaction,
+            ResourceStockpile stockpile, Sprite[] fireFrames)
+        {
+            if (EvaluateForFaction(pawn, ownerFaction, stockpile, fireFrames)
+                != PawnScoutEligibility.Eligible)
+                return false;
+
+            return PromoteValidated(pawn, stockpile, fireFrames);
+        }
+
+        public static bool TryPromoteForFaction(UnitController pawn, Faction ownerFaction,
+            ResourceStockpile stockpile)
+        {
+            sharedPresentation ??= RtsHudAssetCatalog.Load();
+            return TryPromoteForFaction(pawn, ownerFaction, stockpile,
+                sharedPresentation != null ? sharedPresentation.ScoutFireFrames : null);
+        }
+
+        private static bool PromoteValidated(UnitController pawn,
+            ResourceStockpile stockpile, Sprite[] fireFrames)
+        {
+            if (!stockpile.Spend(0, WoodCost, 0)) return false;
 
             PawnScoutPromotion promotion = pawn.GetComponent<PawnScoutPromotion>();
             if (promotion == null)
@@ -172,20 +215,20 @@ namespace TinyKingdom.Units
             => eligibility switch
             {
                 PawnScoutEligibility.Eligible =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1",
                 PawnScoutEligibility.ActiveScoutExists =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nOnly one Scout may be active.",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nOnly one Scout may be active.",
                 PawnScoutEligibility.AlreadyPromoted =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nThis Pawn is already the active Scout.",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nThis Pawn is already the active Scout.",
                 PawnScoutEligibility.InsufficientWood =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nRequires 50 Wood.",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nRequires 50 Wood.",
                 PawnScoutEligibility.MatchNotPlaying =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nAvailable only while the match is playing.",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nAvailable only while the match is playing.",
                 PawnScoutEligibility.WrongFaction =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nOnly a human-controlled friendly Pawn may become a Scout.",
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nOnly a human-controlled friendly Pawn may become a Scout.",
                 PawnScoutEligibility.MissingPresentation =>
-                    "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nScout fire presentation is unavailable.",
-                _ => "Cost: 50 Wood\nVision: ×2.0\nMaximum active: 1\nSelect a living friendly Pawn."
+                    "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nScout fire presentation is unavailable.",
+                _ => "Cost: 50 Wood\nVision: ×2.5\nMaximum active: 1\nSelect a living friendly Pawn."
             };
 
         private bool Activate(Sprite[] fireFrames)
@@ -196,7 +239,8 @@ namespace TinyKingdom.Units
             configuredFrames = fireFrames;
             EnsureVisual(configuredFrames);
             PlayPromotionFeedback();
-            GameplayAudioService.RequestUi(GameplayAudioEvent.ScoutPromotion);
+            if (controller.Faction == PlayerViewRelation.PlayerViewFaction)
+                GameplayAudioService.RequestUi(GameplayAudioEvent.ScoutPromotion);
             Register();
             controller.RefreshVisionModifier();
             TeamVisionSystem.Instance?.RecomputeNow();

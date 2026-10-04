@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Units;
@@ -60,6 +62,8 @@ namespace TinyKingdom.AI
         [SerializeField] private int debugVisibleEnemyUnits;
         [SerializeField] private int debugKnownEnemyBuildings;
         [SerializeField] private int debugPawnCount;
+        [SerializeField] private int debugAvailableEconomyPawns;
+        [SerializeField] private int debugPromotedScoutPawns;
         [SerializeField] private int debugPawnTarget;
         [SerializeField] private int debugMilitaryPopulation;
         [SerializeField] private int debugMilitaryTarget;
@@ -109,6 +113,22 @@ namespace TinyKingdom.AI
         [SerializeField] private string debugScoutSafetyState;
         [SerializeField] private string debugScoutDangerReason;
         [SerializeField] private Vector2Int debugScoutRetreatCell;
+        [SerializeField] private string debugScoutTargetKind;
+        [SerializeField] private string debugScoutIntent;
+        [SerializeField] private int debugScoutFrontierCount;
+        [SerializeField] private int debugScoutStaleCandidateCount;
+        [SerializeField] private float debugScoutInformationGain;
+        [SerializeField] private string debugScoutKnownRisk;
+        [SerializeField] private float debugScoutTravelCost;
+        [SerializeField] private float debugScoutTargetScore;
+        [SerializeField] private float debugScoutStrategicValue;
+        [SerializeField] private float debugScoutStaleness;
+        [SerializeField] private float debugLastEnemyCastleObservation = -1f;
+        [SerializeField] private string debugLastMilitaryObservation;
+        [SerializeField] private string debugRecentScoutTargets;
+        [SerializeField] private float debugScoutTargetAge;
+        [SerializeField] private string debugScoutPromotionResult;
+        [SerializeField] private float debugLastScoutDeathTime;
         [SerializeField] private float debugLastGatherAssignmentTime;
         [SerializeField] private float debugLastBuildCommandTime;
         [SerializeField] private float debugLastTrainCommandTime;
@@ -118,6 +138,7 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugLastTargetCompletionTime;
         [SerializeField] private float debugLastResourceIncomeTime;
         [SerializeField] private float debugLastMeaningfulActionTime;
+        [SerializeField, TextArea(4, 16)] private string debugEconomyWorkers;
 
         private float nextThinkTime;
 
@@ -198,7 +219,7 @@ namespace TinyKingdom.AI
                 using (ProductionPolicyMarker.Auto())
                     productionPolicy.Tick(context);
                 using (ScoutingPolicyMarker.Auto())
-                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety);
+                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety, buildingPolicy);
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety);
@@ -222,6 +243,33 @@ namespace TinyKingdom.AI
         private void RefreshDebug()
         {
             debugThinkTick = ThinkTick;
+            var economyDetails = new StringBuilder(256);
+            for (int i = 0; i < knowledge.OwnUnits.Count; i++)
+            {
+                UnitController unit = knowledge.OwnUnits[i];
+                PawnGatherer gatherer = unit != null
+                    ? unit.GetComponent<PawnGatherer>() : null;
+                if (unit == null || gatherer == null) continue;
+                UnitMovement movement = unit.GetComponent<UnitMovement>();
+                economyDetails.Append(unit.GetEntityId().ToString()).Append(" | ")
+                    .Append(pawnRoles.GetRole(unit)).Append(" | ")
+                    .Append(gatherer.CarriedResourceType).Append(' ')
+                    .Append(gatherer.CarriedAmount).Append('/').Append(gatherer.CarryCapacity)
+                    .Append(" | resource=")
+                    .Append(gatherer.Target != null
+                        ? gatherer.Target.GetEntityId().ToString() : "None")
+                    .Append(" | dropoff=")
+                    .Append(gatherer.HasDropOffTarget
+                        ? gatherer.DropOffTargetId.ToString() : "None")
+                    .Append(" | state=").Append(gatherer.State)
+                    .Append(" moving=").Append(movement != null && movement.IsMoving)
+                    .Append(" failures=").Append(gatherer.DropOffPathFailureCount)
+                    .Append(" slot=").Append(gatherer.ReservedGatherCell)
+                    .Append(" noProgress=")
+                    .Append(gatherer.TimeSinceLastEconomicProgress.ToString("0.0"))
+                    .AppendLine("s");
+            }
+            debugEconomyWorkers = economyDetails.ToString();
             debugKnownFood = debugKnownWood = debugKnownGold = 0;
             for (int i = 0; i < knowledge.KnownResources.Count; i++)
             {
@@ -242,6 +290,8 @@ namespace TinyKingdom.AI
             debugVisibleEnemyUnits = knowledge.VisibleEnemyUnits.Count;
             debugKnownEnemyBuildings = knowledge.KnownEnemyBuildings.Count;
             debugPawnCount = productionPolicy.LivingPawnCount;
+            debugAvailableEconomyPawns = pawnRoles.EconomyCount;
+            debugPromotedScoutPawns = pawnRoles.ScoutCount;
             debugPawnTarget = productionPolicy.TargetPawnCount;
             debugMilitaryPopulation = productionPolicy.MilitaryPopulation
                 + productionPolicy.QueuedMilitaryPopulation;
@@ -301,6 +351,32 @@ namespace TinyKingdom.AI
             debugScoutDangerReason = scoutingPolicy.DangerReason;
             debugScoutRetreatCell = scoutingPolicy.HasRetreatDestination
                 ? scoutingPolicy.RetreatCell : new Vector2Int(-1, -1);
+            debugScoutTargetKind = scoutingPolicy.TargetKind.ToString();
+            debugScoutIntent = scoutingPolicy.Intent.ToString();
+            debugScoutFrontierCount = scoutingPolicy.FrontierCandidateCount;
+            debugScoutStaleCandidateCount = scoutingPolicy.StaleRevisitCandidateCount;
+            debugScoutInformationGain = scoutingPolicy.LastInformationGain;
+            debugScoutKnownRisk = scoutingPolicy.LastKnownRisk.ToString();
+            debugScoutTravelCost = scoutingPolicy.LastTravelCost;
+            debugScoutTargetScore = scoutingPolicy.LastTargetScore;
+            debugScoutStrategicValue = scoutingPolicy.LastStrategicValue;
+            debugScoutStaleness = scoutingPolicy.LastStaleness;
+            debugLastEnemyCastleObservation = -1f;
+            for (int i = 0; i < knowledge.KnownEnemyBuildings.Count; i++)
+                if (knowledge.KnownEnemyBuildings[i].BuildingType == BuildingType.Castle)
+                    debugLastEnemyCastleObservation = Mathf.Max(
+                        debugLastEnemyCastleObservation,
+                        knowledge.KnownEnemyBuildings[i].LastSeenTime);
+            MilitaryObservationSnapshot military = knowledge.LastMilitaryObservation;
+            debugLastMilitaryObservation = military.HasObservation
+                ? $"W{military.WarriorCount} A{military.ArcherCount} "
+                    + $"L{military.LancerCount} M{military.MonkCount} "
+                    + $"at {military.ObservationRegion} t={military.LastSeenTime:0.0}"
+                : "None";
+            debugRecentScoutTargets = scoutingPolicy.RecentTargetHistory(Time.time);
+            debugScoutTargetAge = scoutingPolicy.CurrentTargetAge(Time.time);
+            debugScoutPromotionResult = scoutingPolicy.LastPromotionResult;
+            debugLastScoutDeathTime = scoutingPolicy.LastScoutDeathTime;
             debugLastGatherAssignmentTime = progressDiagnostics.LastGatherAssignmentTime;
             debugLastBuildCommandTime = progressDiagnostics.LastBuildCommandTime;
             debugLastTrainCommandTime = progressDiagnostics.LastTrainCommandTime;
@@ -320,10 +396,20 @@ namespace TinyKingdom.AI
             {
                 Vector2Int cell = scoutingPolicy.DestinationCell;
                 Vector3 position = knowledge.TeamVision.GridManager.GridToWorld(cell.x, cell.y);
-                Gizmos.color = Color.red;
+                Gizmos.color = scoutingPolicy.TargetKind switch
+                {
+                    ScoutTargetKind.Frontier => Color.green,
+                    ScoutTargetKind.EnemyBaseRecon or ScoutTargetKind.ProductionRecon
+                        or ScoutTargetKind.MilitaryRecon => Color.cyan,
+                    ScoutTargetKind.ReScout => Color.yellow,
+                    _ => Color.white
+                };
                 Gizmos.DrawWireSphere(position, 0.35f);
                 if (scoutingPolicy.Scout != null)
+                {
+                    Gizmos.color = Color.blue;
                     Gizmos.DrawLine(scoutingPolicy.Scout.transform.position, position);
+                }
             }
             if (drawMilitaryGizmos && militaryPolicy != null)
             {

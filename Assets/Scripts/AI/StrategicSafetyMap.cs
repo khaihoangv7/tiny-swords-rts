@@ -211,22 +211,40 @@ namespace TinyKingdom.AI
             for (int i = Mathf.Clamp(startIndex, 0, path.Count); i < path.Count; i++)
             {
                 StrategicRisk risk = RiskAt(path[i], kind);
-                if (kind == StrategicPathKind.Civilian
-                    ? risk >= StrategicRisk.Dangerous
-                    : risk >= StrategicRisk.ForbiddenForCivilian) return false;
+                if (kind == StrategicPathKind.Army
+                    ? risk >= StrategicRisk.ForbiddenForCivilian
+                    : risk >= StrategicRisk.Dangerous) return false;
             }
             return true;
         }
 
         public bool TryFindRetreatCell(FactionKnowledge knowledge, Vector3 origin,
             StrategicPathKind kind, out Vector2Int result)
+            => TryFindRetreatCell(knowledge, origin, kind, 0, false, default, out result);
+
+        public bool TryFindLocalRetreatCell(FactionKnowledge knowledge, Vector3 origin,
+            StrategicPathKind kind, int cellRadius, bool hasThreatCenter,
+            Vector3 threatCenter, out Vector2Int result)
+            => TryFindRetreatCell(knowledge, origin, kind, Mathf.Max(1, cellRadius),
+                hasThreatCenter, threatCenter, out result);
+
+        private bool TryFindRetreatCell(FactionKnowledge knowledge, Vector3 origin,
+            StrategicPathKind kind, int cellRadius, bool hasThreatCenter,
+            Vector3 threatCenter, out Vector2Int result)
         {
             result = default;
             if (grid == null || knowledge == null || !HasHomeAnchor) return false;
             bool found = false;
             float bestScore = float.PositiveInfinity;
-            for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
+            Vector2Int originCell = grid.WorldToGrid(origin);
+            int minX = cellRadius > 0 ? Mathf.Max(0, originCell.x - cellRadius) : 0;
+            int maxX = cellRadius > 0 ? Mathf.Min(width - 1, originCell.x + cellRadius)
+                : width - 1;
+            int minY = cellRadius > 0 ? Mathf.Max(0, originCell.y - cellRadius) : 0;
+            int maxY = cellRadius > 0 ? Mathf.Min(height - 1, originCell.y + cellRadius)
+                : height - 1;
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
             {
                 var cell = new Vector2Int(x, y);
                 GridCell navigation = grid.GetCell(x, y);
@@ -237,7 +255,10 @@ namespace TinyKingdom.AI
                 float homeDistance = Vector2.Distance(position, HomeAnchor);
                 if (kind == StrategicPathKind.Civilian
                     && homeDistance > homeEconomicRadius) continue;
-                float score = Vector2.Distance(position, origin) + homeDistance * 0.2f;
+                float threatSeparation = hasThreatCenter
+                    ? Vector2.Distance(position, threatCenter) : 0f;
+                float score = Vector2.Distance(position, origin) + homeDistance * 0.2f
+                    - threatSeparation * 0.75f;
                 if (!found || score < bestScore - 0.0001f
                     || Mathf.Abs(score - bestScore) <= 0.0001f
                     && (y < result.y || y == result.y && x < result.x))
@@ -359,9 +380,9 @@ namespace TinyKingdom.AI
                 if (retreat) return true;
                 StrategicRisk risk = owner.RiskAt(
                     new Vector2Int(cell.GridX, cell.GridY), kind);
-                return kind == StrategicPathKind.Civilian
-                    ? risk < StrategicRisk.Dangerous
-                    : risk < StrategicRisk.ForbiddenForCivilian;
+                return kind == StrategicPathKind.Army
+                    ? risk < StrategicRisk.ForbiddenForCivilian
+                    : risk < StrategicRisk.Dangerous;
             }
 
             public double AdditionalCost(GridCell from, GridCell to)
