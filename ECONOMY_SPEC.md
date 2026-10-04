@@ -131,3 +131,25 @@ exactly once. Destroyed core Barracks, Archery or Monastery becomes absent from
 authoritative own-building knowledge and may be planned again when resources,
 worker reserve and placement permit. Phase 7D grants no free income, construction,
 population or production.
+
+## Phase 7E.2 adaptive economy
+
+Red worker allocation is demand driven. The Commander derives Food, Wood and Gold
+deficits from current stockpiles, safety buffers and only unpaid near-term plans.
+Resources already spent on an accepted building or production queue entry are not
+counted again. Reallocation is stable: planning runs every four game seconds, changes
+at most one empty-handed Pawn, and observes an eight-second role dwell outside a
+critical shortage.
+
+Resource selection remains knowledge legal. Visible nodes may use current amount and
+capacity; hidden nodes use frozen last-seen ID, type, position and amount. Worker travel,
+nearest completed friendly Castle/Tower, crowding, depletion and known danger determine
+the target score. A completed economic Tower therefore shortens legal deposit routes
+without changing gather, carry, payment or depletion authority.
+
+The outpost planner groups a bounded set of known value snapshots. It may construct one
+safe Tower near a rich distant cluster only when the authoritative 75 Wood / 50 Gold
+cost is affordable beyond current buffers and reservations. Existing nearby drop-offs,
+danger, small clusters, active projects and cooldown reject the plan. House planning
+continues to use population pressure and the authoritative 80 Wood cost; Sheep spawning
+does not create House demand.

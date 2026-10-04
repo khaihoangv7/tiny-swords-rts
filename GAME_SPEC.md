@@ -2176,3 +2176,19 @@ same slot before considering another free reachable slot. If an unfinished site 
 assigned Pawns but no working Pawn and no progress for three game seconds, the site
 requests bounded recovery and waits two game seconds before another attempt. Invalid
 or dead owners are pruned independently so other builders continue contributing.
+
+# 70. Phase 7E.2 Adaptive Economy and Economic Outposts
+
+The rule-based Commander calculates one centralized Food, Wood and Gold demand from
+the authoritative stockpile, unpaid near-term plans and safety buffers. Worker changes
+are bounded and stable; valid gathering is not reissued every Commander tick. Scout,
+Builder and military ownership remain separate.
+
+Resource choice uses only current vision and frozen Fog memory. A remembered hidden
+resource cannot expose a live node, transform or changing amount. Known civilian danger
+and completed friendly Castle/Tower drop-offs affect travel value. The Commander may
+build a normal Tower as an economic outpost near a safe, rich, distant known cluster.
+It receives no free placement, resources, vision or construction progress.
+
+House demand is based on predicted population headroom and uses the shared 80 Wood
+definition. A House Sheep remains an economy bonus rather than a construction trigger.

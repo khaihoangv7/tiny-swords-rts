@@ -166,6 +166,9 @@ namespace TinyKingdom.EditorTools
             public long deduplicatedConstructionCommands;
             public long constructionSiteBuilderPathRequests;
             public long buildingCandidateEvaluations;
+            public long economyReassignments;
+            public long economicClusterRefreshes;
+            public int economicClusterCount;
             public double moveCommandsPerSecond;
             public double scoutMoveCommandsPerSecond;
             public double gatherCommandsPerSecond;
@@ -249,6 +252,7 @@ namespace TinyKingdom.EditorTools
                 PathfindingSystem.ResetPerformanceCounters();
                 FactionCommandService.ResetPerformanceCounters();
                 BuildingCommanderPolicy.ResetPerformanceCounters();
+                EconomicResourceClusterPlanner.ResetPerformanceCounters();
                 BuildingSite.ResetPerformanceCounters();
                 previousPathRequests = 0;
                 for (int i = 0; i < MarkerNames.Length; i++)
@@ -382,6 +386,11 @@ namespace TinyKingdom.EditorTools
                         BuildingSite.TotalBuilderPathRequests,
                     buildingCandidateEvaluations =
                         BuildingCommanderPolicy.CandidateEvaluationCount,
+                    economyReassignments = commander?.EconomyPolicy != null
+                        ? commander.EconomyPolicy.ReassignmentSerial : 0,
+                    economicClusterRefreshes = EconomicResourceClusterPlanner.RefreshCount,
+                    economicClusterCount = commander?.BuildingPolicy?.ClusterPlanner != null
+                        ? commander.BuildingPolicy.ClusterPlanner.Clusters.Count : 0,
                     maximumPathRequestsInFrame = maximumPathRequestsInFrame,
                     baseFullyDeveloped = commander != null
                         && commander.BuildingPolicy.CompletedCoreInfrastructure >= 3

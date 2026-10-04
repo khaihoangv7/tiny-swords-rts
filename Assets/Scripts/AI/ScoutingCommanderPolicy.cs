@@ -36,6 +36,9 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class ScoutingCommanderPolicy
     {
+        public bool HasPendingPromotionDemand => Scout == null
+            && LastPromotionResult != null
+            && LastPromotionResult.StartsWith("Deferred: insufficient", StringComparison.Ordinal);
         private static readonly ProfilerMarker CandidateGenerationMarker =
             new("TinyKingdom.AI.ScoutCandidateGeneration");
         private static readonly ProfilerMarker FrontierScoringMarker =

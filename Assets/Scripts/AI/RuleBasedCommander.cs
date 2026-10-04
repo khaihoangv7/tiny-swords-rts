@@ -38,6 +38,7 @@ namespace TinyKingdom.AI
         [SerializeField] private BuildingCommanderPolicy buildingPolicy = new();
         [SerializeField] private ProductionCommanderPolicy productionPolicy = new();
         [SerializeField] private EconomyCommanderPolicy economyPolicy = new();
+        [SerializeField] private EconomicDemandModel economicDemand = new();
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
         [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
         [SerializeField] private StrategicSafetyMap strategicSafety = new();
@@ -141,6 +142,10 @@ namespace TinyKingdom.AI
         [SerializeField, TextArea(4, 16)] private string debugEconomyWorkers;
         [SerializeField, TextArea(2, 8)] private string debugConstructionSite;
         [SerializeField, TextArea(3, 12)] private string debugConstructionBuilders;
+        [SerializeField] private string debugEconomicDemand;
+        [SerializeField] private string debugEconomicReassignment;
+        [SerializeField] private string debugEconomicOutpost;
+        [SerializeField] private int debugEconomicClusterCount;
 
         private float nextThinkTime;
 
@@ -151,6 +156,7 @@ namespace TinyKingdom.AI
         public FactionKnowledge Knowledge => knowledge;
         public FactionCommandService CommandService => commandService;
         public EconomyCommanderPolicy EconomyPolicy => economyPolicy;
+        public EconomicDemandModel EconomicDemand => economicDemand;
         public ScoutingCommanderPolicy ScoutingPolicy => scoutingPolicy;
         public CommanderPawnRoles PawnRoles => pawnRoles;
         public BuildingCommanderPolicy BuildingPolicy => buildingPolicy;
@@ -179,12 +185,14 @@ namespace TinyKingdom.AI
             militaryPolicy ??= new MilitaryCommanderPolicy();
             strategicSafety ??= new StrategicSafetyMap();
             progressDiagnostics ??= new CommanderProgressDiagnostics();
+            economicDemand ??= new EconomicDemandModel();
             nextThinkTime = Time.time;
         }
 
         private void OnDisable()
         {
             economyPolicy?.Reset();
+            economicDemand?.Reset();
             scoutingPolicy?.Reset();
             buildingPolicy?.Reset(pawnRoles);
             productionPolicy?.Reset();
@@ -216,17 +224,22 @@ namespace TinyKingdom.AI
                 strategicSafety.Refresh(context.Knowledge);
                 using (RoleSyncMarker.Auto())
                     pawnRoles.Synchronize(context.Knowledge);
+                economicDemand.Refresh(context, buildingPolicy, productionPolicy,
+                    scoutingPolicy);
                 using (BuildingPolicyMarker.Auto())
-                    buildingPolicy.Tick(context, pawnRoles, strategicSafety);
+                    buildingPolicy.Tick(context, pawnRoles, strategicSafety,
+                        economicDemand, economyPolicy);
                 using (ProductionPolicyMarker.Auto())
                     productionPolicy.Tick(context);
                 using (ScoutingPolicyMarker.Auto())
                     scoutingPolicy.Tick(context, pawnRoles, strategicSafety, buildingPolicy);
+                economicDemand.Refresh(context, buildingPolicy, productionPolicy,
+                    scoutingPolicy);
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety);
                 using (EconomyPolicyMarker.Auto())
-                    economyPolicy.Tick(context, pawnRoles, strategicSafety);
+                    economyPolicy.Tick(context, pawnRoles, strategicSafety, economicDemand);
                 progressDiagnostics.Observe(context.Time, context.Knowledge,
                     economyPolicy, buildingPolicy, productionPolicy, scoutingPolicy,
                     militaryPolicy);
@@ -285,6 +298,13 @@ namespace TinyKingdom.AI
             debugFoodAssignments = economyPolicy.FoodAssignments;
             debugWoodAssignments = economyPolicy.WoodAssignments;
             debugGoldAssignments = economyPolicy.GoldAssignments;
+            debugEconomicDemand = $"Stock F{economicDemand.Food}/W{economicDemand.Wood}/G{economicDemand.Gold} "
+                + $"Deficit F{economicDemand.FoodDeficit}/W{economicDemand.WoodDeficit}/G{economicDemand.GoldDeficit} "
+                + economicDemand.Reason;
+            debugEconomicReassignment = economyPolicy.LastReassignmentReason
+                + $" at {economyPolicy.LastReassignmentTime:0.0}";
+            debugEconomicOutpost = buildingPolicy.OutpostDecision;
+            debugEconomicClusterCount = buildingPolicy.ClusterPlanner?.Clusters.Count ?? 0;
             debugScout = scoutingPolicy.Scout;
             debugScoutDestination = scoutingPolicy.HasDestination
                 ? scoutingPolicy.DestinationCell : new Vector2Int(-1, -1);
