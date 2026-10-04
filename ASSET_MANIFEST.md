@@ -1121,9 +1121,9 @@ catalog once and never looks up an AudioClip by filename during an action.
 
 | Audio event | Exact asset path | Authoritative gameplay trigger |
 | --- | --- | --- |
-| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3` | Successful Warrior melee damage to a unit or building |
+| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` through `_07.mp3` | Successful Warrior melee damage to a unit; one uniformly selected variation |
 | LancerAttack | `Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3` | Successful Lancer melee damage to a unit or building |
-| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_archer_attack_01.mp3` | Actual Archer projectile creation, including mounted Archer fire |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual Archer projectile creation, including mounted Archer fire |
 | MonkHeal | `Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3` | A valid heal pulse that restores positive HP |
 | PawnMining | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_mining_01.mp3` | Successful Gold transfer during the existing gather impact |
 | PawnChopping | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_chopping_01.mp3` | Successful Wood transfer during the existing gather impact |
@@ -1182,3 +1182,19 @@ loading and no preload. All source MP3 files remain unchanged. Fire uses
 `Assets/Audio/Music/attack_theme.mp3` was also found (about 10.971s, 44.1kHz
 stereo), but Phase 6E.2 defines no attack-music state machine, so it remains
 unmapped rather than being started from an invented gameplay rule.
+
+## Phase 6E audio expansion mappings
+
+| Audio event | Exact asset path | Authoritative gameplay trigger | Runtime classification |
+| --- | --- | --- | --- |
+| BuildingCompleted | `Assets/Audio/SFX/Buildings/Construction/building_completed.mp3` | First `UnderConstruction` to `Completed` transition | Fog-aware world one-shot |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual projectile creation after ranged windup | Fog-aware world one-shot |
+| ArcherArrowImpact | `Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3` | Successful Archer projectile damage to a unit | Fog-aware world one-shot |
+| WarriorAttack primary | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` | Successful Warrior damage to a unit | Fog-aware world variation |
+| WarriorAttack variations | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_02.mp3` through `sfx_sword_hit_07.mp3` | Uniform random selection for the same successful hit event | Fog-aware world variation |
+| GenericCommandVoice | `Assets/Audio/SFX/Commands/units_say_01.mp3` | Accepted Human command with at most three accepted Warrior/Lancer/Archer recipients; 30% roll and independent 30 game-second cooldown | 2D one-shot |
+| ArmyCommandVoice | `Assets/Audio/SFX/Commands/army_say_01.mp3` | Accepted Human command with more than three accepted Warrior/Lancer/Archer recipients; 40% roll and independent 10 game-second cooldown | 2D one-shot |
+
+Command categories are mutually exclusive. Pawn, promoted Pawn Scout and Monk are
+eligible recipients for the generic response but never increase the army count.
+Cooldown begins only when the centralized audio service accepts playback.

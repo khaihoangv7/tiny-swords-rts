@@ -28,8 +28,8 @@ Blue visibility through `TeamVisionSystem`. Moving the camera away or losing leg
 vision stops that source.
 
 The following are 2D player feedback: building selection, command accepted,
-command rejected, successful construction-plan placement, own unit production
-completion, victory and defeat.
+command rejected, successful construction-plan placement, Human command voice,
+own unit production completion, victory and defeat.
 
 ## Event mappings
 
@@ -44,10 +44,16 @@ completion, victory and defeat.
 | BuildingFire | `Assets/Audio/SFX/Buildings/Destruction/fire.mp3` | Observable completed building below 60% HP | World loop |
 | BuildingExplosion | `Assets/Audio/SFX/Buildings/Destruction/building_destroy.mp3` | Observable authoritative building death | World one-shot |
 | BuildingPlan | `Assets/Audio/SFX/Buildings/Construction/building_plan.mp3` | Successful Human construction placement | 2D one-shot |
+| BuildingCompleted | `Assets/Audio/SFX/Buildings/Construction/building_completed.mp3` | First normal construction completion transition | World one-shot |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual Archer projectile creation | World one-shot |
+| ArcherArrowImpact | `Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3` | Successful Archer projectile damage to a unit | World one-shot |
+| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` through `_07.mp3` | Successful Warrior damage to a unit | World one-shot variation |
 | PawnHammer | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_01.mp3` and `_02.mp3` | Construction cycle or positive repair impact | World one-shot variation |
 | CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | Accepted bottom-panel command click | 2D one-shot |
 | CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | Disabled or rejected bottom-panel command click | 2D one-shot |
 | UnitProductionFinished | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | Human unit successfully spawns | 2D one-shot |
+| GenericCommandVoice | `Assets/Audio/SFX/Commands/units_say_01.mp3` | Accepted non-army Human unit command; 30% / 30s | 2D one-shot |
+| ArmyCommandVoice | `Assets/Audio/SFX/Commands/army_say_01.mp3` | Accepted Human command to more than three combat recipients; 40% / 10s | 2D one-shot |
 | Victory | `Assets/Audio/SFX/Match/win.mp3` | Authoritative BlueVictory | 2D one-shot |
 | Defeat | `Assets/Audio/SFX/Match/defeat.mp3` | Authoritative RedVictory | 2D one-shot |
 
@@ -77,6 +83,13 @@ from a later successful placement, which requests `building_plan.mp3`.
 `finish_queue.mp3` occurs only after successful spawn from a production queue owned
 by the current Human view faction. Enqueue does not trigger it and hidden Red
 production cannot notify Blue.
+
+Human unit command voice is evaluated only after at least one selected unit accepts
+the command. Army count includes accepted living Warrior, Lancer and Archer units;
+Pawn, Pawn Scout and Monk are excluded from that count. The army and generic groups
+are mutually exclusive and keep independent cooldowns measured with scaled game
+time. A failed probability roll, missing clip, unavailable source or rejected
+command does not begin a cooldown. AI command paths do not invoke this policy.
 
 ## Match lifecycle
 

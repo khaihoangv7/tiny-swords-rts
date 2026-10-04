@@ -1051,3 +1051,24 @@ manual listening, Fog, overlap and restart validation remain before PASS.
 - [ ] Stress simultaneous combat/economy audio and inspect Audio CPU/GC/pool growth
 - [ ] Confirm the Unity Console remains clean
 - [ ] Decide separately whether to integrate the supplied `attack_theme.mp3`
+
+## Phase 6E - Audio Expansion: completion, combat impacts and command voices
+
+Status: **IMPLEMENTED, UNITY VALIDATION PENDING**
+
+- [x] Add one Fog-aware building completion cue at the authoritative completion transition
+- [x] Replace Archer release mapping with `sfx_arrow_sound.mp3` at projectile creation
+- [x] Add unit-only Archer impact audio after successful projectile damage
+- [x] Add seven uniform Warrior unit-hit variations after successful damage
+- [x] Add generic Human command voice with 30% chance and 30 game-second cooldown
+- [x] Add army Human command voice with 40% chance and 10 game-second cooldown
+- [x] Count only accepted Warrior/Lancer/Archer recipients and require a count above three
+- [x] Keep voice categories exclusive and start cooldown only after successful playback
+- [x] Keep AI command paths outside Human command voice feedback
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6E Audio Expansion`
+- [x] Compile Runtime and Editor assemblies with zero errors and warnings
+- [ ] Run Phase 6E Audio Expansion validator in Edit Mode
+- [ ] Run Phase 6E Audio Expansion validator in Play Mode
+- [ ] Manually verify completion/release/impact/hit sounds, Fog gating and lethal impacts
+- [ ] Manually verify command probabilities, thresholds, independent cooldowns and no AI voice
+- [ ] Confirm Unity Console remains clean during the manual matrix

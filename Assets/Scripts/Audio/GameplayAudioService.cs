@@ -185,7 +185,7 @@ namespace TinyKingdom.Audio
 
                 SourceSlot slot = AcquireOneShot();
                 if (slot == null) return false;
-                AudioClip clip = cue.GetClip(presentationRandom.Next());
+                AudioClip clip = cue.GetClip(presentationRandom.Next(cue.ClipCount));
                 if (clip == null) return false;
                 ConfigureSource(slot.Source, spatial, false);
                 slot.EventId = eventId;
@@ -220,7 +220,7 @@ namespace TinyKingdom.Audio
                 || cue.ClipCount == 0 || !CanPlayerHear(worldPosition, sourceFaction)) return false;
             SourceSlot slot = AcquireLoop();
             if (slot == null) return false;
-            AudioClip clip = cue.GetClip(presentationRandom.Next());
+            AudioClip clip = cue.GetClip(presentationRandom.Next(cue.ClipCount));
             if (clip == null) return false;
             ConfigureSource(slot.Source, true, true);
             slot.EventId = eventId;

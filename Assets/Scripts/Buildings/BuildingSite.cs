@@ -4,6 +4,7 @@ using TinyKingdom.Input;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
 using TinyKingdom.Presentation;
 using UnityEngine;
 
@@ -25,6 +26,7 @@ namespace TinyKingdom.Buildings
         private float currentHP;
         private bool occupied;
         private bool bonusApplied;
+        private bool completionAudioPlayed;
         private readonly HashSet<PawnBuilder> assignedBuilders = new();
         private BuildingInteractionSlots interactionSlots;
 
@@ -67,6 +69,7 @@ namespace TinyKingdom.Buildings
             population = ownerPopulation;
             Variant = variant;
             currentHP = 1f;
+            completionAudioPlayed = false;
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
             transform.position = first + new Vector3((data.Footprint.x - 1) * grid.NavigationData.CellSize * 0.5f,
                 (data.Footprint.y - 1) * grid.NavigationData.CellSize * 0.5f, 0f);
@@ -117,6 +120,12 @@ namespace TinyKingdom.Buildings
                 State = BuildingState.Completed;
                 currentHP = data.MaxHP;
                 visual.color = Color.white;
+                if (!completionAudioPlayed)
+                {
+                    completionAudioPlayed = true;
+                    GameplayAudioService.Request(GameplayAudioEvent.BuildingCompleted,
+                        transform.position, Faction);
+                }
                 if (!bonusApplied && data.PopulationBonus > 0)
                 {
                     population?.AddCap(data.PopulationBonus);
@@ -137,8 +146,13 @@ namespace TinyKingdom.Buildings
 
         public void CompleteImmediatelyForTestSetup()
         {
-            if (State == BuildingState.UnderConstruction)
+            if (State == BuildingState.UnderConstruction && MatchManager.AllowsGameplay)
+            {
+                // Scenario setup creates already-complete starting structures; it is
+                // not a player construction completion and must stay silent.
+                completionAudioPlayed = true;
                 AdvanceConstruction(data.ConstructionSeconds);
+            }
         }
 
         public float Repair(float seconds)

@@ -5,6 +5,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -22,6 +23,8 @@ namespace TinyKingdom.Input
         [SerializeField] private bool blockWhenPointerIsOverUI = true;
 
         private readonly List<UnitSelection> commandUnits = new();
+        private readonly List<UnitController> acceptedCommandUnits = new();
+        private readonly HumanCommandVoiceFeedback commandVoice = new();
         private bool attackMovePending;
         private BuildingPlacementController placement;
 
@@ -153,6 +156,7 @@ namespace TinyKingdom.Input
                     selectionManager.PlayerFaction, target.GetComponent<HealthComponent>()))
                 return 0;
 
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             int issued = 0;
             foreach (UnitSelection unit in commandUnits)
@@ -166,11 +170,12 @@ namespace TinyKingdom.Input
                     unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                     unit.GetComponent<PawnGatherer>()?.CancelJob();
                     unit.GetComponent<PawnBuilder>()?.CancelJob();
+                    AcceptCommand(unit.Controller);
                     issued++;
                 }
             }
             if (issued > 0) AttackCommandFeedback.Spawn(target.transform);
-            return issued;
+            return FinishAcceptedCommand(issued);
         }
 
         public int IssueAttackCommand(BuildingCombatTarget target)
@@ -180,6 +185,7 @@ namespace TinyKingdom.Input
                 || target.Faction == selectionManager.PlayerFaction
                 || !CombatVisibility.CanFactionCurrentlyObserveTarget(
                     selectionManager.PlayerFaction, target)) return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             int issued = 0;
             foreach (UnitSelection unit in commandUnits)
@@ -191,9 +197,10 @@ namespace TinyKingdom.Input
                 unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                 unit.GetComponent<PawnGatherer>()?.CancelJob();
                 unit.GetComponent<PawnBuilder>()?.CancelJob();
+                AcceptCommand(unit.Controller);
                 issued++;
             }
-            return issued;
+            return FinishAcceptedCommand(issued);
         }
 
         private UnitController FindEnemyAtScreenPosition(Vector2 screenPosition)
@@ -248,6 +255,7 @@ namespace TinyKingdom.Input
         {
             if (!MatchManager.AllowsGameplay || target == null || target.IsDepleted
                 || selectionManager == null) return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             int issued = 0;
             foreach (UnitSelection unit in commandUnits)
@@ -260,22 +268,28 @@ namespace TinyKingdom.Input
                 {
                     unit.GetComponent<MonkHealer>()?.CancelExplicitOrder();
                     unit.GetComponent<PawnBuilder>()?.CancelJob();
+                    AcceptCommand(unit.Controller);
                     issued++;
                 }
             }
-            return issued;
+            return FinishAcceptedCommand(issued);
         }
 
         public int IssueGoldMineCommand(GoldMineObjective mine)
         {
             if (!MatchManager.AllowsGameplay || mine == null || selectionManager == null
                 || !CanPlayerObserveResource(mine.transform.position)) return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             int issued = 0;
             foreach (UnitSelection selected in commandUnits)
                 if (selected != null && selected.Controller.Faction == selectionManager.PlayerFaction
-                    && mine.TryEnter(selected.Controller)) issued++;
-            return issued;
+                    && mine.TryEnter(selected.Controller))
+                {
+                    AcceptCommand(selected.Controller);
+                    issued++;
+                }
+            return FinishAcceptedCommand(issued);
         }
 
         public bool CanEnterGoldMineAt(Vector3 world)
@@ -325,14 +339,19 @@ namespace TinyKingdom.Input
                 || target.CurrentHP >= target.MaxHP || selectionManager == null) return 0;
             UnitController ally = target.GetComponent<UnitController>();
             if (ally == null || ally.Faction != selectionManager.PlayerFaction) return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             int issued = 0;
             foreach (UnitSelection unit in commandUnits)
             {
                 MonkHealer healer = unit != null ? unit.GetComponent<MonkHealer>() : null;
-                if (healer != null && healer.AssignManual(target)) issued++;
+                if (healer != null && healer.AssignManual(target))
+                {
+                    AcceptCommand(unit.Controller);
+                    issued++;
+                }
             }
-            return issued;
+            return FinishAcceptedCommand(issued);
         }
 
         private HealthComponent FindFriendlyDamagedUnit(Vector2 screenPosition)
@@ -412,6 +431,7 @@ namespace TinyKingdom.Input
             if (!MatchManager.AllowsGameplay || selectionManager == null || gridManager == null)
                 return 0;
 
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             if (commandUnits.Count == 0)
                 return 0;
@@ -448,12 +468,13 @@ namespace TinyKingdom.Input
                     selectedUnit.GetComponent<PawnBuilder>()?.CancelJob();
 
                     assigned.Add(candidate);
+                    AcceptCommand(selectedUnit.Controller);
                     issued++;
                     break;
                 }
             }
 
-            return issued;
+            return FinishAcceptedCommand(issued);
         }
 
         private List<GridCell> FindGroundCandidates(Vector3 worldPosition, int unitCount)
@@ -536,6 +557,7 @@ namespace TinyKingdom.Input
         {
             if (!MatchManager.AllowsGameplay || target == null || selectionManager == null)
                 return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             commandUnits.Sort((a, b) =>
             {
@@ -550,8 +572,12 @@ namespace TinyKingdom.Input
             });
             int issued = 0;
             foreach (UnitSelection selected in commandUnits)
-                if (selected != null && target.TryStation(selected.Controller)) issued++;
-            return issued;
+                if (selected != null && target.TryStation(selected.Controller))
+                {
+                    AcceptCommand(selected.Controller);
+                    issued++;
+                }
+            return FinishAcceptedCommand(issued);
         }
 
         public int IssueBuildingCommand(BuildingSite site)
@@ -560,6 +586,7 @@ namespace TinyKingdom.Input
             BuildingSystem system = FindAnyObjectByType<BuildingSystem>();
             if (system == null || selectionManager == null || site == null
                 || site.Faction != selectionManager.PlayerFaction) return 0;
+            BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
             var pawns = new List<PawnBuilder>();
             foreach (UnitSelection unit in commandUnits)
@@ -567,7 +594,46 @@ namespace TinyKingdom.Input
                 PawnBuilder pawn = unit != null ? unit.GetComponent<PawnBuilder>() : null;
                 if (pawn != null) pawns.Add(pawn);
             }
-            return system.TryAssign(site, pawns) ? 1 : 0;
+            if (!system.TryAssign(site, pawns)) return 0;
+            foreach (PawnBuilder pawn in pawns)
+                if (pawn != null && pawn.Target == site)
+                    AcceptCommand(pawn.GetComponent<UnitController>());
+            FinishAcceptedCommand(acceptedCommandUnits.Count);
+            return 1;
+        }
+
+        public void AcknowledgeAcceptedExternalCommand(int acceptedCount,
+            int armyCombatCount = 0)
+        {
+            if (acceptedCount > 0)
+                commandVoice.TryAcknowledge(acceptedCount, armyCombatCount, Time.time);
+        }
+
+        private void BeginAcceptedCommand() => acceptedCommandUnits.Clear();
+
+        private void AcceptCommand(UnitController unit)
+        {
+            if (unit != null && unit.IsAlive && !acceptedCommandUnits.Contains(unit))
+                acceptedCommandUnits.Add(unit);
+        }
+
+        private int FinishAcceptedCommand(int issued)
+        {
+            if (issued > 0)
+            {
+                int armyCombatCount = 0;
+                for (int i = 0; i < acceptedCommandUnits.Count; i++)
+                {
+                    UnitType type = acceptedCommandUnits[i].GetComponent<HealthComponent>()
+                        ?.CombatData?.UnitType ?? UnitType.Pawn;
+                    if (HumanCommandVoiceFeedback.IsArmyCombatUnit(type))
+                        armyCombatCount++;
+                }
+                commandVoice.TryAcknowledge(acceptedCommandUnits.Count,
+                    armyCombatCount, Time.time);
+            }
+            acceptedCommandUnits.Clear();
+            return issued;
         }
     }
 }

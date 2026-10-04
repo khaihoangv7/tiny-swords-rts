@@ -129,10 +129,15 @@ namespace TinyKingdom.Buildings
             consumedFrame = Time.frameCount;
             selection.SuppressNextLeftClick();
             if (!IsValidPreview) return;
-            if (system.TryBuild(activeType.Value, activeVariant, origin, builders, out _))
+            if (system.TryBuild(activeType.Value, activeVariant, origin, builders,
+                    out BuildingSite site))
             {
                 if (selection.PlayerFaction == PlayerViewRelation.PlayerViewFaction)
+                {
                     GameplayAudioService.RequestUi(GameplayAudioEvent.BuildingPlan);
+                    GetComponent<PlayerCommandController>()?.AcknowledgeAcceptedExternalCommand(
+                        site != null ? site.ActiveBuilderCount : 1);
+                }
                 Cancel();
             }
         }
