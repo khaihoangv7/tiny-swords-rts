@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TinyKingdom.Buildings;
 using TinyKingdom.Navigation;
 using UnityEngine;
 
@@ -25,6 +26,7 @@ namespace TinyKingdom.Units
 
         private readonly WaypointPath activePath = new();
         private UnitController unitController;
+        private PawnBuilder pawnBuilder;
         private bool suspended;
         private bool hasCommandDestination;
         private Vector2Int commandDestinationCell;
@@ -54,6 +56,7 @@ namespace TinyKingdom.Units
         private void Awake()
         {
             unitController = GetComponent<UnitController>();
+            pawnBuilder = GetComponent<PawnBuilder>();
             unitController.StateChanged += HandleStateChanged;
             UnitCombatData combatData = GetComponent<HealthComponent>()?.CombatData;
             if (combatData != null)
@@ -320,10 +323,14 @@ namespace TinyKingdom.Units
             // Preserve only separation along the connector axis. Lateral pushes can
             // leave the painted corridor, while a small axial response lets same- or
             // opposite-direction groups queue without replacing the stair waypoint.
-            Vector3 resolved = connectorWaypoint
-                ? UnitSeparation.ApplyAlongAxis(this, desired, deltaTime, gridManager,
-                    connectorTarget - current)
-                : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
+            bool holdConstructionSlot = pawnBuilder != null
+                && pawnBuilder.ConstrainSeparationNearSlot;
+            Vector3 resolved = holdConstructionSlot
+                ? desired
+                : connectorWaypoint
+                    ? UnitSeparation.ApplyAlongAxis(this, desired, deltaTime, gridManager,
+                        connectorTarget - current)
+                    : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
             bool resolvedSafe = crossingHeightConnector
                 ? IsSafeConnectorStep(current, resolved, connectorTarget)
                 : UnitSeparation.IsSafeSegment(gridManager, current, resolved);

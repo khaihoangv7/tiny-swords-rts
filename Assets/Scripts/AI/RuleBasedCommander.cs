@@ -139,6 +139,8 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugLastResourceIncomeTime;
         [SerializeField] private float debugLastMeaningfulActionTime;
         [SerializeField, TextArea(4, 16)] private string debugEconomyWorkers;
+        [SerializeField, TextArea(2, 8)] private string debugConstructionSite;
+        [SerializeField, TextArea(3, 12)] private string debugConstructionBuilders;
 
         private float nextThinkTime;
 
@@ -301,6 +303,45 @@ namespace TinyKingdom.AI
             debugBuilder = buildingPolicy.CurrentBuilder;
             debugBuildCell = buildingPolicy.CurrentBuildCell;
             debugCompletedCoreInfrastructure = buildingPolicy.CompletedCoreInfrastructure;
+            BuildingSite constructionSite = buildingPolicy.ActiveSite;
+            if (constructionSite == null)
+            {
+                debugConstructionSite = "None";
+                debugConstructionBuilders = "None";
+            }
+            else
+            {
+                debugConstructionSite = $"{constructionSite.GetEntityId()} | "
+                    + $"{constructionSite.Type} | progress="
+                    + $"{constructionSite.ConstructionProgress:0.000} | lastProgress="
+                    + $"{constructionSite.LastProgressTime:0.0} | assigned="
+                    + $"{constructionSite.ActiveBuilderCount} | working="
+                    + $"{constructionSite.WorkingBuilderCount} | reachable="
+                    + $"{constructionSite.ReachableBuilderSlotCount} | free="
+                    + $"{constructionSite.FreeBuilderSlotCount} | recovery="
+                    + $"{constructionSite.RecoveryState} | "
+                    + constructionSite.LastRecoveryReason;
+                var builderDetails = new StringBuilder(192);
+                for (int i = 0; i < knowledge.OwnUnits.Count; i++)
+                {
+                    UnitController unit = knowledge.OwnUnits[i];
+                    PawnBuilder job = unit != null ? unit.GetComponent<PawnBuilder>() : null;
+                    if (job == null || job.Target != constructionSite) continue;
+                    UnitMovement movement = unit.GetComponent<UnitMovement>();
+                    builderDetails.Append(unit.GetEntityId().ToString()).Append(" | role=")
+                        .Append(pawnRoles.GetRole(unit)).Append(" | site=")
+                        .Append(constructionSite.GetEntityId().ToString()).Append(" | slot=")
+                        .Append(job.ReservedSlotId).Append(" | distance=")
+                        .Append(job.DistanceToInteraction.ToString("0.00"))
+                        .Append(" | moving=").Append(movement != null && movement.IsMoving)
+                        .Append(" | working=").Append(job.IsWorking)
+                        .Append(" | failures=").Append(job.PathFailureCount)
+                        .Append(" | lastBuild=")
+                        .Append(job.LastBuildCommandTime.ToString("0.0")).AppendLine();
+                }
+                debugConstructionBuilders = builderDetails.Length > 0
+                    ? builderDetails.ToString() : "None";
+            }
             debugProductionDecision = productionPolicy.ActiveProductionDecision?.ToString()
                 ?? "None";
             debugRallyStagingCell = productionPolicy.HasRallyStagingCell

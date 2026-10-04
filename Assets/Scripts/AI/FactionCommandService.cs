@@ -34,6 +34,7 @@ namespace TinyKingdom.AI
         private readonly List<PawnBuilder> singleBuilder = new(1);
         private static readonly long[] CommandAttempts = new long[
             System.Enum.GetValues(typeof(CommanderCommandCategory)).Length];
+        public static long DeduplicatedConstructionCommandCount { get; private set; }
 
         public Faction Faction => faction;
         public FactionKnowledge Knowledge => knowledge;
@@ -46,7 +47,10 @@ namespace TinyKingdom.AI
             => CommandAttempts[(int)category];
 
         public static void ResetPerformanceCounters()
-            => System.Array.Clear(CommandAttempts, 0, CommandAttempts.Length);
+        {
+            System.Array.Clear(CommandAttempts, 0, CommandAttempts.Length);
+            DeduplicatedConstructionCommandCount = 0;
+        }
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge)
             => Configure(owner, factionKnowledge, null);
@@ -276,17 +280,17 @@ namespace TinyKingdom.AI
                 return CommanderCommandResult.RejectedInvalidPlacement;
             singleBuilder.Clear();
             singleBuilder.Add(builder);
-            return buildingSystem.TryBuild(type, origin, singleBuilder, out site)
-                ? CommanderCommandResult.Accepted
-                : CommanderCommandResult.RejectedUnreachable;
+            if (!buildingSystem.TryBuild(type, origin, singleBuilder, out site))
+                return CommanderCommandResult.RejectedUnreachable;
+            site.RecordBuilderCommand(false);
+            return CommanderCommandResult.Accepted;
         }
 
         public CommanderCommandResult TryResumeConstruction(PawnBuilder builder,
             BuildingSite site)
         {
+            Count(CommanderCommandCategory.Build);
             using var marker = CommandDispatchMarker.Auto();
-            using var source = PathfindingSystem.TrackCommanderRequest(
-                PathfindingRequestSource.CommanderBuild);
             UnitController actor = builder != null ? builder.GetComponent<UnitController>() : null;
             CommanderCommandResult actorResult = ValidateActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
@@ -296,6 +300,16 @@ namespace TinyKingdom.AI
                 return CommanderCommandResult.RejectedInvalidBuilding;
             if (site.State != BuildingState.UnderConstruction)
                 return CommanderCommandResult.RejectedConstructionActive;
+            if (builder.HasJob && builder.Target == site && site.IsAssigned(builder)
+                && site.HasBuilderReservation(builder))
+            {
+                site.RecordBuilderCommand(true);
+                DeduplicatedConstructionCommandCount++;
+                return CommanderCommandResult.Accepted;
+            }
+            site.RecordBuilderCommand(false);
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.CommanderBuild);
             singleBuilder.Clear();
             singleBuilder.Add(builder);
             return buildingSystem != null && buildingSystem.TryAssign(site, singleBuilder)

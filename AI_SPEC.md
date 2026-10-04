@@ -543,3 +543,32 @@ evaluations; and samples audio pool size, GC and knowledge collection sizes. The
 counters diagnose x10 behavior but do not replace the extended Play Mode Profiler run.
 `FogWorldVisibility` also removes destroyed entity keys from its reusable presentation
 gate cache during refresh, preventing spawn/death churn from accumulating stale entries.
+
+### Phase 7E.1 Red construction reliability rules
+
+Player and Commander construction converge on `BuildingSystem`, then `BuildingSite`
+and `PawnBuilder`. Placement generates the same edge-adjacent work slots used at
+runtime while the prospective footprint is blocked. A usable slot must be stable
+ground at the footprint elevation, outside stairs/connector corridors, unoccupied,
+and connected to external walkable space. At least one selected Builder must also
+have an authoritative path to a slot before a site is created.
+
+The site is the sole owner of Pawn-to-slot reservations. A Pawn reserves one concrete
+reachable free slot before movement and keeps it until the assignment ends or bounded
+recovery proves another slot is needed. Red assigns at most three concurrent Builders,
+never more than the site's free slot capacity, and always preserves the configured
+minimum Economy workers. Promoted Scouts cannot acquire the Builder role.
+
+An already valid same-Pawn/same-site assignment is deduplicated without touching its
+path, reservation or working state. Builders enter work within 0.2 world units and
+remain working through small nudges up to 0.48 units. Separation remains enabled in
+travel and is suppressed only near that Pawn's reserved final slot. A displaced Pawn
+first makes bounded returns to its own slot, then may select a different free reachable
+slot. Three game seconds without authoritative progress triggers a site-level recovery;
+recovery has a two-second cooldown and reports an access failure rather than destroying
+or refunding an impossible existing site.
+
+Per-site and global counters record construction commands, deduplicated requests and
+builder path requests. Optional site gizmos show invalid, free, reserved, approaching
+and working slots. These diagnostics are disabled by default and the extended x10 Play
+Mode profile remains the authority for command/path rates.

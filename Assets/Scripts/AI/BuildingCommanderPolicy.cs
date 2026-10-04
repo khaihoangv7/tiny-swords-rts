@@ -24,6 +24,8 @@ namespace TinyKingdom.AI
         [SerializeField, Min(1)] private int attemptsPerThink = 4;
         [SerializeField, Min(0.5f)] private float retrySeconds = 2f;
         [SerializeField, Min(0)] private int foodSafetyReserve = 50;
+        [SerializeField, Range(1, 8)] private int maximumConcurrentBuilders = 3;
+        [SerializeField, Min(0.25f)] private float builderAssignmentCooldown = 0.5f;
 
         private readonly List<Vector2Int> candidates = new();
         private BuildingSite activeSite;
@@ -32,6 +34,7 @@ namespace TinyKingdom.AI
         private BuildingType candidateType;
         private int candidateIndex;
         private float nextAttemptTime;
+        private float nextBuilderAssignmentTime;
         private Vector2Int currentBuildCell = new(-1, -1);
 
         public int FreePopulationThreshold => freePopulationThreshold;
@@ -41,6 +44,7 @@ namespace TinyKingdom.AI
         public UnitController CurrentBuilder => builder;
         public Vector2Int CurrentBuildCell => currentBuildCell;
         public int CompletedCoreInfrastructure { get; private set; }
+        public int MaximumConcurrentBuilders => maximumConcurrentBuilders;
         public uint SuccessfulCommandSerial { get; private set; }
         public float LastSuccessfulCommandTime { get; private set; } = -1f;
         public static long CandidateEvaluationCount { get; private set; }
@@ -56,6 +60,7 @@ namespace TinyKingdom.AI
             candidates.Clear();
             candidateIndex = 0;
             nextAttemptTime = 0f;
+            nextBuilderAssignmentTime = 0f;
             currentBuildCell = new Vector2Int(-1, -1);
             CompletedCoreInfrastructure = 0;
             SuccessfulCommandSerial = 0;
@@ -152,10 +157,8 @@ namespace TinyKingdom.AI
 
             if (safety != null && IsActiveProjectUnsafe(activeSite, safety))
             {
-                UnitController unsafeBuilder = builder;
-                unsafeBuilder?.GetComponent<PawnBuilder>()?.CancelJob();
-                unsafeBuilder?.GetComponent<UnitMovement>()?.Stop();
-                ReleaseBuilder(roles);
+                CancelSiteBuilders(context.Knowledge, roles, activeSite);
+                builder = null;
                 // The paused site is preserved. Economy policy runs later in the
                 // same Commander tick and retreats the now-economy Pawn if needed.
                 return true;
@@ -163,41 +166,112 @@ namespace TinyKingdom.AI
 
             if (!activeSite.IsAlive)
             {
-                ReleaseBuilder(roles);
+                ReleaseSiteBuilderRoles(context.Knowledge, roles, activeSite);
+                builder = null;
                 activeSite = null;
                 ClearPlan();
                 return false;
             }
             if (activeSite.State == BuildingState.Completed)
             {
-                ReleaseBuilder(roles);
+                ReleaseSiteBuilderRoles(context.Knowledge, roles, activeSite);
+                builder = null;
                 activeSite = null;
                 ClearPlan();
                 return false;
             }
 
-            PawnBuilder job = builder != null ? builder.GetComponent<PawnBuilder>() : null;
-            if (builder != null && builder.IsAlive && job != null
-                && job.HasJob && job.Target == activeSite)
+            if (activeSite.RecoveryState == ConstructionRecoveryState.AccessFailure
+                && activeSite.ActiveBuilderCount == 0)
+                return true;
+
+            int assigned = SynchronizeSiteBuilders(context.Knowledge, roles, activeSite);
+            if (assigned > 0)
             {
-                roles.TryAssign(builder, CommanderPawnRole.Builder);
+                if (context.Time >= nextBuilderAssignmentTime
+                    && assigned < maximumConcurrentBuilders
+                    && activeSite.FreeBuilderSlotCount > 0
+                    && roles.EconomyCount > minimumEconomyWorkers)
+                    TryAssignAdditionalBuilder(context, roles);
                 return true;
             }
 
             ReleaseBuilder(roles);
+            TryAssignAdditionalBuilder(context, roles);
+            return true;
+        }
+
+        private void TryAssignAdditionalBuilder(CommanderDecisionContext context,
+            CommanderPawnRoles roles)
+        {
+            nextBuilderAssignmentTime = context.Time + builderAssignmentCooldown;
+            if (activeSite == null || activeSite.FreeBuilderSlotCount <= 0
+                || roles.EconomyCount <= minimumEconomyWorkers) return;
             UnitController replacement = ChooseBuilder(context, roles);
-            if (replacement == null) return true;
-            roles.TryAssign(replacement, CommanderPawnRole.Builder);
+            if (replacement == null || !roles.TryAssign(replacement,
+                CommanderPawnRole.Builder)) return;
             CommanderCommandResult result = context.Commands.TryResumeConstruction(
                 replacement.GetComponent<PawnBuilder>(), activeSite);
             if (result == CommanderCommandResult.Accepted)
             {
-                builder = replacement;
+                builder ??= replacement;
                 SuccessfulCommandSerial++;
                 LastSuccessfulCommandTime = context.Time;
             }
-            else roles.Release(replacement, CommanderPawnRole.Builder);
-            return true;
+            else
+            {
+                nextBuilderAssignmentTime = context.Time + retrySeconds;
+                roles.Release(replacement, CommanderPawnRole.Builder);
+            }
+        }
+
+        private int SynchronizeSiteBuilders(FactionKnowledge knowledge,
+            CommanderPawnRoles roles, BuildingSite site)
+        {
+            int count = 0;
+            builder = null;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                PawnBuilder job = unit != null ? unit.GetComponent<PawnBuilder>() : null;
+                if (unit == null || !unit.IsAlive || job == null || !job.HasJob
+                    || job.Target != site || !site.HasBuilderReservation(job)) continue;
+                roles.TryAssign(unit, CommanderPawnRole.Builder);
+                builder ??= unit;
+                count++;
+            }
+            return count;
+        }
+
+        private static void CancelSiteBuilders(FactionKnowledge knowledge,
+            CommanderPawnRoles roles, BuildingSite site)
+        {
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                PawnBuilder job = unit != null ? unit.GetComponent<PawnBuilder>() : null;
+                if (job == null || job.Target != site) continue;
+                job.CancelJob();
+                unit.GetComponent<UnitMovement>()?.Stop();
+                roles.Release(unit, CommanderPawnRole.Builder);
+            }
+        }
+
+        private static void ReleaseSiteBuilderRoles(FactionKnowledge knowledge,
+            CommanderPawnRoles roles, BuildingSite site)
+        {
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                PawnBuilder job = unit != null ? unit.GetComponent<PawnBuilder>() : null;
+                if (job != null && job.Target == site) job.CancelJob();
+                if (roles.GetRole(unit) == CommanderPawnRole.Builder
+                    && (job == null || !job.HasJob))
+                    roles.Release(unit, CommanderPawnRole.Builder);
+            }
         }
 
         private static bool IsActiveProjectUnsafe(BuildingSite site,

@@ -1544,3 +1544,32 @@ Status: **IMPLEMENTED - EXTENDED PLAY MODE PROFILING PENDING**.
 - [ ] Play Mode: x1/x5/x10 command, path request and GC profiling remains bounded
 - [x] Do not begin Phase 7E.2
 - [x] Do not commit, push or merge this hotfix automatically
+
+### Phase 7E.1 Red AI Construction Reliability Hotfix
+
+Status: **IMPLEMENTED - PLAY MODE STRESS MATRIX PENDING**.
+
+- [x] Trace player and Red construction into the shared `BuildingSystem` / `PawnBuilder` path
+- [x] Reject footprints with no usable perimeter construction access after footprint blocking
+- [x] Generate one shared deterministic perimeter-slot layout for preview and runtime
+- [x] Keep site-owned, unique and stable Pawn-to-slot reservations
+- [x] Reserve a reachable slot before issuing builder movement
+- [x] Cap Red Builder assignment by free usable slots and preserve minimum Economy Pawns
+- [x] Deduplicate valid same-Pawn/same-site resume commands without resetting movement
+- [x] Add 0.2 enter / 0.48 exit work hysteresis
+- [x] Suppress destructive same-site separation near the reserved final slot
+- [x] Add bounded same-slot repath followed by bounded alternate-slot recovery
+- [x] Add a three-game-second site progress watchdog with two-second cooldown
+- [x] Add per-site/global builder command and path request counters
+- [x] Add disabled-by-default slot gizmos and Commander site/Builder diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Multi-Builder Construction Reliability`
+- [x] Run the multi-builder validator through Unity batch Edit Mode
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run House 1-Pawn and 3-Pawn same-side scenarios
+- [ ] Run Barracks 5-Pawn and Barracks-to-Archery scenarios
+- [ ] Run tight-corridor, stairs-adjacent and multiple-site scenarios
+- [ ] Run builder-death and manual-displacement recovery scenarios
+- [ ] Run Observer x10 extended construction profiling and record commands/path requests per second
+- [ ] Confirm human construction, Scout isolation, economy, stairs and clean Console regressions
+- [x] Do not begin Phase 7E.2
+- [x] Keep this hotfix uncommitted and unpushed after the requested checkpoint

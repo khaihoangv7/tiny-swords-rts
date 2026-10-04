@@ -2155,3 +2155,24 @@ Monk counts, timestamp and observation region. This summary freezes under Fog an
 not affect production in Phase 7E.1. Recon completes after a short observation dwell,
 then cooldown and stale-memory rules prevent camping while permitting later views from
 another perimeter angle.
+
+# 69. Phase 7E.1 Construction Reliability Hotfix
+
+A legal construction footprint must expose at least one usable perimeter work slot
+after that footprint is treated as occupied. Work slots are edge-adjacent, outside the
+footprint, on stable unoccupied ground at the same elevation, outside authored stair
+connector corridors, and connected to surrounding walkable navigation. Compact bases
+remain legal when only one or two slots are usable. Human and Commander placement use
+the same validation and reservation path.
+
+Each assigned Pawn owns one site-controlled slot and moves directly to it. Slots cannot
+be shared. Builder count is limited by actual free slot capacity, so overflow Pawns keep
+their Economy jobs. A valid assignment survives Commander reevaluation and small
+physical nudges. Construction begins within 0.2 world units of the assigned slot and
+continues until displacement exceeds 0.48 units.
+
+A displaced Builder keeps its reservation and makes bounded attempts to return to the
+same slot before considering another free reachable slot. If an unfinished site has
+assigned Pawns but no working Pawn and no progress for three game seconds, the site
+requests bounded recovery and waits two game seconds before another attempt. Invalid
+or dead owners are pruned independently so other builders continue contributing.

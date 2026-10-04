@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using TinyKingdom.AI;
 using TinyKingdom.Audio;
+using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Vision;
@@ -161,12 +162,17 @@ namespace TinyKingdom.EditorTools
             public long gatherCommandAttempts;
             public long returnResourceCommandAttempts;
             public long buildCommandAttempts;
+            public long constructionSiteBuilderCommands;
+            public long deduplicatedConstructionCommands;
+            public long constructionSiteBuilderPathRequests;
             public long buildingCandidateEvaluations;
             public double moveCommandsPerSecond;
             public double scoutMoveCommandsPerSecond;
             public double gatherCommandsPerSecond;
             public double returnResourceCommandsPerSecond;
             public double buildCommandsPerSecond;
+            public double constructionBuilderCommandsPerSecond;
+            public double constructionBuilderPathRequestsPerSecond;
             public double buildingCandidatesPerSecond;
             public long maximumPathRequestsInFrame;
             public double commanderPathRequestsPerTick;
@@ -243,6 +249,7 @@ namespace TinyKingdom.EditorTools
                 PathfindingSystem.ResetPerformanceCounters();
                 FactionCommandService.ResetPerformanceCounters();
                 BuildingCommanderPolicy.ResetPerformanceCounters();
+                BuildingSite.ResetPerformanceCounters();
                 previousPathRequests = 0;
                 for (int i = 0; i < MarkerNames.Length; i++)
                     recorders.Add(ProfilerRecorder.StartNew(ProfilerCategory.Scripts,
@@ -367,6 +374,12 @@ namespace TinyKingdom.EditorTools
                             CommanderCommandCategory.ReturnResource),
                     buildCommandAttempts = FactionCommandService.GetCommandAttemptCount(
                         CommanderCommandCategory.Build),
+                    constructionSiteBuilderCommands =
+                        BuildingSite.TotalBuilderCommandRequests,
+                    deduplicatedConstructionCommands =
+                        BuildingSite.TotalDeduplicatedBuilderCommands,
+                    constructionSiteBuilderPathRequests =
+                        BuildingSite.TotalBuilderPathRequests,
                     buildingCandidateEvaluations =
                         BuildingCommanderPolicy.CandidateEvaluationCount,
                     maximumPathRequestsInFrame = maximumPathRequestsInFrame,
@@ -389,6 +402,10 @@ namespace TinyKingdom.EditorTools
                         report.returnResourceCommandAttempts / report.durationSeconds;
                     report.buildCommandsPerSecond = report.buildCommandAttempts
                         / report.durationSeconds;
+                    report.constructionBuilderCommandsPerSecond =
+                        report.constructionSiteBuilderCommands / report.durationSeconds;
+                    report.constructionBuilderPathRequestsPerSecond =
+                        report.constructionSiteBuilderPathRequests / report.durationSeconds;
                     report.buildingCandidatesPerSecond = report.buildingCandidateEvaluations
                         / report.durationSeconds;
                 }
