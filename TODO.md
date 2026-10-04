@@ -1576,7 +1576,7 @@ Status: **IMPLEMENTED - PLAY MODE STRESS MATRIX PENDING**.
 
 ### Phase 7E.2 Adaptive Economy & Economic Outposts
 
-Status: **IMPLEMENTED - PLAY MODE VALIDATION PENDING**.
+Status: **PASS** (user-confirmed Play Mode validation).
 
 - [x] Create `feature/phase-7e2-adaptive-economy-outposts` from integrated 7E.1
 - [x] Add centralized stockpile, reserve and near-term demand model
@@ -1594,13 +1594,46 @@ Status: **IMPLEMENTED - PLAY MODE VALIDATION PENDING**.
 - [x] Extend performance capture with reassignment and cluster counters
 - [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.2 Adaptive Economy`
 - [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
-- [ ] Run the Phase 7E.2 validator in Unity Edit Mode
-- [ ] Run Food, Wood and Gold shortage allocation scenarios
-- [ ] Run depletion, saturation, cargo and Builder-return scenarios
-- [ ] Run House forecast and redundant-House prevention scenarios
-- [ ] Run viable/rejected/destroyed economic Tower outpost scenarios
-- [ ] Run x1/x5/x10 command, path, reassignment and GC profiling
-- [ ] Run at least five real minutes of x10 full-match stress
-- [ ] Confirm anti-wallhack, human controls, combat, Fog, construction and Console regressions
+- [x] Run the Phase 7E.2 validator in Unity Edit Mode
+- [x] Run Food, Wood and Gold shortage allocation scenarios
+- [x] Run depletion, saturation, cargo and Builder-return scenarios
+- [x] Run House forecast and redundant-House prevention scenarios
+- [x] Run viable/rejected/destroyed economic Tower outpost scenarios
+- [x] Run x1/x5/x10 command, path, reassignment and GC profiling
+- [x] Run full-match stress validation
+- [x] Confirm anti-wallhack, human controls, combat, Fog, construction and Console regressions
 - [x] Do not begin Phase 7E.3
 - [x] Do not commit, push or merge Phase 7E.2 automatically
+
+### Phase 7E.3 Reactive Production & Counter-Composition
+
+Status: **IMPLEMENTED - UNITY VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e3-reactive-production` from integrated Phase 7E.2
+- [x] Replace the fixed production sequence with baseline plus reactive composition
+- [x] Store bounded, value-only enemy military memory from `FactionKnowledge`
+- [x] Add centralized confidence decay and Current/Recent/Stale diagnostics
+- [x] Reuse authoritative `CombatDamage.Multiplier` through a read-only adapter
+- [x] Weight reactions by confidence and observed sample significance
+- [x] Cap reactive influence and retain mixed-army diversity floors
+- [x] Count both living and FIFO-queued units in projected composition gaps
+- [x] Add bounded Monk support ratio and cap
+- [x] Request missing producers through `BuildingCommanderPolicy` with hysteresis
+- [x] Keep fallback production active while preferred infrastructure is pending
+- [x] Feed one bounded unpaid production intent into `EconomicDemandModel`
+- [x] Preserve House forecasting in `BuildingCommanderPolicy`
+- [x] Add strategic reevaluation cadence, hold, smoothing and selection inertia
+- [x] Add enqueue/rejection/infrastructure performance counters
+- [x] Add optional Commander composition and decision diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.3 Reactive Production`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.3 validator in Unity Edit Mode
+- [ ] Run no-intel, one-unit, heavy-type and mixed-army scenarios
+- [ ] Run hidden-reinforcement, stale-intel and Scout re-observation scenarios
+- [ ] Run own-army-gap, queued-unit and Monk-support scenarios
+- [ ] Run missing/existing producer and infrastructure-hysteresis scenarios
+- [ ] Run resource-shortage and population-block scenarios
+- [ ] Run x1/x5/x10 full-match stability and rate profiling
+- [ ] Confirm Console and Phase 7E.1/7E.2 gameplay regressions
+- [x] Do not begin Phase 7E.4
+- [x] Do not commit, push or merge Phase 7E.3 automatically

@@ -28,6 +28,8 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0.25f)] private float builderAssignmentCooldown = 0.5f;
         [SerializeField, Min(10f)] private float economicOutpostCooldown = 45f;
         [SerializeField, Min(2)] private int outpostPlacementRadius = 4;
+        [SerializeField, Min(5f)] private float productionNeedHoldSeconds = 20f;
+        [SerializeField, Min(1f)] private float productionNeedRequestCooldown = 8f;
 
         private readonly List<Vector2Int> candidates = new();
         [SerializeField] private EconomicResourceClusterPlanner clusterPlanner = new();
@@ -43,6 +45,9 @@ namespace TinyKingdom.AI
         private Vector2Int outpostClusterCell;
         private float lastOutpostTime = -999f;
         private string lastOutpostDecision = "Not evaluated";
+        private BuildingType? productionInfrastructureNeed;
+        private float productionInfrastructureNeedUntil;
+        private float lastProductionNeedRequestTime = -999f;
 
         public int FreePopulationThreshold => freePopulationThreshold;
         public int MinimumEconomyWorkers => minimumEconomyWorkers;
@@ -61,6 +66,9 @@ namespace TinyKingdom.AI
         public string OutpostDecision => planningEconomicOutpost
             ? $"Tower near {outpostClusterCell}; score={clusterPlanner.Best.Score:0.0}"
             : lastOutpostDecision;
+        public BuildingType? ProductionInfrastructureNeed => productionInfrastructureNeed;
+        public float ProductionNeedHoldSeconds => productionNeedHoldSeconds;
+        public float ProductionNeedRequestCooldown => productionNeedRequestCooldown;
 
         public static void ResetPerformanceCounters() => CandidateEvaluationCount = 0;
 
@@ -82,7 +90,24 @@ namespace TinyKingdom.AI
             outpostClusterCell = new Vector2Int(-1, -1);
             lastOutpostTime = -999f;
             lastOutpostDecision = "Reset";
+            productionInfrastructureNeed = null;
+            productionInfrastructureNeedUntil = 0f;
+            lastProductionNeedRequestTime = -999f;
             clusterPlanner?.Reset();
+        }
+
+        public bool RequestProductionInfrastructure(BuildingType type, float now)
+        {
+            if (type is not (BuildingType.Barracks or BuildingType.Archery
+                or BuildingType.Monastery)) return false;
+            if (productionInfrastructureNeed.HasValue
+                && now <= productionInfrastructureNeedUntil) return false;
+            if (now - lastProductionNeedRequestTime < productionNeedRequestCooldown)
+                return false;
+            productionInfrastructureNeed = type;
+            productionInfrastructureNeedUntil = now + productionNeedHoldSeconds;
+            lastProductionNeedRequestTime = now;
+            return true;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -416,6 +441,10 @@ namespace TinyKingdom.AI
                 return BuildingType.Archery;
             if (pawns >= monasteryPawnThreshold && !HasBuilding(knowledge, BuildingType.Monastery))
                 return BuildingType.Monastery;
+            if (productionInfrastructureNeed.HasValue
+                && Time.time <= productionInfrastructureNeedUntil
+                && !HasBuilding(knowledge, productionInfrastructureNeed.Value))
+                return productionInfrastructureNeed.Value;
             return null;
         }
 
@@ -664,6 +693,10 @@ namespace TinyKingdom.AI
                     && buildings[i].Type is BuildingType.Barracks
                         or BuildingType.Archery or BuildingType.Monastery)
                     CompletedCoreInfrastructure++;
+            if (productionInfrastructureNeed.HasValue
+                && (Time.time > productionInfrastructureNeedUntil
+                    || HasBuilding(knowledge, productionInfrastructureNeed.Value)))
+                productionInfrastructureNeed = null;
         }
 
         private void ReleaseBuilder(CommanderPawnRoles roles)

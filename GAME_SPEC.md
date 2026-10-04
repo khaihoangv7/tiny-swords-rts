@@ -2192,3 +2192,18 @@ It receives no free placement, resources, vision or construction progress.
 
 House demand is based on predicted population headroom and uses the shared 80 Wood
 definition. A House Sheep remains an economy bonus rather than a construction trigger.
+
+# 71. Phase 7E.3 Reactive Production and Counter-Composition
+
+The Red rule-based Commander produces a mixed baseline army and may gradually adjust it
+from legally observed enemy Warrior, Archer, Lancer and Monk counts. The adjustment uses
+the same counter multipliers as combat, is capped, keeps unit diversity and includes both
+living and already queued Red units. Monk remains a capped support unit rather than a
+damage counter.
+
+Enemy composition memory is a frozen value snapshot with confidence decay. Units trained
+or moved while hidden do not change Red knowledge. A later legal Scout or normal vision
+observation refreshes the snapshot. Missing production buildings are requested through
+normal construction, payment and placement rules. Production costs feed the existing
+adaptive economy and population forecast; normal FIFO queues and House planning remain
+authoritative.

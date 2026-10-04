@@ -74,6 +74,11 @@ namespace TinyKingdom.AI
         [SerializeField] private Vector2Int debugBuildCell;
         [SerializeField] private int debugCompletedCoreInfrastructure;
         [SerializeField] private string debugProductionDecision;
+        [SerializeField] private string debugEnemyComposition;
+        [SerializeField] private string debugDesiredComposition;
+        [SerializeField] private string debugProjectedComposition;
+        [SerializeField] private string debugProductionScores;
+        [SerializeField] private string debugProductionInfrastructureNeed;
         [SerializeField] private Vector2Int debugRallyStagingCell;
         [SerializeField] private ArmyGroupState debugArmyState;
         [SerializeField] private int debugArmyMemberCount;
@@ -230,7 +235,7 @@ namespace TinyKingdom.AI
                     buildingPolicy.Tick(context, pawnRoles, strategicSafety,
                         economicDemand, economyPolicy);
                 using (ProductionPolicyMarker.Auto())
-                    productionPolicy.Tick(context);
+                    productionPolicy.Tick(context, buildingPolicy);
                 using (ScoutingPolicyMarker.Auto())
                     scoutingPolicy.Tick(context, pawnRoles, strategicSafety, buildingPolicy);
                 economicDemand.Refresh(context, buildingPolicy, productionPolicy,
@@ -363,7 +368,30 @@ namespace TinyKingdom.AI
                     ? builderDetails.ToString() : "None";
             }
             debugProductionDecision = productionPolicy.ActiveProductionDecision?.ToString()
-                ?? "None";
+                ?? productionPolicy.PreferredMilitaryUnit?.ToString() ?? "None";
+            EnemyCompositionMemory enemy = productionPolicy.EnemyComposition;
+            debugEnemyComposition = $"{productionPolicy.IntelSource} "
+                + $"confidence={productionPolicy.IntelConfidence:0.00} "
+                + $"age={productionPolicy.IntelAge:0.0}s | "
+                + $"W{enemy.ObservedCount(UnitType.Warrior)} "
+                + $"A{enemy.ObservedCount(UnitType.Archer)} "
+                + $"L{enemy.ObservedCount(UnitType.Lancer)} "
+                + $"M{enemy.ObservedCount(UnitType.Monk)}";
+            debugDesiredComposition = $"W{productionPolicy.DesiredCount(UnitType.Warrior):0.0} "
+                + $"A{productionPolicy.DesiredCount(UnitType.Archer):0.0} "
+                + $"L{productionPolicy.DesiredCount(UnitType.Lancer):0.0} "
+                + $"M{productionPolicy.DesiredCount(UnitType.Monk):0.0}";
+            debugProjectedComposition = $"W{productionPolicy.LivingCount(UnitType.Warrior) + productionPolicy.QueuedCount(UnitType.Warrior)} "
+                + $"A{productionPolicy.LivingCount(UnitType.Archer) + productionPolicy.QueuedCount(UnitType.Archer)} "
+                + $"L{productionPolicy.LivingCount(UnitType.Lancer) + productionPolicy.QueuedCount(UnitType.Lancer)} "
+                + $"M{productionPolicy.LivingCount(UnitType.Monk) + productionPolicy.QueuedCount(UnitType.Monk)}";
+            debugProductionScores = $"W{productionPolicy.CandidateScore(UnitType.Warrior):0.00} "
+                + $"A{productionPolicy.CandidateScore(UnitType.Archer):0.00} "
+                + $"L{productionPolicy.CandidateScore(UnitType.Lancer):0.00} "
+                + $"M{productionPolicy.CandidateScore(UnitType.Monk):0.00} | "
+                + productionPolicy.DecisionReason;
+            debugProductionInfrastructureNeed = buildingPolicy.ProductionInfrastructureNeed
+                ?.ToString() ?? "None";
             debugRallyStagingCell = productionPolicy.HasRallyStagingCell
                 ? productionPolicy.RallyStagingCell : new Vector2Int(-1, -1);
             debugArmyState = militaryPolicy.Army.State;

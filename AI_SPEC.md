@@ -604,3 +604,29 @@ authoritative 80 Wood; its Sheep is a bonus and never a reason to build a House.
 selection prefers idle, empty-handed Pawns and penalizes workers assigned to a current
 resource deficit. After construction, normal role synchronization returns Builders to
 adaptive Economy allocation.
+
+### Phase 7E.3 reactive production and counter-composition
+
+Red production combines a stable mixed baseline with legal enemy military intelligence.
+`EnemyCompositionMemory` copies only the latest value-only Warrior, Archer, Lancer and
+Monk snapshot produced by `FactionKnowledge`. Hidden units retain frozen counts, region
+and last-seen time; confidence stays full briefly and then decays to zero. It contains no
+enemy unit, object or transform reference, so hidden reinforcements are unknown until a
+normal visible observation refreshes the snapshot.
+
+Counter utility reads the authoritative `CombatDamage.Multiplier` table through a
+read-only adapter. Observation confidence, sample size and weak remembered production
+building evidence bound the reactive contribution. A maximum reactive share, combat
+diversity floor, four-second strategic reevaluation, twelve-second desired-composition
+hold, meaningful-change threshold and smoothing prevent single-unit overreaction and
+strategy ping-pong. Stale intelligence gradually returns production to the baseline.
+Enemy Monks increase bounded support threat and are not modeled as direct damage.
+
+The policy compares desired counts with living plus FIFO-queued Red units. Monk demand
+uses a capped support ratio. Candidate scoring includes composition deficit, counter
+pressure, baseline need, affordability, producer availability, queue count and selection
+inertia. Missing production infrastructure creates a hysteretic request for
+`BuildingCommanderPolicy`; production falls back to a reasonable available unit instead
+of spawning a building or stopping. One unpaid near-term unit cost feeds the Phase 7E.2
+`EconomicDemandModel`; population and House decisions remain owned by the building and
+population systems. All enqueue commands still pass through `FactionCommandService`.
