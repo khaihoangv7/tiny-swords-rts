@@ -44,6 +44,7 @@ namespace TinyKingdom.AI
         public int EffectiveFreePopulation { get; private set; }
         public bool PopulationBlocked { get; private set; }
         public UnitType? ActiveProductionDecision { get; private set; }
+        public UnitType? PendingEconomicDemand { get; private set; }
         public Vector2Int RallyStagingCell => stagingCell;
         public bool HasRallyStagingCell => hasStagingCell;
         public uint SuccessfulTrainSerial { get; private set; }
@@ -66,6 +67,7 @@ namespace TinyKingdom.AI
             EffectiveFreePopulation = 0;
             PopulationBlocked = false;
             ActiveProductionDecision = null;
+            PendingEconomicDemand = null;
             SuccessfulTrainSerial = 0;
             LastSuccessfulTrainTime = -1f;
         }
@@ -84,10 +86,14 @@ namespace TinyKingdom.AI
                 return;
             }
             if (MilitaryPopulation + QueuedMilitaryPopulation >= targetMilitaryPopulation)
+            {
+                PendingEconomicDemand = null;
                 return;
+            }
 
             UnitType? desired = NextCompositionUnit();
             if (desired.HasValue) TryRequest(context, desired.Value);
+            else PendingEconomicDemand = null;
         }
 
         private void RefreshState(FactionKnowledge knowledge)
@@ -143,6 +149,7 @@ namespace TinyKingdom.AI
             if (producer == null || producer.Count >= desiredQueueDepth) return;
             UnitCombatData data = producer.GetData(type);
             if (data == null) return;
+            PendingEconomicDemand = type;
             if (EffectiveFreePopulation < data.PopulationCost)
             {
                 PopulationBlocked = true;
@@ -153,6 +160,9 @@ namespace TinyKingdom.AI
             CommanderCommandResult result = context.Commands.TryTrain(producer, type);
             if (result == CommanderCommandResult.Accepted)
             {
+                // Payment and population reservation are authoritative at enqueue.
+                // Do not count the accepted request again as an unpaid plan.
+                PendingEconomicDemand = null;
                 SuccessfulTrainSerial++;
                 LastSuccessfulTrainTime = context.Time;
                 return;
@@ -160,6 +170,22 @@ namespace TinyKingdom.AI
             if (result == CommanderCommandResult.RejectedPopulationBlocked)
                 PopulationBlocked = true;
             nextProductionAttemptTime = context.Time + rejectedCommandRetrySeconds;
+        }
+
+        public bool TryGetPendingEconomicCost(out int food, out int wood,
+            out int gold, out int population)
+        {
+            food = wood = gold = population = 0;
+            if (!PendingEconomicDemand.HasValue) return false;
+            UnitProductionQueue producer = FindProducer(PendingEconomicDemand.Value);
+            UnitCombatData data = producer != null
+                ? producer.GetData(PendingEconomicDemand.Value) : null;
+            if (data == null) return false;
+            food = data.FoodCost;
+            wood = data.WoodCost;
+            gold = data.GoldCost;
+            population = data.PopulationCost;
+            return true;
         }
 
         private UnitType? NextCompositionUnit()

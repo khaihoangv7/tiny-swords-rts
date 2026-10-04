@@ -572,3 +572,35 @@ Per-site and global counters record construction commands, deduplicated requests
 builder path requests. Optional site gizmos show invalid, free, reserved, approaching
 and working slots. These diagnostics are disabled by default and the extended x10 Play
 Mode profile remains the authority for command/path rates.
+
+### Phase 7E.2 adaptive economy and economic outposts
+
+`EconomicDemandModel` is the single short-horizon source for Red resource demand. It
+reads the authoritative stockpile, unpaid building and production plans, Scout
+promotion pressure and population forecast. Costs already paid by construction or a
+production queue are never reserved a second time. Food, Wood and Gold deficits drive
+worker targets; the former 40/35/25 ratios remain only a fallback for callers without
+the model.
+
+Economy planning runs at a slower four-second cadence than the Commander tick. A valid
+gather command remains untouched. At most one empty-handed Economy Pawn changes
+resource role per planning pass, with an eight-second dwell unless the target deficit
+is critical. Builder and Scout roles remain excluded. Target scoring combines Pawn
+travel, nearest completed friendly Castle/Tower drop-off, assignment crowding,
+depletion and known civilian risk. Hidden resources use only frozen
+`ResourceKnowledgeSnapshot` values and become live targets only after normal vision.
+
+Known resource snapshots are grouped into at most sixteen clusters from at most 96
+remembered nodes and refreshed no faster than every eight game seconds. The cache
+contains only cells, positions, amounts and scores. A safe, sufficiently rich cluster
+far from an existing drop-off may request one Tower economic outpost after core needs.
+The normal `BuildingSystem`, payment, placement, trap prevention, construction slots
+and Builder commands remain authoritative. Outposts keep a 45-second cooldown, never
+overlap resources or existing structures, and never use hidden enemy state.
+
+Population planning forecasts the next unpaid production request and prioritizes one
+House when predicted headroom reaches the configured threshold. House cost remains the
+authoritative 80 Wood; its Sheep is a bonus and never a reason to build a House. Builder
+selection prefers idle, empty-handed Pawns and penalizes workers assigned to a current
+resource deficit. After construction, normal role synchronization returns Builders to
+adaptive Economy allocation.

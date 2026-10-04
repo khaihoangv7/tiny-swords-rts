@@ -26,8 +26,11 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0)] private int foodSafetyReserve = 50;
         [SerializeField, Range(1, 8)] private int maximumConcurrentBuilders = 3;
         [SerializeField, Min(0.25f)] private float builderAssignmentCooldown = 0.5f;
+        [SerializeField, Min(10f)] private float economicOutpostCooldown = 45f;
+        [SerializeField, Min(2)] private int outpostPlacementRadius = 4;
 
         private readonly List<Vector2Int> candidates = new();
+        [SerializeField] private EconomicResourceClusterPlanner clusterPlanner = new();
         private BuildingSite activeSite;
         private UnitController builder;
         private BuildingType? plannedBuilding;
@@ -36,6 +39,10 @@ namespace TinyKingdom.AI
         private float nextAttemptTime;
         private float nextBuilderAssignmentTime;
         private Vector2Int currentBuildCell = new(-1, -1);
+        private bool planningEconomicOutpost;
+        private Vector2Int outpostClusterCell;
+        private float lastOutpostTime = -999f;
+        private string lastOutpostDecision = "Not evaluated";
 
         public int FreePopulationThreshold => freePopulationThreshold;
         public int MinimumEconomyWorkers => minimumEconomyWorkers;
@@ -48,6 +55,12 @@ namespace TinyKingdom.AI
         public uint SuccessfulCommandSerial { get; private set; }
         public float LastSuccessfulCommandTime { get; private set; } = -1f;
         public static long CandidateEvaluationCount { get; private set; }
+        public EconomicResourceClusterPlanner ClusterPlanner => clusterPlanner;
+        public bool PlanningEconomicOutpost => planningEconomicOutpost;
+        public float LastOutpostTime => lastOutpostTime;
+        public string OutpostDecision => planningEconomicOutpost
+            ? $"Tower near {outpostClusterCell}; score={clusterPlanner.Best.Score:0.0}"
+            : lastOutpostDecision;
 
         public static void ResetPerformanceCounters() => CandidateEvaluationCount = 0;
 
@@ -65,6 +78,11 @@ namespace TinyKingdom.AI
             CompletedCoreInfrastructure = 0;
             SuccessfulCommandSerial = 0;
             LastSuccessfulCommandTime = -1f;
+            planningEconomicOutpost = false;
+            outpostClusterCell = new Vector2Int(-1, -1);
+            lastOutpostTime = -999f;
+            lastOutpostDecision = "Reset";
+            clusterPlanner?.Reset();
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -72,19 +90,36 @@ namespace TinyKingdom.AI
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
             StrategicSafetyMap safety)
+            => Tick(context, roles, safety, null, null);
+
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
+            StrategicSafetyMap safety, EconomicDemandModel demand,
+            EconomyCommanderPolicy economy)
         {
             RefreshInfrastructure(context.Knowledge);
             if (MaintainActiveProject(context, roles, safety)) return;
 
-            BuildingType? need = ChooseNeed(context.Knowledge);
+            clusterPlanner ??= new EconomicResourceClusterPlanner();
+            clusterPlanner.Refresh(context, safety);
+
+            BuildingType? need = ChooseNeed(context.Knowledge, demand);
+            bool outpost = false;
+            if (!need.HasValue && CanPlanEconomicOutpost(context, safety, demand,
+                out EconomicClusterSnapshot cluster))
+            {
+                need = BuildingType.Tower;
+                outpost = true;
+                outpostClusterCell = cluster.CenterCell;
+            }
             if (!need.HasValue)
             {
                 ClearPlan();
                 return;
             }
-            if (plannedBuilding != need)
+            if (plannedBuilding != need || planningEconomicOutpost != outpost)
             {
                 plannedBuilding = need;
+                planningEconomicOutpost = outpost;
                 candidates.Clear();
                 candidateIndex = 0;
                 currentBuildCell = new Vector2Int(-1, -1);
@@ -102,13 +137,18 @@ namespace TinyKingdom.AI
                 nextAttemptTime = context.Time + retrySeconds;
                 return;
             }
+            if (outpost && demand != null && !demand.CanExecuteReservedPlan()) return;
 
-            UnitController chosen = ChooseBuilder(context, roles);
+            UnitController chosen = ChooseBuilder(context, roles, demand, economy);
             if (chosen == null) return;
             PawnBuilder pawnBuilder = chosen.GetComponent<PawnBuilder>();
             using (PlacementSearchMarker.Auto())
             {
-                if (candidates.Count == 0) PrepareCandidates(context.Knowledge, data);
+                if (candidates.Count == 0)
+                {
+                    if (outpost) PrepareOutpostCandidates(data, outpostClusterCell);
+                    else PrepareCandidates(context.Knowledge, data);
+                }
 
                 int attempts = 0;
                 while (candidateIndex < candidates.Count && attempts < attemptsPerThink)
@@ -131,6 +171,11 @@ namespace TinyKingdom.AI
                         currentBuildCell = origin;
                         SuccessfulCommandSerial++;
                         LastSuccessfulCommandTime = context.Time;
+                        if (outpost)
+                        {
+                            lastOutpostTime = context.Time;
+                            lastOutpostDecision = $"Accepted Tower at {origin}";
+                        }
                         return;
                     }
                     roles.Release(chosen, CommanderPawnRole.Builder);
@@ -192,22 +237,23 @@ namespace TinyKingdom.AI
                     && assigned < maximumConcurrentBuilders
                     && activeSite.FreeBuilderSlotCount > 0
                     && roles.EconomyCount > minimumEconomyWorkers)
-                    TryAssignAdditionalBuilder(context, roles);
+                    TryAssignAdditionalBuilder(context, roles, null, null);
                 return true;
             }
 
             ReleaseBuilder(roles);
-            TryAssignAdditionalBuilder(context, roles);
+            TryAssignAdditionalBuilder(context, roles, null, null);
             return true;
         }
 
         private void TryAssignAdditionalBuilder(CommanderDecisionContext context,
-            CommanderPawnRoles roles)
+            CommanderPawnRoles roles, EconomicDemandModel demand,
+            EconomyCommanderPolicy economy)
         {
             nextBuilderAssignmentTime = context.Time + builderAssignmentCooldown;
             if (activeSite == null || activeSite.FreeBuilderSlotCount <= 0
                 || roles.EconomyCount <= minimumEconomyWorkers) return;
-            UnitController replacement = ChooseBuilder(context, roles);
+            UnitController replacement = ChooseBuilder(context, roles, demand, economy);
             if (replacement == null || !roles.TryAssign(replacement,
                 CommanderPawnRole.Builder)) return;
             CommanderCommandResult result = context.Commands.TryResumeConstruction(
@@ -301,14 +347,20 @@ namespace TinyKingdom.AI
         }
 
         private UnitController ChooseBuilder(CommanderDecisionContext context,
-            CommanderPawnRoles roles)
+            CommanderPawnRoles roles, EconomicDemandModel demand,
+            EconomyCommanderPolicy economy)
         {
             if (roles == null || roles.EconomyCount <= minimumEconomyWorkers) return null;
             UnitController best = null;
             int bestIdleRank = int.MaxValue;
+            int bestCargo = int.MaxValue;
+            int bestDemandPenalty = int.MaxValue;
             float bestDistance = float.PositiveInfinity;
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
             Vector3 target = activeSite != null ? activeSite.transform.position
-                : BaseWorldPosition(context.Knowledge);
+                : planningEconomicOutpost && grid != null
+                    ? grid.GridToWorld(outpostClusterCell.x, outpostClusterCell.y)
+                    : BaseWorldPosition(context.Knowledge);
             IReadOnlyList<UnitController> units = context.Knowledge.OwnUnits;
             for (int i = 0; i < units.Count; i++)
             {
@@ -321,25 +373,38 @@ namespace TinyKingdom.AI
                 int idleRank = unit.CurrentState == UnitState.Idle
                     && (gatherer == null || gatherer.State == WorkerState.Idle)
                     && (movement == null || !movement.IsMoving) ? 0 : 1;
+                int cargo = gatherer != null ? gatherer.CarriedAmount : 0;
+                int demandPenalty = economy != null
+                    && economy.TryGetAssignedType(unit, out ResourceType type)
+                    && demand != null ? demand.Deficit(type) : 0;
                 float distance = ((Vector2)(unit.transform.position - target)).sqrMagnitude;
                 if (best == null || idleRank < bestIdleRank
-                    || (idleRank == bestIdleRank && distance < bestDistance - 0.0001f)
-                    || (idleRank == bestIdleRank
+                    || (idleRank == bestIdleRank && cargo < bestCargo)
+                    || (idleRank == bestIdleRank && cargo == bestCargo
+                        && demandPenalty < bestDemandPenalty)
+                    || (idleRank == bestIdleRank && cargo == bestCargo
+                        && demandPenalty == bestDemandPenalty
+                        && distance < bestDistance - 0.0001f)
+                    || (idleRank == bestIdleRank && cargo == bestCargo
+                        && demandPenalty == bestDemandPenalty
                         && Mathf.Abs(distance - bestDistance) <= 0.0001f
                         && unit.GetEntityId().CompareTo(best.GetEntityId()) < 0))
                 {
                     best = unit;
                     bestIdleRank = idleRank;
+                    bestCargo = cargo;
+                    bestDemandPenalty = demandPenalty;
                     bestDistance = distance;
                 }
             }
             return best;
         }
 
-        private BuildingType? ChooseNeed(FactionKnowledge knowledge)
+        private BuildingType? ChooseNeed(FactionKnowledge knowledge,
+            EconomicDemandModel demand)
         {
             FactionPopulation population = knowledge.Population;
-            int free = population != null
+            int free = demand != null ? demand.PopulationHeadroom : population != null
                 ? population.Cap - population.Used - population.Reserved : 0;
             if (free <= freePopulationThreshold && !HasUnderConstruction(
                 knowledge, BuildingType.House)) return BuildingType.House;
@@ -368,6 +433,73 @@ namespace TinyKingdom.AI
                 for (int x = radius - 1; x >= -radius; x--) AddCandidate(center, data, x, -radius);
                 for (int y = -radius + 1; y < radius; y++) AddCandidate(center, data, -radius, y);
             }
+        }
+
+        private void PrepareOutpostCandidates(BuildingData data, Vector2Int center)
+        {
+            candidates.Clear();
+            candidateIndex = 0;
+            for (int radius = 2; radius <= outpostPlacementRadius; radius++)
+            {
+                for (int x = -radius; x <= radius; x++) AddCandidate(center, data, x, radius);
+                for (int y = radius - 1; y >= -radius; y--) AddCandidate(center, data, radius, y);
+                for (int x = radius - 1; x >= -radius; x--) AddCandidate(center, data, x, -radius);
+                for (int y = -radius + 1; y < radius; y++) AddCandidate(center, data, -radius, y);
+            }
+        }
+
+        private bool CanPlanEconomicOutpost(CommanderDecisionContext context,
+            StrategicSafetyMap safety, EconomicDemandModel demand,
+            out EconomicClusterSnapshot cluster)
+        {
+            cluster = default;
+            if (clusterPlanner == null || !clusterPlanner.HasBest)
+            {
+                lastOutpostDecision = clusterPlanner?.LastRejectionReason
+                    ?? "No cluster planner";
+                return false;
+            }
+            if (context.Time - lastOutpostTime < economicOutpostCooldown)
+            {
+                lastOutpostDecision = "Rejected: outpost cooldown";
+                return false;
+            }
+            if (HasUnderConstruction(context.Knowledge, BuildingType.Tower))
+            {
+                lastOutpostDecision = "Rejected: Tower project already pending";
+                return false;
+            }
+            BuildingData tower = context.Commands.BuildingSystem?.GetData(BuildingType.Tower);
+            bool canFund = demand != null && (planningEconomicOutpost
+                && plannedBuilding == BuildingType.Tower
+                    ? demand.CanExecuteReservedPlan()
+                    : demand.CanSpendAfterBuffers(tower));
+            if (tower == null || !canFund)
+            {
+                lastOutpostDecision = "Rejected: cannot afford beyond economic reserves";
+                return false;
+            }
+            cluster = clusterPlanner.Best;
+            if (safety != null && safety.RiskAt(cluster.CenterCell,
+                StrategicPathKind.Civilian) >= StrategicRisk.Dangerous)
+            {
+                lastOutpostDecision = "Rejected: known danger at cluster";
+                return false;
+            }
+            IReadOnlyList<IDefensiveBuildingHost> buildings = context.Knowledge.OwnBuildings;
+            for (int i = 0; i < buildings.Count; i++)
+            {
+                IDefensiveBuildingHost item = buildings[i];
+                if (item == null || !item.IsAlive || item.Type != BuildingType.Tower) continue;
+                if (Vector2.Distance(item.HostTransform.position,
+                    cluster.CenterPosition) <= 9f)
+                {
+                    lastOutpostDecision = "Rejected: existing Tower/drop-off nearby";
+                    return false;
+                }
+            }
+            lastOutpostDecision = $"Candidate score {cluster.Score:0.0}";
+            return true;
         }
 
         private void AddCandidate(Vector2Int center, BuildingData data, int x, int y)
@@ -543,6 +675,8 @@ namespace TinyKingdom.AI
         private void ClearPlan()
         {
             plannedBuilding = null;
+            planningEconomicOutpost = false;
+            outpostClusterCell = new Vector2Int(-1, -1);
             candidates.Clear();
             candidateIndex = 0;
             currentBuildCell = new Vector2Int(-1, -1);

@@ -1573,3 +1573,34 @@ Status: **IMPLEMENTED - PLAY MODE STRESS MATRIX PENDING**.
 - [ ] Confirm human construction, Scout isolation, economy, stairs and clean Console regressions
 - [x] Do not begin Phase 7E.2
 - [x] Keep this hotfix uncommitted and unpushed after the requested checkpoint
+
+### Phase 7E.2 Adaptive Economy & Economic Outposts
+
+Status: **IMPLEMENTED - PLAY MODE VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e2-adaptive-economy-outposts` from integrated 7E.1
+- [x] Add centralized stockpile, reserve and near-term demand model
+- [x] Replace fixed worker targets with deterministic demand-weighted targets
+- [x] Add four-second planning, eight-second dwell and one-worker reallocation limit
+- [x] Preserve valid gather jobs and cargo before resource-role changes
+- [x] Score legal targets by worker/drop-off travel, crowding, depletion and known risk
+- [x] Keep hidden resource planning value-only through `FactionKnowledge` snapshots
+- [x] Add bounded 96-node / 16-cluster cache on an eight-second refresh
+- [x] Add safe, rich and distant Tower economic-outpost planning with cooldown
+- [x] Reuse normal Tower payment, placement, trap, construction and drop-off systems
+- [x] Forecast population demand and preserve authoritative House cost of 80 Wood
+- [x] Prefer idle, empty-handed and lower-opportunity-cost Builders
+- [x] Add Commander demand, reassignment, cluster and outpost diagnostics
+- [x] Extend performance capture with reassignment and cluster counters
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.2 Adaptive Economy`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.2 validator in Unity Edit Mode
+- [ ] Run Food, Wood and Gold shortage allocation scenarios
+- [ ] Run depletion, saturation, cargo and Builder-return scenarios
+- [ ] Run House forecast and redundant-House prevention scenarios
+- [ ] Run viable/rejected/destroyed economic Tower outpost scenarios
+- [ ] Run x1/x5/x10 command, path, reassignment and GC profiling
+- [ ] Run at least five real minutes of x10 full-match stress
+- [ ] Confirm anti-wallhack, human controls, combat, Fog, construction and Console regressions
+- [x] Do not begin Phase 7E.3
+- [x] Do not commit, push or merge Phase 7E.2 automatically
