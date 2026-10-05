@@ -25,11 +25,11 @@ namespace TinyKingdom.EditorTools
         private static readonly ExpectedCue[] Required =
         {
             new(GameplayAudioEvent.WarriorAttack,
-                "Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3"),
+                "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3"),
             new(GameplayAudioEvent.LancerAttack,
                 "Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3"),
             new(GameplayAudioEvent.ArcherAttack,
-                "Assets/Audio/SFX/Units/Archer/sfx_archer_attack_01.mp3"),
+                "Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3"),
             new(GameplayAudioEvent.MonkHeal,
                 "Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3"),
             new(GameplayAudioEvent.PawnMining,
@@ -62,6 +62,16 @@ namespace TinyKingdom.EditorTools
                 "Assets/Audio/SFX/UI/Notification/cant_click.mp3"),
             new(GameplayAudioEvent.UnitProductionFinished,
                 "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
+            new(GameplayAudioEvent.ScoutPromotion,
+                "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
+            new(GameplayAudioEvent.BuildingCompleted,
+                "Assets/Audio/SFX/Buildings/Construction/building_completed.mp3"),
+            new(GameplayAudioEvent.ArcherArrowImpact,
+                "Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3"),
+            new(GameplayAudioEvent.GenericCommandVoice,
+                "Assets/Audio/SFX/Commands/units_say_01.mp3"),
+            new(GameplayAudioEvent.ArmyCommandVoice,
+                "Assets/Audio/SFX/Commands/army_say_01.mp3"),
             new(GameplayAudioEvent.Victory,
                 "Assets/Audio/SFX/Match/win.mp3", AudioClipLoadType.CompressedInMemory),
             new(GameplayAudioEvent.Defeat,
@@ -70,6 +80,7 @@ namespace TinyKingdom.EditorTools
 
         [MenuItem("Tools/Tiny Kingdom/Validate Gameplay Audio")]
         [MenuItem("Tools/Tiny Kingdom/Validate Phase 6E.2 Gameplay Audio")]
+        [MenuItem("Tools/Tiny Kingdom/Validate Phase 6E Audio Expansion")]
         public static void Run()
         {
             bool valid = true;
@@ -87,6 +98,7 @@ namespace TinyKingdom.EditorTools
                 for (int i = 0; i < Required.Length; i++)
                     ValidateCue(catalog, Required[i], ref valid);
                 ValidateHammerVariation(catalog, ref valid);
+                ValidateWarriorHitVariations(catalog, ref valid);
                 if (catalog.TryGetCue(GameplayAudioEvent.PawnMining, out GameplayAudioCue mining))
                     Check(Mathf.Approximately(mining.Volume, 0.20f),
                         "PawnMining volume must remain at 0.20.", ref valid);
@@ -106,6 +118,8 @@ namespace TinyKingdom.EditorTools
             Check(!ContainsAbsoluteRuntimePath(),
                 "An absolute Windows audio path exists in runtime code.", ref valid);
             ValidateCameraViewportRule(ref valid);
+            ValidateCommandVoicePolicy(ref valid);
+            ValidateExpansionHooks(ref valid);
 
             if (Application.isPlaying)
             {
@@ -163,6 +177,8 @@ namespace TinyKingdom.EditorTools
         {
             if (!catalog.TryGetCue(GameplayAudioEvent.PawnHammer, out GameplayAudioCue cue)) return;
             Check(cue.ClipCount == 2, "PawnHammer must contain exactly two clips.", ref valid);
+            Check(Mathf.Approximately(cue.MaxPlaybackSeconds, 0.7f),
+                "PawnHammer playback must end before the next 0.8-second work cycle.", ref valid);
             Check(cue.Variations.Length == 1 && cue.Variations[0] != null,
                 "PawnHammer second variation is missing.", ref valid);
             if (cue.Variations.Length == 0 || cue.Variations[0] == null) return;
@@ -171,6 +187,122 @@ namespace TinyKingdom.EditorTools
             Check(path == expected, $"PawnHammer variation points to '{path}'.", ref valid);
             ValidateImporter("PawnHammer variation", path, AudioClipLoadType.DecompressOnLoad,
                 ref valid);
+        }
+
+        private static void ValidateWarriorHitVariations(GameplayAudioCatalog catalog,
+            ref bool valid)
+        {
+            if (!catalog.TryGetCue(GameplayAudioEvent.WarriorAttack,
+                    out GameplayAudioCue cue)) return;
+            Check(cue.ClipCount == 7,
+                "WarriorAttack must contain exactly seven sword-hit clips.", ref valid);
+            Check(cue.Variations.Length == 6,
+                "WarriorAttack must contain six variations plus its primary clip.", ref valid);
+            for (int i = 0; i < cue.Variations.Length; i++)
+            {
+                string expected = $"Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_{i + 2:00}.mp3";
+                string path = cue.Variations[i] != null
+                    ? AssetDatabase.GetAssetPath(cue.Variations[i]) : string.Empty;
+                Check(path == expected,
+                    $"Warrior hit variation {i + 2} points to '{path}'.", ref valid);
+                if (!string.IsNullOrEmpty(path))
+                    ValidateImporter($"Warrior hit variation {i + 2}", path,
+                        AudioClipLoadType.DecompressOnLoad, ref valid);
+            }
+        }
+
+        private static void ValidateCommandVoicePolicy(ref bool valid)
+        {
+            Check(Mathf.Approximately(HumanCommandVoiceFeedback.GenericProbability, 0.30f)
+                && Mathf.Approximately(HumanCommandVoiceFeedback.ArmyProbability, 0.40f),
+                "Command voice probabilities must be 30% generic and 40% army.", ref valid);
+            Check(Mathf.Approximately(HumanCommandVoiceFeedback.GenericCooldownSeconds, 30f)
+                && Mathf.Approximately(HumanCommandVoiceFeedback.ArmyCooldownSeconds, 10f),
+                "Command voice cooldowns must be 30s generic and 10s army.", ref valid);
+            Check(!HumanCommandVoiceFeedback.UsesArmyVoice(3)
+                && HumanCommandVoiceFeedback.UsesArmyVoice(4),
+                "Army voice category must require strictly more than three combat units.",
+                ref valid);
+            Check(HumanCommandVoiceFeedback.IsArmyCombatUnit(TinyKingdom.Units.UnitType.Warrior)
+                && HumanCommandVoiceFeedback.IsArmyCombatUnit(TinyKingdom.Units.UnitType.Lancer)
+                && HumanCommandVoiceFeedback.IsArmyCombatUnit(TinyKingdom.Units.UnitType.Archer)
+                && !HumanCommandVoiceFeedback.IsArmyCombatUnit(TinyKingdom.Units.UnitType.Pawn)
+                && !HumanCommandVoiceFeedback.IsArmyCombatUnit(TinyKingdom.Units.UnitType.Monk),
+                "Army voice eligibility must contain only Warrior, Lancer and Archer.",
+                ref valid);
+
+            var policy = new HumanCommandVoiceFeedback();
+            Check(policy.TryAcknowledgeForValidation(1, 0, 0f, 0f, true)
+                && Mathf.Approximately(policy.NextGenericTime, 30f),
+                "A successful generic voice did not start its 30s cooldown.", ref valid);
+            Check(!policy.TryAcknowledgeForValidation(1, 0, 1f, 0f, true),
+                "Generic command voice ignored its cooldown.", ref valid);
+            Check(policy.TryAcknowledgeForValidation(4, 4, 1f, 0f, true)
+                && Mathf.Approximately(policy.NextArmyTime, 11f)
+                && Mathf.Approximately(policy.NextGenericTime, 30f),
+                "Army and generic voice cooldowns are not independent.", ref valid);
+
+            var failedPlayback = new HumanCommandVoiceFeedback();
+            Check(!failedPlayback.TryAcknowledgeForValidation(1, 0, 5f, 0f, false)
+                && Mathf.Approximately(failedPlayback.NextGenericTime, 0f),
+                "A failed voice playback incorrectly started a cooldown.", ref valid);
+
+            var failedRoll = new HumanCommandVoiceFeedback();
+            Check(!failedRoll.TryAcknowledgeForValidation(1, 0, 5f, 1f, true)
+                && Mathf.Approximately(failedRoll.NextGenericTime, 0f),
+                "A failed generic roll incorrectly started a cooldown.", ref valid);
+            Check(!failedRoll.TryAcknowledgeForValidation(4, 4, 5f, 1f, true)
+                && Mathf.Approximately(failedRoll.NextArmyTime, 0f)
+                && Mathf.Approximately(failedRoll.NextGenericTime, 0f),
+                "A failed army roll started a cooldown or fell back to generic.", ref valid);
+        }
+
+        private static void ValidateExpansionHooks(ref bool valid)
+        {
+            Check(SourceContains("Assets/Scripts/Buildings/BuildingSite.cs",
+                    "State = BuildingState.Completed", "completionAudioPlayed",
+                    "GameplayAudioEvent.BuildingCompleted"),
+                "Building completion is missing its authoritative exactly-once hook.",
+                ref valid);
+            Check(SourceContains("Assets/Scripts/Units/CombatController.cs",
+                    "LaunchProjectile", "PlayArcherAttackSound",
+                    "if (damaged) PlayMeleeAttackSound"),
+                "Archer release or successful Warrior hit hook is missing.", ref valid);
+            Check(SourceContains("Assets/Scripts/Units/CombatProjectile.cs",
+                    "bool damaged = target.ReceiveAttack", "damaged && unitTarget",
+                    "GameplayAudioEvent.ArcherArrowImpact"),
+                "Archer unit-impact audio is not tied to successful projectile damage.",
+                ref valid);
+            Check(SourceContains("Assets/Scripts/Input/PlayerCommandController.cs",
+                    "FinishAcceptedCommand", "HumanCommandVoiceFeedback",
+                    "AcceptCommand"),
+                "Human command voice is not connected after accepted recipients.",
+                ref valid);
+            Check(!DirectoryContains("Assets/Scripts/AI", "GenericCommandVoice")
+                && !DirectoryContains("Assets/Scripts/AI", "ArmyCommandVoice")
+                && !DirectoryContains("Assets/Scripts/AI", "HumanCommandVoiceFeedback"),
+                "AI code must not invoke Human command voice feedback.", ref valid);
+            Check(!File.ReadAllText("Assets/Scripts/Audio/GameplayAudioService.cs")
+                    .Contains("Time.timeScale"),
+                "GameplayAudioService must not pitch audio from Time.timeScale.", ref valid);
+        }
+
+        private static bool SourceContains(string path, params string[] tokens)
+        {
+            if (!File.Exists(path)) return false;
+            string source = File.ReadAllText(path);
+            for (int i = 0; i < tokens.Length; i++)
+                if (!source.Contains(tokens[i])) return false;
+            return true;
+        }
+
+        private static bool DirectoryContains(string path, string token)
+        {
+            if (!Directory.Exists(path)) return false;
+            string[] files = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories);
+            for (int i = 0; i < files.Length; i++)
+                if (File.ReadAllText(files[i]).Contains(token)) return true;
+            return false;
         }
 
         private static void ValidateImporter(string label, string path,

@@ -4,14 +4,26 @@ using TinyKingdom.Input;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Audio;
 using TinyKingdom.Presentation;
+using TinyKingdom.Economy;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
+    public enum ConstructionRecoveryState
+    {
+        Stable,
+        WaitingForProgress,
+        ReturningBuilders,
+        AccessFailure
+    }
+
     public sealed class BuildingSite : MonoBehaviour, IFriendlyCursorTarget, IProductionHost,
         IDefensiveBuildingHost
     {
+        public const float ConstructionStallSeconds = 3f;
+        public const float RecoveryCooldownSeconds = 2f;
         private BuildingData data;
         private GridManager grid;
         private FactionPopulation population;
@@ -25,8 +37,13 @@ namespace TinyKingdom.Buildings
         private float currentHP;
         private bool occupied;
         private bool bonusApplied;
+        private bool completionAudioPlayed;
         private readonly HashSet<PawnBuilder> assignedBuilders = new();
+        private readonly List<PawnBuilder> staleBuilders = new();
         private BuildingInteractionSlots interactionSlots;
+        private float lastProgressTime;
+        private float nextRecoveryTime;
+        [SerializeField] private bool drawBuilderSlots = false;
 
         public BuildingData Data => data;
         public BuildingType Type => data.Type;
@@ -51,8 +68,33 @@ namespace TinyKingdom.Buildings
         public int ActiveBuilderCount => assignedBuilders.Count;
         public int ReservedBuilderSlotCount => interactionSlots != null
             ? interactionSlots.ReservationCount : 0;
+        public int ReachableBuilderSlotCount => interactionSlots != null
+            ? interactionSlots.ValidSlotCount : 0;
+        public int FreeBuilderSlotCount => interactionSlots != null
+            ? interactionSlots.FreeSlotCount : 0;
+        public int WorkingBuilderCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (PawnBuilder builder in assignedBuilders)
+                    if (builder != null && builder.IsWorking) count++;
+                return count;
+            }
+        }
+        public float LastProgressTime => lastProgressTime;
+        public ConstructionRecoveryState RecoveryState { get; private set; }
+        public string LastRecoveryReason { get; private set; } = "None";
+        public float LastRecoveryTime { get; private set; } = -1f;
+        public uint BuilderCommandRequests { get; private set; }
+        public uint DeduplicatedBuilderCommands { get; private set; }
+        public uint BuilderPathRequests { get; private set; }
+        public static long TotalBuilderCommandRequests { get; private set; }
+        public static long TotalDeduplicatedBuilderCommands { get; private set; }
+        public static long TotalBuilderPathRequests { get; private set; }
         public bool CanAssign(PawnBuilder pawn) => pawn != null && !assignedBuilders.Contains(pawn);
         public event Action<BuildingSite> Changed;
+        public event Action<BuildingSite> Completed;
         public event Action DefenseHostDestroyed;
         public event Action DefenseHostHealthChanged;
 
@@ -60,7 +102,8 @@ namespace TinyKingdom.Buildings
 
         public void Configure(BuildingData definition, Faction owner, Vector2Int gridOrigin,
             GridManager navigation, FactionPopulation ownerPopulation,
-            HouseVariant variant = HouseVariant.A)
+            HouseVariant variant = HouseVariant.A, ResourceStockpile ownerResources = null,
+            EconomyConfig economyConfig = null)
         {
             data = definition;
             Faction = owner;
@@ -69,6 +112,11 @@ namespace TinyKingdom.Buildings
             population = ownerPopulation;
             Variant = variant;
             currentHP = 1f;
+            lastProgressTime = Time.time;
+            nextRecoveryTime = 0f;
+            RecoveryState = ConstructionRecoveryState.Stable;
+            LastRecoveryReason = "None";
+            completionAudioPlayed = false;
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
             transform.position = first + new Vector3((data.Footprint.x - 1) * grid.NavigationData.CellSize * 0.5f,
                 (data.Footprint.y - 1) * grid.NavigationData.CellSize * 0.5f, 0f);
@@ -98,6 +146,14 @@ namespace TinyKingdom.Buildings
             occupied = true;
             interactionSlots = gameObject.AddComponent<BuildingInteractionSlots>();
             interactionSlots.Configure(this, grid);
+            if (data.Type == BuildingType.Tower)
+                (GetComponent<BuildingResourceDropOff>()
+                    ?? gameObject.AddComponent<BuildingResourceDropOff>()).Configure(
+                        this, ownerResources, grid);
+            else if (data.Type == BuildingType.House && economyConfig != null)
+                (GetComponent<HouseSheepSpawner>()
+                    ?? gameObject.AddComponent<HouseSheepSpawner>()).Configure(
+                        this, grid, economyConfig, PresentationAssetCatalog.Load());
             (GetComponent<BuildingVisionSource>()
                 ?? gameObject.AddComponent<BuildingVisionSource>()).Configure(this);
             if (BuildingRallyPoint.Supports(data.Type))
@@ -113,19 +169,33 @@ namespace TinyKingdom.Buildings
         {
             if (!MatchManager.AllowsGameplay || State != BuildingState.UnderConstruction
                 || !IsAlive) return;
+            float before = constructionElapsed;
             constructionElapsed = Mathf.Min(data.ConstructionSeconds,
                 constructionElapsed + Mathf.Max(0f, seconds));
+            if (constructionElapsed > before)
+            {
+                lastProgressTime = Time.time;
+                RecoveryState = ConstructionRecoveryState.Stable;
+                LastRecoveryReason = "Progressing";
+            }
             currentHP = Mathf.Max(1f, data.MaxHP * ConstructionProgress);
             if (constructionElapsed >= data.ConstructionSeconds)
             {
                 State = BuildingState.Completed;
                 currentHP = data.MaxHP;
                 visual.color = Color.white;
+                if (!completionAudioPlayed)
+                {
+                    completionAudioPlayed = true;
+                    GameplayAudioService.Request(GameplayAudioEvent.BuildingCompleted,
+                        transform.position, Faction);
+                }
                 if (!bonusApplied && data.PopulationBonus > 0)
                 {
                     population?.AddCap(data.PopulationBonus);
                     bonusApplied = true;
                 }
+                Completed?.Invoke(this);
             }
             UpdateBar();
             Changed?.Invoke(this);
@@ -139,10 +209,55 @@ namespace TinyKingdom.Buildings
             UpdateBar();
         }
 
+        private void Update()
+        {
+            if (!MatchManager.AllowsGameplay || State != BuildingState.UnderConstruction
+                || !IsAlive) return;
+            PruneBuilders();
+            if (assignedBuilders.Count == 0)
+            {
+                if (RecoveryState == ConstructionRecoveryState.AccessFailure) return;
+                RecoveryState = ReachableBuilderSlotCount > 0
+                    ? ConstructionRecoveryState.WaitingForProgress
+                    : ConstructionRecoveryState.AccessFailure;
+                LastRecoveryReason = ReachableBuilderSlotCount > 0
+                    ? "Waiting for a builder" : "No valid construction-access slot";
+                return;
+            }
+            if (WorkingBuilderCount > 0
+                || Time.time - lastProgressTime < ConstructionStallSeconds)
+            {
+                if (WorkingBuilderCount == 0)
+                    RecoveryState = ConstructionRecoveryState.WaitingForProgress;
+                return;
+            }
+            if (Time.time < nextRecoveryTime) return;
+            nextRecoveryTime = Time.time + RecoveryCooldownSeconds;
+            LastRecoveryTime = Time.time;
+            if (ReachableBuilderSlotCount == 0)
+            {
+                RecoveryState = ConstructionRecoveryState.AccessFailure;
+                LastRecoveryReason = "No valid construction-access slot";
+                return;
+            }
+            RecoveryState = ConstructionRecoveryState.ReturningBuilders;
+            LastRecoveryReason = "No progress; returning displaced builders to reserved slots";
+            staleBuilders.Clear();
+            foreach (PawnBuilder builder in assignedBuilders)
+                if (builder != null && !builder.IsWorking) staleBuilders.Add(builder);
+            for (int i = 0; i < staleBuilders.Count; i++)
+                staleBuilders[i].RequestSlotRecovery("Site progress watchdog");
+        }
+
         public void CompleteImmediatelyForTestSetup()
         {
-            if (State == BuildingState.UnderConstruction)
+            if (State == BuildingState.UnderConstruction && MatchManager.AllowsGameplay)
+            {
+                // Scenario setup creates already-complete starting structures; it is
+                // not a player construction completion and must stay silent.
+                completionAudioPlayed = true;
                 AdvanceConstruction(data.ConstructionSeconds);
+            }
         }
 
         public float Repair(float seconds)
@@ -189,9 +304,70 @@ namespace TinyKingdom.Buildings
             return interactionSlots != null && interactionSlots.TryReserve(pawn, out position);
         }
 
+        public bool TryReassignInteraction(PawnBuilder pawn, out Vector3 position)
+        {
+            position = default;
+            return interactionSlots != null
+                && interactionSlots.TryReassign(pawn, out position);
+        }
+
+        public bool TryGetBuilderReservation(PawnBuilder pawn, out int slotId,
+            out Vector2Int cell, out Vector3 position)
+        {
+            if (interactionSlots != null)
+                return interactionSlots.TryGetReservation(pawn, out slotId,
+                    out cell, out position);
+            slotId = -1;
+            cell = default;
+            position = default;
+            return false;
+        }
+
+        public bool HasBuilderReservation(PawnBuilder pawn)
+            => interactionSlots != null && interactionSlots.HasReservation(pawn);
+
+        public bool IsAssigned(PawnBuilder pawn)
+            => pawn != null && assignedBuilders.Contains(pawn);
+
+        public void RecordBuilderCommand(bool deduplicated)
+        {
+            BuilderCommandRequests++;
+            TotalBuilderCommandRequests++;
+            if (deduplicated)
+            {
+                DeduplicatedBuilderCommands++;
+                TotalDeduplicatedBuilderCommands++;
+            }
+        }
+
+        public void RecordBuilderPathRequest()
+        {
+            BuilderPathRequests++;
+            TotalBuilderPathRequests++;
+        }
+
+        public void ReportConstructionAccessFailure(string reason)
+        {
+            RecoveryState = ConstructionRecoveryState.AccessFailure;
+            LastRecoveryReason = string.IsNullOrWhiteSpace(reason)
+                ? "No reachable construction-access slot" : reason;
+            LastRecoveryTime = Time.time;
+        }
+
+        public static void ResetPerformanceCounters()
+        {
+            TotalBuilderCommandRequests = 0;
+            TotalDeduplicatedBuilderCommands = 0;
+            TotalBuilderPathRequests = 0;
+        }
+
         public void Claim(PawnBuilder pawn)
         {
-            if (pawn != null) assignedBuilders.Add(pawn);
+            if (pawn == null) return;
+            assignedBuilders.Add(pawn);
+            lastProgressTime = Time.time;
+            RecoveryState = ConstructionRecoveryState.WaitingForProgress;
+            LastRecoveryReason = "Builder assigned";
         }
 
         public void Release(PawnBuilder pawn)
@@ -199,6 +375,53 @@ namespace TinyKingdom.Buildings
             if (pawn == null) return;
             assignedBuilders.Remove(pawn);
             interactionSlots?.Release(pawn);
+        }
+
+        private void PruneBuilders()
+        {
+            interactionSlots?.PruneInvalidReservations();
+            staleBuilders.Clear();
+            foreach (PawnBuilder builder in assignedBuilders)
+            {
+                UnitController controller = builder != null
+                    ? builder.GetComponent<UnitController>() : null;
+                if (builder == null || controller == null || !controller.IsAlive
+                    || builder.Target != this || !HasBuilderReservation(builder))
+                    staleBuilders.Add(builder);
+            }
+            for (int i = 0; i < staleBuilders.Count; i++)
+            {
+                assignedBuilders.Remove(staleBuilders[i]);
+                interactionSlots?.Release(staleBuilders[i]);
+            }
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+#if UNITY_EDITOR
+            if (!drawBuilderSlots || interactionSlots == null || grid == null || data == null)
+                return;
+            int count = ConstructionSlotUtility.SlotCount(Footprint);
+            for (int slot = 0; slot < count; slot++)
+            {
+                Vector2Int cell = ConstructionSlotUtility.CellAt(Origin, Footprint, slot);
+                Vector3 position = grid.GridToWorld(cell.x, cell.y);
+                PawnBuilder owner = null;
+                if (!ConstructionSlotUtility.IsValid(grid, Origin, Footprint, slot))
+                    Gizmos.color = Color.red;
+                else if (!interactionSlots.TryGetOwner(slot, out owner))
+                    Gizmos.color = Color.green;
+                else if (owner.IsWorking)
+                    Gizmos.color = Color.yellow;
+                else if (owner.GetComponent<UnitMovement>()?.IsMoving == true)
+                    Gizmos.color = Color.cyan;
+                else Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(position, 0.16f);
+                if (owner != null)
+                    UnityEditor.Handles.Label(position + Vector3.up * 0.18f,
+                        $"{slot}: {owner.GetComponent<UnitController>()?.GetEntityId().ToString()}");
+            }
+#endif
         }
 
         private void MakeBar()

@@ -45,6 +45,42 @@ namespace TinyKingdom.Terrain
                 left ? TerrainStairOrientation.DescendsLeft : TerrainStairOrientation.DescendsRight,
                 $"Tilemap_color{color}_r4c{(left?0:3)}",$"Tilemap_color{color}_r5c{(left?0:3)}",height);
 
+        public static bool TryGetTargetTerrace(TerrainHeightConnectorDefinition stair,
+            out TerraceDefinition terrace)
+        {
+            int targetHeight=stair.LowerHeight+1;
+            foreach(TerraceDefinition candidate in Platforms)
+            {
+                if(candidate.Height==targetHeight && candidate.Surface.Contains(stair.UpperCell))
+                { terrace=candidate; return true; }
+            }
+            terrace=default;
+            return false;
+        }
+
+        // Official Tiny Swords stairs require the plateau edge tile at the ramp
+        // exit to become a centre connection tile. If that exit is on the south
+        // cliff row, the adjacent cliff foot must also become its centre piece.
+        public static bool RequiresCliffConnection(TerrainHeightConnectorDefinition stair)
+            => TryGetTargetTerrace(stair,out TerraceDefinition terrace)
+                && stair.UpperY==terrace.Surface.yMin;
+
+        public static string SurfaceConnectionSpriteName(TerrainHeightConnectorDefinition stair)
+        {
+            if(!TryGetTargetTerrace(stair,out TerraceDefinition terrace))
+                throw new System.InvalidOperationException("Stair upper exit is outside its target terrace.");
+            int row=stair.UpperY==terrace.Surface.yMax-1?0
+                : stair.UpperY==terrace.Surface.yMin?2:1;
+            return $"Tilemap_color{terrace.Color}_r{row}c6";
+        }
+
+        public static string CliffConnectionSpriteName(TerrainHeightConnectorDefinition stair)
+        {
+            if(!TryGetTargetTerrace(stair,out TerraceDefinition terrace))
+                throw new System.InvalidOperationException("Stair upper exit is outside its target terrace.");
+            return $"Tilemap_color{terrace.Color}_r5c6";
+        }
+
         public static bool TryConnectorCell(int x,int y,out TerrainHeightConnectorDefinition connector)
         {
             for(int i=0;i<ConnectorCount;i++)

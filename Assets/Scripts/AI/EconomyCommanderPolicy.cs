@@ -31,12 +31,15 @@ namespace TinyKingdom.AI
             public EntityId TargetId;
             public Vector3 LastKnownPosition;
             public AssignmentMode Mode;
+            public float AssignedAt;
         }
 
         [SerializeField, Range(0f, 1f)] private float foodRatio = 0.40f;
         [SerializeField, Range(0f, 1f)] private float woodRatio = 0.35f;
         [SerializeField, Range(0f, 1f)] private float goldRatio = 0.25f;
         [SerializeField, Min(0.5f)] private float unreachableRetrySeconds = 4f;
+        [SerializeField, Min(1f)] private float strategicReplanSeconds = 4f;
+        [SerializeField, Min(1f)] private float minimumRoleDwellSeconds = 8f;
 
         private readonly Dictionary<UnitController, WorkerAssignment> assignments = new();
         private readonly Dictionary<EntityId, float> blockedUntil = new();
@@ -44,6 +47,7 @@ namespace TinyKingdom.AI
         private readonly List<UnitController> removals = new();
         private readonly List<UnitController> retreatRequests = new();
         private readonly Dictionary<UnitController, Vector2Int> retreats = new();
+        private float nextStrategicReplanTime;
 
         public float FoodRatio => foodRatio;
         public float WoodRatio => woodRatio;
@@ -54,6 +58,9 @@ namespace TinyKingdom.AI
         public int GoldAssignments { get; private set; }
         public uint SuccessfulAssignmentSerial { get; private set; }
         public float LastSuccessfulAssignmentTime { get; private set; } = -1f;
+        public uint ReassignmentSerial { get; private set; }
+        public float LastReassignmentTime { get; private set; } = -1f;
+        public string LastReassignmentReason { get; private set; } = "None";
 
         public void Reset()
         {
@@ -66,6 +73,10 @@ namespace TinyKingdom.AI
             FoodAssignments = WoodAssignments = GoldAssignments = 0;
             SuccessfulAssignmentSerial = 0;
             LastSuccessfulAssignmentTime = -1f;
+            ReassignmentSerial = 0;
+            LastReassignmentTime = -1f;
+            LastReassignmentReason = "None";
+            nextStrategicReplanTime = 0f;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -73,8 +84,13 @@ namespace TinyKingdom.AI
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
             StrategicSafetyMap safety)
+            => Tick(context, roles, safety, null);
+
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
+            StrategicSafetyMap safety, EconomicDemandModel demand)
         {
             CollectWorkers(context.Knowledge, roles);
+            RecoverIdleCargo(context, roles, safety);
             PruneRetreats(context, roles, safety);
             PruneAssignments(context, roles, safety);
             if (safety != null)
@@ -90,16 +106,42 @@ namespace TinyKingdom.AI
             }
             StartPendingRetreats(context, safety);
             CountAssignments();
-            DesiredCounts(workers.Count, out int food, out int wood, out int gold);
+            int food;
+            int wood;
+            int gold;
+            if (demand != null) demand.DesiredCounts(workers.Count,
+                out food, out wood, out gold);
+            else DesiredCounts(workers.Count, out food, out wood, out gold);
+
+            TryRebalance(context, safety, demand, food, wood, gold);
+            CountAssignments();
 
             for (int i = 0; i < workers.Count; i++)
             {
                 UnitController worker = workers[i];
                 if (assignments.ContainsKey(worker) || retreats.ContainsKey(worker)) continue;
+                PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
+                if (gatherer != null && gatherer.CarriedAmount > 0) continue;
                 ResourceType type = NextDeficit(food, wood, gold);
                 if (TryAssignWithFallback(context, worker, type, safety,
                     food, wood, gold,
                     out ResourceType assigned)) Increment(assigned);
+            }
+        }
+
+        private static void RecoverIdleCargo(CommanderDecisionContext context,
+            CommanderPawnRoles roles, StrategicSafetyMap safety)
+        {
+            IReadOnlyList<UnitController> units = context.Knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController worker = units[i];
+                if (worker == null || !worker.IsAlive || roles == null
+                    || roles.GetRole(worker) != CommanderPawnRole.Economy) continue;
+                PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
+                if (gatherer == null || gatherer.CarriedAmount <= 0
+                    || gatherer.State != WorkerState.Idle) continue;
+                context.Commands.TryReturnResources(worker, safety);
             }
         }
 
@@ -136,6 +178,10 @@ namespace TinyKingdom.AI
                 PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
                 UnitMovement movement = worker.GetComponent<UnitMovement>();
                 WorkerAssignment assignment = item.Value;
+                if (gatherer != null && gatherer.CarriedAmount > 0
+                    && gatherer.State is WorkerState.ReturningToDropOff
+                        or WorkerState.WaitingForDropOff)
+                    continue;
                 if (safety != null && IsUnsafeAssignment(context, worker, assignment,
                     gatherer, movement, safety))
                 {
@@ -145,13 +191,21 @@ namespace TinyKingdom.AI
                     retreatRequests.Add(worker);
                     continue;
                 }
-                if (assignment.Mode == AssignmentMode.Gathering
-                    && gatherer != null && gatherer.State != WorkerState.Idle
+                if (gatherer != null && gatherer.State != WorkerState.Idle
                     && gatherer.Target != null
                     && gatherer.Target.ResourceType == assignment.Type)
                 {
                     assignment.TargetId = gatherer.Target.GetEntityId();
                     assignment.LastKnownPosition = gatherer.Target.transform.position;
+                    assignment.Mode = AssignmentMode.Gathering;
+                    continue;
+                }
+                if (assignment.Mode == AssignmentMode.Gathering && gatherer != null
+                    && gatherer.IsSeekingRememberedResource)
+                {
+                    assignment.TargetId = gatherer.RememberedResourceId;
+                    assignment.LastKnownPosition = gatherer.RememberedResourcePosition;
+                    assignment.Mode = AssignmentMode.SeekingMemory;
                     continue;
                 }
 
@@ -239,7 +293,8 @@ namespace TinyKingdom.AI
                             Type = type,
                             TargetId = id,
                             LastKnownPosition = best.transform.position,
-                            Mode = AssignmentMode.Gathering
+                            Mode = AssignmentMode.Gathering,
+                            AssignedAt = context.Time
                         };
                         SuccessfulAssignmentSerial++;
                         LastSuccessfulAssignmentTime = context.Time;
@@ -261,7 +316,8 @@ namespace TinyKingdom.AI
                     Type = type,
                     TargetId = remembered.RuntimeId,
                     LastKnownPosition = remembered.LastSeenPosition,
-                    Mode = AssignmentMode.SeekingMemory
+                    Mode = AssignmentMode.SeekingMemory,
+                    AssignedAt = context.Time
                 };
                 SuccessfulAssignmentSerial++;
                 LastSuccessfulAssignmentTime = context.Time;
@@ -287,8 +343,8 @@ namespace TinyKingdom.AI
                     GridCell candidate = grid.GetCell(cell.x, cell.y);
                     if (candidate == null || !candidate.Walkable
                         || !context.Knowledge.IsCellExplored(cell)) continue;
-                    if (safety != null && !safety.IsEligibleEconomicPosition(
-                        context.Knowledge, candidate.WorldPosition)) continue;
+                    if (!IsEligibleEconomicTarget(context,
+                        candidate.WorldPosition, safety)) continue;
                     float distance = ((Vector2)(candidate.WorldPosition
                         - worker.transform.position)).sqrMagnitude;
                     if (best < 0 || distance < bestDistance - 0.0001f)
@@ -320,12 +376,14 @@ namespace TinyKingdom.AI
             {
                 ResourceNode node = resources[i];
                 if (node == null || !node.IsAvailable || node.ResourceType != type) continue;
-                if (safety != null && !safety.IsEligibleEconomicPosition(
-                    context.Knowledge, node.transform.position)) continue;
+                if (!IsEligibleEconomicTarget(context, node.transform.position, safety)) continue;
                 EntityId id = node.GetEntityId();
                 if (IsBlocked(id, context.Time)) continue;
-                float distance = ((Vector2)(node.transform.position
-                    - worker.transform.position)).sqrMagnitude;
+                ResourceInteractionSlots slots = node.GetComponent<ResourceInteractionSlots>();
+                GridManager grid = context.Knowledge.TeamVision?.GridManager;
+                if (slots != null && !slots.HasAvailableCapacity(grid)) continue;
+                float distance = TargetScore(context, worker, node.transform.position,
+                    id, node.RemainingAmount, slots?.ReservationCount ?? 0, safety);
                 if (best == null || distance < bestDistance - 0.0001f
                     || (Mathf.Abs(distance - bestDistance) <= 0.0001f
                         && id.CompareTo(bestId) < 0))
@@ -351,11 +409,10 @@ namespace TinyKingdom.AI
                 ResourceKnowledgeSnapshot item = resources[i];
                 if (item.ResourceType != type || item.LastSeenRemainingAmount <= 0
                     || IsBlocked(item.RuntimeId, context.Time)) continue;
-                if (safety != null && !safety.IsEligibleEconomicPosition(
-                    context.Knowledge, item.LastSeenPosition)) continue;
+                if (!IsEligibleEconomicTarget(context, item.LastSeenPosition, safety)) continue;
                 if (context.Knowledge.TryGetVisibleResource(item.RuntimeId, out _)) continue;
-                float distance = ((Vector2)(item.LastSeenPosition
-                    - worker.transform.position)).sqrMagnitude;
+                float distance = TargetScore(context, worker, item.LastSeenPosition,
+                    item.RuntimeId, item.LastSeenRemainingAmount, 0, safety);
                 if (!found || distance < bestDistance - 0.0001f
                     || (Mathf.Abs(distance - bestDistance) <= 0.0001f
                         && item.RuntimeId.CompareTo(result.RuntimeId) < 0))
@@ -435,6 +492,107 @@ namespace TinyKingdom.AI
         {
             FoodAssignments = WoodAssignments = GoldAssignments = 0;
             foreach (WorkerAssignment item in assignments.Values) Increment(item.Type);
+        }
+
+        private void TryRebalance(CommanderDecisionContext context,
+            StrategicSafetyMap safety, EconomicDemandModel demand,
+            int desiredFood, int desiredWood, int desiredGold)
+        {
+            if (context.Time < nextStrategicReplanTime || assignments.Count == 0) return;
+            nextStrategicReplanTime = context.Time + strategicReplanSeconds;
+            ResourceType target = NextDeficit(desiredFood, desiredWood, desiredGold);
+            if (ResourceDeficit(target, desiredFood, desiredWood, desiredGold) <= 0) return;
+
+            for (int i = 0; i < workers.Count; i++)
+            {
+                UnitController worker = workers[i];
+                if (!assignments.TryGetValue(worker, out WorkerAssignment current)
+                    || current.Type == target) continue;
+                int currentDesired = current.Type switch
+                {
+                    ResourceType.Food => desiredFood,
+                    ResourceType.Wood => desiredWood,
+                    ResourceType.Gold => desiredGold,
+                    _ => 0
+                };
+                int currentCount = current.Type switch
+                {
+                    ResourceType.Food => FoodAssignments,
+                    ResourceType.Wood => WoodAssignments,
+                    ResourceType.Gold => GoldAssignments,
+                    _ => 0
+                };
+                if (currentCount <= currentDesired) continue;
+                bool emergency = demand != null && demand.IsCritical(target);
+                if (!emergency && context.Time - current.AssignedAt < minimumRoleDwellSeconds)
+                    continue;
+                PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
+                if (gatherer == null || gatherer.CarriedAmount > 0) continue;
+                gatherer.CancelJob();
+                worker.GetComponent<UnitMovement>()?.Stop();
+                assignments.Remove(worker);
+                CountAssignments();
+                if (!TryAssign(context, worker, target, safety)) return;
+                ReassignmentSerial++;
+                LastReassignmentTime = context.Time;
+                LastReassignmentReason = emergency
+                    ? $"Critical {target} deficit"
+                    : $"Demand shift {current.Type}->{target}";
+                return;
+            }
+        }
+
+        public bool TryGetAssignedType(UnitController worker, out ResourceType type)
+        {
+            if (worker != null && assignments.TryGetValue(worker,
+                out WorkerAssignment assignment))
+            {
+                type = assignment.Type;
+                return true;
+            }
+            type = default;
+            return false;
+        }
+
+        private float TargetScore(CommanderDecisionContext context,
+            UnitController worker, Vector3 position, EntityId id, int remaining,
+            int reservedSlots, StrategicSafetyMap safety)
+        {
+            float workerTravel = Vector2.Distance(worker.transform.position, position);
+            float dropOffTravel = NearestDropOffDistance(context.Faction, position);
+            int crowding = 0;
+            foreach (WorkerAssignment assignment in assignments.Values)
+                if (assignment.TargetId == id) crowding++;
+            float riskPenalty = safety != null
+                ? (int)safety.RiskAt(position, StrategicPathKind.Civilian) * 30f : 0f;
+            float depletionPenalty = remaining <= 20 ? 25f : 0f;
+            return workerTravel + dropOffTravel * 0.65f
+                + (crowding + reservedSlots) * 8f
+                + riskPenalty + depletionPenalty;
+        }
+
+        private static bool IsEligibleEconomicTarget(CommanderDecisionContext context,
+            Vector3 position, StrategicSafetyMap safety)
+        {
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
+            if (grid == null || !context.Knowledge.IsCellExplored(
+                grid.WorldToGrid(position))) return false;
+            if (safety != null && safety.RiskAt(position,
+                StrategicPathKind.Civilian) >= StrategicRisk.Dangerous) return false;
+            return NearestDropOffDistance(context.Faction, position) <= 12f;
+        }
+
+        private static float NearestDropOffDistance(Faction faction, Vector3 position)
+        {
+            float best = float.PositiveInfinity;
+            IReadOnlyList<IResourceDropOff> items = ResourceDropOffRegistry.Active;
+            for (int i = 0; i < items.Count; i++)
+            {
+                IResourceDropOff item = items[i];
+                if (!ResourceDropOffRegistry.IsUsable(item, faction)) continue;
+                best = Mathf.Min(best, Vector2.Distance(position, item.WorldPosition));
+            }
+            return float.IsPositiveInfinity(best) ? 999f : best;
         }
 
         private void Increment(ResourceType type)

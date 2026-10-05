@@ -276,7 +276,7 @@ namespace TinyKingdom.Buildings
         {
             if (!burning || fireRoot == null || host == null) return;
             bool presented = FogWorldVisibility.Instance == null
-                || FogWorldVisibility.Instance.CanObserve(host.Faction, transform.position);
+                || FogWorldVisibility.Instance.ShouldPresent(host.Faction, transform.position);
             if (fireRoot.activeSelf != presented) fireRoot.SetActive(presented);
             audioLoopActive = GameplayAudioService.IsLoopActive(this,
                 GameplayAudioEvent.BuildingFire);
@@ -423,7 +423,7 @@ namespace TinyKingdom.Buildings
         {
             elapsed += Time.deltaTime;
             bool presented = FogWorldVisibility.Instance == null
-                || FogWorldVisibility.Instance.CanObserve(faction, transform.position);
+                || FogWorldVisibility.Instance.ShouldPresent(faction, transform.position);
             int firstFrame = Mathf.FloorToInt(elapsed * BuildingDamagePresentation.FramesPerSecond);
             firstVisual.enabled = presented && firstFrame < first.Length;
             if (firstFrame < first.Length) firstVisual.sprite = first[firstFrame];

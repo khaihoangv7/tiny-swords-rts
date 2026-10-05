@@ -59,7 +59,7 @@ namespace TinyKingdom.Buildings
         {
             position = default;
             GridCell cell = grid.GetCell(x, y);
-            if (cell == null || !cell.Walkable || cell.Occupied
+            if (!TerrainRules.IsStableStandingCell(cell)
                 || cell.HeightLevel != footprintCell.HeightLevel) return false;
             foreach (UnitController unit in UnitController.ActiveUnits)
                 if (unit != null && unit.IsAlive

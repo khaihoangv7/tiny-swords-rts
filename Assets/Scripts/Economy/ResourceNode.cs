@@ -96,12 +96,14 @@ namespace TinyKingdom.Economy
         public int RemainingAmount => remainingAmount;
         public bool IsDepleted => remainingAmount <= 0;
         public bool IsAvailable => isActiveAndEnabled && !IsDepleted;
+        public bool IsSoftNavigationEntity => resourceType == ResourceType.Food;
         public Vector2Int OccupiedCell => occupiedCell;
         public SpriteRenderer PresentationRenderer => visual;
         public float PresentationScale => presentationScale;
         public bool HasMemoryPresentation => resourceType == ResourceType.Wood || !IsDepleted;
         public bool IsSelected => selectionIndicator != null && selectionIndicator.IsSelected;
         public event Action<ResourceNode> Depleted;
+        public event Action<ResourceNode> Removed;
         public event Action<ResourceNode, int> Harvested;
 
         private void OnEnable()
@@ -116,14 +118,12 @@ namespace TinyKingdom.Economy
         private void Start()
         {
             if (IsDepleted) return;
-            grid = FindAnyObjectByType<GridManager>();
-            if (grid == null) return;
-            occupiedCell = grid.WorldToGrid(transform.position);
-            registered = grid.SetOccupied(occupiedCell.x, occupiedCell.y, true);
+            TryRegisterOccupancy(FindAnyObjectByType<GridManager>());
         }
 
         private void OnDisable()
         {
+            Removed?.Invoke(this);
             registeredNodes.Remove(this);
             selectionIndicator?.SetSelected(false);
             ClearOccupancy();
@@ -139,6 +139,9 @@ namespace TinyKingdom.Economy
             visual = renderer;
             presentationScale = Mathf.Max(0.01f, visualScale);
             depletedWoodSprite = stump;
+            BoxCollider2D gameplayCollider = GetComponent<BoxCollider2D>();
+            if (gameplayCollider != null && IsSoftNavigationEntity)
+                gameplayCollider.isTrigger = true;
             centerVisualY = type != ResourceType.Wood;
             EnsureSelectionIndicator();
             (float width, float height, float y) = type switch
@@ -208,6 +211,20 @@ namespace TinyKingdom.Economy
             return taken;
         }
 
+        public bool TryRegisterOccupancy(GridManager navigation)
+        {
+            if (registered) return true;
+            if (navigation == null || IsDepleted) return false;
+            grid = navigation;
+            occupiedCell = grid.WorldToGrid(transform.position);
+            GridCell cell = grid.GetCell(occupiedCell.x, occupiedCell.y);
+            if (cell == null || !cell.Walkable
+                || (!IsSoftNavigationEntity && cell.Occupied)) return false;
+            registered = IsSoftNavigationEntity
+                || grid.SetOccupied(occupiedCell.x, occupiedCell.y, true);
+            return registered;
+        }
+
         public void SetPresentationSprite(Sprite sprite)
         {
             if (visual == null || sprite == null) return;
@@ -233,9 +250,19 @@ namespace TinyKingdom.Economy
             }
             GridCell from = grid.GetCell(occupiedCell.x, occupiedCell.y);
             GridCell to = grid.GetCell(destination.x, destination.y);
+            bool validTerrain = IsSoftNavigationEntity
+                ? to != null && (to.TerrainType == TerrainType.FlatGround
+                    || to.TerrainType == TerrainType.ElevatedGround)
+                : to != null && to.TerrainType == TerrainType.FlatGround;
             if (from == null || to == null || to.Occupied || !to.Walkable
-                || to.TerrainType != TerrainType.FlatGround
+                || !validTerrain
                 || to.HeightLevel != from.HeightLevel) return false;
+            if (IsSoftNavigationEntity)
+            {
+                occupiedCell = destination;
+                worldPosition = grid.GridToWorld(destination.x, destination.y);
+                return true;
+            }
             grid.SetOccupied(occupiedCell.x, occupiedCell.y, false);
             if (!grid.SetOccupied(destination.x, destination.y, true))
             {
@@ -256,7 +283,8 @@ namespace TinyKingdom.Economy
         private void ClearOccupancy()
         {
             if (!registered || grid == null) return;
-            grid.SetOccupied(occupiedCell.x, occupiedCell.y, false);
+            if (!IsSoftNavigationEntity)
+                grid.SetOccupied(occupiedCell.x, occupiedCell.y, false);
             registered = false;
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
+using TinyKingdom.Debugging;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
@@ -30,6 +31,7 @@ namespace TinyKingdom.Vision
         public float ConstructionProgress { get; internal set; }
         public float HealthRatio { get; internal set; }
         public float DefensiveAttackRange { get; internal set; }
+        public float LastSeenTime { get; internal set; }
     }
 
     [Serializable]
@@ -50,6 +52,7 @@ namespace TinyKingdom.Vision
         public float RemainingRatio { get; internal set; }
         public int RemainingAmount { get; internal set; }
         public int MaximumAmount { get; internal set; }
+        public float LastSeenTime { get; internal set; }
     }
 
     // Stores faction-specific presentation snapshots. Public queries return snapshots only;
@@ -97,10 +100,12 @@ namespace TinyKingdom.Vision
                 return;
             }
             Instance = this;
+            DebugObserverView.Changed += HandleObserverViewChanged;
         }
 
         private void OnDestroy()
         {
+            DebugObserverView.Changed -= HandleObserverViewChanged;
             if (vision != null) vision.VisionChanged -= RefreshMemoryNow;
             if (Instance == this) Instance = null;
         }
@@ -278,8 +283,9 @@ namespace TinyKingdom.Vision
             foreach (KeyValuePair<EntityId, BuildingMemorySnapshot> item in snapshots)
             {
                 BuildingMemorySnapshot snapshot = item.Value;
-                bool show = vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
-                    == VisionState.Explored;
+                bool show = !DebugObserverView.IsEnabled
+                    && vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
+                        == VisionState.Explored;
                 SpriteRenderer renderer = GetGhost(buildingGhosts, item.Key,
                     "LastSeenBuilding_");
                 Apply(renderer, snapshot.Sprite, snapshot.VisualPosition,
@@ -295,8 +301,9 @@ namespace TinyKingdom.Vision
             foreach (KeyValuePair<EntityId, ResourceMemorySnapshot> item in snapshots)
             {
                 ResourceMemorySnapshot snapshot = item.Value;
-                bool show = vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
-                    == VisionState.Explored;
+                bool show = !DebugObserverView.IsEnabled
+                    && vision.GetVisionState(playerViewFaction, snapshot.LogicalPosition)
+                        == VisionState.Explored;
                 SpriteRenderer renderer = GetGhost(resourceGhosts, item.Key,
                     "LastSeenResource_");
                 Apply(renderer, snapshot.Sprite, snapshot.VisualPosition,
@@ -340,6 +347,8 @@ namespace TinyKingdom.Vision
             root.transform.SetParent(transform, false);
             ghostRoot = root.transform;
         }
+
+        private void HandleObserverViewChanged(bool _) => RefreshGhosts();
 
         private bool CaptureBuilding(int team, IDefensiveBuildingHost host,
             Component component, EntityId id)
@@ -399,6 +408,7 @@ namespace TinyKingdom.Vision
                 ? Mathf.Clamp01(host.CurrentHP / host.MaxHP) : 0f;
             snapshot.DefensiveAttackRange = host.DefenseData != null
                 ? host.DefenseData.DefensiveAttackRange : 0f;
+            snapshot.LastSeenTime = Time.time;
             return true;
         }
 
@@ -423,6 +433,7 @@ namespace TinyKingdom.Vision
                 ? Mathf.Clamp01((float)node.RemainingAmount / node.MaximumAmount) : 0f;
             snapshot.RemainingAmount = node.RemainingAmount;
             snapshot.MaximumAmount = node.MaximumAmount;
+            snapshot.LastSeenTime = Time.time;
             return true;
         }
 

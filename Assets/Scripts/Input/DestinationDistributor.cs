@@ -20,7 +20,7 @@ namespace TinyKingdom.Input
                 || (centerCell.Occupied && !searchAroundOccupiedCenter))
                 return result;
 
-            if (!centerCell.Occupied)
+            if (TerrainRules.IsStableStandingCell(centerCell))
                 AddIfValid(grid, center.x, center.y, centerCell.HeightLevel, result,
                     requestedCount);
             for (int radius = 1; radius <= maximumRadius && result.Count < requestedCount; radius++)
@@ -45,7 +45,8 @@ namespace TinyKingdom.Input
                 return;
 
             GridCell cell = grid.GetCell(x, y);
-            if (cell != null && cell.Walkable && !cell.Occupied && cell.HeightLevel == requiredHeight)
+            if (TerrainRules.IsStableStandingCell(cell)
+                && cell.HeightLevel == requiredHeight)
                 result.Add(cell);
         }
     }

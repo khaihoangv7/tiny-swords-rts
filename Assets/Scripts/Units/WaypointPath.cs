@@ -11,6 +11,8 @@ namespace TinyKingdom.Units
         public IReadOnlyList<Vector3> Waypoints => waypoints;
         public int NextWaypointIndex => nextWaypoint;
         public bool HasRemainingWaypoints => nextWaypoint < waypoints.Count;
+        public Vector3 CurrentWaypoint => HasRemainingWaypoints
+            ? waypoints[nextWaypoint] : default;
 
         public void Set(IReadOnlyList<Vector3> newWaypoints, Vector3 currentPosition, float arrivalTolerance)
         {
@@ -71,6 +73,33 @@ namespace TinyKingdom.Units
 
             completed = nextWaypoint >= waypoints.Count;
             return position;
+        }
+
+        // Connector traversal deliberately consumes one endpoint at a time. This
+        // prevents a large frame step from crossing the shared stair corner and
+        // immediately continuing into a third cell before navigation can validate it.
+        public Vector3 AdvanceCurrentWaypoint(Vector3 currentPosition, float speed,
+            float deltaTime, float arrivalTolerance, out bool completed)
+        {
+            if (!HasRemainingWaypoints)
+            {
+                completed = true;
+                return currentPosition;
+            }
+
+            Vector3 target = waypoints[nextWaypoint];
+            float distance = Vector3.Distance(currentPosition, target);
+            if (distance <= arrivalTolerance
+                || distance <= Mathf.Max(0f, speed * deltaTime))
+            {
+                nextWaypoint++;
+                completed = !HasRemainingWaypoints;
+                return target;
+            }
+
+            completed = false;
+            return Vector3.MoveTowards(currentPosition, target,
+                Mathf.Max(0f, speed * deltaTime));
         }
     }
 }

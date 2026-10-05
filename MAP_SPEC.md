@@ -112,6 +112,24 @@ shared corner of the two legal cells, while its wider horizontal run keeps the
 unit's ground pivot on the middle of the painted slope and produces the intended
 on-screen diagonal in both ascent and descent.
 
+Both reciprocal endpoint cells form the connector's reserved transit corridor.
+They remain walkable for A* and bidirectional unit traversal, but are not stable
+standing cells. Resource gather reservations, construction/repair slots,
+garrison/drop-off slots, unit spawn points and group formation destinations must
+select nearby reachable FlatGround or ElevatedGround cells instead. Building
+footprints reject either endpoint through the normal invalid-placement preview;
+a footprint beside the two-cell corridor remains legal when all ordinary rules
+pass. The 0.75-second no-progress watchdog requests at most one recovery route
+for a stalled interval and never teleports a unit.
+
+The visual opening follows the official Tiny Swords two cases. A side ramp that
+meets an interior walkable terrace cell replaces that cell's left/right edge tile
+with the corresponding center surface tile. When the exit is also on the south
+cliff row, the surface uses the center bottom-edge tile and the cliff directly
+below uses the center cliff-foot tile. A full side/corner border may not remain
+across either connection. These visual replacements align with the existing
+reciprocal lower and upper logical cells; they do not create another nav edge.
+
 The central objective is a flat clearing at height 0. The 2x2 mine starts
 at (29,21), with open approaches from both factions and no mine-side ramps.
 Blue's lower terrace occupies x=5..20, y=8..20 and Red's x=39..54, y=24..36
@@ -135,16 +153,21 @@ presentation artwork extends beyond that footprint horizontally, its runtime
 navigation occupancy adds one side-clearance cell on both the left and right.
 The southern approach stays open for the existing drop-off and garrison slots.
 
-Mobile neutral resources such as Sheep may change their occupied logical cell.
-If this invalidates an active unit route, `UnitMovement` requests a replacement
-A* route no more frequently than once per 0.35 seconds while blocked. Sheep do
-not choose a wander destination currently containing a living unit. A unit
-already caught inside a newly occupied start cell may leave that cell, but no
-unit may enter another occupied cell.
+Mobile Sheep track a logical cell for wandering and interaction but do not set
+the grid's permanent `Occupied` flag. They are soft entities: A*, normal units
+and local separation do not treat them as blockers. Their selection coverage is
+a trigger and remains independent from navigation. Wandering avoids a destination
+currently containing a living unit where practical.
+
+Sheep occupancy alone does not invalidate building placement. Once placement is
+successfully committed, Sheep inside the final logical or physical footprint move
+to distinct valid cells found on the nearest bounded ring outside it. The new
+building footprint still becomes a permanent navigation blocker immediately.
 
 Building footprints may occupy FlatGround or ElevatedGround at any authored
 height, including both Castle tiers. All footprint cells must share one height
-and remain clear of resources, buildings and units. Water, Cliff, Stairs and
+and remain clear of static resources, buildings and units; soft Sheep are the
+only resource exception and evacuate after successful placement. Water, Cliff, Stairs and
 footprints spanning height boundaries are invalid. A selected Pawn must have
 a route to an adjacent work cell at the building's height.
 

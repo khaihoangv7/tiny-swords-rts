@@ -11,6 +11,11 @@ namespace TinyKingdom.Units
         Vector3 VisionPosition { get; }
     }
 
+    public interface IUnitVisionModifier
+    {
+        float VisionMultiplier { get; }
+    }
+
     public static class VisionSourceRegistry
     {
         private static readonly List<IVisionSource> Sources = new();

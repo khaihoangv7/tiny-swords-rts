@@ -14,8 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Audio.GameplayAudioCatalog
   cues:
   - eventId: 0
-    clip: {fileID: 8300000, guid: e0a822901eed0f94d8ece2638213856f, type: 3}
-    variations: []
+    clip: {fileID: 8300000, guid: e526aeb5b4d44b2fb2dfafafe188943f, type: 3}
+    variations:
+    - {fileID: 8300000, guid: 0d62de758d3b4e99b74cf212e390bae0, type: 3}
+    - {fileID: 8300000, guid: ec594095385c49b2b2021483cc876631, type: 3}
+    - {fileID: 8300000, guid: 83dde9a67cef4455969198c49b4fd38e, type: 3}
+    - {fileID: 8300000, guid: c96f90b2b7e5427eb768993eae4a420b, type: 3}
+    - {fileID: 8300000, guid: 99c371f69fb34db7a93e4f206c423f85, type: 3}
+    - {fileID: 8300000, guid: f0fa55409fc942f8b77a1766af714288, type: 3}
     volume: 0.8
     startTimeSeconds: 0
     maxPlaybackSeconds: 0.8
@@ -26,7 +32,7 @@ MonoBehaviour:
     startTimeSeconds: 0
     maxPlaybackSeconds: 1.25
   - eventId: 2
-    clip: {fileID: 8300000, guid: 001481c845ada704fbdc48bc9d3ad993, type: 3}
+    clip: {fileID: 8300000, guid: 0104f83fbd2b4475ac0623c4bff94d35, type: 3}
     variations: []
     volume: 0.75
     startTimeSeconds: 0
@@ -121,7 +127,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 9dfecfc06f4df07419ead5942526c320, type: 3}
     volume: 0.55
     startTimeSeconds: 0
-    maxPlaybackSeconds: 0
+    maxPlaybackSeconds: 0.7
   - eventId: 18
     clip: {fileID: 8300000, guid: f8c280a6b8854a74bb7da2a939d7d1a8, type: 3}
     variations: []
@@ -150,6 +156,36 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 4f6ef413ef50b704eae225c8e7c37105, type: 3}
     variations: []
     volume: 0.85
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 23
+    clip: {fileID: 8300000, guid: 89cf3dfc95cb9354aae1dc11b6f0d12c, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 24
+    clip: {fileID: 8300000, guid: 464d7a2b1bcc46bb8bc470f691a60685, type: 3}
+    variations: []
+    volume: 0.8
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 25
+    clip: {fileID: 8300000, guid: c8abb6e6d6ce41129188b4e805b0cf21, type: 3}
+    variations: []
+    volume: 0.7
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 26
+    clip: {fileID: 8300000, guid: 9e0ad3ec150d458c98a2ce9a65bd10e4, type: 3}
+    variations: []
+    volume: 0.75
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0
+  - eventId: 27
+    clip: {fileID: 8300000, guid: cc0f9940586d4485b6e9741e5064ea42, type: 3}
+    variations: []
+    volume: 0.8
     startTimeSeconds: 0
     maxPlaybackSeconds: 0
   poolSize: 12

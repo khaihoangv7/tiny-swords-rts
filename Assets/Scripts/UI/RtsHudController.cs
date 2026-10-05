@@ -9,10 +9,16 @@ namespace TinyKingdom.UI
     [RequireComponent(typeof(Canvas), typeof(CanvasScaler))]
     public sealed class RtsHudController : MonoBehaviour
     {
+        public static readonly Vector2 ReferenceResolution = new(1920f, 1080f);
+        public const float SafeScreenMargin = 12f;
+        public const float HudHeight = 188f;
+        public static readonly Vector2 HudSize = new(1896f, HudHeight);
+
         private ResourcePanelPresenter resources;
         private SelectionInfoPanelPresenter selectionInfo;
         private CommandPanelPresenter commands;
         private CommandTooltipPresenter tooltip;
+        private DebugMatchControlsPresenter debugControls;
         private RectTransform hudRoot;
 
         public RectTransform HudRoot => hudRoot;
@@ -20,6 +26,7 @@ namespace TinyKingdom.UI
         public SelectionInfoPanelPresenter SelectionPanel => selectionInfo;
         public CommandPanelPresenter CommandPanel => commands;
         public CommandTooltipPresenter CommandTooltip => tooltip;
+        public DebugMatchControlsPresenter DebugControls => debugControls;
         public bool IsReady => resources != null && resources.IsReady
             && selectionInfo != null && commands != null
             && tooltip != null && tooltip.HasValidReferences;
@@ -39,7 +46,7 @@ namespace TinyKingdom.UI
 
             CanvasScaler scaler = GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.referenceResolution = ReferenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
@@ -47,9 +54,8 @@ namespace TinyKingdom.UI
             if (hudRoot == null)
             {
                 hudRoot = RtsUiFactory.Rect("RtsBottomHud", transform);
-                RtsUiFactory.Anchor(hudRoot, Vector2.zero, Vector2.zero,
-                    new Vector2(12f, 12f), new Vector2(1258f, 160f));
             }
+            ApplyHudGeometry();
             resources = GetComponent<ResourcePanelPresenter>()
                 ?? gameObject.AddComponent<ResourcePanelPresenter>();
             selectionInfo = GetComponent<SelectionInfoPanelPresenter>()
@@ -58,11 +64,27 @@ namespace TinyKingdom.UI
                 ?? gameObject.AddComponent<CommandPanelPresenter>();
             tooltip = GetComponent<CommandTooltipPresenter>()
                 ?? gameObject.AddComponent<CommandTooltipPresenter>();
+            debugControls = GetComponent<DebugMatchControlsPresenter>()
+                ?? gameObject.AddComponent<DebugMatchControlsPresenter>();
             resources.Configure(stockpile, population, catalog, hudRoot);
             selectionInfo.Configure(selection, catalog, hudRoot);
             commands.Configure(selection, commandInput, guardInput,
-                buildingSystem, placement, catalog, tooltip, hudRoot);
+                buildingSystem, placement, stockpile, catalog, tooltip, hudRoot);
             tooltip.Configure(catalog, stockpile, population, hudRoot);
+            debugControls.Configure(catalog);
+        }
+
+        private void ApplyHudGeometry()
+        {
+            // The bottom HUD owns the full safe horizontal canvas region. Individual
+            // panels still size their real surfaces, so empty HUD space never blocks
+            // world input.
+            hudRoot.anchorMin = new Vector2(0f, 0f);
+            hudRoot.anchorMax = new Vector2(1f, 0f);
+            hudRoot.pivot = Vector2.zero;
+            hudRoot.offsetMin = new Vector2(SafeScreenMargin, SafeScreenMargin);
+            hudRoot.offsetMax = new Vector2(-SafeScreenMargin,
+                SafeScreenMargin + HudHeight);
         }
 
         private void DisableLegacyPresenters()

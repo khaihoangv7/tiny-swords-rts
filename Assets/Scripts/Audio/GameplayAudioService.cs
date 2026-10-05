@@ -157,7 +157,13 @@ namespace TinyKingdom.Audio
         public static bool StartLoop(UnityEngine.Object owner, GameplayAudioEvent eventId,
             Vector3 worldPosition, Faction? sourceFaction = null)
             => Instance != null && owner != null
-                && Instance.TryStartLoop(owner, eventId, worldPosition, sourceFaction);
+                && Instance.TryStartLoop(owner, eventId, worldPosition, sourceFaction, 1f);
+
+        public static bool StartLoop(UnityEngine.Object owner, GameplayAudioEvent eventId,
+            Vector3 worldPosition, Faction? sourceFaction, float volumeMultiplier)
+            => Instance != null && owner != null
+                && Instance.TryStartLoop(owner, eventId, worldPosition, sourceFaction,
+                    volumeMultiplier);
 
         public static bool IsLoopActive(UnityEngine.Object owner, GameplayAudioEvent eventId)
             => Instance != null && owner != null
@@ -185,7 +191,7 @@ namespace TinyKingdom.Audio
 
                 SourceSlot slot = AcquireOneShot();
                 if (slot == null) return false;
-                AudioClip clip = cue.GetClip(presentationRandom.Next());
+                AudioClip clip = cue.GetClip(presentationRandom.Next(cue.ClipCount));
                 if (clip == null) return false;
                 ConfigureSource(slot.Source, spatial, false);
                 slot.EventId = eventId;
@@ -206,12 +212,15 @@ namespace TinyKingdom.Audio
         }
 
         private bool TryStartLoop(UnityEngine.Object owner, GameplayAudioEvent eventId,
-            Vector3 worldPosition, Faction? sourceFaction)
+            Vector3 worldPosition, Faction? sourceFaction, float volumeMultiplier)
         {
             AudioLoopKey key = LoopKey(owner, eventId);
             if (activeLoops.TryGetValue(key, out SourceSlot existing))
             {
                 existing.Source.transform.position = worldPosition;
+                if (catalog != null && catalog.TryGetCue(eventId, out GameplayAudioCue activeCue))
+                    existing.Source.volume = sfxVolume * activeCue.Volume
+                        * Mathf.Clamp01(volumeMultiplier);
                 if (existing.Source.isPlaying) return true;
                 activeLoops.Remove(key);
                 StopSlot(existing);
@@ -220,7 +229,7 @@ namespace TinyKingdom.Audio
                 || cue.ClipCount == 0 || !CanPlayerHear(worldPosition, sourceFaction)) return false;
             SourceSlot slot = AcquireLoop();
             if (slot == null) return false;
-            AudioClip clip = cue.GetClip(presentationRandom.Next());
+            AudioClip clip = cue.GetClip(presentationRandom.Next(cue.ClipCount));
             if (clip == null) return false;
             ConfigureSource(slot.Source, true, true);
             slot.EventId = eventId;
@@ -228,7 +237,8 @@ namespace TinyKingdom.Audio
             slot.Spatial = true;
             slot.Source.transform.position = worldPosition;
             slot.Source.clip = clip;
-            slot.Source.volume = sfxVolume * cue.Volume;
+            slot.Source.volume = sfxVolume * cue.Volume
+                * Mathf.Clamp01(volumeMultiplier);
             slot.Source.pitch = 1f;
             slot.Source.Play();
             activeLoops.Add(key, slot);

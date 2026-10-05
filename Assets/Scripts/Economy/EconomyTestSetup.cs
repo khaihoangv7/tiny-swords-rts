@@ -197,7 +197,7 @@ namespace TinyKingdom.Economy
             FactionPopulation redPopulation = redPopulationObject.AddComponent<FactionPopulation>();
             redPopulation.Configure(Faction.Red, 10);
             BuildingSystem buildingSystem = area.AddComponent<BuildingSystem>();
-            buildingSystem.Configure(navigation, blue, population, buildings);
+            buildingSystem.Configure(navigation, blue, population, buildings, economyConfig);
             if (!buildingSystem.IsReady)
             {
                 Debug.LogError("Phase 5B1 BuildingData is missing a valid type, sprite or navigation link.", this);
@@ -248,7 +248,7 @@ namespace TinyKingdom.Economy
                 redTowerObject.transform.SetParent(area.transform, false);
                 BuildingSite redTower = redTowerObject.AddComponent<BuildingSite>();
                 redTower.Configure(towerData, Faction.Red, redTowerOrigin,
-                    navigation, null);
+                    navigation, null, HouseVariant.A, red, economyConfig);
                 redTower.CompleteImmediatelyForTestSetup();
                 SetupDefense(redTower, navigation);
             }
@@ -261,10 +261,17 @@ namespace TinyKingdom.Economy
                     site.gameObject.AddComponent<UnitProductionQueue>().Configure(
                         site, blue, population, navigation, unitData,
                         (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
-                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
+                if (site.Type == BuildingType.Tower)
+                {
+                    SetupDefense(site, navigation);
+                    BuildingResourceDropOff tower =
+                        site.GetComponent<BuildingResourceDropOff>();
+                    if (tower != null) feedback.Watch(tower);
+                }
             };
             BuildingSystem redBuildingSystem = area.AddComponent<BuildingSystem>();
-            redBuildingSystem.Configure(navigation, red, redPopulation, buildings);
+            redBuildingSystem.Configure(navigation, red, redPopulation, buildings,
+                economyConfig);
             redBuildingSystem.BuildingPlaced += site =>
             {
                 if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
@@ -424,8 +431,7 @@ namespace TinyKingdom.Economy
                 for (int fx = 0; fx < size.x; fx++)
                 {
                     GridCell cell = navigation.GetCell(x + fx, y + fy);
-                    if (cell == null || !cell.Walkable || cell.Occupied
-                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || (height >= 0 && height != cell.HeightLevel)) { valid = false; break; }
                     height = cell.HeightLevel;
                 }
@@ -482,8 +488,7 @@ namespace TinyKingdom.Economy
                 for (int fx = 0; fx < data.Footprint.x; fx++)
                 {
                     GridCell cell = navigation.GetCell(x + fx, y + fy);
-                    if (cell == null || !cell.Walkable || cell.Occupied
-                        || cell.TerrainType is TerrainType.Water or TerrainType.Cliff
+                    if (!TerrainRules.IsStableStandingCell(cell)
                         || (height >= 0 && cell.HeightLevel != height))
                     {
                         valid = false;
@@ -556,6 +561,7 @@ namespace TinyKingdom.Economy
             var collider = obj.AddComponent<BoxCollider2D>();
             collider.size = new Vector2(clickSize, type == ResourceType.Wood ? 2f : clickSize);
             collider.offset = type == ResourceType.Wood ? new Vector2(0f, 0.9f) : Vector2.zero;
+            collider.isTrigger = type == ResourceType.Food;
             obj.AddComponent<ResourceInteractionSlots>().Configure(1);
             if (type == ResourceType.Food)
                 obj.AddComponent<ResourceHarvestFlash>().Configure(renderer);
@@ -595,7 +601,8 @@ namespace TinyKingdom.Economy
             obj.AddComponent<UnitSelection>().ConfigureMarkerYOffset(-0.35f);
             PawnGatherer gatherer = obj.AddComponent<PawnGatherer>();
             gatherer.ConfigureGathering(economyConfig.GatherSecondsPerUnit,
-                economyConfig.GatherImpactDelay, economyConfig.AmountPerStep);
+                economyConfig.GatherImpactDelay, economyConfig.AmountPerStep,
+                economyConfig.PawnCarryCapacity);
             obj.AddComponent<CombatController>().Configure(pawnCombatData);
             obj.AddComponent<PawnBuilder>();
             obj.AddComponent<PawnVisual>().Configure(animations);

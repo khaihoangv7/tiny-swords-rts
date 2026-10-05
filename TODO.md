@@ -143,9 +143,9 @@ The next gameplay phase has not begun.
 
 ## Phase 5A Economy Foundation
 
-Status: **PASS** — user completed manual Unity Play Mode validation; Console had no errors.
+Status: **PASS** â€” user completed manual Unity Play Mode validation; Console had no errors.
 
-- [x] Read GAME_SPEC.md economy values; Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off
+- [x] Recorded the original Phase 5A baseline: Food 200, Wood 200, Gold 100; Pawn cost 50 Food; carry 10; Castle drop-off (carry/drop-off superseded by Phase 6H.1)
 - [x] Store the 1.5-second gather cycle and Sheep/Tree/base Gold capacities 200/100/100 in Phase5AEconomy ScriptableObject (Tree/base Gold remain provisional)
 - [x] Separate Blue and Red ResourceStockpile, explicit ResourceType, deterministic ResourceNode depletion
 - [x] PawnGatherer capability uses existing UnitMovement and A*; cargo, return, deposit and command interruption implemented
@@ -174,9 +174,9 @@ Status: **PASS** — user completed manual Unity Play Mode validation; Console h
 
 ## Phase 5B1 Building Construction Foundation
 
-Status: **STABLE per user report** — detailed Phase 5B1 checklist below remains unreported.
+Status: **STABLE per user report** â€” detailed Phase 5B1 checklist below remains unreported.
 
-- [x] Verified House 100 Wood/+5 population, Barracks 150 Wood, Tower 100 Wood/50 Gold, and free MVP repair against GAME_SPEC.md
+- [x] Verified the original Phase 5B1 House 100 Wood/+5 population baseline (House cost superseded by Phase 6H.1), Barracks/Tower costs and free MVP repair
 - [x] Recorded provisional HP, build seconds, footprints, and repair rate in separate BuildingData assets
 - [x] Verified Blue/Red House, Barracks, Tower and Castle sprites and Blue Pawn Hammer sheets in ASSET_MANIFEST.md
 - [x] Added placement UI, preview, grid footprint validation, resource spending, builder assignment, construction, building selection and repair commands
@@ -189,7 +189,7 @@ Status: **STABLE per user report** — detailed Phase 5B1 checklist below remain
 
 ## Phase 5C1 Unit Production, Building Roster and Resource Feedback
 
-Status: **PASS** — automated checks and user-completed Unity Play Mode validation passed; Console had no errors.
+Status: **PASS** â€” automated checks and user-completed Unity Play Mode validation passed; Console had no errors.
 
 - [x] Replace generic Barracks roster in GAME_SPEC.md with Castle Pawn, Barracks Warrior/Lancer, Archery Archer, Monastery future Monk
 - [x] Set Pawn base damage to 2 without enabling Pawn auto acquisition
@@ -210,7 +210,7 @@ Status: **PASS** — automated checks and user-completed Unity Play Mode validat
 
 ## Phase 5C2 Tower / Castle Defense and Garrison
 
-Status: **PASS** — final manual Unity Play Mode validation completed; Console had no new errors or warnings.
+Status: **PASS** â€” final manual Unity Play Mode validation completed; Console had no new errors or warnings.
 
 - [x] Add data-driven Tower 2-internal/1-mounted and Castle 5-internal/3-mounted capacities
 - [x] Add approach reservations, physical entry, worker cancellation with retained Pawn cargo, protected stationing and safe Eject All
@@ -267,7 +267,7 @@ presentation, economy, construction, retaliation, death VFX and regression check
 
 ## Phase 6A Team Vision and Fog of War Foundation
 
-Status: **PASS** — implementation, compilation and user-completed Unity Play Mode
+Status: **PASS** â€” implementation, compilation and user-completed Unity Play Mode
 validation passed; Console had no new errors or warnings. Phase 6B has not started.
 
 - [x] Add authoritative per-faction `Visible` / `Explored` / `Unexplored` state on the existing 40x28 logical grid
@@ -287,11 +287,11 @@ validation passed; Console had no new errors or warnings. Phase 6B has not start
 - [x] Manual Play Mode: Tower strategic reveal and Blue/Red visibility isolation
 - [x] Manual Play Mode: enemy presentation hiding and UI/cursor/selection information-leak checks
 - [x] Manual Play Mode: reduced unit radii and world-grid fog alignment
-- [x] Manual Play Mode: pan/zoom and Phase 1–5 gameplay regression; Console had no new errors or warnings
+- [x] Manual Play Mode: pan/zoom and Phase 1â€“5 gameplay regression; Console had no new errors or warnings
 
 ## Phase 6B Fog-Aware Combat, Targeting and Combat Awareness
 
-Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
+Status: **PASS** â€” Unity Play Mode validation completed before Phase 6C.
 
 - [x] Add one authoritative `CombatVisibility` gameplay query backed by `TeamVisionSystem`
 - [x] Require faction visibility for passive unit acquisition and AttackMove interruption
@@ -315,7 +315,7 @@ Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
 
 ## Phase 6B.1 RTS Controls, Building UI, Castle QoL and Rally Points
 
-Status: **PASS** — Unity Play Mode validation completed before Phase 6C.
+Status: **PASS** â€” Unity Play Mode validation completed before Phase 6C.
 
 - [x] Reserve A for Warrior/Archer/Lancer AttackMove and remove WASD camera movement
 - [x] Add normalized Arrow-key and configurable 16-pixel eight-direction edge scrolling within existing bounds
@@ -569,10 +569,10 @@ Mode inspection remain required. No later gameplay, AI or RL phase has started.
 - [x] Runtime and Editor independent C# compile checks: 0 errors, 0 warnings
 - [x] Fix legacy SelectionSummary event cleanup to prevent MissingReferenceException after selecting a unit
 - [x] Diagnose the WoodTable 238x258 source geometry and remove the undersized nine-cell assembly
-- [x] Add a 1920x1080 responsive 1258x160 bottom HUD root with a shared baseline and safe margin
+- [x] Add a 1920x1080 responsive full-width 1896x188 safe HUD region with a shared baseline and 12-unit margins
 - [x] Replace tiled WoodTable/SpecialPaper centers with one continuous surface plus simple border pieces
-- [x] Compact resources to 220x160, selection to 380x160 and commands to 650x160
-- [x] Reduce command buttons from 84x72 to 60x58 and use a seven-column grid
+- [x] Size Resources to 220x188, keep Selection at 380x188 and adapt Commands from 240x188 through a 1288x188 safe maximum
+- [x] Use one row of shared command buttons adapting from 104x112 down to 76x82
 - [x] Extend the validator for anchors, viewport bounds, panel/button sizes, continuous surfaces and raycast blocking
 - [ ] Run `Tools > Tiny Kingdom > Prepare RTS HUD` after Unity recompiles
 - [ ] Run `Tools > Tiny Kingdom > Validate RTS HUD` in Edit Mode and Play Mode
@@ -661,6 +661,46 @@ Play Mode tests remain required before PASS.
 - [ ] Manual: all builders stop on completion and repair animation still works
 - [ ] Compare construction duration before/after with equal builder count
 - [ ] Verify gathering, Castle drop-off, building placement, combat, Red AI and audio regressions
+- [ ] Confirm Unity Console has no new errors or warnings
+
+## Phase 6D.5 - HUD Scale and Adaptive Command Panel Polish
+
+Status: **NOT COMPLETE** - implementation, documentation and independent Runtime/
+Editor compile checks pass with 0 errors and 0 warnings. Unity validation and
+manual Play Mode visual tests remain required before PASS.
+
+- [x] Preserve fourteen reusable command actions and four formation actions
+- [x] Increase every shared command button from the initial 60x58 through 76x72 and 88x82 to 104x112
+- [x] Increase aspect-preserving command icons from the initial 30x30 through 44x44 and 52x52 to 68x68
+- [x] Keep every supported visible-command count from 1 through 14 on exactly one row
+- [x] Grow the Command frame horizontally before shrinking all active cards uniformly
+- [x] Keep Command height fixed at 188 for every active-command count
+- [x] Lock Resources at x=0/220x188 and Selection at x=224/380x188 independently of Command count
+- [x] Restore Command to fixed HUD x=608 with lower-left anchor/pivot and rightward-only growth
+- [x] Calculate Command maximum width from the fixed left edge to the safe right boundary
+- [x] Avoid hierarchy rebuilds and skip layout work when count/width are unchanged
+- [x] Keep Selection at 380x188 while increasing single portrait to 96x96 and title/details to 24/16
+- [x] Adapt multi-selection rows inside the fixed panel: 52x52/21 for two types, 40x40/19 for four and 34x34/18 for five
+- [x] Derive Command width only from active actions: minimum 240, two commands 240, six 678, seven 788, reference cap 1288
+- [x] Adapt icons 68â†’48, labels 15â†’12, secondary costs 13â†’10 and hotkeys 13â†’10 with card size
+- [x] Preserve readable 13/14-action cards at approximately 91.69x98.81 and 84.71x91.34
+- [x] Add a padded CommandContent rect so every active card remains inside the frame
+- [x] Keep the Command left edge stable and resize the actual surface/raycast blocker with the frame
+- [x] Increase Resources panel to 220x188, rows to 36, icons to 34x34 and values to bold 22
+- [x] Preserve WoodTable/SpecialPaper continuous surfaces, frame pieces and UI raycast blocking
+- [x] Preserve the 1920x1080 CanvasScaler, tooltips, UI audio and command authority
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6D.5 HUD Scale`
+- [x] Document Phase 6D.5 layout rules in `UI_SPEC.md`
+- [x] Run independent Runtime and Editor C# compile checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6D.5 validator in Unity Edit Mode and Play Mode
+- [ ] Manual: verify 1, 2, 6, 7, 13 and synthetic 14 visible command counts stay on one row
+- [ ] Manual: verify Pawn Build commands and military Formation commands use the same size
+- [ ] Manual: verify single unit, Pawn x3, mixed military and Castle selection readability
+- [ ] Manual: verify Population/Wood/Gold/Food values including 0, 999, 1000+ and 15/20
+- [ ] Manual: verify 1280x720 and 2560x1440 at Game View Scale 100 percent
+- [ ] Manual: verify tooltip hover/clamping, disabled hover, active formation tint and no clipping
+- [ ] Manual: verify command click/reject audio and UI-over-world input blocking
+- [ ] Manual: recompile during Play Mode and verify no duplicate/missing pooled actions
 - [ ] Confirm Unity Console has no new errors or warnings
 
 ## Phase 7A - Rule-Based Commander Foundation
@@ -866,8 +906,8 @@ Editor compilation pass. Unity Play Mode visual and regression validation remain
 - [x] Keep Gold Stone 1-5 mining positions close while using extra outward clearance for Gold Stone 6
 - [x] Add one navigation-clearance cell to each horizontal side of the 1.7x Main Castle art
 - [x] Prevent Sheep wandering into cells currently occupied by living units
-- [x] Recalculate active routes when moving Sheep invalidate a future waypoint, throttled to 0.35 seconds
-- [x] Allow a unit already caught in a newly occupied start cell to exit without allowing entry into blockers
+- [x] Historical moving-Sheep repath behavior implemented (superseded by Phase 6H.2 soft Sheep)
+- [x] Preserve blocker exit behavior for true static occupancy; Sheep no longer creates it in Phase 6H.2
 - [x] Preserve verified animation anchors across Idle, Run, Attack, Guard and work frames
 - [x] Raise the unscaled unit health-bar anchor from 0.78 to 1.01
 - [x] Scale unit selection-ring geometry and ground offset by 1.3 to restore foot alignment
@@ -886,8 +926,8 @@ Editor compilation pass. Unity Play Mode visual and regression validation remain
 - [ ] Verify Gold Stone 1-5 Pawns stand close, Gold Stone 6 Pawns stay outside, and all mining animations face the node
 - [ ] Damage each constructible building and verify every successful Hammer repair impact triggers one mild pulse
 - [ ] Verify units route around both visible Main Castle side edges while drop-off/garrison entry still works
-- [ ] Verify Move, AttackMove, chase and worker routes detour around Sheep that wander onto the original path
-- [ ] Verify clustered units do not trigger recurring pathfinding or Console spam around Sheep
+- [x] Superseded by Phase 6H.2: units now pass through Sheep instead of detouring
+- [ ] Verify clustered units pass through Sheep without pathfinding or Console spam
 - [ ] Verify repeated building clicks restart one pulse and always recover to scale 1.7
 - [ ] Verify movement, combat, gathering, construction, garrison, cursor and clean Console regressions
 
@@ -1196,3 +1236,460 @@ Unity Edit Mode validation and the required Play Mode regression matrix remain.
 - [ ] Verify Move, AttackMove acquisition/resume and direct target Attack regressions
 - [ ] Verify Phase 6D HUD/tooltips, Phase 6E audio and Phase 6F world sorting regressions
 - [ ] Verify RuleBasedCommander, Fog, Console and Profiler/GC regressions
+
+## Phase 6H.1 - Economy and Worker Logistics
+
+Status: **PASS** - implementation compiles cleanly and the user confirmed the
+Phase 6H.1 Unity Play Mode validation is successful.
+
+- [x] Generalize Castle/Tower deposits through `IResourceDropOff` and one registry
+- [x] Accept Food, Wood and Gold at living completed friendly Towers
+- [x] Rank drop-offs by squared distance and stable EntityId before route checks
+- [x] Recalculate when a selected drop-off is destroyed, invalid or unreachable
+- [x] Change authoritative House cost from 100 Wood to 80 Wood
+- [x] Give every completed House at most one generated Sheep
+- [x] Spawn House Sheep outside the footprint on bounded valid walkable rings
+- [x] Respawn a depleted House Sheep after 90 gameplay seconds
+- [x] Cancel future respawn on House destruction while preserving a living Sheep
+- [x] Redirect slot-overflow Pawns to a same-type visible node with free capacity
+- [x] Continue depleted jobs across visible and legally remembered same-type resources
+- [x] Exclude unexplored resources and defer hidden live-state resolution until visible
+- [x] Preserve stable reservations until invalidation or explicit manual override
+- [x] Change authoritative Pawn carry capacity from 10 to 20
+- [x] Change authoritative gather amount from 1 to 2 per successful work tick
+- [x] Preserve the 19-to-20 cap edge without removing the unused resource unit
+- [x] Pass AI safety filtering to visible and remembered continuation positions
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.1 Economy & Worker Logistics`
+- [x] Compile temporary Runtime and Editor checks with 0 errors and 0 warnings
+- [x] Refresh scripts in the active Unity Editor and confirm Console compilation
+- [x] Run the Phase 6H.1 validator in Edit Mode
+- [x] Run the Phase 6H.1 validator in Play Mode
+- [x] Test Tower versus Castle nearest drop-off and Tower destruction fallback
+- [x] Build House A/B/C, verify 80 Wood and one Sheep outside each footprint
+- [x] Deplete House Sheep, verify no duplicate and one replacement after 90 seconds
+- [x] Destroy House before/after Sheep depletion and verify ownership cleanup rules
+- [x] Saturate one Tree/Sheep/Gold node with a Pawn group and verify redistribution
+- [x] Deplete each resource type and verify same-type visible/memory continuation
+- [x] Verify unexplored resources are never automatically targeted
+- [x] Verify carry 20, +2 ticks, 19-to-20 edge and no negative remaining amount
+- [x] Verify Blue controls, Red AI, production, combat, Fog, construction, garrison,
+  rally, navigation, Console and Profiler/GC regressions
+- [x] Phase 6H.2 was explicitly started after Phase 6H.1 validation
+
+## Phase 6H.2 - Navigation and Sheep Interaction Polish
+
+Status: **PASS** - implementation compiles cleanly and the user confirmed the
+Phase 6H.2 Unity Play Mode validation is successful.
+
+- [x] Preserve reciprocal lower-to-upper and upper-to-lower stair edges
+- [x] Consume connector endpoints one at a time during continuous movement
+- [x] Validate authored connector traversal without ambiguous shared-corner sampling
+- [x] Suppress local separation only during the short connector waypoint traversal
+- [x] Add a 0.75-second connector no-progress watchdog with throttled repath
+- [x] Preserve the 0.35-second blocked-route repath cooldown after successful rebuild
+- [x] Remove Sheep from hard logical navigation occupancy and A* blocking
+- [x] Keep Sheep gameplay and selection colliders as nonblocking triggers
+- [x] Exclude only Sheep from resource-based placement rejection
+- [x] Find distinct Sheep escape cells with a bounded four-ring search
+- [x] Move all affected Sheep after successful building placement
+- [x] Preserve authoritative building footprint blocking and Sheep Food semantics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.2 Navigation & Sheep`
+- [x] Run the Phase 6H.2 validator in Unity Edit Mode
+- [x] Repeat Pawn and Warrior ascent/descent on every intended connector
+- [x] Move 5+ units through one stair and test opposing directions
+- [x] Verify units path directly through stationary and moving Sheep
+- [x] Verify building preview remains legal over Sheep on otherwise valid terrain
+- [x] Place buildings over one/multiple Sheep and verify distinct safe evacuation
+- [x] Verify Sheep hover/select/Gather, building blocking and clean Console
+- [x] Verify combat, formation, Fog, AI, economy values and House respawn regressions
+
+### Phase 6H.2 Stairs / Elevation Connector Stabilization
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. The prior Phase 6H.2 pass
+remains historical; this focused stabilization requires the new full connector,
+resource and building Play Mode matrix before it can be marked PASS.
+
+- [x] Verify the active Color3 r4c0/r5c0 and r4c3/r5c3 native stair pairs
+- [x] Preserve the valid same-column visual pair beside diagonal logical endpoints
+- [x] Preserve all eight reciprocal height connectors and global no-corner-cutting
+- [x] Reserve each lower/upper endpoint pair as a transit-only corridor
+- [x] Exclude connector cells from resource gather reservations
+- [x] Exclude connector cells from building footprints and interaction slots
+- [x] Exclude connector cells from drop-off, garrison, spawn and group destinations
+- [x] Constrain local separation to the stair axis during traversal
+- [x] Keep one bounded recovery attempt per stalled connector interval
+- [x] Add optional connector endpoint/corridor Gizmos, disabled by default
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.2 Stairs Navigation`
+- [ ] Run the updated validator in Unity Edit Mode and Play Mode
+- [ ] Repeat Pawn and Warrior up/down traversal on all eight connectors
+- [ ] Test 5+ units and opposite-direction traffic on every route
+- [ ] Test rapid recommands and AttackMove while midway on stairs
+- [ ] Test Tree, Sheep and Gold gather slots above and below stairs
+- [ ] Test many Pawns gathering near stairs and 6H.1 resource fallback
+- [ ] Reject building overlap on each corridor and accept legal adjacent footprints
+- [ ] Build beside stairs, then repeat bidirectional traversal
+- [ ] Verify Console, path request frequency and gameplay regressions
+- [x] Preserve Phase 6H.3 behavior while stabilizing connectors
+
+### Phase 6H.2 Critical Stair Terrain Hotfix
+
+Status: **IMPLEMENTED - VISUAL AND PLAY MODE VALIDATION PENDING**.
+
+- [x] Compare the authored terrain with the official Tiny Swords stair guide
+- [x] Identify closed `c5/c7` plateau edges at all eight ramp exits
+- [x] Replace six interior exits with the Color3 `r1c6` center connection
+- [x] Replace two south-edge exits with `r2c6` and their cliff corners with `r5c6`
+- [x] Preserve the eight reciprocal logical connectors and their exact corridors
+- [x] Extend the validator to reject closed surface/cliff pieces at stair openings
+- [x] Extend optional debug Gizmos for endpoints, corridor and nearby blockers
+- [ ] Reload/open `Map.unity` and visually compare all eight openings in Unity
+- [ ] Run the full mandatory up/down, group, gather and building Play Mode matrix
+- [ ] Confirm the final stairs visibly differ from the previous screenshot
+- [x] Preserve Phase 6H.3 behavior while applying the terrain hotfix
+
+- [x] Phase 6H.3 started only after Phase 6H.2 passed manual validation
+
+## Phase 6H.3 - Pawn Scout Promotion
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Runtime and Editor compile
+checks pass; the Unity validator and Play Mode matrix still need to be run.
+
+- [x] Add the human Pawn `Scout` command at an authoritative 50 Wood cost
+- [x] Reject non-Pawns, enemies, dead Pawns, ended matches and unaffordable requests
+- [x] Enforce one living promoted Scout per human faction without scene-wide polling
+- [x] Preserve Pawn type, gathering, building, repair, deposit, health and damage
+- [x] Preserve Pawn exclusion from Phase 6G.2 military formations
+- [x] Derive Scout vision from authoritative Pawn vision with a 2.5 multiplier
+- [x] Recompute Team Vision immediately after successful promotion
+- [x] Release the registry and normal vision contribution on Scout death/despawn
+- [x] Map the seven verified full flame frames from `Assets/Particle FX/Fire.png`
+- [x] Use verified `Fire_0` as the Scout command icon
+- [x] Add a small collider-free child fire marker with internal sorting offset
+- [x] Increase the verified Scout fire marker presentation scale to 0.70
+- [x] Trigger squash/stretch promotion feedback without the red hit-flash overlay
+- [x] Keep the existing unit-spawn completion sound at successful spawn time
+- [x] Add a dedicated ScoutPromotion event using the verified finish notification clip
+- [x] Reuse positional `BuildingFire` audio with a dedicated 0.35 loop multiplier
+- [x] Preserve existing camera, distance and Fog audio attenuation
+- [x] Show disabled command reasons and standard red 50 Wood tooltip affordability
+- [x] Reuse `CommandClick` and `CommandRejected` UI audio
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.3 Pawn Scout`
+- [x] Compile Runtime and Editor checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.3 validator in Unity Edit Mode
+- [ ] Promote a Pawn and verify exactly 50 Wood is deducted
+- [ ] Verify a second promotion is rejected without spending Wood
+- [ ] Kill/despawn the Scout and verify fire/audio cleanup plus re-promotion
+- [ ] Verify the visible Fog radius is Pawn base vision x2.5
+- [ ] Verify Scout movement, gather, build, repair and deposit remain functional
+- [ ] Verify Scout stays excluded from military formation membership
+- [ ] Verify near/far/off-camera fire ambience and clean Console
+- [ ] Verify Red RuleBasedCommander and AI scouting behavior are unchanged
+
+## Phase 6H.4 - Combat and Support Balance
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Runtime and Editor compile
+checks must pass; the Unity validator and Play Mode matrix still need to be run.
+
+- [x] Change Monk heal interval from 4 seconds to 2 seconds
+- [x] Change authoritative Monk heal amount from 5 HP to 6.25 HP
+- [x] Preserve integer HP with deterministic fractional-heal carry
+- [x] Preserve Monk targeting, range, movement, cost and no-attack behavior
+- [x] Add Warrior-only committed melee configuration
+- [x] Validate attack start through the existing visibility, height and range rules
+- [x] Resolve the committed hit once at 0.2 seconds without a second range check
+- [x] Hold Warrior attack presentation through the 0.4-second recovery window
+- [x] Resume normal chase rules after a surviving target leaves melee range
+- [x] Cancel safely when the target or attacker dies before the hit
+- [x] Preserve the 1.1-second Warrior interval, damage and counter values
+- [x] Keep Archer projectile and Lancer/Pawn melee delivery unchanged
+- [x] Prevent inactive House lifecycle callbacks from starting Sheep coroutines
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.4 Combat Support`
+- [x] Compile Runtime and Editor checks with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.4 validator in Unity Play Mode
+- [ ] Observe several Monk heal cycles and verify 6/6/6/7 integer restoration
+- [ ] Verify a fleeing target receives one committed hit and is chased afterward
+- [ ] Verify a target killed during windup receives no delayed damage
+- [ ] Verify stationary combat, Guard, Move, retreat and AttackMove cancellation
+- [ ] Verify Archer/Lancer, Fog, AI, audio and clean Console regressions
+- [x] Begin Phase 6H.5 only after explicit instruction
+
+## Phase 6H.5 - Pawn Construction Hammer Feedback
+
+Status: **IMPLEMENTED - MANUAL VALIDATION PENDING**. Compile checks and the new
+validator must pass; the Play Mode timing matrix still needs to be run.
+
+- [x] Preserve the authoritative 0.8-second Pawn work cycle
+- [x] Preserve continuous construction progress and additive multi-builder rate
+- [x] Preserve the 0.35-second positive repair impact and repair amount
+- [x] Trigger one three-frame Hammer swing from each valid work cycle
+- [x] Play the Hammer impact once over 0.6 seconds with 0.2-second recovery
+- [x] Replace continuous Hammer looping with verified Idle Hammer recovery
+- [x] Bound early triggers to at most one queued swing
+- [x] Clear swing/recovery state when work stops, completes or becomes invalid
+- [x] Move construction audio to the successful cycle impact
+- [x] Keep repair audio conditional on positive restored HP
+- [x] Preserve both random Hammer clips and legitimate multi-Pawn overlap
+- [x] Cap each Hammer clip at 0.7 seconds to avoid same-Pawn tail overlap
+- [x] Enlarge Castle/Tower deposit icons and amount labels slightly
+- [x] Show the same deposit feedback for completed player Towers
+- [x] Enlarge the internal building garrison count without changing capacity
+- [x] Update the Phase 6D.4 validator for event-paced Hammer presentation
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6H.5 Construction Feedback`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 6H.5 validator in Unity Edit Mode and Play Mode
+- [ ] Compare one-Pawn construction completion time before/after
+- [ ] Test one, two and three-plus Pawns building the same site
+- [ ] Resume an unfinished construction job and verify cadence
+- [ ] Damage and repair a completed building and verify impact/pulse cadence
+- [ ] Cancel with Move, complete/destroy the site and kill a Pawn during work
+- [ ] Verify both Hammer variations, camera/Fog attenuation and clean Console
+- [ ] Do not commit or push Phase 6H.5 automatically
+
+## Phase 7E.1 - Adaptive Scout and Exploration 2.0
+
+Status: **IMPLEMENTED - UNITY VALIDATION AND PLAY MODE MATRIX PENDING**.
+
+- [x] Create `feature/phase-7e1-scout-exploration` from `integration/full-game`
+- [x] Remove Lancer, Warrior and Archer dedicated-Scout fallback selection
+- [x] Add faction-authoritative Pawn Scout promotion through `FactionCommandService`
+- [x] Preserve exact 50 Wood cost and one-active-Scout gameplay registry
+- [x] Use authoritative Pawn vision x2.5 and shared fire presentation/audio
+- [x] Suppress hidden enemy promotion UI audio and preserve positional Fog gating
+- [x] Reserve active promoted Scouts in `CommanderPawnRoles`
+- [x] Exclude active Scout from Economy, Builder, ArmyGroup and formations
+- [x] Select only idle, low-disruption Economy Pawns with stable EntityId tie-break
+- [x] Preserve the planned unpaid building Wood cost before Scout promotion
+- [x] Add bounded promotion retry and strategic Scout-need checks
+- [x] Generate reusable frontier candidates and score at most 48 per evaluation
+- [x] Score information gain, novelty, travel and `StrategicSafetyMap` risk
+- [x] Keep exploration targets stable with a three-second reevaluation gate
+- [x] Add visible-army and known-danger local evasion/reposition behavior
+- [x] Keep unknown terrain viable rather than treating it as danger
+- [x] Preserve stable frontier exhaustion without Scout role churn
+- [x] Add legal building/resource last-seen timestamps to Fog memory snapshots
+- [x] Add stale strategic building/resource re-scout scoring
+- [x] Keep target state value-only with no hidden live enemy/resource references
+- [x] Add Scout candidate/frontier/re-scout profiler markers and runtime diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.1 Scout & Exploration`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.1 validator in Unity Edit Mode
+- [ ] Verify Red with less than 50 Wood creates no Scout and steals no military unit
+- [ ] Verify deterministic Pawn promotion spends exactly 50 Wood
+- [ ] Verify second Scout rejection and death/replacement cooldown behavior
+- [ ] Verify Economy and Builder continue with remaining Pawns
+- [ ] Verify high-information frontier can beat a nearer low-information frontier
+- [ ] Verify known Tower/Castle danger, visible-army evasion and unknown exploration
+- [ ] Exhaust frontier and verify stale-building/resource re-scout behavior
+- [ ] Destroy a remembered hidden building and verify no update before re-observation
+- [ ] Verify hidden Red Scout fire is inaudible to Blue
+- [ ] Run extended Profiler command/path/GC checks
+- [ ] Run at least one complete Red Rule-Based match and regression matrix
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge Phase 7E.1 automatically
+
+### Phase 7E.1 Full-Match Stability Hotfix
+
+Status: **IMPLEMENTED - EXTENDED PLAY MODE PROFILING PENDING**.
+
+- [x] Put friendly-unit trap prevention in shared authoritative `BuildingSystem`
+- [x] Evaluate the hypothetical footprint without spawning a construction site
+- [x] Use bounded reusable flood-fill buffers and authoritative stair/elevation edges
+- [x] Reject only newly sealed components and preserve legal narrow exits
+- [x] Exclude Sheep from controllable-unit trap rejection
+- [x] Preserve AI candidate iteration after an invalid trap placement
+- [x] Recover idle Economy-role Pawns carrying cargo through command authority
+- [x] Keep current ReturnResource commands deduplicated
+- [x] Fall back from unreachable/destroyed Castle or Tower drop-offs
+- [x] Add bounded no-drop-off retry backoff and no-progress recovery
+- [x] Preserve post-deposit resource intent and equivalent-resource chaining
+- [x] Keep Scout and manual player command ownership excluded from global recovery
+- [x] Add placement reason and optional per-Pawn economy diagnostics
+- [x] Split Scout/Return path counters and command-attempt counters
+- [x] Record building candidate, GC, knowledge and audio-pool diagnostics
+- [x] Prune destroyed entities from the Observer/Fog presentation gate cache
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.1 Full-Match Stability`
+- [ ] Run the new validator in Unity Edit Mode
+- [ ] Run two-building trap, legal close placement and AI alternate-candidate tests
+- [ ] Run Castle, Tower, unreachable Tower and destroyed drop-off tests
+- [ ] Run depletion, full-slot and multi-Pawn long economy tests
+- [ ] Run x1/x5/x10 early and extended captures with Observer enabled
+- [ ] Run at least five real minutes of active x10 full-match stress
+- [ ] Confirm Scout, stairs, multi-builder, Fog and Console regressions
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge this hotfix automatically
+
+### Phase 7E.1 Scout Intelligence Hotfix
+
+- [x] Diagnose frontier-first selection, one-cell novelty memory and row-order sampling
+- [x] Add explicit Search, Explore, Enemy Base Recon, Military Observe, ReScout and Evasion intent
+- [x] Add bounded deep-frontier selection using unknown-region value and home-relative depth
+- [x] Add fixed eight-entry recent target suppression to prevent A/B oscillation
+- [x] Derive enemy-interest regions only from legal building memory and military sightings
+- [x] Generate at most 40 Castle/production/Tower/House/military perimeter candidates
+- [x] Keep Castle/Tower centers forbidden while allowing Risky perimeter reconnaissance
+- [x] Add separate centralized frontier and reconnaissance scoring weights
+- [x] Add recon dwell, mission cooldown, multiple-angle history and evasion re-entry cooldown
+- [x] Add frozen value-only Warrior/Archer/Lancer/Monk last-observed summary
+- [x] Keep production composition unchanged and preserve anti-wallhack rules
+- [x] Add disabled-by-default intent, score, staleness, Castle, military and history diagnostics
+- [x] Extend the Phase 7E.1 validator for bounded recon, risk budgets and value-only memory
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run Phase 7E.1 validator in Unity Edit Mode
+- [ ] Play Mode: no enemy known progresses beyond middle without A/B oscillation
+- [ ] Play Mode: House-first discovery increases local exploration and can reveal Castle naturally
+- [ ] Play Mode: Castle recon uses perimeter, multiple angles, dwell and cooldown
+- [ ] Play Mode: known Tower range is not crossed unnecessarily
+- [ ] Play Mode: visible military refreshes counts and hidden training leaves snapshot frozen
+- [ ] Play Mode: evasion overrides recon and does not immediately re-enter the same route
+- [ ] Play Mode: x1/x5/x10 command, path request and GC profiling remains bounded
+- [x] Do not begin Phase 7E.2
+- [x] Do not commit, push or merge this hotfix automatically
+
+### Phase 7E.1 Red AI Construction Reliability Hotfix
+
+Status: **IMPLEMENTED - PLAY MODE STRESS MATRIX PENDING**.
+
+- [x] Trace player and Red construction into the shared `BuildingSystem` / `PawnBuilder` path
+- [x] Reject footprints with no usable perimeter construction access after footprint blocking
+- [x] Generate one shared deterministic perimeter-slot layout for preview and runtime
+- [x] Keep site-owned, unique and stable Pawn-to-slot reservations
+- [x] Reserve a reachable slot before issuing builder movement
+- [x] Cap Red Builder assignment by free usable slots and preserve minimum Economy Pawns
+- [x] Deduplicate valid same-Pawn/same-site resume commands without resetting movement
+- [x] Add 0.2 enter / 0.48 exit work hysteresis
+- [x] Suppress destructive same-site separation near the reserved final slot
+- [x] Add bounded same-slot repath followed by bounded alternate-slot recovery
+- [x] Add a three-game-second site progress watchdog with two-second cooldown
+- [x] Add per-site/global builder command and path request counters
+- [x] Add disabled-by-default slot gizmos and Commander site/Builder diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Multi-Builder Construction Reliability`
+- [x] Run the multi-builder validator through Unity batch Edit Mode
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run House 1-Pawn and 3-Pawn same-side scenarios
+- [ ] Run Barracks 5-Pawn and Barracks-to-Archery scenarios
+- [ ] Run tight-corridor, stairs-adjacent and multiple-site scenarios
+- [ ] Run builder-death and manual-displacement recovery scenarios
+- [ ] Run Observer x10 extended construction profiling and record commands/path requests per second
+- [ ] Confirm human construction, Scout isolation, economy, stairs and clean Console regressions
+- [x] Do not begin Phase 7E.2
+- [x] Keep this hotfix uncommitted and unpushed after the requested checkpoint
+
+### Phase 7E.2 Adaptive Economy & Economic Outposts
+
+Status: **PASS** (user-confirmed Play Mode validation).
+
+- [x] Create `feature/phase-7e2-adaptive-economy-outposts` from integrated 7E.1
+- [x] Add centralized stockpile, reserve and near-term demand model
+- [x] Replace fixed worker targets with deterministic demand-weighted targets
+- [x] Add four-second planning, eight-second dwell and one-worker reallocation limit
+- [x] Preserve valid gather jobs and cargo before resource-role changes
+- [x] Score legal targets by worker/drop-off travel, crowding, depletion and known risk
+- [x] Keep hidden resource planning value-only through `FactionKnowledge` snapshots
+- [x] Add bounded 96-node / 16-cluster cache on an eight-second refresh
+- [x] Add safe, rich and distant Tower economic-outpost planning with cooldown
+- [x] Reuse normal Tower payment, placement, trap, construction and drop-off systems
+- [x] Forecast population demand and preserve authoritative House cost of 80 Wood
+- [x] Prefer idle, empty-handed and lower-opportunity-cost Builders
+- [x] Add Commander demand, reassignment, cluster and outpost diagnostics
+- [x] Extend performance capture with reassignment and cluster counters
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.2 Adaptive Economy`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [x] Run the Phase 7E.2 validator in Unity Edit Mode
+- [x] Run Food, Wood and Gold shortage allocation scenarios
+- [x] Run depletion, saturation, cargo and Builder-return scenarios
+- [x] Run House forecast and redundant-House prevention scenarios
+- [x] Run viable/rejected/destroyed economic Tower outpost scenarios
+- [x] Run x1/x5/x10 command, path, reassignment and GC profiling
+- [x] Run full-match stress validation
+- [x] Confirm anti-wallhack, human controls, combat, Fog, construction and Console regressions
+- [x] Do not begin Phase 7E.3
+- [x] Do not commit, push or merge Phase 7E.2 automatically
+
+### Phase 7E.3 Reactive Production & Counter-Composition
+
+Status: **IMPLEMENTED - UNITY VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e3-reactive-production` from integrated Phase 7E.2
+- [x] Replace the fixed production sequence with baseline plus reactive composition
+- [x] Store bounded, value-only enemy military memory from `FactionKnowledge`
+- [x] Add centralized confidence decay and Current/Recent/Stale diagnostics
+- [x] Reuse authoritative `CombatDamage.Multiplier` through a read-only adapter
+- [x] Weight reactions by confidence and observed sample significance
+- [x] Cap reactive influence and retain mixed-army diversity floors
+- [x] Count both living and FIFO-queued units in projected composition gaps
+- [x] Add bounded Monk support ratio and cap
+- [x] Request missing producers through `BuildingCommanderPolicy` with hysteresis
+- [x] Keep fallback production active while preferred infrastructure is pending
+- [x] Feed one bounded unpaid production intent into `EconomicDemandModel`
+- [x] Preserve House forecasting in `BuildingCommanderPolicy`
+- [x] Add strategic reevaluation cadence, hold, smoothing and selection inertia
+- [x] Add enqueue/rejection/infrastructure performance counters
+- [x] Add optional Commander composition and decision diagnostics
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.3 Reactive Production`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.3 validator in Unity Edit Mode
+- [ ] Run no-intel, one-unit, heavy-type and mixed-army scenarios
+- [ ] Run hidden-reinforcement, stale-intel and Scout re-observation scenarios
+- [ ] Run own-army-gap, queued-unit and Monk-support scenarios
+- [ ] Run missing/existing producer and infrastructure-hysteresis scenarios
+- [ ] Run resource-shortage and population-block scenarios
+- [ ] Run x1/x5/x10 full-match stability and rate profiling
+- [ ] Confirm Console and Phase 7E.1/7E.2 gameplay regressions
+- [x] Do not begin Phase 7E.4
+- [x] Do not commit, push or merge Phase 7E.3 automatically
+
+### Phase 7E.4 Tactical Army Intelligence
+
+Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e4-tactical-army-intelligence` from integrated Phase 7E.3
+- [x] Add living Warrior/Lancer/Archer/Monk tactical snapshot and role classification
+- [x] Keep Pawn and promoted Scout outside tactical combat membership
+- [x] Reuse `RoleFormationPlanner` with an AI-owned Compact formation
+- [x] Add robust non-support median anchor, cohesion radius and straggler diagnostics
+- [x] Restore role formation for assembly/advance without enforcing rigid combat lines
+- [x] Add bounded Archer and Monk danger reposition with cooldown/destination dedupe
+- [x] Keep Monk non-attacking and calculate contextual support strength
+- [x] Score legal visible targets by distance, authoritative matchup, HP, threat and role
+- [x] Add target hold, retarget threshold and melee/ranged saturation penalties
+- [x] Preserve committed melee attacks from routine retargeting
+- [x] Route tactical Attack/Move through `FactionCommandService`
+- [x] Integrate local defenders before building assault and retain BaseDefense priority
+- [x] Preserve strategic Retreat and existing AttackMove semantics
+- [x] Add disabled-by-default tactical diagnostics and formation gizmos
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.4 Tactical Army`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.4 validator in Unity Edit Mode
+- [ ] Run Warrior-only, Warrior+Archer and full mixed-army tests
+- [ ] Run narrow stairs, building corridor and formation recovery tests
+- [ ] Run target distribution, low-HP, Monk, Archer and matchup tests
+- [ ] Run target stickiness, death, hidden target and committed attack tests
+- [ ] Run Archer close/range and Monk position/threat/support-strength tests
+- [ ] Run cohesion, safe local regroup, active-combat cohesion and BaseDefense tests
+- [ ] Run Retreat and AttackMove regression tests
+- [ ] Run full matches at x1/x5/x10 and large-battle stress
+- [ ] Record Move/Attack/retarget/formation/path/GC rates in the Profiler
+- [ ] Confirm stairs, construction, Fog, human controls and Console regressions
+- [x] Do not begin Phase 7E.5
+- [x] Do not commit, push or merge Phase 7E.4 automatically
+
+## Phase 6E - Audio Expansion: completion, combat impacts and command voices
+
+Status: **IMPLEMENTED, UNITY VALIDATION PENDING**
+
+- [x] Add one Fog-aware building completion cue at the authoritative completion transition
+- [x] Replace Archer release mapping with `sfx_arrow_sound.mp3` at projectile creation
+- [x] Add unit-only Archer impact audio after successful projectile damage
+- [x] Add seven uniform Warrior unit-hit variations after successful damage
+- [x] Add generic Human command voice with 30% chance and 30 game-second cooldown
+- [x] Add army Human command voice with 40% chance and 10 game-second cooldown
+- [x] Count only accepted Warrior/Lancer/Archer recipients and require a count above three
+- [x] Keep voice categories exclusive and start cooldown only after successful playback
+- [x] Keep AI command paths outside Human command voice feedback
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 6E Audio Expansion`
+- [x] Compile Runtime and Editor assemblies with zero errors and warnings
+- [ ] Run Phase 6E Audio Expansion validator in Edit Mode
+- [ ] Run Phase 6E Audio Expansion validator in Play Mode
+- [ ] Manually verify completion/release/impact/hit sounds, Fog gating and lethal impacts
+- [ ] Manually verify command probabilities, thresholds, independent cooldowns and no AI voice
+- [ ] Confirm Unity Console remains clean during the manual matrix

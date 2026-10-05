@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Units;
@@ -36,6 +38,7 @@ namespace TinyKingdom.AI
         [SerializeField] private BuildingCommanderPolicy buildingPolicy = new();
         [SerializeField] private ProductionCommanderPolicy productionPolicy = new();
         [SerializeField] private EconomyCommanderPolicy economyPolicy = new();
+        [SerializeField] private EconomicDemandModel economicDemand = new();
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
         [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
         [SerializeField] private StrategicSafetyMap strategicSafety = new();
@@ -60,6 +63,8 @@ namespace TinyKingdom.AI
         [SerializeField] private int debugVisibleEnemyUnits;
         [SerializeField] private int debugKnownEnemyBuildings;
         [SerializeField] private int debugPawnCount;
+        [SerializeField] private int debugAvailableEconomyPawns;
+        [SerializeField] private int debugPromotedScoutPawns;
         [SerializeField] private int debugPawnTarget;
         [SerializeField] private int debugMilitaryPopulation;
         [SerializeField] private int debugMilitaryTarget;
@@ -69,6 +74,11 @@ namespace TinyKingdom.AI
         [SerializeField] private Vector2Int debugBuildCell;
         [SerializeField] private int debugCompletedCoreInfrastructure;
         [SerializeField] private string debugProductionDecision;
+        [SerializeField] private string debugEnemyComposition;
+        [SerializeField] private string debugDesiredComposition;
+        [SerializeField] private string debugProjectedComposition;
+        [SerializeField] private string debugProductionScores;
+        [SerializeField] private string debugProductionInfrastructureNeed;
         [SerializeField] private Vector2Int debugRallyStagingCell;
         [SerializeField] private ArmyGroupState debugArmyState;
         [SerializeField] private int debugArmyMemberCount;
@@ -104,11 +114,43 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugRetreatArrivedFraction;
         [SerializeField] private float debugRecoveryDuration;
         [SerializeField] private bool debugRecoveryReady;
+        [SerializeField] private TacticalArmyState debugTacticalState;
+        [SerializeField] private Vector3 debugTacticalArmyAnchor;
+        [SerializeField] private float debugTacticalCohesionRadius;
+        [SerializeField] private int debugTacticalFrontlineCount;
+        [SerializeField] private int debugTacticalBacklineCount;
+        [SerializeField] private int debugTacticalSupportCount;
+        [SerializeField] private int debugTacticalStragglerCount;
+        [SerializeField] private int debugTacticalVisibleEnemies;
+        [SerializeField] private float debugDirectCombatStrength;
+        [SerializeField] private float debugSupportStrength;
+        [SerializeField] private int debugTacticalAttackCommands;
+        [SerializeField] private int debugTacticalRetargets;
+        [SerializeField] private int debugTacticalFormationUpdates;
+        [SerializeField] private int debugTacticalRepositions;
+        [SerializeField, TextArea(3, 12)] private string debugTacticalUnits;
+        [SerializeField] private string debugTacticalTargetSaturation;
         [SerializeField] private int debugKnownStaticDangers;
         [SerializeField] private int debugVisibleDynamicDangers;
         [SerializeField] private string debugScoutSafetyState;
         [SerializeField] private string debugScoutDangerReason;
         [SerializeField] private Vector2Int debugScoutRetreatCell;
+        [SerializeField] private string debugScoutTargetKind;
+        [SerializeField] private string debugScoutIntent;
+        [SerializeField] private int debugScoutFrontierCount;
+        [SerializeField] private int debugScoutStaleCandidateCount;
+        [SerializeField] private float debugScoutInformationGain;
+        [SerializeField] private string debugScoutKnownRisk;
+        [SerializeField] private float debugScoutTravelCost;
+        [SerializeField] private float debugScoutTargetScore;
+        [SerializeField] private float debugScoutStrategicValue;
+        [SerializeField] private float debugScoutStaleness;
+        [SerializeField] private float debugLastEnemyCastleObservation = -1f;
+        [SerializeField] private string debugLastMilitaryObservation;
+        [SerializeField] private string debugRecentScoutTargets;
+        [SerializeField] private float debugScoutTargetAge;
+        [SerializeField] private string debugScoutPromotionResult;
+        [SerializeField] private float debugLastScoutDeathTime;
         [SerializeField] private float debugLastGatherAssignmentTime;
         [SerializeField] private float debugLastBuildCommandTime;
         [SerializeField] private float debugLastTrainCommandTime;
@@ -118,6 +160,13 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugLastTargetCompletionTime;
         [SerializeField] private float debugLastResourceIncomeTime;
         [SerializeField] private float debugLastMeaningfulActionTime;
+        [SerializeField, TextArea(4, 16)] private string debugEconomyWorkers;
+        [SerializeField, TextArea(2, 8)] private string debugConstructionSite;
+        [SerializeField, TextArea(3, 12)] private string debugConstructionBuilders;
+        [SerializeField] private string debugEconomicDemand;
+        [SerializeField] private string debugEconomicReassignment;
+        [SerializeField] private string debugEconomicOutpost;
+        [SerializeField] private int debugEconomicClusterCount;
 
         private float nextThinkTime;
 
@@ -128,6 +177,7 @@ namespace TinyKingdom.AI
         public FactionKnowledge Knowledge => knowledge;
         public FactionCommandService CommandService => commandService;
         public EconomyCommanderPolicy EconomyPolicy => economyPolicy;
+        public EconomicDemandModel EconomicDemand => economicDemand;
         public ScoutingCommanderPolicy ScoutingPolicy => scoutingPolicy;
         public CommanderPawnRoles PawnRoles => pawnRoles;
         public BuildingCommanderPolicy BuildingPolicy => buildingPolicy;
@@ -156,12 +206,14 @@ namespace TinyKingdom.AI
             militaryPolicy ??= new MilitaryCommanderPolicy();
             strategicSafety ??= new StrategicSafetyMap();
             progressDiagnostics ??= new CommanderProgressDiagnostics();
+            economicDemand ??= new EconomicDemandModel();
             nextThinkTime = Time.time;
         }
 
         private void OnDisable()
         {
             economyPolicy?.Reset();
+            economicDemand?.Reset();
             scoutingPolicy?.Reset();
             buildingPolicy?.Reset(pawnRoles);
             productionPolicy?.Reset();
@@ -193,17 +245,22 @@ namespace TinyKingdom.AI
                 strategicSafety.Refresh(context.Knowledge);
                 using (RoleSyncMarker.Auto())
                     pawnRoles.Synchronize(context.Knowledge);
+                economicDemand.Refresh(context, buildingPolicy, productionPolicy,
+                    scoutingPolicy);
                 using (BuildingPolicyMarker.Auto())
-                    buildingPolicy.Tick(context, pawnRoles, strategicSafety);
+                    buildingPolicy.Tick(context, pawnRoles, strategicSafety,
+                        economicDemand, economyPolicy);
                 using (ProductionPolicyMarker.Auto())
-                    productionPolicy.Tick(context);
+                    productionPolicy.Tick(context, buildingPolicy);
                 using (ScoutingPolicyMarker.Auto())
-                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety);
+                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety, buildingPolicy);
+                economicDemand.Refresh(context, buildingPolicy, productionPolicy,
+                    scoutingPolicy);
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety);
                 using (EconomyPolicyMarker.Auto())
-                    economyPolicy.Tick(context, pawnRoles, strategicSafety);
+                    economyPolicy.Tick(context, pawnRoles, strategicSafety, economicDemand);
                 progressDiagnostics.Observe(context.Time, context.Knowledge,
                     economyPolicy, buildingPolicy, productionPolicy, scoutingPolicy,
                     militaryPolicy);
@@ -222,6 +279,33 @@ namespace TinyKingdom.AI
         private void RefreshDebug()
         {
             debugThinkTick = ThinkTick;
+            var economyDetails = new StringBuilder(256);
+            for (int i = 0; i < knowledge.OwnUnits.Count; i++)
+            {
+                UnitController unit = knowledge.OwnUnits[i];
+                PawnGatherer gatherer = unit != null
+                    ? unit.GetComponent<PawnGatherer>() : null;
+                if (unit == null || gatherer == null) continue;
+                UnitMovement movement = unit.GetComponent<UnitMovement>();
+                economyDetails.Append(unit.GetEntityId().ToString()).Append(" | ")
+                    .Append(pawnRoles.GetRole(unit)).Append(" | ")
+                    .Append(gatherer.CarriedResourceType).Append(' ')
+                    .Append(gatherer.CarriedAmount).Append('/').Append(gatherer.CarryCapacity)
+                    .Append(" | resource=")
+                    .Append(gatherer.Target != null
+                        ? gatherer.Target.GetEntityId().ToString() : "None")
+                    .Append(" | dropoff=")
+                    .Append(gatherer.HasDropOffTarget
+                        ? gatherer.DropOffTargetId.ToString() : "None")
+                    .Append(" | state=").Append(gatherer.State)
+                    .Append(" moving=").Append(movement != null && movement.IsMoving)
+                    .Append(" failures=").Append(gatherer.DropOffPathFailureCount)
+                    .Append(" slot=").Append(gatherer.ReservedGatherCell)
+                    .Append(" noProgress=")
+                    .Append(gatherer.TimeSinceLastEconomicProgress.ToString("0.0"))
+                    .AppendLine("s");
+            }
+            debugEconomyWorkers = economyDetails.ToString();
             debugKnownFood = debugKnownWood = debugKnownGold = 0;
             for (int i = 0; i < knowledge.KnownResources.Count; i++)
             {
@@ -235,6 +319,13 @@ namespace TinyKingdom.AI
             debugFoodAssignments = economyPolicy.FoodAssignments;
             debugWoodAssignments = economyPolicy.WoodAssignments;
             debugGoldAssignments = economyPolicy.GoldAssignments;
+            debugEconomicDemand = $"Stock F{economicDemand.Food}/W{economicDemand.Wood}/G{economicDemand.Gold} "
+                + $"Deficit F{economicDemand.FoodDeficit}/W{economicDemand.WoodDeficit}/G{economicDemand.GoldDeficit} "
+                + economicDemand.Reason;
+            debugEconomicReassignment = economyPolicy.LastReassignmentReason
+                + $" at {economyPolicy.LastReassignmentTime:0.0}";
+            debugEconomicOutpost = buildingPolicy.OutpostDecision;
+            debugEconomicClusterCount = buildingPolicy.ClusterPlanner?.Clusters.Count ?? 0;
             debugScout = scoutingPolicy.Scout;
             debugScoutDestination = scoutingPolicy.HasDestination
                 ? scoutingPolicy.DestinationCell : new Vector2Int(-1, -1);
@@ -242,6 +333,8 @@ namespace TinyKingdom.AI
             debugVisibleEnemyUnits = knowledge.VisibleEnemyUnits.Count;
             debugKnownEnemyBuildings = knowledge.KnownEnemyBuildings.Count;
             debugPawnCount = productionPolicy.LivingPawnCount;
+            debugAvailableEconomyPawns = pawnRoles.EconomyCount;
+            debugPromotedScoutPawns = pawnRoles.ScoutCount;
             debugPawnTarget = productionPolicy.TargetPawnCount;
             debugMilitaryPopulation = productionPolicy.MilitaryPopulation
                 + productionPolicy.QueuedMilitaryPopulation;
@@ -251,8 +344,70 @@ namespace TinyKingdom.AI
             debugBuilder = buildingPolicy.CurrentBuilder;
             debugBuildCell = buildingPolicy.CurrentBuildCell;
             debugCompletedCoreInfrastructure = buildingPolicy.CompletedCoreInfrastructure;
+            BuildingSite constructionSite = buildingPolicy.ActiveSite;
+            if (constructionSite == null)
+            {
+                debugConstructionSite = "None";
+                debugConstructionBuilders = "None";
+            }
+            else
+            {
+                debugConstructionSite = $"{constructionSite.GetEntityId()} | "
+                    + $"{constructionSite.Type} | progress="
+                    + $"{constructionSite.ConstructionProgress:0.000} | lastProgress="
+                    + $"{constructionSite.LastProgressTime:0.0} | assigned="
+                    + $"{constructionSite.ActiveBuilderCount} | working="
+                    + $"{constructionSite.WorkingBuilderCount} | reachable="
+                    + $"{constructionSite.ReachableBuilderSlotCount} | free="
+                    + $"{constructionSite.FreeBuilderSlotCount} | recovery="
+                    + $"{constructionSite.RecoveryState} | "
+                    + constructionSite.LastRecoveryReason;
+                var builderDetails = new StringBuilder(192);
+                for (int i = 0; i < knowledge.OwnUnits.Count; i++)
+                {
+                    UnitController unit = knowledge.OwnUnits[i];
+                    PawnBuilder job = unit != null ? unit.GetComponent<PawnBuilder>() : null;
+                    if (job == null || job.Target != constructionSite) continue;
+                    UnitMovement movement = unit.GetComponent<UnitMovement>();
+                    builderDetails.Append(unit.GetEntityId().ToString()).Append(" | role=")
+                        .Append(pawnRoles.GetRole(unit)).Append(" | site=")
+                        .Append(constructionSite.GetEntityId().ToString()).Append(" | slot=")
+                        .Append(job.ReservedSlotId).Append(" | distance=")
+                        .Append(job.DistanceToInteraction.ToString("0.00"))
+                        .Append(" | moving=").Append(movement != null && movement.IsMoving)
+                        .Append(" | working=").Append(job.IsWorking)
+                        .Append(" | failures=").Append(job.PathFailureCount)
+                        .Append(" | lastBuild=")
+                        .Append(job.LastBuildCommandTime.ToString("0.0")).AppendLine();
+                }
+                debugConstructionBuilders = builderDetails.Length > 0
+                    ? builderDetails.ToString() : "None";
+            }
             debugProductionDecision = productionPolicy.ActiveProductionDecision?.ToString()
-                ?? "None";
+                ?? productionPolicy.PreferredMilitaryUnit?.ToString() ?? "None";
+            EnemyCompositionMemory enemy = productionPolicy.EnemyComposition;
+            debugEnemyComposition = $"{productionPolicy.IntelSource} "
+                + $"confidence={productionPolicy.IntelConfidence:0.00} "
+                + $"age={productionPolicy.IntelAge:0.0}s | "
+                + $"W{enemy.ObservedCount(UnitType.Warrior)} "
+                + $"A{enemy.ObservedCount(UnitType.Archer)} "
+                + $"L{enemy.ObservedCount(UnitType.Lancer)} "
+                + $"M{enemy.ObservedCount(UnitType.Monk)}";
+            debugDesiredComposition = $"W{productionPolicy.DesiredCount(UnitType.Warrior):0.0} "
+                + $"A{productionPolicy.DesiredCount(UnitType.Archer):0.0} "
+                + $"L{productionPolicy.DesiredCount(UnitType.Lancer):0.0} "
+                + $"M{productionPolicy.DesiredCount(UnitType.Monk):0.0}";
+            debugProjectedComposition = $"W{productionPolicy.LivingCount(UnitType.Warrior) + productionPolicy.QueuedCount(UnitType.Warrior)} "
+                + $"A{productionPolicy.LivingCount(UnitType.Archer) + productionPolicy.QueuedCount(UnitType.Archer)} "
+                + $"L{productionPolicy.LivingCount(UnitType.Lancer) + productionPolicy.QueuedCount(UnitType.Lancer)} "
+                + $"M{productionPolicy.LivingCount(UnitType.Monk) + productionPolicy.QueuedCount(UnitType.Monk)}";
+            debugProductionScores = $"W{productionPolicy.CandidateScore(UnitType.Warrior):0.00} "
+                + $"A{productionPolicy.CandidateScore(UnitType.Archer):0.00} "
+                + $"L{productionPolicy.CandidateScore(UnitType.Lancer):0.00} "
+                + $"M{productionPolicy.CandidateScore(UnitType.Monk):0.00} | "
+                + productionPolicy.DecisionReason;
+            debugProductionInfrastructureNeed = buildingPolicy.ProductionInfrastructureNeed
+                ?.ToString() ?? "None";
             debugRallyStagingCell = productionPolicy.HasRallyStagingCell
                 ? productionPolicy.RallyStagingCell : new Vector2Int(-1, -1);
             debugArmyState = militaryPolicy.Army.State;
@@ -295,12 +450,57 @@ namespace TinyKingdom.AI
             debugRetreatArrivedFraction = militaryPolicy.RetreatArrivedFraction;
             debugRecoveryDuration = militaryPolicy.RecoveryDuration(Time.time);
             debugRecoveryReady = militaryPolicy.RecoveryReady;
+            TacticalArmyController tactical = militaryPolicy.Tactical;
+            ArmyTacticalSnapshot tacticalSnapshot = tactical.Snapshot;
+            debugTacticalState = tactical.State;
+            debugTacticalArmyAnchor = tactical.ArmyAnchor;
+            debugTacticalCohesionRadius = tactical.ArmyCohesionRadius;
+            debugTacticalFrontlineCount = tacticalSnapshot.FrontlineCount;
+            debugTacticalBacklineCount = tacticalSnapshot.BacklineCount;
+            debugTacticalSupportCount = tacticalSnapshot.SupportCount;
+            debugTacticalStragglerCount = tactical.StragglerCount;
+            debugTacticalVisibleEnemies = tactical.VisibleEnemyCount;
+            debugDirectCombatStrength = militaryPolicy.DirectCombatStrength;
+            debugSupportStrength = militaryPolicy.SupportStrength;
+            debugTacticalAttackCommands = tactical.AttackCommandsIssued;
+            debugTacticalRetargets = tactical.RetargetCount;
+            debugTacticalFormationUpdates = tactical.FormationUpdateCount;
+            debugTacticalRepositions = tactical.RepositionCommandCount;
+            debugTacticalUnits = tactical.UnitDebugSummary(militaryPolicy.Army.Members,
+                Time.time);
+            debugTacticalTargetSaturation = tactical.TargetSaturationSummary();
             debugKnownStaticDangers = strategicSafety.KnownStaticDangerCount;
             debugVisibleDynamicDangers = strategicSafety.VisibleDynamicThreatCount;
             debugScoutSafetyState = scoutingPolicy.SafetyState.ToString();
             debugScoutDangerReason = scoutingPolicy.DangerReason;
             debugScoutRetreatCell = scoutingPolicy.HasRetreatDestination
                 ? scoutingPolicy.RetreatCell : new Vector2Int(-1, -1);
+            debugScoutTargetKind = scoutingPolicy.TargetKind.ToString();
+            debugScoutIntent = scoutingPolicy.Intent.ToString();
+            debugScoutFrontierCount = scoutingPolicy.FrontierCandidateCount;
+            debugScoutStaleCandidateCount = scoutingPolicy.StaleRevisitCandidateCount;
+            debugScoutInformationGain = scoutingPolicy.LastInformationGain;
+            debugScoutKnownRisk = scoutingPolicy.LastKnownRisk.ToString();
+            debugScoutTravelCost = scoutingPolicy.LastTravelCost;
+            debugScoutTargetScore = scoutingPolicy.LastTargetScore;
+            debugScoutStrategicValue = scoutingPolicy.LastStrategicValue;
+            debugScoutStaleness = scoutingPolicy.LastStaleness;
+            debugLastEnemyCastleObservation = -1f;
+            for (int i = 0; i < knowledge.KnownEnemyBuildings.Count; i++)
+                if (knowledge.KnownEnemyBuildings[i].BuildingType == BuildingType.Castle)
+                    debugLastEnemyCastleObservation = Mathf.Max(
+                        debugLastEnemyCastleObservation,
+                        knowledge.KnownEnemyBuildings[i].LastSeenTime);
+            MilitaryObservationSnapshot military = knowledge.LastMilitaryObservation;
+            debugLastMilitaryObservation = military.HasObservation
+                ? $"W{military.WarriorCount} A{military.ArcherCount} "
+                    + $"L{military.LancerCount} M{military.MonkCount} "
+                    + $"at {military.ObservationRegion} t={military.LastSeenTime:0.0}"
+                : "None";
+            debugRecentScoutTargets = scoutingPolicy.RecentTargetHistory(Time.time);
+            debugScoutTargetAge = scoutingPolicy.CurrentTargetAge(Time.time);
+            debugScoutPromotionResult = scoutingPolicy.LastPromotionResult;
+            debugLastScoutDeathTime = scoutingPolicy.LastScoutDeathTime;
             debugLastGatherAssignmentTime = progressDiagnostics.LastGatherAssignmentTime;
             debugLastBuildCommandTime = progressDiagnostics.LastBuildCommandTime;
             debugLastTrainCommandTime = progressDiagnostics.LastTrainCommandTime;
@@ -320,10 +520,20 @@ namespace TinyKingdom.AI
             {
                 Vector2Int cell = scoutingPolicy.DestinationCell;
                 Vector3 position = knowledge.TeamVision.GridManager.GridToWorld(cell.x, cell.y);
-                Gizmos.color = Color.red;
+                Gizmos.color = scoutingPolicy.TargetKind switch
+                {
+                    ScoutTargetKind.Frontier => Color.green,
+                    ScoutTargetKind.EnemyBaseRecon or ScoutTargetKind.ProductionRecon
+                        or ScoutTargetKind.MilitaryRecon => Color.cyan,
+                    ScoutTargetKind.ReScout => Color.yellow,
+                    _ => Color.white
+                };
                 Gizmos.DrawWireSphere(position, 0.35f);
                 if (scoutingPolicy.Scout != null)
+                {
+                    Gizmos.color = Color.blue;
                     Gizmos.DrawLine(scoutingPolicy.Scout.transform.position, position);
+                }
             }
             if (drawMilitaryGizmos && militaryPolicy != null)
             {
@@ -361,6 +571,17 @@ namespace TinyKingdom.AI
                     Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.45f);
                     Gizmos.DrawWireSphere(militaryPolicy.ArmyCentroid,
                         militaryPolicy.CombatAssessmentRadius);
+                }
+                TacticalArmyController tactical = militaryPolicy.Tactical;
+                Gizmos.color = new Color(0.15f, 0.7f, 1f, 0.65f);
+                Gizmos.DrawWireSphere(tactical.ArmyAnchor,
+                    tactical.ArmyCohesionRadius);
+                foreach (System.Collections.Generic.KeyValuePair<UnitController, Vector3>
+                    assignment in tactical.FormationDestinations)
+                {
+                    if (assignment.Key == null) continue;
+                    Gizmos.DrawLine(assignment.Key.transform.position, assignment.Value);
+                    Gizmos.DrawWireSphere(assignment.Value, 0.15f);
                 }
             }
             if (drawStrategicSafetyGizmos && strategicSafety != null

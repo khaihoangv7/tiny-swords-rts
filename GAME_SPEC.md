@@ -96,10 +96,10 @@ Sheep.
 
 Each Sheep contains 200 Food.
 
-Ambient Sheep wandering must not select a logical cell currently occupied by a
-living unit. If a Sheep moves onto a previously planned route, the affected unit
-recalculates around the new occupied cell with a short throttled retry instead
-of abandoning its existing Move, AttackMove, chase or worker command.
+Sheep are soft world entities. Their interaction colliders remain selectable
+triggers, but Sheep do not reserve logical navigation cells, block A*, take part
+in unit separation, or physically block units. Ambient wandering still avoids
+choosing a cell occupied by a living unit where practical.
 
 Used for:
 
@@ -167,7 +167,7 @@ Cost:
 
 Carry capacity:
 
-10 resource units.
+20 resource units.
 
 ---
 
@@ -200,7 +200,8 @@ The gather loop is:
 Each Pawn's successful resource gather uses a 1.5-second cycle for Wood, Gold,
 and Food. Work animation playback is independent of that gameplay timer;
 resource gain occurs at a configured gameplay impact time, followed by a
-recovery delay until the next cycle.
+recovery delay until the next cycle. Each successful impact collects up to 2
+units without exceeding the resource remainder or Pawn carry capacity.
 
 Gold gathering uses a reserved adjacent navigation cell. Gold Stone 1-5 use a
 small inward interaction offset so the Pawn remains visibly close enough to the
@@ -213,7 +214,7 @@ Move to resource
 
 → Inventory reaches carry capacity
 
-→ Return to Castle
+→ Return to nearest valid friendly Castle or completed Tower
 
 → Deposit resources
 
@@ -650,9 +651,10 @@ Phase 5C2 defensive data:
 
 The main Castle has VisionRadius 9. When a Pawn physically reaches the main
 Castle and successfully enters its internal garrison, any carried resource is
-deposited through the existing Castle drop-off transaction before the Pawn is
-hidden. Cancelling the approach does not deposit cargo. Tower entry never
-deposits resources.
+deposited through the shared drop-off transaction before the Pawn is hidden.
+Cancelling the approach does not deposit cargo. A completed friendly Tower is
+also a normal external Food/Wood/Gold drop-off; this does not require garrison
+entry and never makes an enemy or incomplete Tower valid.
 
 ---
 
@@ -660,7 +662,7 @@ deposits resources.
 
 Cost:
 
-100 Wood.
+80 Wood.
 
 Function:
 
@@ -669,6 +671,12 @@ Increase population capacity by 5.
 The player may build multiple Houses. House1, House2 and House3 are visual
 variants of the same House gameplay type; each has the same cost, HP, logical
 footprint, construction behavior and +5 population bonus.
+
+Each completed House owns at most one generated Sheep. The initial Sheep spawns
+on a nearby valid walkable cell outside the House footprint. If that Sheep is
+depleted, the still-living completed House creates one replacement after 90
+seconds of gameplay time. Destroying the House cancels future replacement but
+does not destroy an already living Sheep.
 
 ---
 
@@ -1313,7 +1321,7 @@ RL_SPEC.md.
 
 Monk is a support unit trained by Monastery. Provisional MVP values are 80 HP,
 1 population, speed 3, 60 Food + 60 Gold and 7 seconds training. Monk has no
-normal attack or retaliation. It restores 5 HP every 4 seconds at range 2.
+normal attack or retaliation. It restores 6.25 HP every 2 seconds at range 2.
 Automatic healing detects injured same-faction units within range 4 and chooses
 lowest HP ratio, then nearest distance, then stable registry order. Manual
 right-click healing has no acquisition-distance limit and ends when resolved or
@@ -1467,12 +1475,15 @@ at placement. Interrupting one builder removes only that Pawn's contribution;
 the other builders continue and accumulated progress never resets.
 
 A Pawn keeps the ResourceType of its active gathering job when a node is
-depleted. It searches once at depletion or invalidation for the nearest
-deterministically ordered, reachable, non-depleted node of the same type within
-`AutoResourceSearchRadius`. The MVP radius is 6 world/grid units and remains
-configurable. Full cargo returns to the Castle before the next search. Partial
-cargo continues at a nearby same-type node; when none exists in range, the Pawn
-deposits the partial cargo and becomes Idle. Any explicit player command ends
+depleted or its requested interaction slots are full. It first searches for the
+nearest currently visible same-type node with reservable capacity. It may then
+travel to the frozen position of a same-type resource previously captured by
+that faction's Fog memory. Unexplored resources and hidden live amount/state are
+never queried for target choice. A remembered target is resolved to a live node
+only after the Pawn reveals it. Candidate ordering uses distance then EntityId.
+Full cargo returns to the nearest reachable completed friendly Castle or Tower.
+Partial cargo continues across same-type nodes; if no legal known target exists,
+the Pawn deposits that cargo and becomes Idle. Any explicit player command ends
 the automatic chain.
 
 Gold Stone capacities are gameplay data and do not depend on sprite size:
@@ -1816,6 +1827,25 @@ feedback. Building buttons use authoritative availability/results, so `click` an
 restart resets that guard. Food harvesting, generic hit/death, ambience, attack-theme
 music and mixer/options UI remain future work. `AUDIO_SPEC.md` owns the exact mapping.
 
+## Phase 6E audio expansion
+
+Normal constructed buildings request one positional completion cue on their first
+authoritative `UnderConstruction` to `Completed` transition. Archer release audio is
+requested only when a projectile is actually created. Archer impact audio is
+requested only after that projectile successfully damages a unit, including a
+lethal hit. Warrior hit audio uses seven uniformly selectable clips and is requested
+only after successful melee damage to a unit. These world cues retain camera and Fog
+audibility rules and do not reveal hidden enemy actions.
+
+An accepted Human command may request at most one 2D acknowledgement. A command with
+strictly more than three accepted, living Warrior/Lancer/Archer recipients uses the
+army category: 40 percent chance and a 10 game-second cooldown. Every other accepted
+unit command uses the generic category: 30 percent chance and a 30 game-second
+cooldown. Pawn, Pawn Scout and Monk do not count toward the army threshold. Category
+selection is mutually exclusive, an army roll never falls back to generic, and a
+cooldown starts only after playback succeeds. AI command services never request
+these Human acknowledgements.
+
 # 58. Phase 7C.3 Combat Strength, Retreat and Recovery
 
 The Red Army strategic states are `Forming`, `Ready`, `PreparingAttack`,
@@ -1865,9 +1895,9 @@ AttackMove retain higher cursor priority. Fog-hidden objects never produce
 selectable hover feedback.
 
 Every assigned Pawn becomes an active construction contributor only after reaching
-its reserved interaction position and entering `PawnBuilder.IsWorking`. All active
-contributors loop the verified Hammer animation; walking or waiting builders do
-not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
+its reserved interaction position and entering `PawnBuilder.IsWorking`. Active
+contributors receive one verified Hammer swing for each authoritative work cycle;
+walking or waiting builders do not. A 0.2-world-unit arrival tolerance accommodates the small terminal displacement
 that UnitSeparation may apply when a path completes at a reserved slot; builders
 still require movement completion and their own valid reservation before working.
 Construction progress continues to be added by the existing PawnBuilder gameplay
@@ -1952,7 +1982,49 @@ or facing, but their normal Move still cancels their previous job as it did befo
 Ground AttackMove preserves its existing combat-unit eligibility and applies the
 formation only to formation-eligible military participants.
 
-# 62. Source of Truth
+# 62. Phase 6H.1 Economy and Worker Logistics
+
+Pawn carry capacity is 20. Each successful 1.5-second work cycle transfers up to
+2 units at the existing 0.45-second gameplay impact, capped by both remaining
+resource amount and free cargo space. A Pawn carrying 19 therefore takes exactly
+1 and leaves the unused unit in the node.
+
+`IResourceDropOff` and its registry are the shared authority for Castle and Tower
+deposits. Selection sorts valid same-faction, living, completed candidates by
+cheap squared distance and stable EntityId before requesting a reachable reserved
+slot. An invalidated destination is released and recalculated without losing
+cargo. Deposits continue to update the faction's one authoritative stockpile.
+
+Resource overflow and depletion continuation are transition-driven rather than
+per-frame searches. Visible candidates require a real free interaction slot.
+Hidden candidates come only from immutable faction Fog snapshots and are approached
+through explored cells; their current amount, movement and existence remain hidden
+until re-observed. Rule-Based AI uses the same Pawn mechanics and safety position
+filter without gaining a second knowledge path.
+
+# 63. Phase 6H.2 Navigation and Sheep Interaction
+
+Authored height connectors remain reciprocal diagonal edges. Runtime movement
+consumes each connector endpoint separately, constrains local unit separation
+to the connector axis during that short traversal, and validates the reciprocal
+pair directly instead of classifying the connector's exact shared corner as an
+orthogonal cliff cell. A 0.75-second no-progress watchdog may request one
+throttled recovery route; normal traversal never teleports.
+
+The lower and upper endpoint cells are a two-cell transit-only corridor. They
+remain pathable but cannot be reserved as a gather, build/repair, garrison,
+drop-off, production spawn, rally-issued/formation or other persistent standing slot.
+Building footprints cannot overlap either endpoint. Nearby same-height ground
+remains available when it satisfies the existing occupancy and reachability rules.
+
+Sheep are selectable Food resources with trigger-only interaction coverage and
+soft navigation occupancy. Units and A* may pass through them. Sheep alone do
+not invalidate an otherwise legal building footprint. After successful placement,
+every Sheep physically or logically inside the footprint receives a deterministic
+destination on the nearest bounded walkable ring outside it; destinations are
+distinct where possible and construction occupancy remains authoritative for units.
+
+# 64. Source of Truth
 
 This file defines gameplay rules.
 
@@ -1985,3 +2057,191 @@ MAP_SPEC.md.
 Reinforcement Learning rules belong in:
 
 RL_SPEC.md.
+
+---
+
+# 64. Phase 6H.3 Human Pawn Scout Promotion
+
+The human player may designate one living friendly Pawn as a Scout while the
+match is Playing. Promotion costs 50 Wood and is rejected without spending
+resources when the Pawn is invalid, unaffordable, already promoted, or another
+living promoted Scout exists for the human faction.
+
+The promoted unit remains `UnitType.Pawn`. Movement, gathering, building,
+repairing, depositing, health and damage continue through the normal Pawn
+components, and the unit remains excluded from military formation membership.
+Its current vision radius is derived from the authoritative Pawn vision radius
+with a 2.5 multiplier; no duplicate absolute Scout radius is stored.
+
+Promotion adds a seven-frame fire marker above the Pawn at presentation scale
+0.70 and reuses the
+positional `BuildingFire` ambience at a 0.35 per-loop volume multiplier. This
+marker is identification only and never enters building damage, HP threshold or
+explosion logic. Scout death stops the loop, hides the marker, removes the
+vision contribution through normal unit death, and releases the faction's
+single active Scout slot without refunding Wood.
+
+Successful promotion triggers the existing unit squash/stretch presentation
+without the red hit-flash overlay, then plays the verified `ScoutPromotion`
+success notification. Completed human unit production continues to play
+`UnitProductionFinished` only after the unit is actually spawned.
+
+The underlying promotion authority is faction-neutral so human and Rule-Based
+Commanders share the same cost, Pawn validation, one-active limit, vision modifier,
+visual and death cleanup. Human UI still validates against the human faction. AI
+requests promotion only through `FactionCommandService`; enemy promotion does not
+play a hidden global UI notification, and its positional fire loop remains subject
+to camera and player-vision audio gating.
+
+# 65. Phase 6H.4 Combat and Support Balance
+
+Monk healing keeps its existing targeting, range and movement rules. Each valid
+heal pulse has an authoritative value of 6.25 HP and the interval is 2 seconds.
+Unit HP remains integer-based; the HealthComponent carries fractional healing
+forward deterministically, so four unobstructed 6.25-HP pulses restore exactly
+25 HP without changing damage, maximum HP or the rest of the health model.
+
+Warrior uses a committed melee strike. A new strike may begin only after the
+normal live-enemy, current-observation, equal-height and one-world-unit range
+checks pass. The gameplay hit resolves once at 0.2 seconds and the committed
+presentation/recovery window ends at 0.4 seconds. Target movement and distance
+changes during that window do not cancel the authorized hit or switch the
+Warrior to Run. A dead or invalid target, dead attacker, Guard, explicit Move,
+retreat or another existing hard combat cancellation safely clears the pending
+strike. If the target survives, normal visibility, range and path rules resume
+after recovery and the Warrior chases before it may start another attack.
+
+The existing 1.1-second Warrior attack interval remains the start-to-start
+cooldown. One committed strike applies damage at most once. Archer projectile
+release and Lancer/Pawn immediate melee delivery do not inherit commitment.
+
+# 66. Phase 6H.5 Pawn Construction Hammer Feedback
+
+Pawn construction and repair retain the authoritative 0.8-second work cycle.
+Construction progress continues to advance from `Time.deltaTime` while each Pawn
+is actively contributing, so animation timing never changes building completion
+time or additive multi-builder BuildPower. Repair still applies its existing
+0.8-second amount at the authoritative 0.35-second impact point.
+
+Each valid work cycle triggers one three-frame Hammer swing lasting 0.6 seconds,
+followed by 0.2 seconds using the verified Idle Hammer recovery presentation.
+The Hammer impact animation does not loop continuously. A trigger received while
+a swing or recovery is active may set one pending swing; further triggers cannot
+grow a queue. Cancelling the job, moving, completion, destruction or Pawn death
+clears the feedback through the existing builder state.
+
+Construction Hammer audio moves from cycle start to the 0.35-second semantic
+impact, after that cycle has made positive construction progress. Repair audio
+remains conditional on positive restored HP at the same impact. One centralized
+request is made per successful Pawn work cycle. Both verified Hammer clips remain
+random variations, and each one-shot is limited to 0.7 seconds so one Pawn's next
+0.8-second event does not overlap its previous tail. Different Pawns remain free
+to produce simultaneous legitimate work sounds.
+
+# 67. Phase 7E.1 Full-Match Stability
+
+All construction placement, whether requested by the player or a Commander, must
+reject a footprint that newly seals friendly controllable units inside a local
+walkable pocket. Connectivity follows authoritative logical navigation, including
+occupancy, elevation and authored stair links. Existing disconnected terrain is not
+retroactively invalidated, narrow passages remain legal while an exit exists, and
+Sheep continue to use their dedicated footprint evacuation behavior.
+
+An AI Economy Pawn carrying resources prioritizes a reachable completed friendly
+Castle or Tower. An unreachable, congested, destroyed or otherwise invalid drop-off
+cannot leave the Pawn permanently idle: selection falls through to another reachable
+drop-off and retry is bounded. After deposit, the Pawn retains its legal resource
+intent and resumes equivalent-resource chaining. This recovery is role gated and
+does not override a promoted Scout or a human player's explicit Move command.
+
+# 68. Phase 7E.1 Scout Intelligence Hotfix
+
+The promoted Red Pawn Scout has two strategic jobs: explore unknown territory until
+hostile presence is found, then periodically observe legally known hostile regions.
+Exploration rewards large unknown regions and progressive depth from Red's own Castle
+without assuming Blue's spawn or using hidden objects. A bounded recent-target history
+prevents repeated middle-map oscillation.
+
+Hostile Castle, House, Barracks, Archery, Monastery, Tower and military sightings may
+create reconnaissance interest only after Red vision or Fog memory knows them. The
+Scout observes from a small walkable perimeter candidate set and never targets a
+Castle/Tower center. Safe destinations remain preferred; a high-value recon mission
+may use a Risky perimeter, while Dangerous defensive cores and unsafe paths remain
+forbidden. Visible nearby military always overrides recon with a Safe retreat.
+
+Faction knowledge stores only the last legally visible Warrior, Archer, Lancer and
+Monk counts, timestamp and observation region. This summary freezes under Fog and does
+not affect production in Phase 7E.1. Recon completes after a short observation dwell,
+then cooldown and stale-memory rules prevent camping while permitting later views from
+another perimeter angle.
+
+# 69. Phase 7E.1 Construction Reliability Hotfix
+
+A legal construction footprint must expose at least one usable perimeter work slot
+after that footprint is treated as occupied. Work slots are edge-adjacent, outside the
+footprint, on stable unoccupied ground at the same elevation, outside authored stair
+connector corridors, and connected to surrounding walkable navigation. Compact bases
+remain legal when only one or two slots are usable. Human and Commander placement use
+the same validation and reservation path.
+
+Each assigned Pawn owns one site-controlled slot and moves directly to it. Slots cannot
+be shared. Builder count is limited by actual free slot capacity, so overflow Pawns keep
+their Economy jobs. A valid assignment survives Commander reevaluation and small
+physical nudges. Construction begins within 0.2 world units of the assigned slot and
+continues until displacement exceeds 0.48 units.
+
+A displaced Builder keeps its reservation and makes bounded attempts to return to the
+same slot before considering another free reachable slot. If an unfinished site has
+assigned Pawns but no working Pawn and no progress for three game seconds, the site
+requests bounded recovery and waits two game seconds before another attempt. Invalid
+or dead owners are pruned independently so other builders continue contributing.
+
+# 70. Phase 7E.2 Adaptive Economy and Economic Outposts
+
+The rule-based Commander calculates one centralized Food, Wood and Gold demand from
+the authoritative stockpile, unpaid near-term plans and safety buffers. Worker changes
+are bounded and stable; valid gathering is not reissued every Commander tick. Scout,
+Builder and military ownership remain separate.
+
+Resource choice uses only current vision and frozen Fog memory. A remembered hidden
+resource cannot expose a live node, transform or changing amount. Known civilian danger
+and completed friendly Castle/Tower drop-offs affect travel value. The Commander may
+build a normal Tower as an economic outpost near a safe, rich, distant known cluster.
+It receives no free placement, resources, vision or construction progress.
+
+House demand is based on predicted population headroom and uses the shared 80 Wood
+definition. A House Sheep remains an economy bonus rather than a construction trigger.
+
+# 71. Phase 7E.3 Reactive Production and Counter-Composition
+
+The Red rule-based Commander produces a mixed baseline army and may gradually adjust it
+from legally observed enemy Warrior, Archer, Lancer and Monk counts. The adjustment uses
+the same counter multipliers as combat, is capped, keeps unit diversity and includes both
+living and already queued Red units. Monk remains a capped support unit rather than a
+damage counter.
+
+Enemy composition memory is a frozen value snapshot with confidence decay. Units trained
+or moved while hidden do not change Red knowledge. A later legal Scout or normal vision
+observation refreshes the snapshot. Missing production buildings are requested through
+normal construction, payment and placement rules. Production costs feed the existing
+adaptive economy and population forecast; normal FIFO queues and House planning remain
+authoritative.
+
+# 72. Phase 7E.4 Tactical Army Intelligence
+
+Once the existing Commander selects a defensive or offensive intent, Red coordinates its
+living Warrior/Lancer frontline, Archer backline and Monk support through the normal
+formation, movement, combat and command services. Pawn and the promoted Scout are not
+combat formation members. Compact approach positions may collapse through stairs and
+narrow terrain, and active combat may break formation naturally.
+
+Red distributes attacks among current visible enemies using distance, authoritative
+matchups, visible health, tactical value, current-target stability and attacker
+saturation. A committed melee swing completes before routine retargeting. Archers and
+Monks use bounded danger repositioning rather than continuous kiting; Monks never attack.
+Strategic BaseDefense, AttackMove and Retreat remain authoritative over these local rules.
+
+Tactical decisions use current `FactionKnowledge` observations only. Observer mode and
+hidden live enemy objects never provide targeting data. Tactical evaluation and command
+issuance are cadence limited, reuse bounded collections and do not request a path for each
+candidate target.

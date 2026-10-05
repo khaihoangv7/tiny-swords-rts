@@ -10,6 +10,18 @@ using UnityEngine;
 
 namespace TinyKingdom.AI
 {
+    public enum CommanderCommandCategory
+    {
+        Move,
+        ScoutMove,
+        Gather,
+        ReturnResource,
+        Build,
+        Attack,
+        Train,
+        Rally
+    }
+
     // Shared gameplay authority for human, Rule-Based and future RL command sources.
     // Each method revalidates faction ownership and current legal observations.
     public sealed class FactionCommandService : MonoBehaviour
@@ -20,12 +32,25 @@ namespace TinyKingdom.AI
         [SerializeField] private FactionKnowledge knowledge;
         [SerializeField] private BuildingSystem buildingSystem;
         private readonly List<PawnBuilder> singleBuilder = new(1);
+        private static readonly long[] CommandAttempts = new long[
+            System.Enum.GetValues(typeof(CommanderCommandCategory)).Length];
+        public static long DeduplicatedConstructionCommandCount { get; private set; }
 
         public Faction Faction => faction;
         public FactionKnowledge Knowledge => knowledge;
         public BuildingSystem BuildingSystem => buildingSystem;
         public bool SupportsMilitaryCommands => true;
         public bool SupportsRetreatCommands => true;
+        public bool SupportsScoutPromotion => true;
+
+        public static long GetCommandAttemptCount(CommanderCommandCategory category)
+            => CommandAttempts[(int)category];
+
+        public static void ResetPerformanceCounters()
+        {
+            System.Array.Clear(CommandAttempts, 0, CommandAttempts.Length);
+            DeduplicatedConstructionCommandCount = 0;
+        }
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge)
             => Configure(owner, factionKnowledge, null);
@@ -43,10 +68,22 @@ namespace TinyKingdom.AI
 
         public CommanderCommandResult TryMove(UnitController actor, Vector3 destination,
             IPathTraversalPolicy traversalPolicy)
+            => TryMoveInternal(actor, destination, traversalPolicy,
+                CommanderCommandCategory.Move, PathfindingRequestSource.CommanderMove);
+
+        public CommanderCommandResult TryScoutMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
+            => TryMoveInternal(actor, destination, traversalPolicy,
+                CommanderCommandCategory.ScoutMove,
+                PathfindingRequestSource.CommanderScout);
+
+        private CommanderCommandResult TryMoveInternal(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy,
+            CommanderCommandCategory category, PathfindingRequestSource pathSource)
         {
+            Count(category);
             using var marker = CommandDispatchMarker.Auto();
-            using var source = PathfindingSystem.TrackCommanderRequest(
-                PathfindingRequestSource.CommanderMove);
+            using var source = PathfindingSystem.TrackCommanderRequest(pathSource);
             CommanderCommandResult actorResult = ValidateActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
             UnitMovement movement = actor.GetComponent<UnitMovement>();
@@ -88,6 +125,7 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TryGather(UnitController actor, ResourceNode target,
             StrategicSafetyMap safety)
         {
+            Count(CommanderCommandCategory.Gather);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
                 PathfindingRequestSource.CommanderGather);
@@ -107,13 +145,55 @@ namespace TinyKingdom.AI
                 : gatherer.Gather(target,
                     candidate => candidate != null && safety.IsEligibleEconomicPosition(
                         knowledge, candidate.transform.position),
+                    position => safety.IsEligibleEconomicPosition(knowledge, position),
                     safety.CivilianTraversal))
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;
         }
 
+        public CommanderCommandResult TryReturnResources(UnitController actor,
+            StrategicSafetyMap safety = null)
+        {
+            Count(CommanderCommandCategory.ReturnResource);
+            using var marker = CommandDispatchMarker.Auto();
+            CommanderCommandResult actorResult = ValidateActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            PawnGatherer gatherer = actor.GetComponent<PawnGatherer>();
+            if (gatherer == null) return CommanderCommandResult.RejectedWrongUnitType;
+            if (gatherer.CarriedAmount <= 0)
+                return CommanderCommandResult.RejectedInvalidTarget;
+            bool recovered = safety == null
+                ? gatherer.TryRecoverCargoReturn(null, null, null)
+                : gatherer.TryRecoverCargoReturn(
+                    candidate => candidate != null && safety.IsEligibleEconomicPosition(
+                        knowledge, candidate.transform.position),
+                    position => safety.IsEligibleEconomicPosition(knowledge, position),
+                    safety.CivilianTraversal);
+            return recovered ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedUnreachable;
+        }
+
+        public CommanderCommandResult TryPromoteScout(UnitController actor)
+        {
+            using var marker = CommandDispatchMarker.Auto();
+            CommanderCommandResult actorResult = ValidateActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+
+            PawnScoutEligibility eligibility = PawnScoutPromotion.EvaluateForFaction(
+                actor, faction, knowledge?.Stockpile);
+            CommanderCommandResult eligibilityResult = MapScoutEligibility(eligibility);
+            if (eligibilityResult != CommanderCommandResult.Accepted)
+                return eligibilityResult;
+
+            return PawnScoutPromotion.TryPromoteForFaction(actor, faction,
+                    knowledge.Stockpile)
+                ? CommanderCommandResult.Accepted
+                : CommanderCommandResult.RejectedCommandFailed;
+        }
+
         public CommanderCommandResult TryAttack(UnitController actor, EntityId targetId)
         {
+            Count(CommanderCommandCategory.Attack);
             using var marker = CommandDispatchMarker.Auto();
             CommanderCommandResult actorResult = ValidateActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
@@ -137,6 +217,7 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TryAttackBuilding(UnitController actor,
             EntityId targetId)
         {
+            Count(CommanderCommandCategory.Attack);
             using var marker = CommandDispatchMarker.Auto();
             CommanderCommandResult actorResult = ValidateCombatActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
@@ -155,6 +236,7 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TryAttackMove(UnitController actor,
             Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
         {
+            Count(CommanderCommandCategory.Attack);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
                 PathfindingRequestSource.CommanderMove);
@@ -175,6 +257,7 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TryBuild(PawnBuilder builder, BuildingType type,
             Vector2Int origin, out BuildingSite site)
         {
+            Count(CommanderCommandCategory.Build);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
                 PathfindingRequestSource.CommanderBuild);
@@ -197,17 +280,17 @@ namespace TinyKingdom.AI
                 return CommanderCommandResult.RejectedInvalidPlacement;
             singleBuilder.Clear();
             singleBuilder.Add(builder);
-            return buildingSystem.TryBuild(type, origin, singleBuilder, out site)
-                ? CommanderCommandResult.Accepted
-                : CommanderCommandResult.RejectedUnreachable;
+            if (!buildingSystem.TryBuild(type, origin, singleBuilder, out site))
+                return CommanderCommandResult.RejectedUnreachable;
+            site.RecordBuilderCommand(false);
+            return CommanderCommandResult.Accepted;
         }
 
         public CommanderCommandResult TryResumeConstruction(PawnBuilder builder,
             BuildingSite site)
         {
+            Count(CommanderCommandCategory.Build);
             using var marker = CommandDispatchMarker.Auto();
-            using var source = PathfindingSystem.TrackCommanderRequest(
-                PathfindingRequestSource.CommanderBuild);
             UnitController actor = builder != null ? builder.GetComponent<UnitController>() : null;
             CommanderCommandResult actorResult = ValidateActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
@@ -217,6 +300,16 @@ namespace TinyKingdom.AI
                 return CommanderCommandResult.RejectedInvalidBuilding;
             if (site.State != BuildingState.UnderConstruction)
                 return CommanderCommandResult.RejectedConstructionActive;
+            if (builder.HasJob && builder.Target == site && site.IsAssigned(builder)
+                && site.HasBuilderReservation(builder))
+            {
+                site.RecordBuilderCommand(true);
+                DeduplicatedConstructionCommandCount++;
+                return CommanderCommandResult.Accepted;
+            }
+            site.RecordBuilderCommand(false);
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.CommanderBuild);
             singleBuilder.Clear();
             singleBuilder.Add(builder);
             return buildingSystem != null && buildingSystem.TryAssign(site, singleBuilder)
@@ -226,6 +319,7 @@ namespace TinyKingdom.AI
 
         public CommanderCommandResult TryTrain(UnitProductionQueue producer, UnitType type)
         {
+            Count(CommanderCommandCategory.Train);
             using var marker = CommandDispatchMarker.Auto();
             if (!IsPlaying()) return CommanderCommandResult.RejectedMatchNotPlaying;
             IProductionHost host = producer != null ? producer.ProductionHost : null;
@@ -251,6 +345,7 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TrySetRally(BuildingRallyPoint rally,
             Vector3 destination)
         {
+            Count(CommanderCommandCategory.Rally);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
                 PathfindingRequestSource.CommanderRally);
@@ -276,6 +371,22 @@ namespace TinyKingdom.AI
             if (actor.Faction != faction) return CommanderCommandResult.RejectedNotOwned;
             return CommanderCommandResult.Accepted;
         }
+
+        private static CommanderCommandResult MapScoutEligibility(
+            PawnScoutEligibility eligibility)
+            => eligibility switch
+            {
+                PawnScoutEligibility.Eligible => CommanderCommandResult.Accepted,
+                PawnScoutEligibility.InvalidPawn => CommanderCommandResult.RejectedWrongUnitType,
+                PawnScoutEligibility.WrongFaction => CommanderCommandResult.RejectedNotOwned,
+                PawnScoutEligibility.MatchNotPlaying =>
+                    CommanderCommandResult.RejectedMatchNotPlaying,
+                PawnScoutEligibility.InsufficientWood =>
+                    CommanderCommandResult.RejectedInsufficientResources,
+                PawnScoutEligibility.MissingPresentation =>
+                    CommanderCommandResult.RejectedInvalidTarget,
+                _ => CommanderCommandResult.RejectedCommandFailed
+            };
 
         private CommanderCommandResult ValidateCombatActor(UnitController actor)
         {
@@ -338,5 +449,12 @@ namespace TinyKingdom.AI
         private static bool IsPlaying()
             => MatchManager.Instance != null
                 && MatchManager.Instance.State == MatchState.Playing;
+
+        private static void Count(CommanderCommandCategory category)
+        {
+#if UNITY_EDITOR || UNITY_INCLUDE_INSTRUMENTATION
+            CommandAttempts[(int)category]++;
+#endif
+        }
     }
 }

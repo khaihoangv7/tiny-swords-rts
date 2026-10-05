@@ -12,6 +12,29 @@ namespace TinyKingdom.Economy
         private readonly Dictionary<UnitController, Vector2Int> reservations = new();
         public int ReservationCount => reservations.Count;
 
+        public static bool IsValidGatherCell(GridCell targetCell, GridCell candidate)
+            => targetCell != null && TerrainRules.IsStableStandingCell(candidate)
+                && candidate.HeightLevel == targetCell.HeightLevel;
+
+        public bool HasAvailableCapacity(GridManager grid)
+        {
+            if (grid == null) return false;
+            Vector2Int center = grid.WorldToGrid(transform.position);
+            GridCell targetCell = grid.GetCell(center.x, center.y);
+            if (targetCell == null) return false;
+            for (int y = -cellRadius; y <= cellRadius; y++)
+            for (int x = -cellRadius; x <= cellRadius; x++)
+            {
+                if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != cellRadius) continue;
+                Vector2Int candidate = center + new Vector2Int(x, y);
+                GridCell cell = grid.GetCell(candidate.x, candidate.y);
+                if (!IsValidGatherCell(targetCell, cell)
+                    || reservations.ContainsValue(candidate)) continue;
+                return true;
+            }
+            return false;
+        }
+
         public void Configure(int radius) => cellRadius = Mathf.Max(1, radius);
 
         public bool TryReserve(UnitController worker, GridManager grid, PathfindingSystem paths,
@@ -50,8 +73,7 @@ namespace TinyKingdom.Economy
                     if ((tried & (1UL << candidateIndex)) != 0) continue;
                     Vector2Int cell = center + new Vector2Int(x, y);
                     GridCell candidate = grid.GetCell(cell.x, cell.y);
-                    if (candidate == null || !candidate.Walkable || candidate.Occupied
-                        || candidate.HeightLevel != targetCell.HeightLevel) continue;
+                    if (!IsValidGatherCell(targetCell, candidate)) continue;
                     bool reserved = false;
                     foreach (Vector2Int used in reservations.Values)
                         if (used == cell) { reserved = true; break; }

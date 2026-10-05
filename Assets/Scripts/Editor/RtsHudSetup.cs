@@ -18,6 +18,7 @@ namespace TinyKingdom.EditorTools
         private const string Paper = "Assets/UI Elements/UI Elements/Papers/SpecialPaper.png";
         private const string Icons = "Assets/UI Elements/UI Elements/Icons/";
         private const string Avatars = "Assets/UI Elements/UI Elements/Human Avatars/";
+        private const string ScoutFire = "Assets/Particle FX/Fire.png";
 
         static RtsHudSetup() => EditorApplication.delayCall += Ensure;
 
@@ -39,6 +40,8 @@ namespace TinyKingdom.EditorTools
                     Configure(Icons + $"Icon_{number:00}.png", 1);
                 for (int number = 1; number <= 5; number++)
                     Configure(Avatars + $"Avatars_{number:00}.png", 1);
+                bool hasScoutFire = AssetDatabase.LoadAssetAtPath<Texture2D>(ScoutFire) != null;
+                if (hasScoutFire) Configure(ScoutFire, 14);
                 EnsureFolder(Folder);
                 RtsHudAssetCatalog catalog =
                     AssetDatabase.LoadAssetAtPath<RtsHudAssetCatalog>(CatalogPath);
@@ -57,6 +60,11 @@ namespace TinyKingdom.EditorTools
                     First(Avatars + "Avatars_03.png"),
                     First(Avatars + "Avatars_04.png"),
                     First(Avatars + "Avatars_05.png"));
+                if (hasScoutFire)
+                {
+                    Sprite[] scoutFire = LoadScoutFire();
+                    catalog.SetScout(scoutFire[0], scoutFire);
+                }
                 EditorUtility.SetDirty(catalog);
                 AssetDatabase.SaveAssets();
                 Debug.Log("RTS HUD setup complete: verified Tiny Swords panels, icons and avatars prepared.");
@@ -97,6 +105,23 @@ namespace TinyKingdom.EditorTools
                 .OrderBy(sprite => NumericSuffix(sprite.name)).ToArray();
 
         private static Sprite First(string path) => Load(path).FirstOrDefault();
+
+        private static Sprite[] LoadScoutFire()
+        {
+            string[] names =
+            {
+                "Fire_0", "Fire_10", "Fire_8", "Fire_11",
+                "Fire_12", "Fire_13", "Fire_7"
+            };
+            Sprite[] all = AssetDatabase.LoadAllAssetsAtPath(ScoutFire)
+                .OfType<Sprite>().ToArray();
+            Sprite[] result = names.Select(name => all.FirstOrDefault(
+                sprite => sprite.name == name)).ToArray();
+            if (result.Any(sprite => sprite == null))
+                throw new InvalidOperationException(
+                    "Fire.png no longer contains the seven verified Scout flame frames.");
+            return result;
+        }
 
         private static int NumericSuffix(string name)
         {

@@ -30,11 +30,11 @@ namespace TinyKingdom.EditorTools
         private static readonly ClipMapping[] Clips =
         {
             new(GameplayAudioEvent.WarriorAttack,
-                "Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3"),
+                "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3"),
             new(GameplayAudioEvent.LancerAttack,
                 "Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3"),
             new(GameplayAudioEvent.ArcherAttack,
-                "Assets/Audio/SFX/Units/Archer/sfx_archer_attack_01.mp3"),
+                "Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3"),
             new(GameplayAudioEvent.MonkHeal,
                 "Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3"),
             new(GameplayAudioEvent.PawnMining,
@@ -67,6 +67,16 @@ namespace TinyKingdom.EditorTools
                 "Assets/Audio/SFX/UI/Notification/cant_click.mp3"),
             new(GameplayAudioEvent.UnitProductionFinished,
                 "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
+            new(GameplayAudioEvent.ScoutPromotion,
+                "Assets/Audio/SFX/UI/Notification/finish_queue.mp3"),
+            new(GameplayAudioEvent.BuildingCompleted,
+                "Assets/Audio/SFX/Buildings/Construction/building_completed.mp3"),
+            new(GameplayAudioEvent.ArcherArrowImpact,
+                "Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3"),
+            new(GameplayAudioEvent.GenericCommandVoice,
+                "Assets/Audio/SFX/Commands/units_say_01.mp3"),
+            new(GameplayAudioEvent.ArmyCommandVoice,
+                "Assets/Audio/SFX/Commands/army_say_01.mp3"),
             new(GameplayAudioEvent.Victory,
                 "Assets/Audio/SFX/Match/win.mp3", ImportProfile.ResultTheme),
             new(GameplayAudioEvent.Defeat,
@@ -75,6 +85,16 @@ namespace TinyKingdom.EditorTools
 
         private const string HammerVariationPath =
             "Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_02.mp3";
+
+        private static readonly string[] WarriorHitVariationPaths =
+        {
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_02.mp3",
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_03.mp3",
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_04.mp3",
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_05.mp3",
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_06.mp3",
+            "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_07.mp3"
+        };
 
         [MenuItem("Tools/Tiny Kingdom/Prepare Gameplay Audio")]
         public static void Prepare()
@@ -107,6 +127,17 @@ namespace TinyKingdom.EditorTools
             ConfigureImporter(HammerVariationPath, ImportProfile.ShortSfx);
             AppendObservation(report, "PawnHammer variation 2", HammerVariationPath,
                 hammerVariation);
+
+            var warriorVariations = new AudioClip[WarriorHitVariationPaths.Length];
+            for (int i = 0; i < WarriorHitVariationPaths.Length; i++)
+            {
+                string path = WarriorHitVariationPaths[i];
+                warriorVariations[i] = LoadRequired(path);
+                ConfigureImporter(path, ImportProfile.ShortSfx);
+                AppendObservation(report, $"Warrior hit variation {i + 2}", path,
+                    warriorVariations[i]);
+            }
+            catalog.AssignVariations(GameplayAudioEvent.WarriorAttack, warriorVariations);
 
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();

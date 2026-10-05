@@ -84,9 +84,18 @@ namespace TinyKingdom.EditorTools
                 Require(castle.GetComponent<BuildingRallyPoint>() == null,
                     $"{castle.name} main Castle/Home must not have a Rally Point.");
 
-            Require(BuildingGarrisonWorldCount.WorldFontSize == 48
+            Require(BuildingGarrisonWorldCount.WorldFontSize == 112
                 && Mathf.Approximately(BuildingGarrisonWorldCount.WorldCharacterSize, 0.05f),
                 "Garrison world count size does not match Phase 6B.1.");
+            Require(Mathf.Approximately(ResourceGainPopup.DefaultIconWorldSize, 0.25f)
+                && ResourceGainPopup.DefaultAmountFontSize == 32
+                && Mathf.Approximately(ResourceGainPopup.DepositIconWorldSize, 0.60f)
+                && ResourceGainPopup.DepositAmountFontSize == 72
+                && Mathf.Approximately(ResourceGainPopup.DepositIconOffsetX, -0.34f)
+                && Mathf.Approximately(ResourceGainPopup.DepositAmountOffsetX, 0.08f)
+                && Mathf.Approximately(EconomyFeedback.DepositPopupHeight, 1.9f)
+                && Mathf.Approximately(ResourceGainPopup.AmountCharacterSize, 0.08f),
+                "Resource gain popup size does not match the presentation polish values.");
         }
 
         private static void CheckUnit(UnitCombatData[] data, UnitType type, float radius)

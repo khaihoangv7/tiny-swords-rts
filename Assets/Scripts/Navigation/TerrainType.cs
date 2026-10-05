@@ -24,6 +24,19 @@ namespace TinyKingdom.Navigation
         {
             return terrainType == TerrainType.ElevatedGround ? 1 : 0;
         }
+
+        // Height-connector endpoints are transit cells. Units may path through
+        // them, but gameplay systems must not reserve them as persistent stand,
+        // work, gather, spawn or formation destinations.
+        public static bool IsConnectorCorridor(GridCell cell)
+            => cell != null && (cell.TerrainType == TerrainType.Stairs
+                || cell.HeightConnection.HasValue);
+
+        public static bool IsStableStandingCell(GridCell cell)
+            => cell != null && cell.Walkable && !cell.Occupied
+                && !IsConnectorCorridor(cell)
+                && (cell.TerrainType == TerrainType.FlatGround
+                    || cell.TerrainType == TerrainType.ElevatedGround);
     }
 
     public enum TerrainStairOrientation
@@ -48,6 +61,13 @@ namespace TinyKingdom.Navigation
         // Tiny Swords side-ramp halves are authored as one vertical visual pair.
         // Navigation endpoints remain diagonal and are intentionally independent.
         public int VisualX => LowerX;
+        public Vector2Int VisualLowerCell => new(VisualX, LowerY);
+        public Vector2Int VisualUpperCell => new(VisualX, UpperY);
+        public Vector2Int SurfaceConnectionCell => UpperCell;
+        public Vector2Int CliffConnectionCell => new(UpperX, UpperY - 1);
+
+        public bool ContainsCorridorCell(Vector2Int cell)
+            => cell == LowerCell || cell == UpperCell;
 
         public TerrainHeightConnectorDefinition(int lowerX, int lowerY, int upperX, int upperY,
             TerrainStairOrientation orientation, string upperSpriteName,

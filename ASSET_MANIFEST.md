@@ -101,12 +101,22 @@ Each route uses two native ramp flights, one per height boundary. Each cliff use
 finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
 omitted, eliminating the doubled visible face. Side ramps retain the verified
 64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching Color3 and
-their original same-column visual assembly. Navigation is separate: each ramp
-uses explicit diagonally adjacent logical endpoints so units follow the visible
-left/right slope while crossing each height boundary. `DescendsRight` uses an
-upper-left to lower-right descent (and the exact reverse ascent), while
-`DescendsLeft` mirrors that direction. Unit separation is suppressed only for
-the short connector segment so it cannot deflect this authored diagonal.
+their original same-column visual assembly. The verified runtime paths are
+`Assets/Tiles/Terrain/Color3/Tilemap_color3_r4c0.asset`, `r5c0.asset`,
+`r4c3.asset` and `r5c3.asset`; all reference centered 64x64 sprites from
+`Assets/Terrain/Tileset/Tilemap_color3.png` at 64 PPU. The ramp halves remain
+in one outside visual column, while the diagonally adjacent logical upper exit
+must replace its left/right plateau edge with the matching center tile from
+column 6. Interior exits use `r1c6`. South-edge exits use `r2c6`, and the cliff
+cell immediately below uses `r5c6` instead of the closed `r5c5/r5c7` corner.
+This is the verified Tiny Swords opening: the ramp plus an open surface
+connection, with a second cliff connection piece only where a cliff is present.
+Navigation is separate: each ramp uses explicit diagonally adjacent logical
+endpoints so units follow the visible left/right slope while crossing each height
+boundary. `DescendsRight` uses an upper-left to lower-right descent (and the exact
+reverse ascent), while `DescendsLeft` mirrors that direction. Unit separation is
+constrained to the authored axis for the short connector segment so it cannot
+deflect this diagonal into a cliff.
 Movement extends the two logical connector waypoints horizontally by 0.25 cell
 inside their respective cells. The segment still crosses the cells' shared
 corner, while its wider horizontal run keeps the unit ground pivot centered on
@@ -130,6 +140,11 @@ both entrances remain clear. Dense woodland
 uses the same four verified Tree/Stump pairs as real resource nodes. Only the
 verified ambient Duck and water-rock animations described above are added;
 no gameplay animation, recoloring or AI-created artwork is introduced.
+
+Phase 6H.1 House-generated Sheep reuse this exact verified Idle/Grass/Move frame
+mapping, 1.6 presentation scale and normal Sheep harvest presentation. They add
+no new sprite, animation clip or animation-driven gameplay. House completion and
+the 90-second replacement timer remain gameplay authority.
 
 The supplied local Free Pack was visually inspected, including all terrain color
 sheets, four trees, four bushes, four rocks, four water-rock sheets, eight clouds,
@@ -367,7 +382,8 @@ Tiny Swords Pawn construction animation.
 
 Loop:
 
-YES while construction is active.
+One impact cycle per authoritative work event, followed by the verified Idle
+Hammer recovery while construction remains active.
 
 Gameplay effects are controlled by BuildingSystem, not by animation frames.
 
@@ -633,6 +649,14 @@ the animation uses `_0`, `_1`, `_2`, `_3`, `_4`, `_6` in that order. The other
 Hammer slices were preserved. Construction and repair timing are controlled by
 gameplay code. Repair uses a 0.8-second gameplay cycle with its successful
 impact at 0.35 seconds; that semantic impact triggers the mild building pulse.
+
+Phase 6H.5 keeps these exact Blue and Red frame mappings. The three-frame impact
+plays once over 0.6 seconds, followed by 0.2 seconds of the mapped Idle Hammer
+presentation. Hammer is never continuously looped during active work. The two
+verified `PawnHammer` clips remain random variations; their playback is capped
+at 0.7 seconds so a single Pawn's next 0.8-second work event cannot overlap the
+previous tail. Animation frames and audio remain presentation-only and never
+advance construction or apply repair.
 
 ### Phase 5C1 building and resource additions
 
@@ -941,7 +965,13 @@ Verified resource popup icons: Food uses
 Wood uses `Assets/Terrain/Resources/Wood/Wood Resource/Wood Resource.png`
 (`Wood Resource_0`), and Gold uses
 `Assets/Terrain/Resources/Gold/Gold Resource/Gold_Resource.png`
-(`Gold_Resource_0`).
+(`Gold_Resource_0`). Deposit feedback at the player Castle and completed Towers
+uses the same verified icon mapping. Its presentation-only icon size is 0.60
+world units and the `+amount` TextMesh uses font size 72. The deposit-only
+layout keeps the icon and amount separated and vertically centered, appearing
+1.9 world units above the Castle or Tower origin. Internal garrison
+counts use font size 112; resource amounts, drop-off rules, capacity and garrison
+capacity remain unchanged.
 
 The health bar uses `Assets/UI Elements/UI Elements/Bars/SmallBar_Base.png`
 (`SmallBar_Base_0`, `_1`, `_2` for left, middle, right) and
@@ -1202,6 +1232,40 @@ at 10 FPS and releases its projectile at the start of zero-based frame 6
 (0.60 seconds), when the held explosive disappears from the hand. The generic
 Dead/Buried VFX remains responsible for death presentation.
 
+## Phase 6H.3 Pawn Scout Fire Marker
+
+`Assets/Particle FX/Fire.png` was inspected as a horizontal atlas. Its importer
+contains fourteen sliced sprites: seven complete flame drawings plus seven small
+detached particle slices. The Scout animation uses only the verified complete
+flame drawings, ordered left to right by source rectangle:
+
+| Playback index | Sprite name |
+| --- | --- |
+| 0 | `Fire_0` |
+| 1 | `Fire_10` |
+| 2 | `Fire_8` |
+| 3 | `Fire_11` |
+| 4 | `Fire_12` |
+| 5 | `Fire_13` |
+| 6 | `Fire_7` |
+
+`Fire_0` is also the verified Scout command icon. Runtime plays the seven
+frames at 10 FPS on a child renderer scaled to 0.70 and positioned above the
+Pawn. The detached slices `Fire_1` through `Fire_6` and `Fire_9` are not used as
+animation frames. The source PNG and `.meta` remain locally ignored by the
+repository's existing Particle FX ignore rule; the tracked HUD catalog stores
+their current GUID references.
+
+## Phase 6H.4 Warrior Committed Attack Presentation
+
+Phase 6H.4 continues to use the verified four-frame
+`Assets/Units/{Blue|Red} Units/Warrior/Warrior_Attack1.png` mapping at 10 FPS.
+No sprite sheet, slice or frame order changes. The 0.2-second hit point and
+0.4-second committed duration are explicit gameplay data on
+`WarriorCombatData`; animation frames remain presentation-only and cannot apply
+damage. Holding `UnitState.Attacking` for that configured duration prevents the
+existing Run transition from cutting off a legally started Warrior attack.
+
 ## Gameplay SFX Foundation / Initial Audio Integration
 
 The following user-provided MP3 assets are referenced directly by
@@ -1210,9 +1274,9 @@ catalog once and never looks up an AudioClip by filename during an action.
 
 | Audio event | Exact asset path | Authoritative gameplay trigger |
 | --- | --- | --- |
-| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3` | Successful Warrior melee damage to a unit or building |
+| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` through `_07.mp3` | Successful Warrior melee damage to a unit; one uniformly selected variation |
 | LancerAttack | `Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3` | Successful Lancer melee damage to a unit or building |
-| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_archer_attack_01.mp3` | Actual Archer projectile creation, including mounted Archer fire |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual Archer projectile creation, including mounted Archer fire |
 | MonkHeal | `Assets/Audio/SFX/Units/Monk/sfx_monk_heal_01.mp3` | A valid heal pulse that restores positive HP |
 | PawnMining | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_mining_01.mp3` | Successful Gold transfer during the existing gather impact |
 | PawnChopping | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_chopping_01.mp3` | Successful Wood transfer during the existing gather impact |
@@ -1260,6 +1324,7 @@ mapping is invented.
 | CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | 0.078s, 44.1kHz stereo | 2D one-shot |
 | CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | 0.456s, 48kHz stereo | 2D one-shot |
 | UnitProductionFinished | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D one-shot |
+| ScoutPromotion | `Assets/Audio/SFX/UI/Notification/finish_queue.mp3` | 2.116s, 44.1kHz stereo | 2D promotion success one-shot |
 | Victory | `Assets/Audio/SFX/Match/win.mp3` | 8.098s, 44.1kHz stereo | 2D one-shot |
 | Defeat | `Assets/Audio/SFX/Match/defeat.mp3` | 11.760s, 24kHz stereo | 2D one-shot |
 
@@ -1271,3 +1336,19 @@ loading and no preload. All source MP3 files remain unchanged. Fire uses
 `Assets/Audio/Music/attack_theme.mp3` was also found (about 10.971s, 44.1kHz
 stereo), but Phase 6E.2 defines no attack-music state machine, so it remains
 unmapped rather than being started from an invented gameplay rule.
+
+## Phase 6E audio expansion mappings
+
+| Audio event | Exact asset path | Authoritative gameplay trigger | Runtime classification |
+| --- | --- | --- | --- |
+| BuildingCompleted | `Assets/Audio/SFX/Buildings/Construction/building_completed.mp3` | First `UnderConstruction` to `Completed` transition | Fog-aware world one-shot |
+| ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual projectile creation after ranged windup | Fog-aware world one-shot |
+| ArcherArrowImpact | `Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3` | Successful Archer projectile damage to a unit | Fog-aware world one-shot |
+| WarriorAttack primary | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` | Successful Warrior damage to a unit | Fog-aware world variation |
+| WarriorAttack variations | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_02.mp3` through `sfx_sword_hit_07.mp3` | Uniform random selection for the same successful hit event | Fog-aware world variation |
+| GenericCommandVoice | `Assets/Audio/SFX/Commands/units_say_01.mp3` | Accepted Human command with at most three accepted Warrior/Lancer/Archer recipients; 30% roll and independent 30 game-second cooldown | 2D one-shot |
+| ArmyCommandVoice | `Assets/Audio/SFX/Commands/army_say_01.mp3` | Accepted Human command with more than three accepted Warrior/Lancer/Archer recipients; 40% roll and independent 10 game-second cooldown | 2D one-shot |
+
+Command categories are mutually exclusive. Pawn, promoted Pawn Scout and Monk are
+eligible recipients for the generic response but never increase the army count.
+Cooldown begins only when the centralized audio service accepts playback.

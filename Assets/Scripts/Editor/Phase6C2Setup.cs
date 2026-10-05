@@ -47,7 +47,7 @@ namespace TinyKingdom.EditorTools
                 UnitAnimationSet blueMonk = MakeMonkSet("Blue");
                 UnitAnimationSet redMonk = MakeMonkSet("Red");
                 UnitCombatData monk = MakeData("MonkCombatData", UnitType.Monk,
-                    80, 1, 2f, 4f, 3f, 60, 0, 60, false, 4f, 7f, 4f);
+                    80, 1, 2f, 2f, 3f, 60, 0, 60, false, 4f, 7f, 4f);
                 GameObject monkPrefab = MakePrefab("BlueMonkTest", "BlueWarriorTest",
                     Faction.Blue, monk, blueMonk, UnitType.Monk);
                 MakePrefab("RedMonkTest", "RedWarriorTest",

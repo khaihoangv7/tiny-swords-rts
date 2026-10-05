@@ -217,9 +217,10 @@ running. Rapid hits restart one reaction from the exact stored baseline.
 ## Phase UI/UX RTS HUD
 
 The gameplay HUD uses a 1920x1080 reference canvas, Scale With Screen Size,
-width/height match 0.5. A bottom-left anchored `RtsBottomHud` root is 1258x160
-with a 12-pixel safe margin. At matching 16:9 resolutions this becomes roughly
-839x107 at 1280x720 and 1677x213 at 2560x1440. All three sections share the
+width/height match 0.5. A horizontally stretched `RtsBottomHud` root occupies
+the canvas between 12-unit left/right safe margins and is 188 units high. At the
+reference aspect this is 1896x188. The root itself has no Graphic or raycast
+target; only each visible panel blocks world input. All three sections share the
 same baseline; hiding a contextual panel never moves the resource panel.
 Arbitrary Unity Game View scaling is not an image-quality reference; visual
 checks use Game View Scale 100 percent.
@@ -227,8 +228,8 @@ checks use Game View Scale 100 percent.
 The WoodTable resource panel is always visible at the lower left. It reads the
 authoritative `FactionPopulation` and `ResourceStockpile` values and displays
 Population as Used/Cap followed by Wood, Gold and Food. The icons are
-`Icon_01_0` through `Icon_04_0` in that order. The panel is 220x160, resource
-icons are 28x28 and rows are 30 pixels high.
+`Icon_01_0` through `Icon_04_0` in that order. The panel is 220x188, resource
+icons are 34x34, rows are 36 pixels high and bold values use font size 22.
 
 The SpecialPaper selection panel appears only while a selectable object is
 selected. A single unit shows its verified avatar, type, faction, HP and current
@@ -236,15 +237,36 @@ state; Pawn cargo is supplemental. Multiple units show counts by explicit unit
 type. Buildings show type, HP, construction state/progress, garrison counts and
 production queue/progress where available. Tree, Sheep, Gold Stone and the
 strategic Gold Mine show authoritative remaining/capacity and health data that
-the player is allowed to observe under Fog rules. This panel is 380x160; single
-portraits are 54x54, summary portraits are 28x28 and queue icons are 30x30.
+the player is allowed to observe under Fog rules. This panel remains 380x188;
+single portraits are 96x96 and primary titles use font size 24. Multi-selection
+rows adapt inside a fixed 168-unit content region: two rows use 52x52 icons and
+font size 21, four rows use 40x40 icons and font size 19, and five rows retain
+34x34 icons with font size 18. Detail text remains 16 and queue icons remain
+34x34.
 
 The SpecialPaper command panel appears only when the current selection has
 valid commands. It invokes existing gameplay APIs for AttackMove, hold-to-Guard,
 Pawn building placement, production and Eject All. Costs and unavailable states
 come from the existing data and authority checks. The UI never duplicates
 payment, population, construction, training, garrison or command authority.
-The panel is 650x160 and uses a compact seven-column grid of 60x58 buttons.
+The panel is a single-row adaptive bar with an explicit fixed HUD zone.
+Resources remains at x=0 with size 220x188; Selection remains at x=224 with
+size 380x188; Command begins at x=608, preserving the original four-unit gap
+after Selection. All three use lower-left anchors and pivots with explicit
+sizes. No LayoutGroup, LayoutElement or ContentSizeFitter redistributes sibling
+width. Command count therefore cannot resize or cover Resources/Selection.
+Command width grows only to the right and is clamped between 240 and the safe
+right-side region, 1288 units at the 1920x1080 reference geometry.
+
+Cards use a shared range from 104x112 down to 76x82. The panel first grows while
+cards stay at 104x112; if the safe maximum is reached, every active card shrinks
+to the same calculated width and proportional height. Icons scale from 68 to 48,
+command labels from font 15 to 12, secondary cost text from 13 to 10, and
+hotkeys from 13 to 10. Horizontal padding is 12 units per side and the gap is 6.
+At reference geometry, two commands use a 240-unit panel, six use 678, seven use
+788, and 13/14 use the 1288-unit maximum with approximately 91.69x98.81 and
+84.71x91.34 cards respectively. The panel height always remains 188 and all
+active commands remain in exactly one left-to-right row.
 AttackMove uses verified `Icon_05_0`. Eject All uses verified `Icon_09_0` for
 Castle, Tower and owned Gold Mine command entries; the legacy compact garrison
 button shows the same icon without changing its command behavior.
@@ -340,6 +362,42 @@ completion or loss of a valid work target clears the working state through the
 existing builder lifecycle. Animation never advances construction and does not
 trigger hammer audio. The existing per-Pawn authoritative progress update, build
 duration, interaction slots and work-cycle SFX remain unchanged.
+
+## Phase 6D.5 HUD Scale and Adaptive Command Panel Polish
+
+All fourteen command action objects remain pooled and reusable. Only active
+actions participate in presentation. For `N` active actions and safe width `S`,
+card width is `clamp((S - 2*12 - (N-1)*6) / N, 76, 104)`. Card height and all
+internal metrics interpolate across their documented minimum/maximum range.
+Panel width is `clamp(2*12 + N*cardWidth + (N-1)*6, 240, S)`. A dedicated
+`CommandContent` RectTransform stretches inside the frame with 12-unit side
+insets. All action objects are children of that content rect and use the same
+final visible count, card width and row origin, so their complete bounds remain
+inside both content and panel. The current frame, continuous background and
+raycast blocker resize together. The title remains stable at font 18 and
+centered on the current frame.
+
+The presenter recalculates geometry only when active count or parent canvas
+width changes. Selection refreshes that only change affordability or formation
+tint reuse existing RectTransforms without layout work. Screen-width changes,
+domain reload and a different visible count restore the same one-row result.
+No GridLayoutGroup, HorizontalLayoutGroup, ScrollRect, paging control or action
+reordering is used.
+
+The shared command geometry applies equally to Build, Train, AttackMove, Guard,
+Eject All and Compact/Wedge/Loose/Line actions. The procedural formation dots
+use the same enlarged command interior. Tooltip triggers, click/reject audio,
+disabled-button hover, UI raycast blocking and domain-reload rebinding remain on
+the same pooled objects.
+
+Resources, Selection and Command panels retain their verified WoodTable and
+SpecialPaper surfaces plus eight independent frame pieces. Resource/Selection
+keep their bottom-left anchors and Selection keeps its 380x188 outer frame.
+Command uses a stable lower-left anchor/pivot at HUD x=608 and resizes its real
+surface/raycast rectangle only toward the right. The global
+1920x1080 CanvasScaler is unchanged; result UI,
+tooltips, cursors and other canvases therefore receive no indirect scale change.
+No gameplay value, command eligibility or formation rule is affected.
 
 ## Phase 6G.2 Formation Commands
 

@@ -74,8 +74,12 @@ Valid active gather assignments remain stable. A worker is reconsidered only aft
 death, scout reservation, an invalid/depleted job, an unexpected Idle state or a
 failed remembered-resource approach. Visible targets are selected by validity,
 distance and stable EntityId. Failed targets receive a four-second retry cooldown.
-The existing interaction slots, gather cycle, cargo, Castle drop-off and same-type
-resource chaining remain authoritative.
+The existing interaction slots, gather cycle, cargo, shared Castle/Tower drop-off
+and same-type resource continuation remain authoritative. Phase 6H.1 lets the
+core Pawn keep a stable assignment across visible slot overflow and depletion.
+Hidden continuation uses only frozen Fog-memory positions; the AI safety policy
+filters both visible nodes and remembered positions without receiving hidden live
+resource state.
 
 ## Scouting policy
 
@@ -422,9 +426,10 @@ PreparingAttack launches after normal assembly, may use the 60% fallback after t
 seconds, or fails the current objective cleanly when even that fallback is not
 achievable. The target receives the existing finite cooldown and the Army regroups.
 Completed exploration enters a stable exhausted state instead of repeatedly
-reserving and releasing a Scout each Commander tick. If another unit later expands
-the explored area, Scout selection resumes. Temporarily unsafe/cooldown-only
-frontiers are reconsidered every two seconds.
+reserving and releasing a Scout each Commander tick. Phase 7E.1 retains that
+stability while keeping the official promoted Scout reserved for bounded stale
+memory re-scout. Temporarily unsafe/cooldown-only frontiers are reconsidered on
+the slower Scout target gate.
 
 `CommanderProgressDiagnostics` records successful Gather assignment, Build/resume,
 Train, Scout destination, Army state change, offensive launch, objective resolution,
@@ -439,3 +444,230 @@ Intentional baseline limits remain one ArmyGroup, no flanking, focus fire, count
 production, forward bases, strategic Gold Mine warfare, advanced garrison strategy
 or enemy-unit memory outside current vision. These are deferred and are not hidden
 information shortcuts.
+
+## Phase 7E.1 Adaptive Scout and Exploration 2.0
+
+Red scouting uses the same authoritative Pawn promotion as the human player.
+`ScoutingCommanderPolicy` requests `FactionCommandService.TryPromoteScout`; the
+shared gameplay component validates a living faction-owned Pawn, spends exactly
+50 Wood, enforces one active Scout, applies Pawn vision x2.5, owns the fire marker
+and Fog-safe ambience, and clears registration on death. Red receives no free
+Scout, AI-only vision, or military-unit fallback. Promotion waits for at least
+four Pawns, an idle low-disruption Economy Pawn, meaningful information need and
+Wood remaining after the currently planned unpaid building cost.
+
+`CommanderPawnRoles` treats an active promoted Pawn as `Scout` before Builder or
+Economy allocation. Economy and Building policies therefore cannot overwrite its
+movement, and `ArmyGroup` plus Phase 6G.2 formation eligibility continue to reject
+Pawn units. A dead Scout clears from the gameplay registry; a replacement is
+considered only after the bounded promotion cooldown and only while frontier or
+stale-memory value remains.
+
+Frontier remains a walkable explored cell adjacent to Unexplored terrain. Candidate
+generation reuses buffers, evenly samples at most 48 frontier cells for full
+scoring, and runs only when the stable current target becomes invalid, is reached,
+or the three-second reevaluation gate opens. The configurable score is:
+
+`4.0 * sampled information gain + 1.5 * geographic novelty
+- 0.18 * travel distance - 14.0 * StrategicSafetyMap risk`.
+
+Information gain samples Unexplored cells inside the promoted Scout's real vision
+radius without simulating Team Vision or running A* per candidate. Only the chosen
+destination is submitted to normal pathfinding. Remembered Tower/Castle danger and
+currently visible military danger come from `StrategicSafetyMap`; Unexplored cells
+carry no automatic danger penalty. A nearby visible combat group or a dangerous
+known position moves the Scout into bounded local evasion, followed by repositioning.
+
+When frontier is exhausted the official Scout remains reserved and rechecks at a
+slow interval instead of entering an assign/release loop. Buildings and resources
+gain snapshot-only `LastSeenTime` metadata when legally visible. Hidden snapshot
+age and strategic type determine re-scout value; the target stores only copied
+`EntityId`, cells and scores. No hidden `GameObject`, `Transform`, HP, resource
+amount or destruction state is queried. Re-observation through normal Team Vision
+refreshes or removes the memory. Enemy Scout fire audio remains gated by camera and
+the human faction's current visibility.
+
+### Phase 7E.1 Scout intelligence hotfix
+
+Scouting now separates exploration from reconnaissance. Before hostile presence is
+known, a bounded top set of at most 48 frontiers favors the Scout's real information
+gain, the size of the nearby unknown region and progressive depth away from its own
+known home anchor. Depth is only a progression signal; it never predicts an opposing
+spawn. A fixed eight-entry recent-target history applies a decaying regional penalty,
+preventing repeated middle-map A/B oscillation without creating unbounded memory.
+
+Any legally remembered hostile building or legally observed military group creates
+an enemy-interest region. Buildings come only from Fog memory, and the military
+summary is a value-only last-seen snapshot containing Warrior, Archer, Lancer and
+Monk counts, observation time and observed centroid. It refreshes only from currently
+visible enemies and remains frozen while they are hidden. Production policy does not
+consume the summary in this phase.
+
+Reconnaissance generates at most 40 deterministic perimeter candidates around known
+Castle, production, Tower, House and military anchors. It never targets a Castle or
+Tower center. Candidates use the promoted Pawn's authoritative 2.5x vision, strategic
+value, unknown information, staleness, travel and known risk. Generic exploration
+accepts only Safe destinations; recon may approach a Risky perimeter while normal
+Scout traversal still forbids Dangerous defensive cores. Evasion accepts only an
+explored Safe retreat and overrides both modes.
+
+A recon target remains stable, dwells for 2.5 seconds after arrival, then enters an
+18-second mission cooldown. Visible danger interrupts it and adds a 12-second re-entry
+cooldown. Perimeter history rewards later observation from another side and prevents
+immediate left/right ping-pong. All target state remains copied IDs, cells, scores and
+timestamps; no hidden live enemy reference or hard-coded enemy spawn is retained.
+
+### Phase 7E.1 full-match stability rules
+
+Building legality remains centralized in `BuildingSystem` for both player and
+Commander requests. Before accepting a footprint it performs an allocation-free,
+bounded connectivity test over the footprint plus a six-cell margin. Candidate cells
+are treated as blocked without spawning a site. A friendly world unit invalidates
+the candidate only when its component reached surrounding traversable space before
+the hypothetical block and becomes locally sealed afterward. The flood fill uses
+the same walkability, occupancy, elevation and reciprocal stair connector rules as
+navigation. Sheep retain their existing dedicated evacuation path.
+
+An Economy-role Pawn that is idle with cargo is recovered through
+`FactionCommandService.TryReturnResources`; Scout and manually controlled Pawns are
+not globally commandeered. Drop-offs remain distance ranked, but each Castle/Tower
+must reserve a reachable interaction slot. A failed or destroyed choice is released,
+temporarily skipped and followed by the next candidate. No-drop-off retries use a
+bounded 1/2/4/8 game-second backoff, while three seconds without physical progress
+causes one recovery attempt. Resource type, safety filters and legal memory remain
+active through deposit so equivalent-resource chaining resumes afterward.
+
+The performance capture separates Commander Move, Scout Move, Gather, Build, Rally
+and economy Return path requests; records command attempts and building candidate
+evaluations; and samples audio pool size, GC and knowledge collection sizes. These
+counters diagnose x10 behavior but do not replace the extended Play Mode Profiler run.
+`FogWorldVisibility` also removes destroyed entity keys from its reusable presentation
+gate cache during refresh, preventing spawn/death churn from accumulating stale entries.
+
+### Phase 7E.1 Red construction reliability rules
+
+Player and Commander construction converge on `BuildingSystem`, then `BuildingSite`
+and `PawnBuilder`. Placement generates the same edge-adjacent work slots used at
+runtime while the prospective footprint is blocked. A usable slot must be stable
+ground at the footprint elevation, outside stairs/connector corridors, unoccupied,
+and connected to external walkable space. At least one selected Builder must also
+have an authoritative path to a slot before a site is created.
+
+The site is the sole owner of Pawn-to-slot reservations. A Pawn reserves one concrete
+reachable free slot before movement and keeps it until the assignment ends or bounded
+recovery proves another slot is needed. Red assigns at most three concurrent Builders,
+never more than the site's free slot capacity, and always preserves the configured
+minimum Economy workers. Promoted Scouts cannot acquire the Builder role.
+
+An already valid same-Pawn/same-site assignment is deduplicated without touching its
+path, reservation or working state. Builders enter work within 0.2 world units and
+remain working through small nudges up to 0.48 units. Separation remains enabled in
+travel and is suppressed only near that Pawn's reserved final slot. A displaced Pawn
+first makes bounded returns to its own slot, then may select a different free reachable
+slot. Three game seconds without authoritative progress triggers a site-level recovery;
+recovery has a two-second cooldown and reports an access failure rather than destroying
+or refunding an impossible existing site.
+
+Per-site and global counters record construction commands, deduplicated requests and
+builder path requests. Optional site gizmos show invalid, free, reserved, approaching
+and working slots. These diagnostics are disabled by default and the extended x10 Play
+Mode profile remains the authority for command/path rates.
+
+### Phase 7E.2 adaptive economy and economic outposts
+
+`EconomicDemandModel` is the single short-horizon source for Red resource demand. It
+reads the authoritative stockpile, unpaid building and production plans, Scout
+promotion pressure and population forecast. Costs already paid by construction or a
+production queue are never reserved a second time. Food, Wood and Gold deficits drive
+worker targets; the former 40/35/25 ratios remain only a fallback for callers without
+the model.
+
+Economy planning runs at a slower four-second cadence than the Commander tick. A valid
+gather command remains untouched. At most one empty-handed Economy Pawn changes
+resource role per planning pass, with an eight-second dwell unless the target deficit
+is critical. Builder and Scout roles remain excluded. Target scoring combines Pawn
+travel, nearest completed friendly Castle/Tower drop-off, assignment crowding,
+depletion and known civilian risk. Hidden resources use only frozen
+`ResourceKnowledgeSnapshot` values and become live targets only after normal vision.
+
+Known resource snapshots are grouped into at most sixteen clusters from at most 96
+remembered nodes and refreshed no faster than every eight game seconds. The cache
+contains only cells, positions, amounts and scores. A safe, sufficiently rich cluster
+far from an existing drop-off may request one Tower economic outpost after core needs.
+The normal `BuildingSystem`, payment, placement, trap prevention, construction slots
+and Builder commands remain authoritative. Outposts keep a 45-second cooldown, never
+overlap resources or existing structures, and never use hidden enemy state.
+
+Population planning forecasts the next unpaid production request and prioritizes one
+House when predicted headroom reaches the configured threshold. House cost remains the
+authoritative 80 Wood; its Sheep is a bonus and never a reason to build a House. Builder
+selection prefers idle, empty-handed Pawns and penalizes workers assigned to a current
+resource deficit. After construction, normal role synchronization returns Builders to
+adaptive Economy allocation.
+
+### Phase 7E.3 reactive production and counter-composition
+
+Red production combines a stable mixed baseline with legal enemy military intelligence.
+`EnemyCompositionMemory` copies only the latest value-only Warrior, Archer, Lancer and
+Monk snapshot produced by `FactionKnowledge`. Hidden units retain frozen counts, region
+and last-seen time; confidence stays full briefly and then decays to zero. It contains no
+enemy unit, object or transform reference, so hidden reinforcements are unknown until a
+normal visible observation refreshes the snapshot.
+
+Counter utility reads the authoritative `CombatDamage.Multiplier` table through a
+read-only adapter. Observation confidence, sample size and weak remembered production
+building evidence bound the reactive contribution. A maximum reactive share, combat
+diversity floor, four-second strategic reevaluation, twelve-second desired-composition
+hold, meaningful-change threshold and smoothing prevent single-unit overreaction and
+strategy ping-pong. Stale intelligence gradually returns production to the baseline.
+Enemy Monks increase bounded support threat and are not modeled as direct damage.
+
+The policy compares desired counts with living plus FIFO-queued Red units. Monk demand
+uses a capped support ratio. Candidate scoring includes composition deficit, counter
+pressure, baseline need, affordability, producer availability, queue count and selection
+inertia. Missing production infrastructure creates a hysteretic request for
+`BuildingCommanderPolicy`; production falls back to a reasonable available unit instead
+of spawning a building or stopping. One unpaid near-term unit cost feeds the Phase 7E.2
+`EconomicDemandModel`; population and House decisions remain owned by the building and
+population systems. All enqueue commands still pass through `FactionCommandService`.
+
+### Phase 7E.4 tactical army intelligence
+
+`TacticalArmyController` operates below the existing `MilitaryCommanderPolicy` strategic
+state machine. It never starts a war, selects a macro objective, changes production or
+replaces BaseDefense/Retreat. Its living combat snapshot contains only Warrior, Lancer,
+Archer and Monk members; Pawn and the promoted Scout stay outside the army.
+
+Warrior and Lancer are frontline, Archer is backline and Monk is support. Advance,
+assembly and local regroup destinations reuse `RoleFormationPlanner` with an explicit AI
+`Compact` formation independent of the human player's selected formation. The planner may
+collapse naturally when stairs, corridors or occupancy cannot fit the ideal shape. In
+active combat roles are preferences rather than a rigid line. A median position of living
+non-support units supplies a robust army anchor, so one straggler or a rear Monk cannot
+drag the center. Cohesion is a soft signal: serious fragmentation may regroup outside an
+active fight, while ordinary spacing errors never interrupt combat or strategic retreat.
+
+Local targeting considers only current `FactionKnowledge.VisibleEnemyUnits`. It scores a
+bounded nearby candidate set using distance, the authoritative `CombatDamage.Multiplier`,
+current visible health, active threat, role value, target stickiness and attacker
+saturation. Enemy Monk receives high support priority and Archer receives bounded ranged
+priority. A larger melee saturation penalty reduces whole-army crowding while allowing
+stronger ranged focus. Assignments store enemy `EntityId` and copied observation values;
+hidden live units or transforms are never retained. A hidden or invalid target can only be
+selected again after normal vision makes it a current legal observation.
+
+Warrior/Lancer committed melee attacks are not interrupted by routine reevaluation.
+Archers move a short distance only when a visible melee threat enters a danger band based
+on authoritative attack ranges; per-unit cooldown and destination dedupe prevent endless
+kiting. Monks never attack. They use rear formation slots and make the same bounded local
+escape when directly threatened. Monk strength is contextual: current health, nearby
+combat ally coverage, nearby injury and authoritative heal throughput determine support
+value. An isolated Monk contributes only a small fraction of its configured support value.
+
+Tactical evaluation runs at a bounded 0.5-game-second cadence, reuses lists and maps, and
+does not pathfind per target candidate. Formation plans update only for membership or a
+meaningfully changed destination. Accepted Attack and Move commands still pass through
+`FactionCommandService`; current targets, move destinations, hold time, cooldowns and the
+existing CombatController state suppress duplicate commands. Optional diagnostics expose
+state, anchor, cohesion, role counts, direct/support strength, per-unit targets and scores,
+saturation, formation slots, commands, retargets and reposition counts.

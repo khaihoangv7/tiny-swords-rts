@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using TinyKingdom.AI;
+using TinyKingdom.Audio;
+using TinyKingdom.Buildings;
+using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
+using TinyKingdom.Vision;
 using Unity.Profiling;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -34,9 +38,14 @@ namespace TinyKingdom.EditorTools
             "TinyKingdom.AI.ThreatEvaluation",
             "TinyKingdom.AI.ArmyRegroup",
             "TinyKingdom.AI.CommandDispatch",
+            "TinyKingdom.Buildings.TrapValidation",
+            "TinyKingdom.Economy.PawnTick",
+            "TinyKingdom.Economy.CargoRecovery",
+            "TinyKingdom.Audio.PlaySfx",
             "TinyKingdom.Pathfinding.FindPath",
             "TinyKingdom.Fog.TeamVisionRecompute",
-            "TinyKingdom.Fog.MemoryRefresh"
+            "TinyKingdom.Fog.MemoryRefresh",
+            "TinyKingdom.Fog.WorldVisibilityRefresh"
         };
 
         private static Capture activeCapture;
@@ -55,6 +64,28 @@ namespace TinyKingdom.EditorTools
                 throw new InvalidOperationException(
                     "Run Phase 7B performance profiling in Play Mode.");
             BeginCapture(DefaultCaptureSeconds, ReportPath());
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Profile Phase 7E.1 x10 Stability (5 minutes)")]
+        public static void RunExtendedStabilityInteractive()
+        {
+            if (!EditorApplication.isPlaying)
+                throw new InvalidOperationException(
+                    "Enter Play Mode, enable Observer, select x10, then start this capture.");
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../Logs/Phase7E1FullMatchStability.json"));
+            BeginCapture(300f, path);
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Profile Phase 7E.3 Reactive Production x10 (5 minutes)")]
+        public static void RunReactiveProductionInteractive()
+        {
+            if (!EditorApplication.isPlaying)
+                throw new InvalidOperationException(
+                    "Enter Play Mode, enable Observer, select x10, then start this capture.");
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../Logs/Phase7E3ReactiveProduction.json"));
+            BeginCapture(300f, path);
         }
 
         private static void BeginBatch()
@@ -135,11 +166,56 @@ namespace TinyKingdom.EditorTools
             public long commanderGatherPathRequests;
             public long commanderBuildPathRequests;
             public long commanderRallyPathRequests;
+            public long commanderScoutPathRequests;
+            public long economyReturnPathRequests;
+            public long moveCommandAttempts;
+            public long scoutMoveCommandAttempts;
+            public long gatherCommandAttempts;
+            public long returnResourceCommandAttempts;
+            public long buildCommandAttempts;
+            public long constructionSiteBuilderCommands;
+            public long deduplicatedConstructionCommands;
+            public long constructionSiteBuilderPathRequests;
+            public long buildingCandidateEvaluations;
+            public long economyReassignments;
+            public long economicClusterRefreshes;
+            public int economicClusterCount;
+            public long productionEnqueueAttempts;
+            public long successfulProductionEnqueues;
+            public long rejectedOrDedupedProductionAttempts;
+            public long productionInfrastructureRequests;
+            public double productionEnqueueAttemptsPerSecond;
+            public double successfulProductionEnqueuesPerSecond;
+            public double rejectedOrDedupedProductionAttemptsPerSecond;
+            public double productionInfrastructureRequestsPerSecond;
+            public double moveCommandsPerSecond;
+            public double scoutMoveCommandsPerSecond;
+            public double gatherCommandsPerSecond;
+            public double returnResourceCommandsPerSecond;
+            public double buildCommandsPerSecond;
+            public double constructionBuilderCommandsPerSecond;
+            public double constructionBuilderPathRequestsPerSecond;
+            public double buildingCandidatesPerSecond;
             public long maximumPathRequestsInFrame;
             public double commanderPathRequestsPerTick;
             public bool baseFullyDeveloped;
             public double averageGcAllocatedBytes;
             public long maximumGcAllocatedBytes;
+            public int finalAudioPoolSize;
+            public int maximumAudioPoolSize;
+            public int finalActiveAudioSources;
+            public int maximumActiveAudioSources;
+            public int audioPoolGrowthCount;
+            public int knownResourceCount;
+            public int knownEnemyBuildingCount;
+            public int ownUnitCount;
+            public int finalDropOffRegistryCount;
+            public int maximumDropOffRegistryCount;
+            public int scoutFrontierCandidateCount;
+            public int scoutScoredFrontierCount;
+            public int scoutStaleCandidateCount;
+            public int finalFogPresentationGateCount;
+            public int maximumFogPresentationGateCount;
             public List<MarkerReport> markers = new();
         }
 
@@ -176,6 +252,10 @@ namespace TinyKingdom.EditorTools
             private long maximumGcAllocated;
             private int gcSampleFrames;
             private RuleBasedCommander commander;
+            private int maximumAudioPoolSize;
+            private int maximumActiveAudioSources;
+            private int maximumDropOffRegistryCount;
+            private int maximumFogPresentationGateCount;
 
             public Capture(float seconds, string path, bool exit)
             {
@@ -189,6 +269,11 @@ namespace TinyKingdom.EditorTools
                 commander = UnityEngine.Object.FindAnyObjectByType<RuleBasedCommander>();
                 previousThinkTick = commander != null ? commander.ThinkTick : 0;
                 PathfindingSystem.ResetPerformanceCounters();
+                FactionCommandService.ResetPerformanceCounters();
+                BuildingCommanderPolicy.ResetPerformanceCounters();
+                EconomicResourceClusterPlanner.ResetPerformanceCounters();
+                ProductionCommanderPolicy.ResetPerformanceCounters();
+                BuildingSite.ResetPerformanceCounters();
                 previousPathRequests = 0;
                 for (int i = 0; i < MarkerNames.Length; i++)
                     recorders.Add(ProfilerRecorder.StartNew(ProfilerCategory.Scripts,
@@ -218,6 +303,19 @@ namespace TinyKingdom.EditorTools
                 maximumPathRequestsInFrame = Math.Max(maximumPathRequestsInFrame,
                     currentPathRequests - previousPathRequests);
                 previousPathRequests = currentPathRequests;
+                GameplayAudioService audio = GameplayAudioService.Instance;
+                if (audio != null)
+                {
+                    maximumAudioPoolSize = Math.Max(maximumAudioPoolSize, audio.PoolSize);
+                    maximumActiveAudioSources = Math.Max(maximumActiveAudioSources,
+                        audio.ActiveOneShots + audio.ActiveLoops);
+                }
+                maximumDropOffRegistryCount = Math.Max(maximumDropOffRegistryCount,
+                    ResourceDropOffRegistry.Active.Count);
+                if (FogWorldVisibility.Instance != null)
+                    maximumFogPresentationGateCount = Math.Max(
+                        maximumFogPresentationGateCount,
+                        FogWorldVisibility.Instance.RegisteredGateCount);
                 if (gcAllocatedRecorder.Valid)
                 {
                     long allocated = Math.Max(0, gcAllocatedRecorder.LastValue);
@@ -285,6 +383,41 @@ namespace TinyKingdom.EditorTools
                         PathfindingRequestSource.CommanderBuild),
                     commanderRallyPathRequests = PathfindingSystem.GetRequestCount(
                         PathfindingRequestSource.CommanderRally),
+                    commanderScoutPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.CommanderScout),
+                    economyReturnPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.EconomyReturn),
+                    moveCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Move),
+                    scoutMoveCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.ScoutMove),
+                    gatherCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Gather),
+                    returnResourceCommandAttempts =
+                        FactionCommandService.GetCommandAttemptCount(
+                            CommanderCommandCategory.ReturnResource),
+                    buildCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Build),
+                    constructionSiteBuilderCommands =
+                        BuildingSite.TotalBuilderCommandRequests,
+                    deduplicatedConstructionCommands =
+                        BuildingSite.TotalDeduplicatedBuilderCommands,
+                    constructionSiteBuilderPathRequests =
+                        BuildingSite.TotalBuilderPathRequests,
+                    buildingCandidateEvaluations =
+                        BuildingCommanderPolicy.CandidateEvaluationCount,
+                    economyReassignments = commander?.EconomyPolicy != null
+                        ? commander.EconomyPolicy.ReassignmentSerial : 0,
+                    economicClusterRefreshes = EconomicResourceClusterPlanner.RefreshCount,
+                    economicClusterCount = commander?.BuildingPolicy?.ClusterPlanner != null
+                        ? commander.BuildingPolicy.ClusterPlanner.Clusters.Count : 0,
+                    productionEnqueueAttempts = ProductionCommanderPolicy.EnqueueAttemptCount,
+                    successfulProductionEnqueues =
+                        ProductionCommanderPolicy.SuccessfulEnqueueCount,
+                    rejectedOrDedupedProductionAttempts =
+                        ProductionCommanderPolicy.RejectedOrDedupedCount,
+                    productionInfrastructureRequests =
+                        ProductionCommanderPolicy.InfrastructureRequestCount,
                     maximumPathRequestsInFrame = maximumPathRequestsInFrame,
                     baseFullyDeveloped = commander != null
                         && commander.BuildingPolicy.CompletedCoreInfrastructure >= 3
@@ -293,14 +426,68 @@ namespace TinyKingdom.EditorTools
                 };
                 report.pathRequestsPerSecond = report.durationSeconds > 0f
                     ? report.totalPathRequests / report.durationSeconds : 0d;
+                if (report.durationSeconds > 0f)
+                {
+                    report.moveCommandsPerSecond = report.moveCommandAttempts
+                        / report.durationSeconds;
+                    report.scoutMoveCommandsPerSecond = report.scoutMoveCommandAttempts
+                        / report.durationSeconds;
+                    report.gatherCommandsPerSecond = report.gatherCommandAttempts
+                        / report.durationSeconds;
+                    report.returnResourceCommandsPerSecond =
+                        report.returnResourceCommandAttempts / report.durationSeconds;
+                    report.buildCommandsPerSecond = report.buildCommandAttempts
+                        / report.durationSeconds;
+                    report.constructionBuilderCommandsPerSecond =
+                        report.constructionSiteBuilderCommands / report.durationSeconds;
+                    report.constructionBuilderPathRequestsPerSecond =
+                        report.constructionSiteBuilderPathRequests / report.durationSeconds;
+                    report.buildingCandidatesPerSecond = report.buildingCandidateEvaluations
+                        / report.durationSeconds;
+                    report.productionEnqueueAttemptsPerSecond =
+                        report.productionEnqueueAttempts / report.durationSeconds;
+                    report.successfulProductionEnqueuesPerSecond =
+                        report.successfulProductionEnqueues / report.durationSeconds;
+                    report.rejectedOrDedupedProductionAttemptsPerSecond =
+                        report.rejectedOrDedupedProductionAttempts
+                        / report.durationSeconds;
+                    report.productionInfrastructureRequestsPerSecond =
+                        report.productionInfrastructureRequests / report.durationSeconds;
+                }
                 long commanderRequests = report.commanderMovePathRequests
                     + report.commanderGatherPathRequests + report.commanderBuildPathRequests
-                    + report.commanderRallyPathRequests;
+                    + report.commanderRallyPathRequests + report.commanderScoutPathRequests
+                    + report.economyReturnPathRequests;
                 report.commanderPathRequestsPerTick = report.commanderFrames > 0
                     ? commanderRequests / (double)report.commanderFrames : 0d;
                 report.averageGcAllocatedBytes = gcSampleFrames > 0
                     ? totalGcAllocated / (double)gcSampleFrames : 0d;
                 report.maximumGcAllocatedBytes = maximumGcAllocated;
+                GameplayAudioService audio = GameplayAudioService.Instance;
+                report.finalAudioPoolSize = audio != null ? audio.PoolSize : 0;
+                report.maximumAudioPoolSize = maximumAudioPoolSize;
+                report.finalActiveAudioSources = audio != null
+                    ? audio.ActiveOneShots + audio.ActiveLoops : 0;
+                report.maximumActiveAudioSources = maximumActiveAudioSources;
+                report.audioPoolGrowthCount = audio != null ? audio.PoolGrowthCount : 0;
+                report.knownResourceCount = commander?.Knowledge != null
+                    ? commander.Knowledge.KnownResources.Count : 0;
+                report.knownEnemyBuildingCount = commander?.Knowledge != null
+                    ? commander.Knowledge.KnownEnemyBuildings.Count : 0;
+                report.ownUnitCount = commander?.Knowledge != null
+                    ? commander.Knowledge.OwnUnits.Count : 0;
+                report.finalDropOffRegistryCount = ResourceDropOffRegistry.Active.Count;
+                report.maximumDropOffRegistryCount = maximumDropOffRegistryCount;
+                report.scoutFrontierCandidateCount = commander?.ScoutingPolicy != null
+                    ? commander.ScoutingPolicy.FrontierCandidateCount : 0;
+                report.scoutScoredFrontierCount = commander?.ScoutingPolicy != null
+                    ? commander.ScoutingPolicy.ScoredFrontierCount : 0;
+                report.scoutStaleCandidateCount = commander?.ScoutingPolicy != null
+                    ? commander.ScoutingPolicy.StaleRevisitCandidateCount : 0;
+                report.finalFogPresentationGateCount = FogWorldVisibility.Instance != null
+                    ? FogWorldVisibility.Instance.RegisteredGateCount : 0;
+                report.maximumFogPresentationGateCount =
+                    maximumFogPresentationGateCount;
                 for (int i = 0; i < MarkerNames.Length; i++)
                     report.markers.Add(new MarkerReport
                     {

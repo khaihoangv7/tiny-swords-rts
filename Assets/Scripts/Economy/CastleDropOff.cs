@@ -10,7 +10,7 @@ using UnityEngine;
 namespace TinyKingdom.Economy
 {
     public sealed class CastleDropOff : MonoBehaviour, IProductionHost, IFriendlyCursorTarget,
-        IDefensiveBuildingHost
+        IDefensiveBuildingHost, IResourceDropOff
     {
         public const int NavigationSidePadding = 1;
         private const int FootprintHalfWidth = 1;
@@ -58,6 +58,8 @@ namespace TinyKingdom.Economy
                 ?? GetComponentInChildren<SpriteRenderer>();
         public ResourceStockpile Stockpile => stockpile;
         public float ArrivalTolerance => arrivalTolerance;
+        public Vector3 WorldPosition => transform.position;
+        public EntityId RuntimeId => this.GetEntityId();
         public int ReservationCount => reservations.Count;
         public bool IsAvailable => isActiveAndEnabled && stockpile != null
             && stockpile.Faction == faction && IsAlive;
@@ -79,11 +81,13 @@ namespace TinyKingdom.Economy
         {
             GroundSorting.Ensure(gameObject);
             if (!Registered.Contains(this)) Registered.Add(this);
+            ResourceDropOffRegistry.Register(this);
         }
 
         private void OnDisable()
         {
             Registered.Remove(this);
+            ResourceDropOffRegistry.Unregister(this);
             reservations.Clear();
             ReleaseOccupancy();
         }
@@ -138,7 +142,7 @@ namespace TinyKingdom.Economy
                     Vector3 point = transform.position + (Vector3)FrontSlots[i];
                     Vector2Int cell = navigation.WorldToGrid(point);
                     GridCell destination = navigation.GetCell(cell.x, cell.y);
-                    if (destination == null || !destination.Walkable || destination.Occupied
+                    if (!TerrainRules.IsStableStandingCell(destination)
                         || !UnitSeparation.IsSafeSegment(navigation,
                             navigation.GridToWorld(cell.x, cell.y), point)) continue;
                     float distance = ((Vector2)(point - worker.transform.position)).sqrMagnitude;
@@ -163,11 +167,12 @@ namespace TinyKingdom.Economy
             if (!ReferenceEquals(worker, null)) reservations.Remove(worker);
         }
 
-        public void Deposit(ResourceType type, int amount)
+        public bool Deposit(ResourceType type, int amount)
         {
-            if (amount <= 0 || !IsAvailable) return;
+            if (amount <= 0 || !IsAvailable) return false;
             stockpile.Add(type, amount);
             Deposited?.Invoke(type, amount);
+            return true;
         }
 
         public bool ReceiveBuildingDamage(int damage)
