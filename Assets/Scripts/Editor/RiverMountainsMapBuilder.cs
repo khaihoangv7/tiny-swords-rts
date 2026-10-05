@@ -397,7 +397,8 @@ namespace TinyKingdom.EditorTools
             {
                 shadows[level]=Layer(grid,"Shadow_L"+level,2+level*2);
                 surfaces[level]=Layer(grid,"ElevatedGround_L"+level,3+level*2);
-                stairFronts[level]=Layer(grid,"StairFront_L"+level,4+level*2);
+                stairFronts[level]=Layer(grid,"StairFront_L"+level,
+                    GroundSorting.TerrainBackgroundOrder(16+level));
                 shadows[level].ClearAllTiles(); surfaces[level].ClearAllTiles(); stairFronts[level].ClearAllTiles();
             }
             foreach (TerraceDefinition platform in RiverMountainsLayout.Platforms)

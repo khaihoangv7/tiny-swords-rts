@@ -4,6 +4,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Match;
 using TinyKingdom.Navigation;
+using TinyKingdom.Presentation;
 using TinyKingdom.Terrain;
 using TinyKingdom.Units;
 using TinyKingdom.UI;
@@ -13,6 +14,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 namespace TinyKingdom.EditorTools
@@ -149,6 +151,18 @@ namespace TinyKingdom.EditorTools
             if (grid == null || grid.NavigationData == null
                 || grid.Width != RiverMountainsLayout.Width || grid.Height != RiverMountainsLayout.Height)
                 throw new InvalidOperationException("The second map navigation is not active.");
+            GroundSorting.EnsureSceneConfigured();
+            Transform visualGrid = GameObject.Find("Map")?.transform.Find("Grid");
+            for (int level = 1; level <= 2; level++)
+            {
+                TilemapRenderer front = visualGrid?.Find("StairFront_L" + level)
+                    ?.GetComponent<TilemapRenderer>();
+                TilemapRenderer rear = visualGrid?.Find("ElevatedGround_L" + level)
+                    ?.GetComponent<TilemapRenderer>();
+                if (front == null || rear == null || front.sortingOrder <= rear.sortingOrder
+                    || front.sortingOrder >= GroundSorting.ProjectedWorldBaseOrder)
+                    throw new InvalidOperationException("A front stair layer hides units crossing level " + level + ".");
+            }
             foreach (CastleDropOff castle in castles)
             {
                 Vector2Int p=grid.WorldToGrid(castle.transform.position);

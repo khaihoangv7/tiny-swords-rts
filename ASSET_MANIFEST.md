@@ -15,7 +15,9 @@ The latest user-confirmed placement is two front/back native copies touching
 with no grass cell between them, now one cell closer: rows 20/21 and 21/22
 share one X and overlap at row 21. Blue gates use x=18/10; Red x=41/49.
 The rear native pair remains on ElevatedGround_L1/L2; the front native pair
-uses StairFront_L1/L2 so neither source pair is replaced or cropped. A native Color3 interior tile backs the
+uses StairFront_L1/L2 in terrain background orders above the rear pair and below
+depth-sorted units, so neither source pair is replaced or cropped and units remain
+visible while crossing. A native Color3 interior tile backs the
 transparent ramp corners so contrasting Color1 grass cannot open a visual gap.
 No rotation, scale change or flipping is applied to either complete copy.
 The lower tiers expand to 15x16; upper courts remain 7x5 and are

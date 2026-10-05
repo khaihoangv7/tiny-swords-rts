@@ -172,6 +172,10 @@ namespace TinyKingdom.Presentation
                         ElevatedTerrainBackgroundOrder(level, false));
                     SetTilemapOrder(visualGrid, "ElevatedGround_L" + level,
                         ElevatedTerrainBackgroundOrder(level, true));
+                    // LinearLane's front stair copies must stay above terrain,
+                    // but below the depth-sorted units crossing the ramp.
+                    SetTilemapOrder(visualGrid, "StairFront_L" + level,
+                        TerrainBackgroundOrder(16 + level));
                 }
                 EnsureProjectedTerrainForeground(map?.transform, visualGrid, grid);
 

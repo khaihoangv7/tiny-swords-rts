@@ -65,7 +65,9 @@ share one X per gate, with endpoint rows 20/21 and 21/22 overlapping one cell
 to bring them closer. Blue gate X is 18/10, Red 41/49. Color3 r1c6 backs
 transparent ramp corners on MeadowsAndPaths, eliminating contrasting grass
 at the seam. Both full native r4/r5 pairs remain intact: the rear copy is on
-ElevatedGround_L1/L2 and the front copy on StairFront_L1/L2 (orders 6/8).
+ElevatedGround_L1/L2 and the front copy on StairFront_L1/L2. The front
+Tilemaps render above the other terrain layers but below depth-sorted units,
+so a unit crossing the ramp stays visible.
 The inward-side entries follow the expanded rectangular tiers, with no
 extra side landings or stairs along the southern cliff.
 Blue retains the native descending-right pair; Red the descending-left pair.
