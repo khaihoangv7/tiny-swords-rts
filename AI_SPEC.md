@@ -671,3 +671,49 @@ meaningfully changed destination. Accepted Attack and Move commands still pass t
 existing CombatController state suppress duplicate commands. Optional diagnostics expose
 state, anchor, cohesion, role counts, direct/support strength, per-unit targets and scores,
 saturation, formation slots, commands, retargets and reposition counts.
+
+### Phase 7E.5 strategic decision layer
+
+`StrategicIntentEvaluator` is the single high-level rule-based decision layer. Every two
+game seconds it copies a value-only `StrategicSituationSnapshot` from own faction state,
+the existing economy/building/production/scouting/military policies, `FactionKnowledge`
+and `StrategicSafetyMap`. It scores exactly six normalized intents: `DevelopEconomy`,
+`Scout`, `Fortify`, `PrepareAttack`, `Attack` and `Recover`. An eight-second minimum hold,
+score smoothing and a switch margin prevent routine strategy ping-pong. Immediate visible
+base defense, existing strategic retreat/recovery and MatchEnd remain higher-priority
+paths.
+
+Enemy inputs are limited to copied `BuildingKnowledgeSnapshot` records and the decaying,
+value-only `EnemyCompositionMemory`. Unknown military strength reduces readiness but is
+never interpreted as confirmed zero. The evaluator stores only copied IDs, cells,
+positions, scores and timestamps. It does not scan the scene, retain enemy components or
+Transforms, move the Scout, allocate workers, enqueue units, build structures or issue
+combat commands.
+
+`AttackReadiness` combines living and queued strength, composition diversity, Monk
+support, current army cohesion/state, legal intel confidence, target availability,
+economic reserve, known target risk and recent losses. At most 24 remembered buildings
+are cheaply scored per evaluation. Castle, military production, Tower and other completed
+enemy buildings receive deterministic strategic values; age, visibility, distance, risk
+and target continuity modify those values. Hidden building health and position remain
+frozen until normal vision updates the knowledge snapshot.
+
+`PrepareAttack` keeps the army in the existing rally/staging and role-formation pipeline.
+Only `Attack` opens a new offensive operation, and the selected copied target is resolved
+again against legal knowledge by `MilitaryCommanderPolicy`. Existing 7E.4 local combat,
+formation, defender engagement, command dedupe and retreat logic remain authoritative.
+An attack commitment window absorbs minor score changes. A failed operation records one
+bounded launch marker and forces a recovery cooldown, preventing a newly trained single
+unit from immediately starting another attack.
+
+Economy, production, construction and scouting continue at their own established
+cadences while any strategic intent is active. `Fortify` relies on current base defense
+and the existing Tower capability; it introduces no new building type or Tower spam path.
+`Scout` gives the existing scouting policy a bounded information-priority signal: stale
+re-observation is considered before ordinary frontier travel and exhausted searches retry
+sooner. The scouting policy still selects destinations and issues the command, and the
+one-active-Scout rule is unchanged.
+Optional Commander diagnostics expose current/previous intent, intent age, all six scores,
+readiness, copied strengths/confidence, selected target and age, recent loss, staging cell,
+reason and transition game time. The validator is available at
+`Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Decision Layer`.

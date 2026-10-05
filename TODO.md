@@ -1673,6 +1673,38 @@ Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
 - [x] Do not begin Phase 7E.5
 - [x] Do not commit, push or merge Phase 7E.4 automatically
 
+### Phase 7E.5 Strategic Decision Layer
+
+Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e5-strategic-decision-layer` from integrated Phase 7E.4
+- [x] Add six explicit strategic intents and a centralized evaluator
+- [x] Build a value-only situation snapshot from own state and legal enemy knowledge
+- [x] Include economy, infrastructure, population, army, production, Scout and danger state
+- [x] Add normalized score smoothing, minimum hold and switch-margin hysteresis
+- [x] Preserve MatchEnd, immediate BaseDefense and strategic Retreat as overrides
+- [x] Add combined living/queued/composition/support/cohesion/intel AttackReadiness
+- [x] Reuse `CombatStrengthEvaluator` and decaying `EnemyCompositionMemory`
+- [x] Add bounded legal strategic-building target scoring with frozen hidden memory
+- [x] Gate new military offense behind `Attack` while retaining existing tactical execution
+- [x] Add `PrepareAttack` staging without duplicating formation or movement planners
+- [x] Add bounded attack commitment, failure memory and recovery cooldown
+- [x] Keep economy, building, production and Scout policy ownership unchanged
+- [x] Add optional current/previous intent, score, target, loss and transition diagnostics
+- [x] Add `TinyKingdom.AI.StrategicIntent` Profiler marker
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Decision Layer`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.5 validator in Unity Edit Mode
+- [ ] Run early economy, unknown enemy and stale-intel scenarios
+- [ ] Run strong/weak/unknown-enemy-strength AttackReadiness scenarios
+- [ ] Run PrepareAttack, staging, commitment, legal target and hidden target scenarios
+- [ ] Run failed attack, Recover exit, single reinforcement and healthy reinforcement scenarios
+- [ ] Run base-defense-during-prepare/attack and strategic Retreat regressions
+- [ ] Run x1/x5/x10 full matches and record strategy/command/path/GC rates
+- [ ] Confirm Fog, human controls, economy, production, tactical combat and Console regressions
+- [x] Do not implement RL
+- [x] Do not commit, push or merge Phase 7E.5 automatically
+
 ## Phase 6E - Audio Expansion: completion, combat impacts and command voices
 
 Status: **IMPLEMENTED, UNITY VALIDATION PENDING**

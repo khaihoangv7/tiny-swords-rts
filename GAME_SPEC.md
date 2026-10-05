@@ -2245,3 +2245,31 @@ Tactical decisions use current `FactionKnowledge` observations only. Observer mo
 hidden live enemy objects never provide targeting data. Tactical evaluation and command
 issuance are cadence limited, reuse bounded collections and do not request a path for each
 candidate target.
+
+# 73. Phase 7E.5 Strategic Decision Layer
+
+The Red rule-based Commander evaluates one high-level intent from
+`DevelopEconomy`, `Scout`, `Fortify`, `PrepareAttack`, `Attack` and `Recover`.
+Strategic evaluation runs every two game seconds and uses an immutable value snapshot
+of Red's own economy, infrastructure, population, production, army and Scout state plus
+only enemy observations already available through `FactionKnowledge`. Unknown enemy
+strength reduces confidence and does not become a confirmed zero-strength army.
+
+Intent scores are normalized and use smoothing, an eight-second minimum hold and a
+switch margin. Immediate base defense, active retreat/recovery and MatchEnd override
+routine selection. A committed healthy attack is not cancelled by small resource or
+composition changes. A failed attack creates one bounded recovery cooldown so an isolated
+new unit cannot start a replacement attack by itself.
+
+Attack readiness combines living and queued force, composition, Monk support, cohesion,
+legal intelligence, target availability, economy, known danger and recent losses.
+Strategic targets are copied from legally known completed enemy buildings and scored in
+a bounded pass. Hidden target position and health stay frozen until legal vision refreshes
+them. `PrepareAttack` reuses normal rally, staging and 7E.4 role formation. `Attack` hands
+one legal target to the existing military policy; local defender selection, movement,
+combat, retreat and commands remain owned by existing gameplay systems.
+
+Economy, construction, production and Scout policies continue independently during all
+intents. The strategic layer does not issue unit commands or add hidden scans, resources,
+units, building types or placement authority. `Fortify` uses existing base defense and
+Tower capabilities only.

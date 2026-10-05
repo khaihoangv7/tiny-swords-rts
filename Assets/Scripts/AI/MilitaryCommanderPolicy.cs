@@ -238,6 +238,11 @@ namespace TinyKingdom.AI
         public void Tick(CommanderDecisionContext context,
             ProductionCommanderPolicy production, UnitController activeScout,
             StrategicSafetyMap safety)
+            => Tick(context, production, activeScout, safety, null);
+
+        public void Tick(CommanderDecisionContext context,
+            ProductionCommanderPolicy production, UnitController activeScout,
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
         {
             army.Synchronize(context.Knowledge, activeScout);
             Tactical.Refresh(army.Members, context.Knowledge, army.State, context.Time);
@@ -361,7 +366,14 @@ namespace TinyKingdom.AI
             retryAfter.Clear();
             if (context.Time >= nextOffensiveEvaluationTime
                 && AvailableMilitaryPopulation >= MinOffensiveMilitaryPopulation)
-                TryBeginOffense(context, safety);
+            {
+                if (strategy == null)
+                    TryBeginOffense(context, safety);
+                else if (strategy.CurrentIntent == StrategicIntent.Attack)
+                    TryBeginOffense(context, safety, strategy);
+                else if (strategy.CurrentIntent == StrategicIntent.PrepareAttack)
+                    objectiveReason = "Strategic preparation at staging";
+            }
         }
 
         public void Reset()
@@ -422,11 +434,17 @@ namespace TinyKingdom.AI
 
         private void TryBeginOffense(CommanderDecisionContext context,
             StrategicSafetyMap safety)
+            => TryBeginOffense(context, safety, null);
+
+        private void TryBeginOffense(CommanderDecisionContext context,
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
         {
             using (OffensiveEvaluationMarker.Auto())
             {
-                if (!TrySelectOffensiveTarget(context, safety,
-                        out OffensiveTargetSnapshot target))
+                bool selected = strategy != null
+                    ? TryResolveStrategicTarget(context, strategy, out OffensiveTargetSnapshot target)
+                    : TrySelectOffensiveTarget(context, safety, out target);
+                if (!selected)
                 {
                     objectiveReason = "No legally known strategic target";
                     nextOffensiveEvaluationTime = context.Time + 1f;
@@ -452,6 +470,33 @@ namespace TinyKingdom.AI
                 army.SetState(ArmyGroupState.PreparingAttack);
                 TickPreparingAttack(context, safety);
             }
+        }
+
+        private bool TryResolveStrategicTarget(CommanderDecisionContext context,
+            StrategicIntentEvaluator strategy, out OffensiveTargetSnapshot result)
+        {
+            result = default;
+            if (strategy == null || !strategy.TryGetTarget(
+                    out StrategicTargetSnapshot selected)) return false;
+            IReadOnlyList<BuildingKnowledgeSnapshot> known =
+                context.Knowledge.KnownEnemyBuildings;
+            for (int i = 0; i < known.Count; i++)
+            {
+                BuildingKnowledgeSnapshot item = known[i];
+                if (item.RuntimeId.CompareTo(selected.RuntimeId) != 0
+                    || !FactionRelations.AreHostile(context.Faction, item.Faction)
+                    || !item.WasCompleted || item.LastSeenHealthRatio <= 0f
+                    || item.BuildingType == BuildingType.GoldMine
+                    || context.Time < blockedTargetUntil
+                        && item.RuntimeId.CompareTo(blockedTargetId) == 0) continue;
+                bool visible = context.Knowledge.TryGetVisibleEnemyBuilding(
+                    item.RuntimeId, out _);
+                result = new OffensiveTargetSnapshot(item.RuntimeId,
+                    item.BuildingType, item.Faction, item.LastSeenPosition,
+                    CategoryOf(item.BuildingType), visible);
+                return true;
+            }
+            return false;
         }
 
         private bool TrySelectOffensiveTarget(CommanderDecisionContext context,

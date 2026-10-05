@@ -24,6 +24,8 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.ProductionPolicy");
         private static readonly ProfilerMarker ScoutingPolicyMarker =
             new("TinyKingdom.AI.ScoutingPolicy");
+        private static readonly ProfilerMarker StrategicIntentMarker =
+            new("TinyKingdom.AI.StrategicIntent");
         private static readonly ProfilerMarker MilitaryPolicyMarker =
             new("TinyKingdom.AI.MilitaryPolicy");
         private static readonly ProfilerMarker EconomyPolicyMarker =
@@ -42,6 +44,7 @@ namespace TinyKingdom.AI
         [SerializeField] private ScoutingCommanderPolicy scoutingPolicy = new();
         [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
         [SerializeField] private StrategicSafetyMap strategicSafety = new();
+        [SerializeField] private StrategicIntentEvaluator strategicIntent = new();
         [SerializeField] private CommanderProgressDiagnostics progressDiagnostics = new();
         [SerializeField] private bool drawScoutGizmo = false;
         [SerializeField] private bool drawMilitaryGizmos = false;
@@ -167,6 +170,22 @@ namespace TinyKingdom.AI
         [SerializeField] private string debugEconomicReassignment;
         [SerializeField] private string debugEconomicOutpost;
         [SerializeField] private int debugEconomicClusterCount;
+        [SerializeField] private StrategicIntent debugStrategicIntent;
+        [SerializeField] private StrategicIntent debugPreviousStrategicIntent;
+        [SerializeField] private float debugStrategicIntentAge;
+        [SerializeField] private string debugStrategicScores;
+        [SerializeField] private float debugAttackReadiness;
+        [SerializeField] private string debugStrategicTarget;
+        [SerializeField] private float debugStrategicTargetAge;
+        [SerializeField] private float debugRecentStrategicLoss;
+        [SerializeField] private string debugStrategicReason;
+        [SerializeField] private float debugStrategicOwnArmyStrength;
+        [SerializeField] private float debugStrategicKnownEnemyStrength;
+        [SerializeField] private float debugStrategicEnemyStrengthConfidence;
+        [SerializeField] private string debugStrategicTargetType;
+        [SerializeField] private float debugStrategicTargetScore;
+        [SerializeField] private Vector2Int debugStrategicStagingCell;
+        [SerializeField] private float debugStrategicTransitionTime;
 
         private float nextThinkTime;
 
@@ -184,6 +203,7 @@ namespace TinyKingdom.AI
         public ProductionCommanderPolicy ProductionPolicy => productionPolicy;
         public MilitaryCommanderPolicy MilitaryPolicy => militaryPolicy;
         public StrategicSafetyMap StrategicSafety => strategicSafety;
+        public StrategicIntentEvaluator StrategicIntent => strategicIntent;
         public CommanderProgressDiagnostics ProgressDiagnostics => progressDiagnostics;
         public float StallWarningSeconds => Mathf.Max(20f, stallWarningSeconds);
         public UnitController CurrentScout => scoutingPolicy?.Scout;
@@ -205,6 +225,7 @@ namespace TinyKingdom.AI
         {
             militaryPolicy ??= new MilitaryCommanderPolicy();
             strategicSafety ??= new StrategicSafetyMap();
+            strategicIntent ??= new StrategicIntentEvaluator();
             progressDiagnostics ??= new CommanderProgressDiagnostics();
             economicDemand ??= new EconomicDemandModel();
             nextThinkTime = Time.time;
@@ -219,6 +240,7 @@ namespace TinyKingdom.AI
             productionPolicy?.Reset();
             militaryPolicy?.Reset();
             strategicSafety?.Reset();
+            strategicIntent?.Reset();
             progressDiagnostics?.Reset();
             pawnRoles?.Reset();
             ThinkTick = 0;
@@ -253,12 +275,17 @@ namespace TinyKingdom.AI
                 using (ProductionPolicyMarker.Auto())
                     productionPolicy.Tick(context, buildingPolicy);
                 using (ScoutingPolicyMarker.Auto())
-                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety, buildingPolicy);
+                    scoutingPolicy.Tick(context, pawnRoles, strategicSafety,
+                        buildingPolicy, strategicIntent);
                 economicDemand.Refresh(context, buildingPolicy, productionPolicy,
                     scoutingPolicy);
+                using (StrategicIntentMarker.Auto())
+                    strategicIntent.Tick(context, pawnRoles, economicDemand,
+                        economyPolicy, buildingPolicy, productionPolicy,
+                        scoutingPolicy, militaryPolicy, strategicSafety);
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
-                        strategicSafety);
+                        strategicSafety, strategicIntent);
                 using (EconomyPolicyMarker.Auto())
                     economyPolicy.Tick(context, pawnRoles, strategicSafety, economicDemand);
                 progressDiagnostics.Observe(context.Time, context.Knowledge,
@@ -326,6 +353,37 @@ namespace TinyKingdom.AI
                 + $" at {economyPolicy.LastReassignmentTime:0.0}";
             debugEconomicOutpost = buildingPolicy.OutpostDecision;
             debugEconomicClusterCount = buildingPolicy.ClusterPlanner?.Clusters.Count ?? 0;
+            debugStrategicIntent = strategicIntent.CurrentIntent;
+            debugPreviousStrategicIntent = strategicIntent.PreviousIntent;
+            debugStrategicIntentAge = strategicIntent.IntentAge(Time.time);
+            StrategicIntentScores strategicScores = strategicIntent.Scores;
+            debugStrategicScores = $"Economy={strategicScores.DevelopEconomy:0.00} "
+                + $"Scout={strategicScores.Scout:0.00} "
+                + $"Fortify={strategicScores.Fortify:0.00} "
+                + $"Prepare={strategicScores.PrepareAttack:0.00} "
+                + $"Attack={strategicScores.Attack:0.00} "
+                + $"Recover={strategicScores.Recover:0.00}";
+            debugAttackReadiness = strategicIntent.AttackReadiness;
+            debugStrategicTarget = strategicIntent.HasStrategicTarget
+                ? strategicIntent.StrategicTarget.BuildingType + " "
+                    + strategicIntent.StrategicTarget.RuntimeId + " score="
+                    + strategicIntent.StrategicTarget.Score.ToString("0.00")
+                : "None";
+            debugStrategicTargetAge = strategicIntent.HasStrategicTarget
+                ? Mathf.Max(0f, Time.time
+                    - strategicIntent.StrategicTarget.LastSeenTime) : -1f;
+            debugRecentStrategicLoss = strategicIntent.Situation.RecentLossRatio;
+            debugStrategicReason = strategicIntent.DecisionReason;
+            debugStrategicOwnArmyStrength = strategicIntent.Situation.OwnStrength;
+            debugStrategicKnownEnemyStrength = strategicIntent.Situation.EnemyStrength;
+            debugStrategicEnemyStrengthConfidence =
+                strategicIntent.Situation.IntelConfidence;
+            debugStrategicTargetType = strategicIntent.HasStrategicTarget
+                ? strategicIntent.StrategicTarget.BuildingType.ToString() : "None";
+            debugStrategicTargetScore = strategicIntent.HasStrategicTarget
+                ? strategicIntent.StrategicTarget.Score : 0f;
+            debugStrategicStagingCell = strategicIntent.Situation.StagingCell;
+            debugStrategicTransitionTime = strategicIntent.TransitionGameTime;
             debugScout = scoutingPolicy.Scout;
             debugScoutDestination = scoutingPolicy.HasDestination
                 ? scoutingPolicy.DestinationCell : new Vector2Int(-1, -1);

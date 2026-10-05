@@ -131,6 +131,7 @@ namespace TinyKingdom.AI
         private float nextReconMissionTime;
         private int recentTargetCount;
         private int recentTargetWriteIndex;
+        private bool strategicInformationPriority;
 
         public UnitController Scout => scout;
         public bool HasDestination => hasDestination;
@@ -174,6 +175,7 @@ namespace TinyKingdom.AI
             ? Mathf.Max(0f, time - targetAssignedTime) : 0f;
         public string LastPromotionResult { get; private set; } = "Not attempted";
         public float LastScoutDeathTime { get; private set; } = -1f;
+        public bool StrategicInformationPriority => strategicInformationPriority;
         public uint SuccessfulDestinationSerial { get; private set; }
         public float LastSuccessfulDestinationTime { get; private set; } = -1f;
 
@@ -205,6 +207,7 @@ namespace TinyKingdom.AI
             reconArrivedTime = -1f;
             nextReconMissionTime = 0f;
             intent = ScoutIntent.SearchingForEnemy;
+            strategicInformationPriority = false;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -216,7 +219,14 @@ namespace TinyKingdom.AI
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
             StrategicSafetyMap safety, BuildingCommanderPolicy building)
+            => Tick(context, roles, safety, building, null);
+
+        public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
+            StrategicSafetyMap safety, BuildingCommanderPolicy building,
+            StrategicIntentEvaluator strategy)
         {
+            strategicInformationPriority = strategy?.CurrentIntent
+                == StrategicIntent.Scout;
             SynchronizeOfficialScout(context, roles);
             if (scout == null)
             {
@@ -278,7 +288,8 @@ namespace TinyKingdom.AI
                 if (!TrySelectTarget(context, safety, out ScoutTarget selected))
                 {
                     explorationExhausted = true;
-                    nextTargetEvaluationTime = context.Time + exhaustedRecheckSeconds;
+                    nextTargetEvaluationTime = context.Time + (strategicInformationPriority
+                        ? exhaustedRecheckSeconds * 0.5f : exhaustedRecheckSeconds);
                     return;
                 }
 
@@ -298,7 +309,8 @@ namespace TinyKingdom.AI
                 Block(selected.Destination, grid.Width, context.Time);
             }
 
-            nextTargetEvaluationTime = context.Time + targetReevaluationSeconds;
+            nextTargetEvaluationTime = context.Time + (strategicInformationPriority
+                ? targetReevaluationSeconds * 0.5f : targetReevaluationSeconds);
         }
 
         private void SynchronizeOfficialScout(CommanderDecisionContext context,
@@ -427,8 +439,11 @@ namespace TinyKingdom.AI
             bool hasEnemyInterest = HasEnemyInterest(context.Knowledge);
             if (hasEnemyInterest && context.Time >= nextReconMissionTime
                 && TrySelectReconTarget(context, safety, out result)) return true;
+            if (strategicInformationPriority
+                && TrySelectRescoutTarget(context, safety, out result)) return true;
             if (TrySelectFrontier(context, safety, out result)) return true;
-            if (TrySelectRescoutTarget(context, safety, out result)) return true;
+            if (!strategicInformationPriority
+                && TrySelectRescoutTarget(context, safety, out result)) return true;
             result = default;
             return false;
         }
