@@ -630,3 +630,44 @@ inertia. Missing production infrastructure creates a hysteretic request for
 of spawning a building or stopping. One unpaid near-term unit cost feeds the Phase 7E.2
 `EconomicDemandModel`; population and House decisions remain owned by the building and
 population systems. All enqueue commands still pass through `FactionCommandService`.
+
+### Phase 7E.4 tactical army intelligence
+
+`TacticalArmyController` operates below the existing `MilitaryCommanderPolicy` strategic
+state machine. It never starts a war, selects a macro objective, changes production or
+replaces BaseDefense/Retreat. Its living combat snapshot contains only Warrior, Lancer,
+Archer and Monk members; Pawn and the promoted Scout stay outside the army.
+
+Warrior and Lancer are frontline, Archer is backline and Monk is support. Advance,
+assembly and local regroup destinations reuse `RoleFormationPlanner` with an explicit AI
+`Compact` formation independent of the human player's selected formation. The planner may
+collapse naturally when stairs, corridors or occupancy cannot fit the ideal shape. In
+active combat roles are preferences rather than a rigid line. A median position of living
+non-support units supplies a robust army anchor, so one straggler or a rear Monk cannot
+drag the center. Cohesion is a soft signal: serious fragmentation may regroup outside an
+active fight, while ordinary spacing errors never interrupt combat or strategic retreat.
+
+Local targeting considers only current `FactionKnowledge.VisibleEnemyUnits`. It scores a
+bounded nearby candidate set using distance, the authoritative `CombatDamage.Multiplier`,
+current visible health, active threat, role value, target stickiness and attacker
+saturation. Enemy Monk receives high support priority and Archer receives bounded ranged
+priority. A larger melee saturation penalty reduces whole-army crowding while allowing
+stronger ranged focus. Assignments store enemy `EntityId` and copied observation values;
+hidden live units or transforms are never retained. A hidden or invalid target can only be
+selected again after normal vision makes it a current legal observation.
+
+Warrior/Lancer committed melee attacks are not interrupted by routine reevaluation.
+Archers move a short distance only when a visible melee threat enters a danger band based
+on authoritative attack ranges; per-unit cooldown and destination dedupe prevent endless
+kiting. Monks never attack. They use rear formation slots and make the same bounded local
+escape when directly threatened. Monk strength is contextual: current health, nearby
+combat ally coverage, nearby injury and authoritative heal throughput determine support
+value. An isolated Monk contributes only a small fraction of its configured support value.
+
+Tactical evaluation runs at a bounded 0.5-game-second cadence, reuses lists and maps, and
+does not pathfind per target candidate. Formation plans update only for membership or a
+meaningfully changed destination. Accepted Attack and Move commands still pass through
+`FactionCommandService`; current targets, move destinations, hold time, cooldowns and the
+existing CombatController state suppress duplicate commands. Optional diagnostics expose
+state, anchor, cohesion, role counts, direct/support strength, per-unit targets and scores,
+saturation, formation slots, commands, retargets and reposition counts.

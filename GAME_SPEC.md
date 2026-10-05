@@ -2226,3 +2226,22 @@ observation refreshes the snapshot. Missing production buildings are requested t
 normal construction, payment and placement rules. Production costs feed the existing
 adaptive economy and population forecast; normal FIFO queues and House planning remain
 authoritative.
+
+# 72. Phase 7E.4 Tactical Army Intelligence
+
+Once the existing Commander selects a defensive or offensive intent, Red coordinates its
+living Warrior/Lancer frontline, Archer backline and Monk support through the normal
+formation, movement, combat and command services. Pawn and the promoted Scout are not
+combat formation members. Compact approach positions may collapse through stairs and
+narrow terrain, and active combat may break formation naturally.
+
+Red distributes attacks among current visible enemies using distance, authoritative
+matchups, visible health, tactical value, current-target stability and attacker
+saturation. A committed melee swing completes before routine retargeting. Archers and
+Monks use bounded danger repositioning rather than continuous kiting; Monks never attack.
+Strategic BaseDefense, AttackMove and Retreat remain authoritative over these local rules.
+
+Tactical decisions use current `FactionKnowledge` observations only. Observer mode and
+hidden live enemy objects never provide targeting data. Tactical evaluation and command
+issuance are cadence limited, reuse bounded collections and do not request a path for each
+candidate target.

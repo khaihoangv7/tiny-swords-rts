@@ -90,11 +90,13 @@ namespace TinyKingdom.AI
         [SerializeField, Range(0.5f, 1f)] private float recoveryAssemblyFraction = 0.75f;
         [SerializeField, Min(0.1f)] private float recoveryMinimumEffectiveStrength = 4f;
         [SerializeField, Min(1f)] private float failedObjectiveCooldown = 12f;
+        [SerializeField] private TacticalArmyController tactical = new();
 
         private readonly ArmyGroup army = new();
         private readonly Dictionary<UnitController, EntityId> attackIntents = new();
         private readonly Dictionary<UnitController, Vector3> moveIntents = new();
         private readonly Dictionary<UnitController, Vector3> attackMoveIntents = new();
+        private readonly Dictionary<UnitController, Vector3> formationIntents = new();
         private readonly Dictionary<UnitController, float> retryAfter = new();
         private readonly List<UnitController> operationMembers = new();
         private readonly List<UnitController> staleActors = new();
@@ -127,6 +129,8 @@ namespace TinyKingdom.AI
         private int campaignSurvivorCount;
         private float remainingForceRatio = 1f;
         private float ownEffectiveStrength;
+        private float directCombatStrength;
+        private float supportStrength;
         private float visibleEnemyStrength;
         private float enemyStrengthRatio;
         private float averageArmyHealth = 1f;
@@ -143,6 +147,7 @@ namespace TinyKingdom.AI
         private float preparationStartTime;
 
         public ArmyGroup Army => army;
+        public TacticalArmyController Tactical => tactical ??= new TacticalArmyController();
         public float BaseDefenseRadius => Mathf.Max(1f, baseDefenseRadius);
         public float DefenseLeashRadius => Mathf.Max(BaseDefenseRadius, defenseLeashRadius);
         public int MinOffensiveMilitaryPopulation
@@ -206,6 +211,8 @@ namespace TinyKingdom.AI
         public int CampaignSurvivorCount => campaignSurvivorCount;
         public float RemainingForceRatio => remainingForceRatio;
         public float OwnEffectiveStrength => ownEffectiveStrength;
+        public float DirectCombatStrength => directCombatStrength;
+        public float SupportStrength => supportStrength;
         public float VisibleRelevantEnemyStrength => visibleEnemyStrength;
         public float EnemyStrengthRatio => enemyStrengthRatio;
         public float AverageArmyHealth => averageArmyHealth;
@@ -233,6 +240,9 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety)
         {
             army.Synchronize(context.Knowledge, activeScout);
+            Tactical.Refresh(army.Members, context.Knowledge, army.State, context.Time);
+            CombatStrengthEvaluator.OwnArmy(army.Members, CombatStrength,
+                out directCombatStrength, out supportStrength);
             RemoveStaleIntents();
             RemoveStaleOperationMembers();
             RefreshAnchorAndStaging(context.Knowledge, production);
@@ -361,6 +371,7 @@ namespace TinyKingdom.AI
             attackIntents.Clear();
             moveIntents.Clear();
             attackMoveIntents.Clear();
+            formationIntents.Clear();
             retryAfter.Clear();
             operationMembers.Clear();
             staleActors.Clear();
@@ -386,6 +397,8 @@ namespace TinyKingdom.AI
             campaignSurvivorCount = 0;
             remainingForceRatio = 1f;
             ownEffectiveStrength = 0f;
+            directCombatStrength = 0f;
+            supportStrength = 0f;
             visibleEnemyStrength = 0f;
             enemyStrengthRatio = 0f;
             averageArmyHealth = 1f;
@@ -404,6 +417,7 @@ namespace TinyKingdom.AI
             LastOffensiveLaunchTime = -1f;
             TargetCompletionSerial = 0;
             LastTargetCompletionTime = -1f;
+            tactical?.Reset();
         }
 
         private void TryBeginOffense(CommanderDecisionContext context,
@@ -599,6 +613,15 @@ namespace TinyKingdom.AI
                     TickAssault(context, safety);
                     return;
                 }
+                Tactical.Refresh(operationMembers, context.Knowledge, army.State,
+                    context.Time);
+                if (Tactical.TryEngageVisibleEnemies(context, operationMembers,
+                        Tactical.ArmyAnchor, Tactical.LocalEngagementRadius, default,
+                        safety?.ArmyTraversal))
+                {
+                    objectiveReason = "Local tactical engagement";
+                    return;
+                }
                 if (IsSeverelyFragmented(out Vector3 centroid))
                 {
                     cohesionRegroup = true;
@@ -671,6 +694,15 @@ namespace TinyKingdom.AI
                 IssueAdvance(context, safety, true);
                 return;
             }
+            Tactical.Refresh(operationMembers, context.Knowledge, army.State,
+                context.Time);
+            if (Tactical.TryEngageVisibleEnemies(context, operationMembers,
+                    Tactical.ArmyAnchor, Tactical.LocalEngagementRadius, default,
+                    safety?.ArmyTraversal))
+            {
+                objectiveReason = "Clear visible defenders";
+                return;
+            }
             for (int i = 0; i < operationMembers.Count; i++)
             {
                 UnitController member = operationMembers[i];
@@ -702,10 +734,14 @@ namespace TinyKingdom.AI
         private void SupportOffense(CommanderDecisionContext context,
             UnitController monk, StrategicSafetyMap safety)
         {
-            Vector3 centroid = OperationCentroid();
-            Vector2 away = (Vector2)(centroid - currentObjectivePosition);
-            if (away.sqrMagnitude < 0.001f) away = Vector2.left;
-            Vector3 desired = centroid + (Vector3)(away.normalized * 1.5f);
+            Vector3 desired;
+            if (!moveIntents.TryGetValue(monk, out desired))
+            {
+                Vector3 centroid = OperationCentroid();
+                Vector2 away = (Vector2)(centroid - currentObjectivePosition);
+                if (away.sqrMagnitude < 0.001f) away = Vector2.left;
+                desired = centroid + (Vector3)(away.normalized * 1.5f);
+            }
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null) return;
             Vector2Int cell = grid.WorldToGrid(desired);
@@ -821,7 +857,8 @@ namespace TinyKingdom.AI
             out float strength, out float healthRatio, out int population,
             out Vector3 centroid)
         {
-            strength = 0f;
+            strength = CombatStrengthEvaluator.OwnArmy(members, CombatStrength,
+                out directCombatStrength, out supportStrength);
             healthRatio = 0f;
             population = 0;
             centroid = Vector3.zero;
@@ -832,7 +869,6 @@ namespace TinyKingdom.AI
                 HealthComponent health = member != null
                     ? member.GetComponent<HealthComponent>() : null;
                 if (health?.CombatData == null || !health.IsAlive) continue;
-                strength += CombatStrengthEvaluator.OwnUnit(member, CombatStrength);
                 healthRatio += CombatStrengthEvaluator.HealthRatio(
                     health.CurrentHP, health.MaxHP);
                 population += health.CombatData.PopulationCost;
@@ -1123,6 +1159,9 @@ namespace TinyKingdom.AI
             VisibleUnitObservation threat)
         {
             IReadOnlyList<UnitController> members = army.Members;
+            Tactical.Refresh(members, context.Knowledge, army.State, context.Time);
+            if (Tactical.TryEngageVisibleEnemies(context, members, baseAnchor,
+                    DefenseLeashRadius, threat.RuntimeId, null)) return;
             for (int i = 0; i < members.Count; i++)
             {
                 UnitController member = members[i];
@@ -1203,12 +1242,17 @@ namespace TinyKingdom.AI
             if (grid == null) return;
             if (moveIntents.Count != members.Count)
             {
-                moveIntents.Clear();
-                List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
-                    grid, grid.WorldToGrid(center), members.Count, 4, true);
-                int count = Mathf.Min(destinations.Count, members.Count);
-                for (int i = 0; i < count; i++)
-                    moveIntents[members[i]] = destinations[i].WorldPosition;
+                if (!Tactical.BuildFormationAssignments(context.Knowledge, members,
+                        center, moveIntents, true))
+                {
+                    moveIntents.Clear();
+                    List<GridCell> destinations = DestinationDistributor
+                        .FindNearbyDestinations(grid, grid.WorldToGrid(center),
+                            members.Count, 4, true);
+                    int count = Mathf.Min(destinations.Count, members.Count);
+                    for (int i = 0; i < count; i++)
+                        moveIntents[members[i]] = destinations[i].WorldPosition;
+                }
             }
             IssueMoveAssignments(context, members, interruptCombat, traversalPolicy);
         }
@@ -1240,32 +1284,22 @@ namespace TinyKingdom.AI
             if (assignmentMembershipVersion == army.MembershipVersion
                 && moveIntents.Count == army.Members.Count) return;
             moveIntents.Clear();
-            GridManager grid = knowledge.TeamVision?.GridManager;
-            if (grid == null) return;
-            Vector2Int center = grid.WorldToGrid(stagingPosition);
-            List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
-                grid, center, army.Members.Count, 4, true);
-            int count = Mathf.Min(destinations.Count, army.Members.Count);
-            for (int i = 0; i < count; i++)
-                moveIntents[army.Members[i]] = destinations[i].WorldPosition;
+            Tactical.BuildFormationAssignments(knowledge, army.Members,
+                stagingPosition, moveIntents, true);
             assignmentMembershipVersion = army.MembershipVersion;
         }
 
         private void EnsureOffensiveDestinations(FactionKnowledge knowledge)
         {
-            if (attackMoveIntents.Count == CountAttackers(operationMembers)) return;
             attackMoveIntents.Clear();
-            GridManager grid = knowledge.TeamVision?.GridManager;
-            if (grid == null) return;
-            int attackers = CountAttackers(operationMembers);
-            List<GridCell> destinations = DestinationDistributor.FindNearbyDestinations(
-                grid, grid.WorldToGrid(currentObjectivePosition), attackers, 6, true);
-            int index = 0;
-            for (int i = 0; i < operationMembers.Count && index < destinations.Count; i++)
+            if (!Tactical.BuildFormationAssignments(knowledge, operationMembers,
+                    currentObjectivePosition, formationIntents)) return;
+            for (int i = 0; i < operationMembers.Count; i++)
             {
                 UnitController member = operationMembers[i];
-                if (IsMonk(member)) continue;
-                attackMoveIntents[member] = destinations[index++].WorldPosition;
+                if (!formationIntents.TryGetValue(member, out Vector3 destination)) continue;
+                if (IsMonk(member)) moveIntents[member] = destination;
+                else attackMoveIntents[member] = destination;
             }
         }
 
@@ -1306,18 +1340,14 @@ namespace TinyKingdom.AI
 
         private bool IsSeverelyFragmented(out Vector3 centroid)
         {
-            centroid = OperationCentroid();
+            centroid = Tactical.ArmyAnchor;
             if (operationMembers.Count < 3) return false;
             return FractionInside(operationMembers, centroid, offensiveCohesionRadius) < 0.5f;
         }
 
         private Vector3 OperationCentroid()
         {
-            if (operationMembers.Count == 0) return stagingPosition;
-            Vector3 total = Vector3.zero;
-            for (int i = 0; i < operationMembers.Count; i++)
-                total += operationMembers[i].transform.position;
-            return total / operationMembers.Count;
+            return operationMembers.Count > 0 ? Tactical.ArmyAnchor : stagingPosition;
         }
 
         private static float FractionInside(IReadOnlyList<UnitController> members,
@@ -1377,6 +1407,7 @@ namespace TinyKingdom.AI
             attackIntents.Clear();
             moveIntents.Clear();
             attackMoveIntents.Clear();
+            formationIntents.Clear();
             retryAfter.Clear();
             assignmentMembershipVersion = -1;
         }
@@ -1384,6 +1415,7 @@ namespace TinyKingdom.AI
         private void InvalidateMoveAssignments()
         {
             moveIntents.Clear();
+            formationIntents.Clear();
             retryAfter.Clear();
             assignmentMembershipVersion = -1;
         }
