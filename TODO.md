@@ -1638,6 +1638,41 @@ Status: **IMPLEMENTED - UNITY VALIDATION PENDING**.
 - [x] Do not begin Phase 7E.4
 - [x] Do not commit, push or merge Phase 7E.3 automatically
 
+### Phase 7E.4 Tactical Army Intelligence
+
+Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
+
+- [x] Create `feature/phase-7e4-tactical-army-intelligence` from integrated Phase 7E.3
+- [x] Add living Warrior/Lancer/Archer/Monk tactical snapshot and role classification
+- [x] Keep Pawn and promoted Scout outside tactical combat membership
+- [x] Reuse `RoleFormationPlanner` with an AI-owned Compact formation
+- [x] Add robust non-support median anchor, cohesion radius and straggler diagnostics
+- [x] Restore role formation for assembly/advance without enforcing rigid combat lines
+- [x] Add bounded Archer and Monk danger reposition with cooldown/destination dedupe
+- [x] Keep Monk non-attacking and calculate contextual support strength
+- [x] Score legal visible targets by distance, authoritative matchup, HP, threat and role
+- [x] Add target hold, retarget threshold and melee/ranged saturation penalties
+- [x] Preserve committed melee attacks from routine retargeting
+- [x] Route tactical Attack/Move through `FactionCommandService`
+- [x] Integrate local defenders before building assault and retain BaseDefense priority
+- [x] Preserve strategic Retreat and existing AttackMove semantics
+- [x] Add disabled-by-default tactical diagnostics and formation gizmos
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.4 Tactical Army`
+- [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
+- [ ] Run the Phase 7E.4 validator in Unity Edit Mode
+- [ ] Run Warrior-only, Warrior+Archer and full mixed-army tests
+- [ ] Run narrow stairs, building corridor and formation recovery tests
+- [ ] Run target distribution, low-HP, Monk, Archer and matchup tests
+- [ ] Run target stickiness, death, hidden target and committed attack tests
+- [ ] Run Archer close/range and Monk position/threat/support-strength tests
+- [ ] Run cohesion, safe local regroup, active-combat cohesion and BaseDefense tests
+- [ ] Run Retreat and AttackMove regression tests
+- [ ] Run full matches at x1/x5/x10 and large-battle stress
+- [ ] Record Move/Attack/retarget/formation/path/GC rates in the Profiler
+- [ ] Confirm stairs, construction, Fog, human controls and Console regressions
+- [x] Do not begin Phase 7E.5
+- [x] Do not commit, push or merge Phase 7E.4 automatically
+
 ## Phase 6E - Audio Expansion: completion, combat impacts and command voices
 
 Status: **IMPLEMENTED, UNITY VALIDATION PENDING**

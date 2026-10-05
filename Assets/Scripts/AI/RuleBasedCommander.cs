@@ -114,6 +114,22 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugRetreatArrivedFraction;
         [SerializeField] private float debugRecoveryDuration;
         [SerializeField] private bool debugRecoveryReady;
+        [SerializeField] private TacticalArmyState debugTacticalState;
+        [SerializeField] private Vector3 debugTacticalArmyAnchor;
+        [SerializeField] private float debugTacticalCohesionRadius;
+        [SerializeField] private int debugTacticalFrontlineCount;
+        [SerializeField] private int debugTacticalBacklineCount;
+        [SerializeField] private int debugTacticalSupportCount;
+        [SerializeField] private int debugTacticalStragglerCount;
+        [SerializeField] private int debugTacticalVisibleEnemies;
+        [SerializeField] private float debugDirectCombatStrength;
+        [SerializeField] private float debugSupportStrength;
+        [SerializeField] private int debugTacticalAttackCommands;
+        [SerializeField] private int debugTacticalRetargets;
+        [SerializeField] private int debugTacticalFormationUpdates;
+        [SerializeField] private int debugTacticalRepositions;
+        [SerializeField, TextArea(3, 12)] private string debugTacticalUnits;
+        [SerializeField] private string debugTacticalTargetSaturation;
         [SerializeField] private int debugKnownStaticDangers;
         [SerializeField] private int debugVisibleDynamicDangers;
         [SerializeField] private string debugScoutSafetyState;
@@ -434,6 +450,25 @@ namespace TinyKingdom.AI
             debugRetreatArrivedFraction = militaryPolicy.RetreatArrivedFraction;
             debugRecoveryDuration = militaryPolicy.RecoveryDuration(Time.time);
             debugRecoveryReady = militaryPolicy.RecoveryReady;
+            TacticalArmyController tactical = militaryPolicy.Tactical;
+            ArmyTacticalSnapshot tacticalSnapshot = tactical.Snapshot;
+            debugTacticalState = tactical.State;
+            debugTacticalArmyAnchor = tactical.ArmyAnchor;
+            debugTacticalCohesionRadius = tactical.ArmyCohesionRadius;
+            debugTacticalFrontlineCount = tacticalSnapshot.FrontlineCount;
+            debugTacticalBacklineCount = tacticalSnapshot.BacklineCount;
+            debugTacticalSupportCount = tacticalSnapshot.SupportCount;
+            debugTacticalStragglerCount = tactical.StragglerCount;
+            debugTacticalVisibleEnemies = tactical.VisibleEnemyCount;
+            debugDirectCombatStrength = militaryPolicy.DirectCombatStrength;
+            debugSupportStrength = militaryPolicy.SupportStrength;
+            debugTacticalAttackCommands = tactical.AttackCommandsIssued;
+            debugTacticalRetargets = tactical.RetargetCount;
+            debugTacticalFormationUpdates = tactical.FormationUpdateCount;
+            debugTacticalRepositions = tactical.RepositionCommandCount;
+            debugTacticalUnits = tactical.UnitDebugSummary(militaryPolicy.Army.Members,
+                Time.time);
+            debugTacticalTargetSaturation = tactical.TargetSaturationSummary();
             debugKnownStaticDangers = strategicSafety.KnownStaticDangerCount;
             debugVisibleDynamicDangers = strategicSafety.VisibleDynamicThreatCount;
             debugScoutSafetyState = scoutingPolicy.SafetyState.ToString();
@@ -536,6 +571,17 @@ namespace TinyKingdom.AI
                     Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.45f);
                     Gizmos.DrawWireSphere(militaryPolicy.ArmyCentroid,
                         militaryPolicy.CombatAssessmentRadius);
+                }
+                TacticalArmyController tactical = militaryPolicy.Tactical;
+                Gizmos.color = new Color(0.15f, 0.7f, 1f, 0.65f);
+                Gizmos.DrawWireSphere(tactical.ArmyAnchor,
+                    tactical.ArmyCohesionRadius);
+                foreach (System.Collections.Generic.KeyValuePair<UnitController, Vector3>
+                    assignment in tactical.FormationDestinations)
+                {
+                    if (assignment.Key == null) continue;
+                    Gizmos.DrawLine(assignment.Key.transform.position, assignment.Value);
+                    Gizmos.DrawWireSphere(assignment.Value, 0.15f);
                 }
             }
             if (drawStrategicSafetyGizmos && strategicSafety != null
