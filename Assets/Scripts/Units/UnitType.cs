@@ -8,6 +8,7 @@ namespace TinyKingdom.Units
         Pawn = 3,
         Monk = 4,
         GoblinTorch = 5,
-        GoblinTNT = 6
+        GoblinTNT = 6,
+        GoblinBarrel = 7
     }
 }

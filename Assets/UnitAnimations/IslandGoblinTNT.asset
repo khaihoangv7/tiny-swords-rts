@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bb464a4b6fc4bd68bc8c2d797eb9399, type: 3}
+  m_Name: IslandGoblinTNT
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitAnimationSet
+  framesPerSecond: 10
+  attackFramesPerSecond: 10
+  frameCellSize: 192
+  visualAnchorPixels: {x: 96, y: 96}
+  visualScale: 1.7
+  idle:
+  - {fileID: 1723869735436879832, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -4575732086333183823, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -8545997469525324644, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 472558964566126397, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -3272573693725979801, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 4073718598777970583, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  run:
+  - {fileID: 6965017248118912694, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -3503147640080845908, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 2920799376480564313, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -5227482290639326191, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 6442362681435007131, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -9053253831616230514, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  attack:
+  - {fileID: -8159456244472171497, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 8258795194819198663, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 3382624021105550442, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 1747851038808546189, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -1111592450808163120, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: 4280689182580048338, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  - {fileID: -57822011484426568, guid: 9db2a4671fd98e7458d355ccd3b5f02b, type: 3}
+  guard: []
+  attackDown: []
+  attackDownRight: []
+  attackUp: []
+  attackUpRight: []

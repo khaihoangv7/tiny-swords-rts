@@ -119,6 +119,7 @@ namespace TinyKingdom.Units
             cooldown = AttackInterval;
             pendingImpact = target.transform.position;
             releaseRemaining = ThrowReleaseSeconds;
+            controller.SetState(UnitState.Attacking);
             animator?.PlayAction(target.transform.position - transform.position);
         }
 
@@ -146,7 +147,9 @@ namespace TinyKingdom.Units
         {
             if (candidate == null || !candidate.IsTargetable) return false;
             Faction faction = candidate.GetComponent<UnitController>().Faction;
-            return faction is Faction.Blue or Faction.Red;
+            return faction is Faction.Blue or Faction.Red
+                && GroundSorting.ElevationAt(movement.GridManager,transform.position)
+                    ==GroundSorting.ElevationAt(movement.GridManager,candidate.transform.position);
         }
     }
 

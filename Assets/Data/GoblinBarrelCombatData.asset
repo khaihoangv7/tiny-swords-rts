@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6b2fa348ef34c6d9b764529a0c10b11, type: 3}
+  m_Name: GoblinBarrelCombatData
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.UnitCombatData
+  unitType: 7
+  attackDelivery: 0
+  maxHP: 100
+  baseDamage: 60
+  attackRange: 1
+  attackInterval: 1.1
+  rangedReleaseDelay: 0
+  commitsMeleeAttack: 0
+  committedMeleeHitDelay: 0
+  committedMeleeDuration: 0
+  moveSpeed: 3
+  foodCost: 0
+  woodCost: 0
+  goldCost: 0
+  projectileSpeed: 8
+  acquisitionRadius: 4
+  acquisitionInterval: 0.25
+  autoChaseLimit: 6
+  autoAcquireTargets: 0
+  canRetaliateWhenDamaged: 0
+  retaliationLeash: 10
+  populationCost: 0
+  trainingSeconds: 6
+  visionRadius: 0

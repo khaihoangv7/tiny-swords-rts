@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Presentation.Phase6C2AssetCatalog
   blueMonk: {fileID: 11400000, guid: b8d3f63a5cfa63045a2e90a0d945f030, type: 2}
   redMonk: {fileID: 11400000, guid: 9fc86a763e0ab2a45aa8516cc4cf4c8a, type: 2}
-  goblinTorch: {fileID: 11400000, guid: 13652618994d86245b66114cac3e5869, type: 2}
-  goblinTnt: {fileID: 11400000, guid: 1f9f4f36c7d2e6241bf0d2127c00f94c, type: 2}
+  goblinTorch: {fileID: 11400000, guid: 35b86fbcabc1c284092e2316d0632f9e, type: 2}
+  goblinTnt: {fileID: 11400000, guid: 7d6ed41da338e3a43bded34b526dcd1d, type: 2}
   blueHealEffect:
   - {fileID: -7024647307699674525, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}
   - {fileID: 5961021751012434444, guid: f810dae6b18a828428fa7dd5629d1f68, type: 3}

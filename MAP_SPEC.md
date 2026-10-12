@@ -314,3 +314,43 @@ Their previous RiverMountains paths are migrated with GUIDs preserved. The
 original map remains available separately. The map selection card is named
 STRAIGHT LANE. The legacy editor builder can rebuild the scene through
 `Tools/Tiny Kingdom/Build Map 2 - Straight Lane`.
+
+## Third Map: Goblin Island
+
+Separate 66x44 scene, layout and navigation assets. Blue is bottom-right, Red
+top-right, both Castles on flat height-0 ground. Both start with one Castle,
+three Pawns and equal local Food/Wood/Gold compositions. The wider western
+strip (x=1..17,y=1..42) is flat around three separate resource hills.
+The southern and middle hills have asymmetric height-1 shelves with smaller,
+offset height-2 summits. The broad northern hill is height 1. Their stepped
+outlines, widths and tier placements differ. Each has two shelf entrances;
+only the two taller hills have summit ramps. Trees, Sheep and small/large Gold nodes occupy all three
+heights with reachable work cells, clear ramps and no buildings. The middle
+shelf has three Goblins (one Torch, one TNT, one Barrel); the northern hill has none.
+The middle group occupies height-1 ground with clear resource/ramp approaches. The enlarged island
+(x=20..62,y=14..29) is flat at height 0, including
+its mine, huts and bridge approaches. It has no elevation layers or island stairs.
+The western resource area uses denser irregular planting, flocks and Gold
+clusters covering all six verified small/large Gold Stone variants.
+It contains 85 Trees, 50 Sheep and 32 Gold nodes. The editor accepts a new
+resource only if the game's traversal rules still connect every resource's
+work cells, all hill clearings and both endpoints of every ramp to the base.
+Western Gold nodes stay inside a full same-height grass ring so their visual
+ground contact cannot hang over cliff faces, ramps or shore edges.
+The river is two cells wide instead of four.
+Exactly three smaller 2x4 bridges connect north, south and west directly at
+height 0. Eight Color1/3 ramps serve the western hills. Other river cells
+remain Water; decorative artwork never grants a height change. Color1/3/4
+patches and paths mix the outer grass colors, with matching Tree2/3/4 groves.
+The dark Color5 island mixes Tree1 dark and Tree2 bright pines. Resources have
+irregular authored placements with open harvest aisles, bridge approaches,
+ramps, Castle skirts and construction space. The 2x2 capturable Gold Mine
+starts at (44,22) on height 0. Nine Goblins and three 2x2 huts guard the island.
+Bushes and large/small drifting clouds remain nonblocking scenery.
+Twelve decorative Ducks and sixteen animated water rocks occupy river cells
+away from all three crossings. Twenty-four static rocks are scattered on the
+west strip, island and outer forest gaps. These props have no collision,
+resources or navigation occupancy; bridge approaches and ramps remain clear.
+`Assets/Scenes/GoblinIsland.unity`, `Assets/Data/GoblinIslandLayout.asset` and
+`Assets/Data/Navigation/GoblinIslandNavigation.asset` are baked independently by
+`Tools/Tiny Kingdom/Build Map 3 - Goblin Island`. MapSelection includes the third card.

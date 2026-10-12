@@ -16,6 +16,7 @@ namespace TinyKingdom.Terrain
         public Vector2[] bluePawns;
         public Vector2[] redPawns;
         public PawnAnimationSet redPawnAnimations;
+        public Vector2Int mineOrigin = new(29, 21);
         public BattlefieldResource[] resources;
 
         // Hand-authored shoreline, shared by the editor painter and navigation baker.

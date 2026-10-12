@@ -16,6 +16,7 @@ MonoBehaviour:
   attackFramesPerSecond: 10
   frameCellSize: 192
   visualAnchorPixels: {x: 96, y: 96}
+  visualScale: 1.6
   idle:
   - {fileID: 4723107735738678597, guid: 1256aecc1e14c304fabc2ce787638ba5, type: 3}
   - {fileID: -7385789195546760866, guid: 1256aecc1e14c304fabc2ce787638ba5, type: 3}

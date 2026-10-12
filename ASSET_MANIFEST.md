@@ -1,5 +1,87 @@
 # Tiny Kingdom RL — Asset Manifest
 
+## Map 3: Goblin Island (October 2026)
+
+The local PNGs and Barrel Aseprite tags were inspected before implementation.
+Color5 matches the cool dark grass in reference 7; Color1 is bright outer ground.
+The revised island mixes verified Tree1 dark pines and Tree2 bright pines from
+the user's new reference 5, using their eight-frame loops and paired stumps.
+Outside woods use Tree2/3/4, with Color1/3/4 meadow patches and paths chosen
+before tree placement. Color3 groves use Tree2 bright pines; Color1 groves use
+Tree3/4 deciduous trees; Color4 olive paths stay open. Trees form irregular stands,
+with deterministic within-cell offsets rather than repeated rows.
+Both main Castles remain on flat ground. The west strip is now 17 cells wide,
+with three unequal hill outlines built from connected bands of different
+widths. The southern and middle hills have smaller, offset Color1 height-2
+summits; the northern hill is a broad irregular Color3 height-1 shelf.
+Verified native surface columns 5/6/7 and finished cliff-foot row 5
+form each tier; Color3/Color1 r4c0/r5c0 and r4c3/r5c3 are the official side
+ramps. Each hill has two ground-to-shelf routes; the two taller hills also have
+one shelf-to-summit route. These eight ramp pairs use explicit logical endpoints.
+The dark Color5 island is now flat at height 0. Native flat tiles (columns 0..2,
+rows 0..2) form its grass surface and water edge. It has no cliff faces or ramps;
+all three bridges connect directly to its flat ground. The map remains 66x44;
+the existing eastern composition shifts
+six cells east so the river and island retain their size. The west hills reuse
+verified Sheep loops, matching Tree2/3/4 and all six Gold Stone size variants,
+with open harvesting aisles. The western hills have no houses. The middle
+hill has three additional guards (one Torch, one TNT, one Barrel); the northern
+hill has none. They reuse the verified Map 3 prefabs and animation mappings. The
+middle group stands on the broad height-1 shelf, with resource and ramp
+clearance reserved around its spawn positions. Their data and visual scale remain
+unchanged. Western Gold placements require a full ring of same-height grass
+cells, keeping all six scaled stone variants away from cliff/ramp/water edges.
+Bushes reuse Bushe1..4; whole Clouds_01..08 drift with large/small scales.
+
+Map 3's river decorations reuse inspected native `Rubber Duck/Rubber duck.png`:
+three complete 32x32 frames at 64 PPU, mapped only to ambient floating,
+10 FPS, visual scale 1.6, alternating facing and playback phases. Twelve Ducks
+stay on water away from bridges. All four inspected `Rocks in the Water/Water
+Rocks_01..04.png` strips reuse sixteen complete 64x64 frames at 64 PPU for
+10 FPS stationary ripple loops. Sixteen water rocks use varied 0.9-1.2 scales.
+Twenty-four ground stones reuse static Rock1..4 at their existing 100 PPU,
+varying scale 1.25-1.8 on shorelines and forest gaps. These ambient props have
+no collider, resource value, vision or navigation occupancy.
+
+`Assets/Terrain/TwoKingdoms/Bridge.png` matches reference 1 (192x256).
+An exact copy is imported at `Assets/Terrain/GoblinIsland/Bridge.png`, with
+horizontal rect (16,192,160,64) and vertical rect (0,16,64,160), centered at
+64 PPU, scaled 1.6 to span four-cell crossings. Static art has no collision;
+walkable bridge cells are baked independently into navigation.
+
+Map 3's three animation sets use visual scale 1.7 (reduced from 2.3); ordinary
+units remain 1.6. Only the animated child and aligned offsets change, with
+raised health bars. Gameplay roots, range, colliders and stats remain unchanged.
+Nine guards (three of each existing type) guard the mine and three Goblin huts;
+the middle hill group brings the map total to twelve.
+
+The user's attached reference 4 and reference 3 were verified as transparent
+128x192 RGBA native sprites. Exact copies are imported as
+`Assets/Terrain/GoblinIsland/GoblinHut.png` and `GoblinHutDestroyed.png`.
+Both are single full sprites at 100 PPU, Point/uncompressed/no mipmaps/Clamp.
+Custom bottom-contact pivots are (0.5,21/192) for the intact hut and
+(0.5,18/192) for its wreck, verified from their alpha bounds. Visual scale is
+2.0. There is no animation inferred from these static sprites. Gameplay death
+releases the 2x2 footprint, swaps to the wreck and may play the existing building
+explosion. Huts are neutral hostile, Fog-gated, and never produce units or Sheep.
+
+Torch/TNT use the verified exported PNG indexes from section 6C.2: Torch Idle
+0..6, Run 7..12, Right 14..19, Down 21..26, Up 28..33; TNT Idle 0..5,
+Run 7..12, Throw 14..20. Transparent padding is excluded. Dynamite reuses
+six 64x64 frames; TNT Explosion_03 uses nine 192x192 frames. Multi-row animation
+alignment uses both X and Y modulo the frame-cell size, preserving the ground anchor.
+
+Barrel: `Assets/Units/Goblins Units/Goblins_Barrel/Barrel_Red.png`, 768x768,
+six columns of 128x128 cells, centered at 100 PPU, 10 FPS. Inspected Aseprite
+tags: Original 0, Idle_In 1, Out 2..7, Idle_Out 8, In 9..14, Run 15..17,
+Fired 18..20. Exported PNG indexes differ: Idle_In 0; Out 6..11; Idle_Out 12;
+In 18..23; Run 24..26; Fired 30..32. Idle_In guards, Out emerges before pursuit,
+Run chases, In withdraws at home, Fired plays during the gameplay fuse. Padding
+and Original are excluded. The anchor is (64,64). Detonation reuses building
+Explosion_01 (8 frames) and Explosion_02 (10 frames), 10 FPS, 0.06-second second
+effect delay, scale 0.8. Damage/self-death use gameplay timers. Ordinary combat
+death retains Dead/Buried. All goblin visuals and effects remain Fog-gated.
+
 ## Straight Lane second map (October 2026)
 
 Map two uses verified Tiny Swords `Tilemap_color1` ground/shore tiles and
