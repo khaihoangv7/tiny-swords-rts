@@ -9,6 +9,7 @@ namespace TinyKingdom.Units
         [SerializeField, Min(1f)] private float attackFramesPerSecond = 10f;
         [SerializeField, Min(1)] private int frameCellSize = 192;
         [SerializeField] private Vector2 visualAnchorPixels = new(96f, 96f);
+        [SerializeField, Min(0.1f)] private float visualScale = UnitVisualPresentation.Scale;
         [SerializeField] private Sprite[] idle = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] run = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] attack = System.Array.Empty<Sprite>();
@@ -22,6 +23,7 @@ namespace TinyKingdom.Units
         public float AttackFramesPerSecond => attackFramesPerSecond;
         public int FrameCellSize => frameCellSize;
         public Vector2 VisualAnchorPixels => visualAnchorPixels;
+        public float VisualScale => visualScale;
         public Sprite[] Idle => idle;
         public Sprite[] Run => run;
         public Sprite[] Attack => attack;

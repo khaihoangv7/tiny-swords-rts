@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a22f661f76b9d424397d50caa2521566, type: 3}
+  m_Name: GoblinBarrelData
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.GoblinBarrelData
+  detectionRadius: 6
+  homeLeash: 7
+  fuseDistance: 1.1
+  fuseSeconds: 0.3
+  explosionRadius: 1.75
+  knockback: 0.6
+  emergeSeconds: 0.6
+  withdrawSeconds: 0.6
+  explosionScale: 0.8
+  emerge:
+  - {fileID: -795475609545570021, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 2606292137879948835, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 3278922006464453553, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: -1611858049236281846, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 4667250231190558756, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 3689843565939147757, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  withdraw:
+  - {fileID: 881422412132157723, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: -4545803442031372541, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 6287177064173362728, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: -1901058906039841320, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 8105678916111890790, guid: 4cb46aed2e84106438fd36a160253572, type: 3}
+  - {fileID: 6957373138255738008, guid: 4cb46aed2e84106438fd36a160253572, type: 3}

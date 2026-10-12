@@ -111,6 +111,14 @@ namespace TinyKingdom.Units
 
         public void PlayAction(Vector2 direction) => PlayAttack(direction);
 
+        public void PlaySequence(Sprite[] sequence)
+        {
+            if (sequence == null || sequence.Length == 0 || !controller.IsAlive) return;
+            attackPlaying = true;
+            flipAttack = facingLeft;
+            Begin(sequence);
+        }
+
         private void HandleState(UnitState state)
         {
             if (visual == null) return;
@@ -173,11 +181,11 @@ namespace TinyKingdom.Units
             // Existing sheets use tight automatic rectangles. Align each sprite to
             // the same point within its source cell without moving the gameplay root.
             float x = sprite.rect.x % animationSet.FrameCellSize + sprite.pivot.x;
-            float y = sprite.rect.y + sprite.pivot.y;
+            float y = sprite.rect.y % animationSet.FrameCellSize + sprite.pivot.y;
             Vector2 offset = (new Vector2(x, y) - animationSet.VisualAnchorPixels)
                 / sprite.pixelsPerUnit;
             if (flip) offset.x = -offset.x;
-            UnitVisualPresentation.ApplyAlignedScale(visual, offset);
+            UnitVisualPresentation.ApplyAlignedScale(visual, offset, animationSet.VisualScale);
         }
     }
 }
