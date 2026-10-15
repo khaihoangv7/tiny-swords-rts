@@ -5,6 +5,7 @@ using System.IO;
 using TinyKingdom.AI;
 using TinyKingdom.Audio;
 using TinyKingdom.Buildings;
+using TinyKingdom.Debugging;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Vision;
@@ -21,6 +22,11 @@ namespace TinyKingdom.EditorTools
         private const string BatchArgument = "-phase7BProfile";
         private const string ScenePath = "Assets/Scenes/Map.unity";
         private const float DefaultCaptureSeconds = 30f;
+        private const float DefaultSpikeThresholdMs = 33.3f;
+        private const int MaximumSpikeSnapshots = 8;
+        private const double SpikeSampleIntervalSeconds = 1d;
+        private const double LivenessSampleIntervalSeconds = 5d;
+        private const int MaximumLivenessSnapshots = 80;
 
         private static readonly string[] MarkerNames =
         {
@@ -31,13 +37,33 @@ namespace TinyKingdom.EditorTools
             "TinyKingdom.AI.BuildPlacementSearch",
             "TinyKingdom.AI.ProductionPolicy",
             "TinyKingdom.AI.EconomyPolicy",
-            "TinyKingdom.AI.ResourceTargetSearch",
+            "TinyKingdom.AI.SafeResourceSearch",
             "TinyKingdom.AI.ScoutingPolicy",
-            "TinyKingdom.AI.FrontierSearch",
+            "TinyKingdom.AI.ScoutFrontierScoring",
+            "TinyKingdom.AI.ReconScoring",
+            "TinyKingdom.AI.ObservationPointGeneration",
             "TinyKingdom.AI.MilitaryPolicy",
+            "TinyKingdom.AI.StrategicSnapshot.Build",
+            "TinyKingdom.AI.StrategicIntent.Evaluate",
+            "TinyKingdom.AI.StrategicTarget.Score",
+            "TinyKingdom.AI.Staging.Select",
+            "TinyKingdom.AI.TacticalArmy.Evaluate",
+            "TinyKingdom.AI.TargetAssignment",
+            "TinyKingdom.AI.FormationDistribution",
+            "TinyKingdom.AI.CohesionEvaluation",
+            "TinyKingdom.AI.LocalRegroupEvaluation",
+            "TinyKingdom.AI.MilitaryLiveness",
             "TinyKingdom.AI.ThreatEvaluation",
             "TinyKingdom.AI.ArmyRegroup",
             "TinyKingdom.AI.CommandDispatch",
+            "TinyKingdom.AI.EconomicDemand",
+            "TinyKingdom.AI.WorkerRebalance",
+            "TinyKingdom.AI.EconomicClusterRefresh",
+            "TinyKingdom.AI.EconomicOutpostEvaluation",
+            "TinyKingdom.AI.EnemyCompositionEvaluation",
+            "TinyKingdom.AI.DesiredComposition",
+            "TinyKingdom.AI.ProductionCandidateScore",
+            "TinyKingdom.AI.StrategicSafetyMapUpdate",
             "TinyKingdom.Buildings.TrapValidation",
             "TinyKingdom.Economy.PawnTick",
             "TinyKingdom.Economy.CargoRecovery",
@@ -50,6 +76,7 @@ namespace TinyKingdom.EditorTools
 
         private static Capture activeCapture;
         private static bool batchRequested;
+        private static double batchStartupDeadline;
 
         static Phase7BPerformanceProfiler()
         {
@@ -88,6 +115,17 @@ namespace TinyKingdom.EditorTools
             BeginCapture(300f, path);
         }
 
+        [MenuItem("Tools/Tiny Kingdom/Profile Phase 7E.5 Liveness x10 (5 minutes)")]
+        public static void RunStrategicLivenessInteractive()
+        {
+            if (!EditorApplication.isPlaying)
+                throw new InvalidOperationException(
+                    "Enter Play Mode, enable Observer, select x10, then start this capture.");
+            string path = Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../Logs/Phase7E5StrategicLiveness.json"));
+            BeginCapture(300f, path);
+        }
+
         private static void BeginBatch()
         {
             if (!batchRequested || activeCapture != null) return;
@@ -99,13 +137,55 @@ namespace TinyKingdom.EditorTools
                 EditorApplication.isPlaying = true;
                 return;
             }
+            if (batchStartupDeadline <= 0d)
+                batchStartupDeadline = EditorApplication.timeSinceStartup + 30d;
+            if (!ApplyBatchDebugOptions())
+            {
+                if (EditorApplication.timeSinceStartup >= batchStartupDeadline)
+                {
+                    Debug.LogError("Batch profile speed controller did not initialize. "
+                        + $"Playing={EditorApplication.isPlaying}, "
+                        + $"Scene={EditorSceneManager.GetActiveScene().path}, "
+                        + $"GameTime={Time.time:0.0}, "
+                        + $"Commander={UnityEngine.Object.FindAnyObjectByType<RuleBasedCommander>() != null}.");
+                    EditorApplication.Exit(2);
+                }
+                else EditorApplication.delayCall += BeginBatch;
+                return;
+            }
             BeginCapture(ReadDuration(), ReportPath());
+        }
+
+        private static bool ApplyBatchDebugOptions()
+        {
+            string speedArgument = ArgumentValue("-phase7BProfileSpeed");
+            if (speedArgument == null)
+            {
+                if (HasArgument("-phase7BProfileObserver"))
+                    DebugObserverView.SetEnabled(true);
+                return true;
+            }
+            if (!float.TryParse(speedArgument, NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out float speed)
+                || (speed != 1f && speed != 5f && speed != 10f))
+                throw new InvalidOperationException(
+                    "-phase7BProfileSpeed must be 1, 5, or 10.");
+
+            MatchSpeedController controller = MatchSpeedController.Instance;
+            if (controller == null) return false;
+            if (!controller.SetSpeed(speed))
+                throw new InvalidOperationException(
+                    $"Could not set batch profile speed to x{speed}.");
+            if (HasArgument("-phase7BProfileObserver"))
+                DebugObserverView.SetEnabled(true);
+            return true;
         }
 
         private static void HandlePlayMode(PlayModeStateChange state)
         {
             if (state != PlayModeStateChange.EnteredPlayMode) return;
             EditorApplication.playModeStateChanged -= HandlePlayMode;
+            batchStartupDeadline = EditorApplication.timeSinceStartup + 30d;
             EditorApplication.delayCall += BeginBatch;
         }
 
@@ -129,6 +209,11 @@ namespace TinyKingdom.EditorTools
             => float.TryParse(ArgumentValue("-phase7BProfileSeconds"),
                 NumberStyles.Float, CultureInfo.InvariantCulture, out float value)
                 ? value : DefaultCaptureSeconds;
+
+        private static float ReadSpikeThreshold()
+            => float.TryParse(ArgumentValue("-phase7BSpikeThresholdMs"),
+                NumberStyles.Float, CultureInfo.InvariantCulture, out float value)
+                ? Mathf.Max(1f, value) : DefaultSpikeThresholdMs;
 
         private static string ArgumentValue(string name)
         {
@@ -168,11 +253,19 @@ namespace TinyKingdom.EditorTools
             public long commanderRallyPathRequests;
             public long commanderScoutPathRequests;
             public long economyReturnPathRequests;
+            public long militaryMovePathRequests;
+            public long militaryFormationPathRequests;
+            public long militaryCombatPathRequests;
+            public long militaryRegroupPathRequests;
+            public long resourceFallbackPathRequests;
             public long moveCommandAttempts;
             public long scoutMoveCommandAttempts;
             public long gatherCommandAttempts;
             public long returnResourceCommandAttempts;
             public long buildCommandAttempts;
+            public long attackCommandAttempts;
+            public long trainCommandAttempts;
+            public long rallyCommandAttempts;
             public long constructionSiteBuilderCommands;
             public long deduplicatedConstructionCommands;
             public long constructionSiteBuilderPathRequests;
@@ -193,10 +286,14 @@ namespace TinyKingdom.EditorTools
             public double gatherCommandsPerSecond;
             public double returnResourceCommandsPerSecond;
             public double buildCommandsPerSecond;
+            public double attackCommandsPerSecond;
+            public double trainCommandsPerSecond;
+            public double rallyCommandsPerSecond;
             public double constructionBuilderCommandsPerSecond;
             public double constructionBuilderPathRequestsPerSecond;
             public double buildingCandidatesPerSecond;
             public long maximumPathRequestsInFrame;
+            public long maximumAiCommandsInFrame;
             public double commanderPathRequestsPerTick;
             public bool baseFullyDeveloped;
             public double averageGcAllocatedBytes;
@@ -216,7 +313,70 @@ namespace TinyKingdom.EditorTools
             public int scoutStaleCandidateCount;
             public int finalFogPresentationGateCount;
             public int maximumFogPresentationGateCount;
+            public float spikeThresholdMs;
+            public FrameSpikeSnapshot peakSpike;
+            public List<FrameSpikeSnapshot> spikes = new();
+            public List<LivenessSnapshot> liveness = new();
             public List<MarkerReport> markers = new();
+        }
+
+        [Serializable]
+        private sealed class FrameSpikeSnapshot
+        {
+            public double frameMs;
+            public float gameTime;
+            public long gcBytes;
+            public long pathRequests;
+            public long aiCommands;
+            public string currentIntent;
+            public string tacticalState;
+            public int armySize;
+            public int knownResources;
+            public int knownEnemyBuildings;
+            public int scoutCandidates;
+            public int tacticalCandidates;
+            public int targetAssignments;
+            public int audioPoolSize;
+            public int activeAudioSources;
+            public string largestAiSubsystem;
+            public double largestAiSubsystemMs;
+            public double strategicMs;
+            public double tacticalMs;
+            public double scoutMs;
+            public double economyMs;
+            public double productionMs;
+            public double safetyMapMs;
+            public double resourceClusterMs;
+        }
+
+        [Serializable]
+        private sealed class LivenessSnapshot
+        {
+            public double elapsedRealSeconds;
+            public float gameTime;
+            public float matchSpeed;
+            public long commanderThinkTick;
+            public string intent;
+            public float intentAge;
+            public string armyState;
+            public string tacticalState;
+            public int armySize;
+            public int offensiveParticipants;
+            public float armyX;
+            public float armyY;
+            public bool hasStrategicTarget;
+            public string strategicTargetId;
+            public bool hasOffensiveTarget;
+            public string offensiveTargetId;
+            public float targetX;
+            public float targetY;
+            public float distanceToTarget;
+            public float secondsSinceMilitaryProgress;
+            public float secondsSinceMeaningfulAction;
+            public int stagingRecoveryCount;
+            public int objectiveFailureCount;
+            public long totalPathRequests;
+            public long totalAiCommands;
         }
 
         [Serializable]
@@ -248,6 +408,7 @@ namespace TinyKingdom.EditorTools
             private ulong previousThinkTick;
             private long previousPathRequests;
             private long maximumPathRequestsInFrame;
+            private long maximumAiCommandsInFrame;
             private long totalGcAllocated;
             private long maximumGcAllocated;
             private int gcSampleFrames;
@@ -256,6 +417,15 @@ namespace TinyKingdom.EditorTools
             private int maximumActiveAudioSources;
             private int maximumDropOffRegistryCount;
             private int maximumFogPresentationGateCount;
+            private readonly List<FrameSpikeSnapshot> spikes =
+                new(MaximumSpikeSnapshots);
+            private readonly List<LivenessSnapshot> liveness =
+                new(MaximumLivenessSnapshots);
+            private FrameSpikeSnapshot peakSpike;
+            private double lastSpikeSampleAt = double.NegativeInfinity;
+            private double lastLivenessSampleAt = double.NegativeInfinity;
+            private long previousCommandAttempts;
+            private readonly float spikeThresholdMs = ReadSpikeThreshold();
 
             public Capture(float seconds, string path, bool exit)
             {
@@ -275,6 +445,7 @@ namespace TinyKingdom.EditorTools
                 ProductionCommanderPolicy.ResetPerformanceCounters();
                 BuildingSite.ResetPerformanceCounters();
                 previousPathRequests = 0;
+                previousCommandAttempts = 0;
                 for (int i = 0; i < MarkerNames.Length; i++)
                     recorders.Add(ProfilerRecorder.StartNew(ProfilerCategory.Scripts,
                         MarkerNames[i], 1,
@@ -300,9 +471,16 @@ namespace TinyKingdom.EditorTools
                 worstFrame = Math.Max(worstFrame, frameMilliseconds);
                 frameCount++;
                 long currentPathRequests = PathfindingSystem.TotalRequests;
+                long pathRequestsThisFrame = currentPathRequests - previousPathRequests;
                 maximumPathRequestsInFrame = Math.Max(maximumPathRequestsInFrame,
-                    currentPathRequests - previousPathRequests);
+                    pathRequestsThisFrame);
                 previousPathRequests = currentPathRequests;
+                long currentCommandAttempts = TotalCommandAttempts();
+                long commandAttemptsThisFrame = currentCommandAttempts
+                    - previousCommandAttempts;
+                maximumAiCommandsInFrame = Math.Max(maximumAiCommandsInFrame,
+                    commandAttemptsThisFrame);
+                previousCommandAttempts = currentCommandAttempts;
                 GameplayAudioService audio = GameplayAudioService.Instance;
                 if (audio != null)
                 {
@@ -332,6 +510,8 @@ namespace TinyKingdom.EditorTools
                     commanderFrameTotal += frameMilliseconds;
                     worstCommanderFrame = Math.Max(worstCommanderFrame, frameMilliseconds);
                 }
+                long largestMarkerValue = 0;
+                string largestMarkerName = "None";
                 for (int i = 0; i < recorders.Count; i++)
                 {
                     long value = recorders[i].Valid ? recorders[i].LastValue : 0;
@@ -339,9 +519,41 @@ namespace TinyKingdom.EditorTools
                     totals[i] += value;
                     maximums[i] = Math.Max(maximums[i], value);
                     activeFrames[i]++;
+                    // CommanderTick encloses all policy samples, so it cannot
+                    // identify the subsystem responsible for a slow frame.
+                    if (i != 0 && value > largestMarkerValue)
+                    {
+                        largestMarkerValue = value;
+                        largestMarkerName = MarkerNames[i];
+                    }
+                }
+                if (frameMilliseconds >= spikeThresholdMs)
+                    CaptureSpike(frameMilliseconds, allocatedThisFrame(),
+                        pathRequestsThisFrame, commandAttemptsThisFrame,
+                        largestMarkerName, largestMarkerValue / 1_000_000d);
+                double now = EditorApplication.timeSinceStartup;
+                if (liveness.Count < MaximumLivenessSnapshots
+                    && now - lastLivenessSampleAt >= LivenessSampleIntervalSeconds)
+                {
+                    CaptureLiveness(now - startedAt, currentPathRequests,
+                        currentCommandAttempts);
+                    lastLivenessSampleAt = now;
                 }
                 if (EditorApplication.timeSinceStartup - startedAt >= duration)
                     Finish(true);
+                else
+                {
+                    // A sparse marker keeps its previous LastValue when it did
+                    // not run this frame. Clear the capture window so a later
+                    // spike cannot be attributed to an old Commander tick.
+                    for (int i = 0; i < recorders.Count; i++)
+                    {
+                        recorders[i].Reset();
+                        recorders[i].Start();
+                    }
+                    gcAllocatedRecorder.Reset();
+                    gcAllocatedRecorder.Start();
+                }
             }
 
             private void Finish(bool writeReport)
@@ -387,6 +599,16 @@ namespace TinyKingdom.EditorTools
                         PathfindingRequestSource.CommanderScout),
                     economyReturnPathRequests = PathfindingSystem.GetRequestCount(
                         PathfindingRequestSource.EconomyReturn),
+                    militaryMovePathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.MilitaryMove),
+                    militaryFormationPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.MilitaryFormation),
+                    militaryCombatPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.MilitaryCombat),
+                    militaryRegroupPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.MilitaryRegroup),
+                    resourceFallbackPathRequests = PathfindingSystem.GetRequestCount(
+                        PathfindingRequestSource.ResourceFallback),
                     moveCommandAttempts = FactionCommandService.GetCommandAttemptCount(
                         CommanderCommandCategory.Move),
                     scoutMoveCommandAttempts = FactionCommandService.GetCommandAttemptCount(
@@ -398,6 +620,12 @@ namespace TinyKingdom.EditorTools
                             CommanderCommandCategory.ReturnResource),
                     buildCommandAttempts = FactionCommandService.GetCommandAttemptCount(
                         CommanderCommandCategory.Build),
+                    attackCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Attack),
+                    trainCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Train),
+                    rallyCommandAttempts = FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Rally),
                     constructionSiteBuilderCommands =
                         BuildingSite.TotalBuilderCommandRequests,
                     deduplicatedConstructionCommands =
@@ -419,6 +647,9 @@ namespace TinyKingdom.EditorTools
                     productionInfrastructureRequests =
                         ProductionCommanderPolicy.InfrastructureRequestCount,
                     maximumPathRequestsInFrame = maximumPathRequestsInFrame,
+                    maximumAiCommandsInFrame = maximumAiCommandsInFrame,
+                    spikeThresholdMs = spikeThresholdMs,
+                    peakSpike = peakSpike,
                     baseFullyDeveloped = commander != null
                         && commander.BuildingPolicy.CompletedCoreInfrastructure >= 3
                         && commander.ProductionPolicy.LivingPawnCount
@@ -437,6 +668,12 @@ namespace TinyKingdom.EditorTools
                     report.returnResourceCommandsPerSecond =
                         report.returnResourceCommandAttempts / report.durationSeconds;
                     report.buildCommandsPerSecond = report.buildCommandAttempts
+                        / report.durationSeconds;
+                    report.attackCommandsPerSecond = report.attackCommandAttempts
+                        / report.durationSeconds;
+                    report.trainCommandsPerSecond = report.trainCommandAttempts
+                        / report.durationSeconds;
+                    report.rallyCommandsPerSecond = report.rallyCommandAttempts
                         / report.durationSeconds;
                     report.constructionBuilderCommandsPerSecond =
                         report.constructionSiteBuilderCommands / report.durationSeconds;
@@ -457,7 +694,12 @@ namespace TinyKingdom.EditorTools
                 long commanderRequests = report.commanderMovePathRequests
                     + report.commanderGatherPathRequests + report.commanderBuildPathRequests
                     + report.commanderRallyPathRequests + report.commanderScoutPathRequests
-                    + report.economyReturnPathRequests;
+                    + report.economyReturnPathRequests
+                    + report.militaryMovePathRequests
+                    + report.militaryFormationPathRequests
+                    + report.militaryCombatPathRequests
+                    + report.militaryRegroupPathRequests
+                    + report.resourceFallbackPathRequests;
                 report.commanderPathRequestsPerTick = report.commanderFrames > 0
                     ? commanderRequests / (double)report.commanderFrames : 0d;
                 report.averageGcAllocatedBytes = gcSampleFrames > 0
@@ -488,6 +730,8 @@ namespace TinyKingdom.EditorTools
                     ? FogWorldVisibility.Instance.RegisteredGateCount : 0;
                 report.maximumFogPresentationGateCount =
                     maximumFogPresentationGateCount;
+                report.spikes.AddRange(spikes);
+                report.liveness.AddRange(liveness);
                 for (int i = 0; i < MarkerNames.Length; i++)
                     report.markers.Add(new MarkerReport
                     {
@@ -498,6 +742,171 @@ namespace TinyKingdom.EditorTools
                         maximumMilliseconds = maximums[i] / 1_000_000d
                     });
                 return report;
+            }
+
+            private long allocatedThisFrame()
+                => gcAllocatedRecorder.Valid ? Math.Max(0, gcAllocatedRecorder.LastValue) : 0;
+
+            private static long TotalCommandAttempts()
+            {
+                return FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Move)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.ScoutMove)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Gather)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.ReturnResource)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Build)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Attack)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Train)
+                    + FactionCommandService.GetCommandAttemptCount(
+                        CommanderCommandCategory.Rally);
+            }
+
+            private void CaptureLiveness(double elapsedRealSeconds, long pathRequests,
+                long commandAttempts)
+            {
+                MilitaryCommanderPolicy military = commander?.MilitaryPolicy;
+                StrategicIntentEvaluator strategy = commander?.StrategicIntent;
+                CommanderProgressDiagnostics progress = commander?.ProgressDiagnostics;
+                Vector3 armyPosition = military != null ? military.ArmyCentroid : default;
+                Vector3 targetPosition = default;
+                bool hasStrategicTarget = strategy != null && strategy.HasStrategicTarget;
+                bool hasOffensiveTarget = military != null && military.HasOffensiveTarget;
+                if (hasOffensiveTarget)
+                    targetPosition = military.OffensiveTarget.LastKnownPosition;
+                else if (hasStrategicTarget)
+                    targetPosition = strategy.StrategicTarget.LastKnownPosition;
+                liveness.Add(new LivenessSnapshot
+                {
+                    elapsedRealSeconds = elapsedRealSeconds,
+                    gameTime = Time.time,
+                    matchSpeed = MatchSpeedController.Instance != null
+                        ? MatchSpeedController.Instance.DesiredSpeed : Time.timeScale,
+                    commanderThinkTick = commander != null
+                        ? unchecked((long)commander.ThinkTick) : 0,
+                    intent = strategy != null ? strategy.CurrentIntent.ToString() : "None",
+                    intentAge = strategy != null ? strategy.IntentAge(Time.time) : -1f,
+                    armyState = military != null ? military.Army.State.ToString() : "None",
+                    tacticalState = military != null
+                        ? military.Tactical.State.ToString() : "None",
+                    armySize = military?.Army?.Members.Count ?? 0,
+                    offensiveParticipants = military?.OffensiveParticipantCount ?? 0,
+                    armyX = armyPosition.x,
+                    armyY = armyPosition.y,
+                    hasStrategicTarget = hasStrategicTarget,
+                    strategicTargetId = hasStrategicTarget
+                        ? strategy.StrategicTarget.RuntimeId.ToString() : "None",
+                    hasOffensiveTarget = hasOffensiveTarget,
+                    offensiveTargetId = hasOffensiveTarget
+                        ? military.OffensiveTarget.RuntimeId.ToString() : "None",
+                    targetX = targetPosition.x,
+                    targetY = targetPosition.y,
+                    distanceToTarget = hasOffensiveTarget || hasStrategicTarget
+                        ? Vector3.Distance(armyPosition, targetPosition) : -1f,
+                    secondsSinceMilitaryProgress = military != null
+                        && military.LastMilitaryProgressTime >= 0f
+                        ? Time.time - military.LastMilitaryProgressTime : -1f,
+                    secondsSinceMeaningfulAction = progress != null
+                        && progress.LastMeaningfulActionTime >= 0f
+                        ? Time.time - progress.LastMeaningfulActionTime : -1f,
+                    stagingRecoveryCount = military?.StagingRecoveryCount ?? 0,
+                    objectiveFailureCount = military?.ObjectiveFailureCount ?? 0,
+                    totalPathRequests = pathRequests,
+                    totalAiCommands = commandAttempts
+                });
+            }
+
+            private void CaptureSpike(double frameMs, long gcBytes, long pathRequests,
+                long commands, string largestMarker, double largestMarkerMs)
+            {
+                double now = EditorApplication.timeSinceStartup;
+                bool newSample = now - lastSpikeSampleAt >= SpikeSampleIntervalSeconds;
+                bool newPeak = peakSpike == null || frameMs > peakSpike.frameMs;
+                bool strongerRecentSpike = !newSample && spikes.Count > 0
+                    && frameMs > spikes[spikes.Count - 1].frameMs;
+                if (!newSample && !newPeak && !strongerRecentSpike) return;
+
+                if (newPeak)
+                {
+                    peakSpike ??= new FrameSpikeSnapshot();
+                    PopulateSpike(peakSpike, frameMs, gcBytes, pathRequests,
+                        commands, largestMarker, largestMarkerMs);
+                }
+
+                if (newSample)
+                {
+                    FrameSpikeSnapshot snapshot;
+                    if (spikes.Count == MaximumSpikeSnapshots)
+                    {
+                        snapshot = spikes[0];
+                        spikes.RemoveAt(0);
+                    }
+                    else snapshot = new FrameSpikeSnapshot();
+                    PopulateSpike(snapshot, frameMs, gcBytes, pathRequests,
+                        commands, largestMarker, largestMarkerMs);
+                    spikes.Add(snapshot);
+                    lastSpikeSampleAt = now;
+                }
+                else if (strongerRecentSpike)
+                    PopulateSpike(spikes[spikes.Count - 1], frameMs, gcBytes,
+                        pathRequests, commands, largestMarker, largestMarkerMs);
+            }
+
+            private void PopulateSpike(FrameSpikeSnapshot snapshot, double frameMs,
+                long gcBytes, long pathRequests, long commands, string largestMarker,
+                double largestMarkerMs)
+            {
+                GameplayAudioService audio = GameplayAudioService.Instance;
+                snapshot.frameMs = frameMs;
+                snapshot.gameTime = Time.time;
+                snapshot.gcBytes = gcBytes;
+                snapshot.pathRequests = pathRequests;
+                snapshot.aiCommands = commands;
+                snapshot.currentIntent = commander != null
+                    ? commander.StrategicIntent.CurrentIntent.ToString() : "None";
+                snapshot.tacticalState = commander != null
+                    ? commander.MilitaryPolicy.Tactical.State.ToString() : "None";
+                snapshot.armySize = commander?.MilitaryPolicy?.Army?.Members.Count ?? 0;
+                snapshot.knownResources = commander?.Knowledge?.KnownResources.Count ?? 0;
+                snapshot.knownEnemyBuildings =
+                    commander?.Knowledge?.KnownEnemyBuildings.Count ?? 0;
+                snapshot.scoutCandidates =
+                    commander?.ScoutingPolicy?.FrontierCandidateCount ?? 0;
+                snapshot.tacticalCandidates = commander?.MilitaryPolicy?.Tactical
+                    ?.LocalCandidateCount ?? 0;
+                snapshot.targetAssignments = commander?.MilitaryPolicy?.Tactical
+                    ?.TargetAssignmentCount ?? 0;
+                snapshot.audioPoolSize = audio != null ? audio.PoolSize : 0;
+                snapshot.activeAudioSources = audio != null
+                    ? audio.ActiveOneShots + audio.ActiveLoops : 0;
+                snapshot.largestAiSubsystem = largestMarker;
+                snapshot.largestAiSubsystemMs = largestMarkerMs;
+                snapshot.strategicMs = LastMarkerMilliseconds(
+                    "TinyKingdom.AI.StrategicIntent.Evaluate");
+                snapshot.tacticalMs = LastMarkerMilliseconds(
+                    "TinyKingdom.AI.TacticalArmy.Evaluate");
+                snapshot.scoutMs = LastMarkerMilliseconds("TinyKingdom.AI.ScoutingPolicy");
+                snapshot.economyMs = LastMarkerMilliseconds("TinyKingdom.AI.EconomyPolicy");
+                snapshot.productionMs = LastMarkerMilliseconds(
+                    "TinyKingdom.AI.ProductionPolicy");
+                snapshot.safetyMapMs = LastMarkerMilliseconds(
+                    "TinyKingdom.AI.StrategicSafetyMapUpdate");
+                snapshot.resourceClusterMs = LastMarkerMilliseconds(
+                    "TinyKingdom.AI.EconomicClusterRefresh");
+            }
+
+            private double LastMarkerMilliseconds(string markerName)
+            {
+                for (int i = 0; i < MarkerNames.Length; i++)
+                    if (MarkerNames[i] == markerName)
+                        return recorders[i].Valid
+                            ? recorders[i].LastValue / 1_000_000d : 0d;
+                return 0d;
             }
 
             public void Dispose()

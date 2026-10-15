@@ -12,7 +12,12 @@ namespace TinyKingdom.Navigation
         CommanderBuild,
         CommanderRally,
         CommanderScout,
-        EconomyReturn
+        EconomyReturn,
+        MilitaryMove,
+        MilitaryFormation,
+        MilitaryCombat,
+        MilitaryRegroup,
+        ResourceFallback
     }
 
     public sealed class PathfindingSystem : MonoBehaviour

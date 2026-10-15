@@ -29,7 +29,7 @@ namespace TinyKingdom.AI
     public sealed class StrategicSafetyMap
     {
         private static readonly ProfilerMarker UpdateMarker =
-            new("TinyKingdom.AI.StrategicSafety");
+            new("TinyKingdom.AI.StrategicSafetyMapUpdate");
         private const float DefensiveSafetyMargin = 1.5f;
         private const float MilitaryReactionBuffer = 2.5f;
         private const float EnemyBaseOuterBuffer = 3f;

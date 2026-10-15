@@ -4,6 +4,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.AI
@@ -11,6 +12,14 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class ProductionCommanderPolicy
     {
+        private static readonly ProfilerMarker StagingSelectionMarker =
+            new("TinyKingdom.AI.Staging.Select");
+        private static readonly ProfilerMarker EnemyCompositionMarker =
+            new("TinyKingdom.AI.EnemyCompositionEvaluation");
+        private static readonly ProfilerMarker DesiredCompositionMarker =
+            new("TinyKingdom.AI.DesiredComposition");
+        private static readonly ProfilerMarker CandidateScoreMarker =
+            new("TinyKingdom.AI.ProductionCandidateScore");
         private static readonly UnitType[] MilitaryTypes =
         {
             UnitType.Warrior, UnitType.Archer, UnitType.Lancer, UnitType.Monk
@@ -58,6 +67,8 @@ namespace TinyKingdom.AI
         private bool hasDesiredComposition;
         private bool hasStagingCell;
         private Vector2Int stagingCell = new(-1, -1);
+        private Vector2Int excludedStagingCell = new(-1, -1);
+        private float stagingExclusionUntil;
         private UnitType? lastPreferredMilitary;
 
         public int TargetPawnCount => targetPawnCount;
@@ -117,6 +128,18 @@ namespace TinyKingdom.AI
             InfrastructureRequestCount = 0;
         }
 
+        public void InvalidateRallyStagingCell(bool avoidCurrent = false, float now = 0f)
+        {
+            if (avoidCurrent && hasStagingCell)
+            {
+                excludedStagingCell = stagingCell;
+                stagingExclusionUntil = now + 20f;
+            }
+            hasStagingCell = false;
+            stagingCell = new Vector2Int(-1, -1);
+            nextRallyAttemptTime = 0f;
+        }
+
         public void Reset()
         {
             producers.Clear();
@@ -137,6 +160,8 @@ namespace TinyKingdom.AI
             hasDesiredComposition = false;
             hasStagingCell = false;
             stagingCell = new Vector2Int(-1, -1);
+            excludedStagingCell = new Vector2Int(-1, -1);
+            stagingExclusionUntil = 0f;
             LivingPawnCount = MilitaryPopulation = QueuedMilitaryPopulation = 0;
             EffectiveFreePopulation = 0;
             PopulationBlocked = false;
@@ -158,13 +183,17 @@ namespace TinyKingdom.AI
             RefreshState(context.Knowledge);
             MaintainMilitaryRallies(context);
             enemyComposition ??= new EnemyCompositionMemory();
-            bool newIntel = enemyComposition.Refresh(context.Knowledge, context.Time);
+            bool newIntel;
+            using (EnemyCompositionMarker.Auto())
+                newIntel = enemyComposition.Refresh(context.Knowledge, context.Time);
             RefreshIntelDiagnostics(context.Time);
             bool majorIntel = newIntel && IsMajorIntelligenceChange();
             if (!hasDesiredComposition || context.Time >= nextStrategyEvaluationTime
                 || majorIntel)
-                EvaluateDesiredComposition(context, majorIntel);
-            RefreshDeficitsAndScores(context);
+                using (DesiredCompositionMarker.Auto())
+                    EvaluateDesiredComposition(context, majorIntel);
+            using (CandidateScoreMarker.Auto())
+                RefreshDeficitsAndScores(context);
 
             ActiveProductionDecision = null;
             PopulationBlocked = false;
@@ -574,7 +603,10 @@ namespace TinyKingdom.AI
         private void MaintainMilitaryRallies(CommanderDecisionContext context)
         {
             if (context.Time < nextRallyAttemptTime) return;
-            if (!hasStagingCell && !TryFindStagingCell(context.Knowledge, out stagingCell))
+            if (hasStagingCell && !IsValidStagingCell(context.Knowledge, stagingCell))
+                InvalidateRallyStagingCell();
+            if (!hasStagingCell && !TryFindStagingCell(context.Knowledge,
+                    context.Time, out stagingCell))
             {
                 nextRallyAttemptTime = context.Time + rejectedCommandRetrySeconds;
                 return;
@@ -599,9 +631,10 @@ namespace TinyKingdom.AI
             }
         }
 
-        private static bool TryFindStagingCell(FactionKnowledge knowledge,
+        private bool TryFindStagingCell(FactionKnowledge knowledge, float now,
             out Vector2Int result)
         {
+            using var marker = StagingSelectionMarker.Auto();
             result = default;
             GridManager grid = knowledge.TeamVision?.GridManager;
             if (grid == null || !TryGetCastle(knowledge, out IDefensiveBuildingHost castle))
@@ -615,14 +648,28 @@ namespace TinyKingdom.AI
             {
                 Vector2Int cellPosition = center + new Vector2Int(direction * distance,
                     side * sign);
+                if (now < stagingExclusionUntil
+                    && cellPosition == excludedStagingCell) continue;
                 GridCell cell = grid.GetCell(cellPosition.x, cellPosition.y);
-                if (cell == null || !cell.Walkable || !knowledge.IsCellExplored(cellPosition)
+                if (cell == null || !TerrainRules.IsStableStandingCell(cell)
+                    || !knowledge.IsCellExplored(cellPosition)
                     || IsNearKnownResource(knowledge, cellPosition, 2)
                     || IsInsideOwnBuilding(knowledge, cellPosition)) continue;
                 result = cellPosition;
                 return true;
             }
             return false;
+        }
+
+        public static bool IsValidStagingCell(FactionKnowledge knowledge,
+            Vector2Int position)
+        {
+            GridCell cell = knowledge?.TeamVision?.GridManager?.GetCell(position.x,
+                position.y);
+            return cell != null && TerrainRules.IsStableStandingCell(cell)
+                && knowledge.IsCellExplored(position)
+                && !IsNearKnownResource(knowledge, position, 2)
+                && !IsInsideOwnBuilding(knowledge, position);
         }
 
         private static bool IsNearKnownResource(FactionKnowledge knowledge,

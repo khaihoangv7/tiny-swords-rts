@@ -61,6 +61,8 @@ namespace TinyKingdom.AI
             new("TinyKingdom.AI.RetreatExecution");
         private static readonly ProfilerMarker RecoveryEvaluationMarker =
             new("TinyKingdom.AI.RecoveryEvaluation");
+        private static readonly ProfilerMarker LivenessEvaluationMarker =
+            new("TinyKingdom.AI.MilitaryLiveness");
 
         [SerializeField, Min(1f)] private float baseDefenseRadius = 9f;
         [SerializeField, Min(1f)] private float defenseLeashRadius = 12f;
@@ -90,6 +92,13 @@ namespace TinyKingdom.AI
         [SerializeField, Range(0.5f, 1f)] private float recoveryAssemblyFraction = 0.75f;
         [SerializeField, Min(0.1f)] private float recoveryMinimumEffectiveStrength = 4f;
         [SerializeField, Min(1f)] private float failedObjectiveCooldown = 12f;
+        [Header("Phase 7E.5 liveness")]
+        [SerializeField, Min(2f)] private float militaryNoProgressSeconds = 12f;
+        [SerializeField, Min(1f)] private float stagingRecoveryCooldown = 4f;
+        [SerializeField, Min(2f)] private float attackIdleTimeout = 10f;
+        [SerializeField, Min(1)] private int offensiveStagingCommandsPerTick = 1;
+        [SerializeField, Min(1)] private int offensiveAdvanceCommandsPerTick = 1;
+        [SerializeField, Min(1)] private int offensiveAssaultCommandsPerTick = 1;
         [SerializeField] private TacticalArmyController tactical = new();
 
         private readonly ArmyGroup army = new();
@@ -98,6 +107,11 @@ namespace TinyKingdom.AI
         private readonly Dictionary<UnitController, Vector3> attackMoveIntents = new();
         private readonly Dictionary<UnitController, Vector3> formationIntents = new();
         private readonly Dictionary<UnitController, float> retryAfter = new();
+        private readonly Dictionary<UnitController, CommanderCommandResult>
+            lastCommandResults = new();
+        private readonly HashSet<CombatController> combatProgressSources = new();
+        private readonly HashSet<CombatController> currentCombatProgressSources = new();
+        private readonly List<CombatController> staleCombatProgressSources = new();
         private readonly List<UnitController> operationMembers = new();
         private readonly List<UnitController> staleActors = new();
         private readonly Dictionary<UnitController, Vector3> retreatDestinations = new();
@@ -145,6 +159,24 @@ namespace TinyKingdom.AI
         private bool recoveryReady;
         private bool resumeRecoveryAfterDefense;
         private float preparationStartTime;
+        private float lastMilitaryProgressTime = -1f;
+        private float lastAcceptedMilitaryCommandTime = -1f;
+        private float lastRejectedMilitaryCommandTime = -1f;
+        private float lastMilitaryPathRequestTime = -1f;
+        private float lastCombatActionTime = -1f;
+        private CommanderCommandResult lastMilitaryCommandResult;
+        private float lastObservedAssemblyFraction;
+        private int lastObservedMembershipVersion = -1;
+        private float nextStagingRecoveryTime;
+        private int stagingRecoveryCount;
+        private int offensiveStagingCommandCursor;
+        private int offensiveAdvanceCommandCursor;
+        private int offensiveAssaultCommandCursor;
+        private int advanceSweepMemberCount;
+        private int advanceSweepVisited;
+        private int advanceSweepAttempted;
+        private int advanceSweepAccepted;
+        private int advanceSweepFailed;
 
         public ArmyGroup Army => army;
         public TacticalArmyController Tactical => tactical ??= new TacticalArmyController();
@@ -204,6 +236,20 @@ namespace TinyKingdom.AI
             => recoveryMinimumEffectiveStrength > 0f ? recoveryMinimumEffectiveStrength : 4f;
         public float FailedObjectiveCooldown
             => failedObjectiveCooldown > 0f ? failedObjectiveCooldown : 12f;
+        public float MilitaryNoProgressSeconds => Mathf.Max(2f, militaryNoProgressSeconds);
+        public float StagingRecoveryCooldown => Mathf.Max(1f, stagingRecoveryCooldown);
+        public float AttackIdleTimeout => Mathf.Max(2f, attackIdleTimeout);
+        public int OffensiveStagingCommandsPerTick
+            => Mathf.Max(1, offensiveStagingCommandsPerTick);
+        public float LastMilitaryProgressTime => lastMilitaryProgressTime;
+        public float LastAcceptedMilitaryCommandTime => lastAcceptedMilitaryCommandTime;
+        public float LastRejectedMilitaryCommandTime => lastRejectedMilitaryCommandTime;
+        public float LastMilitaryPathRequestTime => lastMilitaryPathRequestTime;
+        public CommanderCommandResult LastMilitaryCommandResult => lastMilitaryCommandResult;
+        public int StagingRecoveryCount => stagingRecoveryCount;
+        public bool TryGetLastCommandResult(UnitController actor,
+            out CommanderCommandResult result)
+            => lastCommandResults.TryGetValue(actor, out result);
         public int CampaignStartPopulation => campaignStartPopulation;
         public int CampaignStartMemberCount => campaignStartMemberCount;
         public float CampaignStartEffectiveStrength => campaignStartEffectiveStrength;
@@ -251,6 +297,7 @@ namespace TinyKingdom.AI
             RemoveStaleIntents();
             RemoveStaleOperationMembers();
             RefreshAnchorAndStaging(context.Knowledge, production);
+            ObserveMovementProgress(context.Time);
             VisibleThreatCount = 0;
             if (!hasBaseAnchor || !hasStagingPosition)
             {
@@ -342,19 +389,24 @@ namespace TinyKingdom.AI
                 return;
             }
 
+            if (army.State == ArmyGroupState.PreparingAttack && !cohesionRegroup
+                && HandleStagingNoProgress(context, production, strategy,
+                    "PrepareAttack made no progress")) return;
+
             if (IsOffensiveState)
             {
                 TickOffense(context, safety);
                 return;
             }
 
-            bool sufficientlyStaged = recoveryReady
-                ? FractionInside(army.Members, stagingPosition, stagingRegionRadius)
-                    >= RecoveryAssemblyFraction
-                : FractionInside(army.Members, stagingPosition, stagingRegionRadius)
-                    >= AssembledFraction;
+            float requiredAssembly = recoveryReady
+                ? RecoveryAssemblyFraction : AssembledFraction;
+            bool sufficientlyStaged = IsAssemblyReady(army.Members, stagingPosition,
+                requiredAssembly);
             if (!sufficientlyStaged)
             {
+                if (HandleStagingNoProgress(context, production, strategy,
+                        "Routine staging stalled")) return;
                 if (army.State != ArmyGroupState.Regrouping)
                     army.SetState(ArmyGroupState.Forming);
                 Regroup(context, army.State == ArmyGroupState.Regrouping);
@@ -378,6 +430,11 @@ namespace TinyKingdom.AI
 
         public void Reset()
         {
+            foreach (CombatController combat in combatProgressSources)
+                if (combat != null) combat.AttackPerformed -= OnCombatAction;
+            combatProgressSources.Clear();
+            currentCombatProgressSources.Clear();
+            staleCombatProgressSources.Clear();
             EndRetreatDirectives(army.Members);
             army.Reset();
             attackIntents.Clear();
@@ -385,6 +442,7 @@ namespace TinyKingdom.AI
             attackMoveIntents.Clear();
             formationIntents.Clear();
             retryAfter.Clear();
+            lastCommandResults.Clear();
             operationMembers.Clear();
             staleActors.Clear();
             retreatDestinations.Clear();
@@ -425,6 +483,21 @@ namespace TinyKingdom.AI
             recoveryReady = false;
             resumeRecoveryAfterDefense = false;
             preparationStartTime = 0f;
+            lastMilitaryProgressTime = -1f;
+            lastAcceptedMilitaryCommandTime = -1f;
+            lastRejectedMilitaryCommandTime = -1f;
+            lastMilitaryPathRequestTime = -1f;
+            lastCombatActionTime = -1f;
+            lastMilitaryCommandResult = default;
+            lastObservedAssemblyFraction = 0f;
+            lastObservedMembershipVersion = -1;
+            nextStagingRecoveryTime = 0f;
+            stagingRecoveryCount = 0;
+            offensiveStagingCommandCursor = 0;
+            offensiveAdvanceCommandCursor = 0;
+            offensiveAssaultCommandCursor = 0;
+            advanceSweepMemberCount = advanceSweepVisited = 0;
+            advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
             OffensiveLaunchSerial = 0;
             LastOffensiveLaunchTime = -1f;
             TargetCompletionSerial = 0;
@@ -460,6 +533,10 @@ namespace TinyKingdom.AI
                     operationMembers.Add(army.Members[i]);
                 operationStartTime = context.Time;
                 preparationStartTime = context.Time;
+                lastMilitaryProgressTime = context.Time;
+                stagingRecoveryCount = 0;
+                offensiveStagingCommandCursor = 0;
+                offensiveAdvanceCommandCursor = 0;
                 objectiveFailureCount = 0;
                 cohesionRegroup = false;
                 recoveryReady = false;
@@ -583,6 +660,11 @@ namespace TinyKingdom.AI
                 return;
             }
 
+            // PreparingAttack has its own staging watchdog. Running the shorter
+            // attack timeout here would reset its clock before it can fire.
+            if (army.State != ArmyGroupState.PreparingAttack
+                && HandleAttackNoProgress(context, safety)) return;
+
             if (army.State is ArmyGroupState.Advancing or ArmyGroupState.Assaulting
                 && EvaluateRetreat(context))
             {
@@ -615,8 +697,9 @@ namespace TinyKingdom.AI
                     stagingRegionRadius);
                 bool timedOut = context.Time - preparationStartTime
                     >= PreparationTimeoutSeconds;
-                if ((assembled >= AssembledFraction
-                        || timedOut && assembled >= TimeoutAssemblyFraction)
+                bool robustArrival = IsAssemblyReady(operationMembers, assembly,
+                    timedOut ? TimeoutAssemblyFraction : AssembledFraction);
+                if (robustArrival
                     && (cohesionRegroup || PopulationOf(operationMembers)
                         >= MinOffensiveMilitaryPopulation))
                 {
@@ -635,13 +718,24 @@ namespace TinyKingdom.AI
                     IssueAdvance(context, safety, true);
                     return;
                 }
-                if (timedOut && assembled < TimeoutAssemblyFraction)
+                // Staging is recovered by the no-progress watchdog in Tick:
+                // stale assignments, then an alternate cell, then failure.
+                // The shorter preparation timeout must not preempt that path.
+                if (timedOut && cohesionRegroup
+                    && assembled < TimeoutAssemblyFraction)
                 {
                     FailOffense(context, "Attack assembly timed out");
                     return;
                 }
+                if (timedOut && !cohesionRegroup
+                    && PopulationOf(operationMembers)
+                        < MinOffensiveMilitaryPopulation)
+                {
+                    FailOffense(context, "Attack force fell below minimum while staging");
+                    return;
+                }
                 RegroupMembers(context, operationMembers, assembly, true,
-                    safety?.ArmyTraversal);
+                    safety?.ArmyTraversal, OffensiveStagingCommandsPerTick);
             }
         }
 
@@ -686,46 +780,77 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety, bool force)
         {
             EnsureOffensiveDestinations(context.Knowledge);
-            int attempted = 0;
-            int accepted = 0;
-            int failed = 0;
-            for (int i = 0; i < operationMembers.Count; i++)
+            int count = operationMembers.Count;
+            if (count == 0) return;
+            if (advanceSweepMemberCount != count)
             {
+                advanceSweepMemberCount = count;
+                advanceSweepVisited = 0;
+                advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
+            }
+            int start = offensiveAdvanceCommandCursor % count;
+            int issued = 0;
+            for (int offset = 0; offset < count; offset++)
+            {
+                int i = (start + offset) % count;
                 UnitController member = operationMembers[i];
                 if (IsMonk(member))
                 {
-                    SupportOffense(context, member, safety);
-                    continue;
+                    if (SupportOffense(context, member, safety)) issued++;
                 }
-                if (!attackMoveIntents.TryGetValue(member, out Vector3 destination))
-                    continue;
-                CombatController combat = member.GetComponent<CombatController>();
-                if (!force && combat != null
-                    && (combat.HasAttackMoveOrder || combat.Target != null)) continue;
-                if (context.Time < RetryTime(member)) continue;
-                attempted++;
-                CommanderCommandResult result = context.Commands.TryAttackMove(member,
-                    destination, safety?.ArmyTraversal);
-                if (result == CommanderCommandResult.Accepted)
+                else if (attackMoveIntents.TryGetValue(member, out Vector3 destination)
+                    && (force || !HasActiveAttackOrder(member))
+                    && context.Time >= RetryTime(member))
                 {
-                    attackMoveIntents[member] = destination;
-                    moveIntents.Remove(member);
-                    accepted++;
+                    advanceSweepAttempted++;
+                    issued++;
+                    CommanderCommandResult result = context.Commands.TryAttackMove(member,
+                        destination, safety?.ArmyTraversal);
+                    RecordCommandResult(result, context.Time,
+                        member.GetComponent<UnitMovement>());
+                    if (result == CommanderCommandResult.Accepted)
+                    {
+                        attackMoveIntents[member] = destination;
+                        moveIntents.Remove(member);
+                        advanceSweepAccepted++;
+                    }
+                    else
+                    {
+                        retryAfter[member] = context.Time + commandRetrySeconds;
+                        if (result == CommanderCommandResult.RejectedUnreachable
+                            || result == CommanderCommandResult.RejectedInvalidTarget)
+                            advanceSweepFailed++;
+                    }
                 }
-                else
+                // Evaluate route failure only after every member had a chance.
+                // A one-command budget must not fail an objective after trying
+                // just the first few members of a larger army.
+                if (++advanceSweepVisited == count)
                 {
-                    retryAfter[member] = context.Time + commandRetrySeconds;
-                    if (result == CommanderCommandResult.RejectedUnreachable
-                        || result == CommanderCommandResult.RejectedInvalidTarget) failed++;
+                    if (advanceSweepAttempted > 0 && advanceSweepAccepted == 0
+                        && advanceSweepFailed > 0)
+                    {
+                        objectiveFailureCount++;
+                        if (objectiveFailureCount >= maximumObjectiveFailures)
+                        {
+                            FailOffense(context, "Objective route repeatedly failed");
+                            return;
+                        }
+                    }
+                    advanceSweepVisited = 0;
+                    advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
                 }
+                offensiveAdvanceCommandCursor = (i + 1) % count;
+                if (issued >= Mathf.Max(1, offensiveAdvanceCommandsPerTick)) return;
             }
-            if (attempted > 0 && accepted == 0 && failed > 0)
-            {
-                objectiveFailureCount++;
-                if (objectiveFailureCount >= maximumObjectiveFailures)
-                    FailOffense(context, "Objective route repeatedly failed");
-            }
-            else if (accepted > 0) objectiveFailureCount = 0;
+            // An accepted order is not movement or combat progress. The
+            // no-progress watchdog retains failures until actual progress.
+        }
+
+        private static bool HasActiveAttackOrder(UnitController member)
+        {
+            CombatController combat = member.GetComponent<CombatController>();
+            return combat != null && (combat.HasAttackMoveOrder || combat.Target != null);
         }
 
         private void TickAssault(CommanderDecisionContext context,
@@ -748,35 +873,46 @@ namespace TinyKingdom.AI
                 objectiveReason = "Clear visible defenders";
                 return;
             }
-            for (int i = 0; i < operationMembers.Count; i++)
+            int count = operationMembers.Count;
+            if (count == 0) return;
+            int start = offensiveAssaultCommandCursor % count;
+            int issued = 0;
+            for (int offset = 0; offset < count; offset++)
             {
+                int i = (start + offset) % count;
                 UnitController member = operationMembers[i];
                 if (IsMonk(member))
                 {
-                    SupportOffense(context, member, safety);
-                    continue;
+                    if (SupportOffense(context, member, safety)) issued++;
                 }
-                CombatController combat = member.GetComponent<CombatController>();
-                if (combat?.BuildingTarget != null
-                    && combat.BuildingTarget.GetEntityId().CompareTo(
-                        offensiveTarget.RuntimeId) == 0)
+                else
                 {
-                    attackIntents[member] = offensiveTarget.RuntimeId;
-                    continue;
+                    CombatController combat = member.GetComponent<CombatController>();
+                    if (combat?.BuildingTarget != null
+                        && combat.BuildingTarget.GetEntityId().CompareTo(
+                            offensiveTarget.RuntimeId) == 0)
+                        attackIntents[member] = offensiveTarget.RuntimeId;
+                    else if (context.Time >= RetryTime(member))
+                    {
+                        issued++;
+                        CommanderCommandResult result = context.Commands.TryAttackBuilding(
+                            member, offensiveTarget.RuntimeId);
+                        RecordCommandResult(result, context.Time,
+                            member.GetComponent<UnitMovement>());
+                        if (result == CommanderCommandResult.Accepted)
+                        {
+                            attackIntents[member] = offensiveTarget.RuntimeId;
+                            attackMoveIntents.Remove(member);
+                        }
+                        else retryAfter[member] = context.Time + commandRetrySeconds;
+                    }
                 }
-                if (context.Time < RetryTime(member)) continue;
-                CommanderCommandResult result = context.Commands.TryAttackBuilding(member,
-                    offensiveTarget.RuntimeId);
-                if (result == CommanderCommandResult.Accepted)
-                {
-                    attackIntents[member] = offensiveTarget.RuntimeId;
-                    attackMoveIntents.Remove(member);
-                }
-                else retryAfter[member] = context.Time + commandRetrySeconds;
+                offensiveAssaultCommandCursor = (i + 1) % count;
+                if (issued >= Mathf.Max(1, offensiveAssaultCommandsPerTick)) return;
             }
         }
 
-        private void SupportOffense(CommanderDecisionContext context,
+        private bool SupportOffense(CommanderDecisionContext context,
             UnitController monk, StrategicSafetyMap safety)
         {
             Vector3 desired;
@@ -788,11 +924,11 @@ namespace TinyKingdom.AI
                 desired = centroid + (Vector3)(away.normalized * 1.5f);
             }
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
-            if (grid == null) return;
+            if (grid == null) return false;
             Vector2Int cell = grid.WorldToGrid(desired);
             List<GridCell> choices = DestinationDistributor.FindNearbyDestinations(
                 grid, cell, 1, 3, true);
-            if (choices.Count == 0) return;
+            if (choices.Count == 0) return false;
             desired = choices[0].WorldPosition;
             UnitMovement movement = monk.GetComponent<UnitMovement>();
             if (Vector2.Distance(monk.transform.position, desired)
@@ -800,11 +936,13 @@ namespace TinyKingdom.AI
                 || movement != null && movement.IsMoving
                     && moveIntents.TryGetValue(monk, out Vector3 existing)
                     && Vector2.Distance(existing, desired) <= 0.5f
-                || context.Time < RetryTime(monk)) return;
-            CommanderCommandResult result = context.Commands.TryMove(monk, desired,
+                || context.Time < RetryTime(monk)) return false;
+            CommanderCommandResult result = context.Commands.TryMilitaryMove(monk, desired,
                 safety?.ArmyTraversal);
+            RecordCommandResult(result, context.Time, movement);
             if (result == CommanderCommandResult.Accepted) moveIntents[monk] = desired;
             else retryAfter[monk] = context.Time + commandRetrySeconds;
+            return true;
         }
 
         private void CaptureCampaignBaseline()
@@ -1009,8 +1147,9 @@ namespace TinyKingdom.AI
                 if (!force && movement != null && movement.IsMoving
                     && combat?.Directive == CombatDirective.Retreat) continue;
                 if (context.Time < RetryTime(member)) continue;
-                context.Commands.TryRetreatMove(member, destination,
-                    safety?.ArmyTraversal);
+                CommanderCommandResult result = context.Commands.TryRetreatMove(member,
+                    destination, safety?.ArmyTraversal);
+                RecordCommandResult(result, context.Time, movement);
                 retryAfter[member] = context.Time + commandRetrySeconds;
             }
         }
@@ -1056,6 +1195,19 @@ namespace TinyKingdom.AI
                 ClearCommandIntents();
                 nextOffensiveEvaluationTime = Mathf.Max(nextOffensiveEvaluationTime,
                     context.Time + 0.5f);
+                return;
+            }
+            if (durationFallback)
+            {
+                recoveryReady = population >= MinOffensiveMilitaryPopulation
+                    && assembled >= TimeoutAssemblyFraction;
+                army.SetState(recoveryReady
+                    ? ArmyGroupState.Ready : ArmyGroupState.Forming);
+                objectiveReason = "Recovery timeout; rebuild at staging";
+                ClearCommandIntents();
+                nextOffensiveEvaluationTime = Mathf.Max(nextOffensiveEvaluationTime,
+                    context.Time + 0.5f);
+                lastMilitaryProgressTime = context.Time;
                 return;
             }
             if (assembled < RecoveryAssemblyFraction)
@@ -1225,6 +1377,8 @@ namespace TinyKingdom.AI
                 if (context.Time < RetryTime(member)) continue;
                 CommanderCommandResult result = context.Commands.TryAttack(member,
                     threat.RuntimeId);
+                RecordCommandResult(result, context.Time,
+                    member.GetComponent<UnitMovement>());
                 if (result == CommanderCommandResult.Accepted)
                 {
                     attackIntents[member] = threat.RuntimeId;
@@ -1265,7 +1419,9 @@ namespace TinyKingdom.AI
                 return;
             if (moveIntents.TryGetValue(monk, out Vector3 existing)
                 && Vector2.Distance(existing, desired) <= 0.5f) return;
-            CommanderCommandResult result = context.Commands.TryMove(monk, desired);
+            CommanderCommandResult result = context.Commands.TryMilitaryDirectMove(monk,
+                desired);
+            RecordCommandResult(result, context.Time, movement);
             if (result == CommanderCommandResult.Accepted) moveIntents[monk] = desired;
             else retryAfter[monk] = context.Time + commandRetrySeconds;
         }
@@ -1281,7 +1437,7 @@ namespace TinyKingdom.AI
 
         private void RegroupMembers(CommanderDecisionContext context,
             IReadOnlyList<UnitController> members, Vector3 center, bool interruptCombat,
-            IPathTraversalPolicy traversalPolicy)
+            IPathTraversalPolicy traversalPolicy, int commandBudget = int.MaxValue)
         {
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null) return;
@@ -1299,29 +1455,48 @@ namespace TinyKingdom.AI
                         moveIntents[members[i]] = destinations[i].WorldPosition;
                 }
             }
-            IssueMoveAssignments(context, members, interruptCombat, traversalPolicy);
+            IssueMoveAssignments(context, members, interruptCombat, traversalPolicy,
+                commandBudget);
         }
 
         private void IssueMoveAssignments(CommanderDecisionContext context,
             IReadOnlyList<UnitController> members, bool interruptCombat,
-            IPathTraversalPolicy traversalPolicy)
+            IPathTraversalPolicy traversalPolicy, int commandBudget = int.MaxValue)
         {
-            for (int i = 0; i < members.Count; i++)
+            int count = members.Count;
+            if (count == 0) return;
+            bool bounded = commandBudget < count;
+            int start = bounded ? offensiveStagingCommandCursor % count : 0;
+            int issued = 0;
+            for (int offset = 0; offset < count; offset++)
             {
+                int i = (start + offset) % count;
                 UnitController member = members[i];
                 if (!moveIntents.TryGetValue(member, out Vector3 destination)) continue;
                 if (Vector2.Distance(member.transform.position, destination)
                     <= destinationArrivalRadius) continue;
                 UnitMovement movement = member.GetComponent<UnitMovement>();
-                if (!interruptCombat && movement != null && movement.IsMoving) continue;
-                if (interruptCombat && movement != null && movement.IsMoving
+                bool activeRoute = movement != null && movement.IsMoving;
+                bool staleRoute = activeRoute
+                    && context.Time - movement.LastMovementProgressTime
+                        >= MilitaryNoProgressSeconds;
+                if (!staleRoute && !interruptCombat && activeRoute) continue;
+                if (!staleRoute && interruptCombat && activeRoute
                     && member.CurrentState == UnitState.Moving) continue;
                 if (context.Time < RetryTime(member)) continue;
-                CommanderCommandResult result = context.Commands.TryMove(member,
-                    destination, traversalPolicy);
+                CommanderCommandResult result = context.Commands.TryMilitaryMove(member,
+                    destination, traversalPolicy, true);
+                RecordCommandResult(result, context.Time, movement);
                 if (result != CommanderCommandResult.Accepted)
                     retryAfter[member] = context.Time + commandRetrySeconds;
+                if (bounded && ++issued >= commandBudget)
+                {
+                    offensiveStagingCommandCursor = (i + 1) % count;
+                    break;
+                }
             }
+            if (bounded && issued < commandBudget)
+                offensiveStagingCommandCursor = (start + 1) % count;
         }
 
         private void EnsureMoveAssignments(FactionKnowledge knowledge)
@@ -1407,12 +1582,252 @@ namespace TinyKingdom.AI
             return (float)inside / members.Count;
         }
 
+        private bool IsAssemblyReady(IReadOnlyList<UnitController> members,
+            Vector3 center, float requiredFraction)
+        {
+            if (members.Count == 0) return false;
+            float fraction = FractionInside(members, center, stagingRegionRadius);
+            if (fraction >= requiredFraction) return true;
+            float majority = Mathf.Min(requiredFraction,
+                Mathf.Max(0.5f, TimeoutAssemblyFraction));
+            bool anchorClose = Vector2.Distance(Tactical.ArmyAnchor, center)
+                <= stagingRegionRadius * 1.35f;
+            int allowedStragglers = Mathf.Max(1, members.Count / 3);
+            return fraction >= majority && anchorClose
+                && Tactical.StragglerCount <= allowedStragglers;
+        }
+
+        private void ObserveMovementProgress(float now)
+        {
+            using var marker = LivenessEvaluationMarker.Auto();
+            IReadOnlyList<UnitController> members = IsOffensiveState
+                && operationMembers.Count > 0 ? operationMembers : army.Members;
+            SyncCombatProgressSources(members);
+            bool staging = army.State is ArmyGroupState.Forming
+                or ArmyGroupState.Regrouping or ArmyGroupState.PreparingAttack
+                or ArmyGroupState.Recovering;
+            Vector3 assembly = army.State == ArmyGroupState.PreparingAttack
+                && cohesionRegroup ? cohesionRegroupPosition : stagingPosition;
+            float assembled = staging && hasStagingPosition
+                ? FractionInside(members, assembly, stagingRegionRadius) : 0f;
+            if (lastMilitaryProgressTime < 0f)
+            {
+                lastMilitaryProgressTime = now;
+                lastObservedAssemblyFraction = assembled;
+            }
+            if (!IsOffensiveState
+                && lastObservedMembershipVersion != army.MembershipVersion)
+            {
+                lastObservedMembershipVersion = army.MembershipVersion;
+                // Newly trained units change the assembly fraction but do not
+                // prove that already-stalled members can reach staging.
+                lastObservedAssemblyFraction = assembled;
+            }
+            bool progressed = staging
+                ? assembled > lastObservedAssemblyFraction + 0.04f
+                : IsOffensiveState
+                    && lastCombatActionTime > lastMilitaryProgressTime;
+            int membersOutsideAssembly = 0;
+            int membersMovingToAssembly = 0;
+            float assemblyRadiusSquared = stagingRegionRadius * stagingRegionRadius;
+            float assignmentRadiusSquared = assemblyRadiusSquared * 4f;
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitController member = members[i];
+                if (member == null) continue;
+                UnitMovement movement = member.GetComponent<UnitMovement>();
+                bool movedAfterCommand = movement != null
+                    && movement.LastMovementProgressTime > lastMilitaryProgressTime
+                    && movement.LastMovementProgressTime
+                        > movement.LastAcceptedCommandTime;
+                if (staging && hasStagingPosition)
+                {
+                    if (DistanceSquared(member.transform.position, assembly)
+                        > assemblyRadiusSquared)
+                    {
+                        membersOutsideAssembly++;
+                        if (movedAfterCommand
+                            && moveIntents.TryGetValue(member, out Vector3 destination)
+                            && DistanceSquared(destination, assembly)
+                                <= assignmentRadiusSquared)
+                            membersMovingToAssembly++;
+                    }
+                }
+                else if (movedAfterCommand && IsOffensiveState
+                    && !IsMonk(member)
+                    && (attackMoveIntents.ContainsKey(member)
+                        || army.State == ArmyGroupState.Assaulting
+                            && IsOffensiveTargetVisible
+                            && attackIntents.TryGetValue(member,
+                                out EntityId assaultTarget)
+                            && assaultTarget.CompareTo(offensiveTarget.RuntimeId) == 0))
+                    // Chasing a visible building is progress too, even after
+                    // Advance replaces the attack-move intent with an attack.
+                    progressed = true;
+                if (movement != null)
+                    lastMilitaryPathRequestTime = Mathf.Max(lastMilitaryPathRequestTime,
+                        movement.LastPathRequestTime);
+            }
+            if (staging && membersOutsideAssembly > 0
+                && membersMovingToAssembly >= Mathf.CeilToInt(
+                    membersOutsideAssembly * 0.6f))
+                progressed = true;
+            lastAcceptedMilitaryCommandTime = Mathf.Max(lastAcceptedMilitaryCommandTime,
+                Tactical.LastAcceptedCommandTime);
+            lastRejectedMilitaryCommandTime = Mathf.Max(lastRejectedMilitaryCommandTime,
+                Tactical.LastRejectedCommandTime);
+            if (progressed)
+            {
+                lastMilitaryProgressTime = now;
+                stagingRecoveryCount = 0;
+                if (IsOffensiveState && !staging) objectiveFailureCount = 0;
+            }
+            lastObservedAssemblyFraction = assembled;
+        }
+
+        private void SyncCombatProgressSources(IReadOnlyList<UnitController> members)
+        {
+            currentCombatProgressSources.Clear();
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitController member = members[i];
+                if (member == null || !member.IsAlive) continue;
+                CombatController combat = member.GetComponent<CombatController>();
+                if (combat == null) continue;
+                currentCombatProgressSources.Add(combat);
+                if (combatProgressSources.Add(combat))
+                    combat.AttackPerformed += OnCombatAction;
+            }
+            staleCombatProgressSources.Clear();
+            foreach (CombatController combat in combatProgressSources)
+                if (!currentCombatProgressSources.Contains(combat))
+                    staleCombatProgressSources.Add(combat);
+            for (int i = 0; i < staleCombatProgressSources.Count; i++)
+            {
+                CombatController combat = staleCombatProgressSources[i];
+                if (combat != null) combat.AttackPerformed -= OnCombatAction;
+                combatProgressSources.Remove(combat);
+            }
+        }
+
+        private void OnCombatAction(Vector2 direction)
+            => lastCombatActionTime = Time.time;
+
+        private bool HandleStagingNoProgress(CommanderDecisionContext context,
+            ProductionCommanderPolicy production, StrategicIntentEvaluator strategy,
+            string reason)
+        {
+            if (context.Time < nextStagingRecoveryTime
+                || context.Time - lastMilitaryProgressTime < MilitaryNoProgressSeconds)
+                return false;
+            nextStagingRecoveryTime = context.Time + StagingRecoveryCooldown;
+            stagingRecoveryCount++;
+            if (army.State == ArmyGroupState.PreparingAttack
+                && stagingRecoveryCount > 2)
+            {
+                FailOffense(context, "Attack assembly stalled after alternate staging");
+                return true;
+            }
+            bool valid = production != null && production.HasRallyStagingCell
+                && ProductionCommanderPolicy.IsValidStagingCell(context.Knowledge,
+                    production.RallyStagingCell)
+                && CanReachStaging(context.Knowledge,
+                    production.RallyStagingCell);
+            // A legal grid cell can still leave every route stuck. One retry of
+            // stale assignments is enough before choosing a different cell.
+            bool recompute = !valid || stagingRecoveryCount >= 2;
+            InvalidateMoveAssignments();
+            if (recompute)
+            {
+                production?.InvalidateRallyStagingCell(true, context.Time);
+                hasStagingPosition = false;
+                objectiveReason = reason + "; alternate staging requested";
+            }
+            else objectiveReason = reason + "; stale commands invalidated";
+            strategy?.RequestImmediateReevaluation();
+            lastMilitaryProgressTime = context.Time;
+            return recompute;
+        }
+
+        private bool CanReachStaging(FactionKnowledge knowledge,
+            Vector2Int destination)
+        {
+            GridManager grid = knowledge?.TeamVision?.GridManager;
+            PathfindingSystem paths = grid != null
+                ? grid.GetComponent<PathfindingSystem>() : null;
+            if (paths == null) return false;
+            IReadOnlyList<UnitController> members = IsOffensiveState
+                && operationMembers.Count > 0 ? operationMembers : army.Members;
+            UnitController representative = null;
+            for (int i = 0; i < members.Count; i++)
+            {
+                UnitController member = members[i];
+                if (member != null && member.IsAlive
+                    && Vector2.Distance(member.transform.position, stagingPosition)
+                        > stagingRegionRadius)
+                {
+                    representative = member;
+                    break;
+                }
+            }
+            if (representative == null) return true;
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.MilitaryRegroup);
+            return paths.FindPath(grid.WorldToGrid(representative.transform.position),
+                destination).Count > 0;
+        }
+
+        private bool HandleAttackNoProgress(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            if (context.Time - lastMilitaryProgressTime < AttackIdleTimeout)
+                return false;
+            objectiveFailureCount++;
+            ClearCommandIntents();
+            lastMilitaryProgressTime = context.Time;
+            objectiveReason = "Attack idle watchdog recovery";
+            if (objectiveFailureCount >= maximumObjectiveFailures)
+            {
+                FailOffense(context, "Attack made no movement or combat progress");
+                return true;
+            }
+            if (army.State == ArmyGroupState.PreparingAttack)
+            {
+                preparationStartTime = context.Time;
+                RegroupMembers(context, operationMembers,
+                    cohesionRegroup ? cohesionRegroupPosition : stagingPosition,
+                    true, safety?.ArmyTraversal, OffensiveStagingCommandsPerTick);
+            }
+            else IssueAdvance(context, safety, true);
+            return true;
+        }
+
+        private void RecordCommandResult(CommanderCommandResult result, float time,
+            UnitMovement movement)
+        {
+            lastMilitaryCommandResult = result;
+            if (movement != null)
+            {
+                UnitController actor = movement.GetComponent<UnitController>();
+                if (actor != null) lastCommandResults[actor] = result;
+            }
+            if (movement != null)
+                lastMilitaryPathRequestTime = Mathf.Max(lastMilitaryPathRequestTime,
+                    movement.LastPathRequestTime);
+            if (result == CommanderCommandResult.Accepted)
+            {
+                lastAcceptedMilitaryCommandTime = time;
+            }
+            else lastRejectedMilitaryCommandTime = time;
+        }
+
         private void RemoveStaleIntents()
         {
             RemoveStaleKeys(attackIntents);
             RemoveStaleKeys(moveIntents);
             RemoveStaleKeys(attackMoveIntents);
             RemoveStaleKeys(retryAfter);
+            RemoveStaleKeys(lastCommandResults);
         }
 
         private void RemoveStaleKeys<T>(Dictionary<UnitController, T> dictionary)
@@ -1455,6 +1870,9 @@ namespace TinyKingdom.AI
             formationIntents.Clear();
             retryAfter.Clear();
             assignmentMembershipVersion = -1;
+            offensiveAssaultCommandCursor = 0;
+            advanceSweepMemberCount = advanceSweepVisited = 0;
+            advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
         }
 
         private void InvalidateMoveAssignments()

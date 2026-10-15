@@ -1,5 +1,8 @@
 using System;
+using System.Text;
 using TinyKingdom.Economy;
+using TinyKingdom.Units;
+using UnityEngine;
 
 namespace TinyKingdom.AI
 {
@@ -20,6 +23,7 @@ namespace TinyKingdom.AI
         private int wood;
         private int gold;
         private float nextStallWarningTime;
+        private float nextMilitaryLivenessWarningTime;
 
         public float LastGatherAssignmentTime { get; private set; } = -1f;
         public float LastBuildCommandTime { get; private set; } = -1f;
@@ -39,6 +43,7 @@ namespace TinyKingdom.AI
             armyState = ArmyGroupState.Forming;
             food = wood = gold = 0;
             nextStallWarningTime = 0f;
+            nextMilitaryLivenessWarningTime = 0f;
             LastGatherAssignmentTime = LastBuildCommandTime = -1f;
             LastTrainCommandTime = LastScoutDestinationTime = -1f;
             LastArmyStateChangeTime = LastOffensiveLaunchTime = -1f;
@@ -137,6 +142,133 @@ namespace TinyKingdom.AI
                 || time < nextStallWarningTime) return false;
             nextStallWarningTime = time + threshold;
             return true;
+        }
+
+        public bool TryCaptureMilitaryLivenessStall(float time, float threshold,
+            FactionKnowledge knowledge, StrategicIntentEvaluator strategy,
+            MilitaryCommanderPolicy military, out string snapshot)
+        {
+            snapshot = null;
+            if (knowledge == null || strategy == null || military == null
+                || time < nextMilitaryLivenessWarningTime
+                || time - military.LastMilitaryProgressTime < threshold
+                || !ExpectsMilitaryActivity(strategy.CurrentIntent,
+                    military.Army.State)) return false;
+
+            nextMilitaryLivenessWarningTime = time + Mathf.Max(5f, threshold);
+            snapshot = BuildMilitarySnapshot(time, knowledge, strategy, military);
+            return true;
+        }
+
+        private static bool ExpectsMilitaryActivity(StrategicIntent intent,
+            ArmyGroupState state)
+            => intent is StrategicIntent.PrepareAttack or StrategicIntent.Attack
+                || state is ArmyGroupState.Forming or ArmyGroupState.Regrouping
+                    or ArmyGroupState.PreparingAttack or ArmyGroupState.Advancing
+                    or ArmyGroupState.Assaulting;
+
+        private static string BuildMilitarySnapshot(float time,
+            FactionKnowledge knowledge, StrategicIntentEvaluator strategy,
+            MilitaryCommanderPolicy military)
+        {
+            var text = new StringBuilder(2048);
+            text.Append("AI MILITARY LIVENESS STALL\nintent=")
+                .Append(strategy.CurrentIntent).Append(" age=")
+                .Append(strategy.IntentAge(time).ToString("0.0"))
+                .Append(" previous=").Append(strategy.PreviousIntent)
+                .Append(" reason=").Append(strategy.TransitionReason)
+                .Append(" lastStrategicEval=")
+                .Append(strategy.LastEvaluationTime.ToString("0.0"))
+                .Append("\ntactical=").Append(military.Tactical.State)
+                .Append(" lastTacticalEval=")
+                .Append(military.Tactical.LastEvaluationTime.ToString("0.0"))
+                .Append(" army=").Append(military.Army.Members.Count)
+                .Append(" anchor=").Append(military.Tactical.ArmyAnchor)
+                .Append(" stragglers=").Append(military.Tactical.StragglerCount)
+                .Append(" visibleEnemies=").Append(military.Tactical.VisibleEnemyCount)
+                .Append(" staging=").Append(military.HasStagingPosition
+                    ? military.StagingPosition.ToString() : "Invalid")
+                .Append("\nlastProgress=")
+                .Append(military.LastMilitaryProgressTime.ToString("0.0"))
+                .Append(" lastAccepted=")
+                .Append(military.LastAcceptedMilitaryCommandTime.ToString("0.0"))
+                .Append(" lastRejected=")
+                .Append(military.LastRejectedMilitaryCommandTime.ToString("0.0"))
+                .Append(" rejection=").Append(military.LastMilitaryCommandResult)
+                .Append(" lastPathRequest=")
+                .Append(military.LastMilitaryPathRequestTime.ToString("0.0"));
+
+            if (strategy.TryGetTarget(out StrategicTargetSnapshot target))
+                text.Append("\ntarget=").Append(target.RuntimeId.ToString())
+                    .Append(" type=").Append(target.BuildingType)
+                    .Append(" cell=").Append(knowledge.TeamVision?.GridManager != null
+                        ? knowledge.TeamVision.GridManager.WorldToGrid(
+                            target.LastKnownPosition).ToString() : "Unknown")
+                    .Append(" age=")
+                    .Append(Mathf.Max(0f, time - target.LastSeenTime).ToString("0.0"));
+            else text.Append("\ntarget=None");
+
+            int count = Mathf.Min(32, military.Army.Members.Count);
+            for (int i = 0; i < count; i++)
+            {
+                UnitController unit = military.Army.Members[i];
+                if (unit == null) continue;
+                UnitMovement movement = unit.GetComponent<UnitMovement>();
+                CombatController combat = unit.GetComponent<CombatController>();
+                UnitType type = unit.GetComponent<HealthComponent>()?.CombatData != null
+                    ? unit.GetComponent<HealthComponent>().CombatData.UnitType
+                    : UnitType.Pawn;
+                text.Append("\nunit=").Append(unit.GetEntityId().ToString())
+                    .Append(" type=").Append(type)
+                    .Append(" group=").Append(military.Army.State)
+                    .Append(" role=").Append(TacticalArmyController.RoleFor(type))
+                    .Append(" state=").Append(unit.CurrentState)
+                    .Append(" combat=").Append(combat?.Directive.ToString() ?? "None")
+                    .Append(" command=").Append(combat?.BuildingTarget != null
+                        ? "AttackBuilding" : combat?.Target != null ? "Attack"
+                        : movement != null && movement.IsMoving ? "Move" : "Idle")
+                    .Append(" target=").Append(combat?.Target != null
+                        ? combat.Target.GetEntityId().ToString()
+                        : combat?.BuildingTarget != null
+                            ? combat.BuildingTarget.GetEntityId().ToString() : "None")
+                    .Append(" destination=").Append(movement != null
+                        && movement.HasCommandDestination
+                            ? movement.CommandDestinationCell.ToString() : "None")
+                    .Append(" pathActive=").Append(movement != null && movement.IsMoving)
+                    .Append(" pathStale=").Append(movement != null && movement.IsMoving
+                        && time - movement.LastMovementProgressTime
+                            >= military.MilitaryNoProgressSeconds)
+                    .Append(" pathFailures=").Append(movement?.PathFailureCount ?? 0)
+                    .Append(" lastMove=")
+                    .Append((movement?.LastMovementProgressTime ?? -1f).ToString("0.0"))
+                    .Append(" lastCommand=")
+                    .Append((movement?.LastAcceptedCommandTime ?? -1f).ToString("0.0"));
+                if (movement != null && movement.HasCommandDestination
+                    && knowledge.TeamVision?.GridManager != null)
+                {
+                    Vector3 destination = knowledge.TeamVision.GridManager.GridToWorld(
+                        movement.CommandDestinationCell.x,
+                        movement.CommandDestinationCell.y);
+                    text.Append(" distance=")
+                        .Append(Vector2.Distance(unit.transform.position, destination)
+                            .ToString("0.00"));
+                }
+                if (military.TryGetLastCommandResult(unit,
+                        out CommanderCommandResult lastResult))
+                    text.Append(" lastResult=").Append(lastResult);
+                bool targetVisible = combat?.Target != null
+                    && knowledge.TryGetVisibleEnemy(combat.Target.GetEntityId(), out _)
+                    || combat?.BuildingTarget != null
+                    && knowledge.TryGetVisibleEnemyBuilding(
+                        combat.BuildingTarget.GetEntityId(), out _);
+                text.Append(" committed=")
+                    .Append(combat != null && combat.IsMeleeAttackCommitted)
+                    .Append(" targetVisible=").Append(targetVisible);
+                if (military.Tactical.FormationDestinations.TryGetValue(unit,
+                        out Vector3 slot))
+                    text.Append(" slot=").Append(slot);
+            }
+            return text.ToString();
         }
 
         private void MarkMeaningful(float time)

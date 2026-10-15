@@ -12,6 +12,8 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class BuildingCommanderPolicy
     {
+        private static readonly ProfilerMarker EconomicOutpostMarker =
+            new("TinyKingdom.AI.EconomicOutpostEvaluation");
         private static readonly ProfilerMarker PlacementSearchMarker =
             new("TinyKingdom.AI.BuildPlacementSearch");
         [SerializeField, Min(0)] private int freePopulationThreshold = 2;
@@ -481,6 +483,7 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety, EconomicDemandModel demand,
             out EconomicClusterSnapshot cluster)
         {
+            using var marker = EconomicOutpostMarker.Auto();
             cluster = default;
             if (clusterPlanner == null || !clusterPlanner.HasBest)
             {

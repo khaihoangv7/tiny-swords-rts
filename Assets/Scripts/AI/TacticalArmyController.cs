@@ -64,11 +64,15 @@ namespace TinyKingdom.AI
         }
 
         private static readonly ProfilerMarker EvaluationMarker =
-            new("TinyKingdom.AI.TacticalArmyEvaluation");
+            new("TinyKingdom.AI.TacticalArmy.Evaluate");
         private static readonly ProfilerMarker FormationMarker =
-            new("TinyKingdom.AI.TacticalFormationPlanning");
+            new("TinyKingdom.AI.FormationDistribution");
         private static readonly ProfilerMarker TargetingMarker =
-            new("TinyKingdom.AI.TacticalTargetAssignment");
+            new("TinyKingdom.AI.TargetAssignment");
+        private static readonly ProfilerMarker CohesionMarker =
+            new("TinyKingdom.AI.CohesionEvaluation");
+        private static readonly ProfilerMarker LocalRegroupMarker =
+            new("TinyKingdom.AI.LocalRegroupEvaluation");
 
         [Header("Phase 7E.4 tactical cadence and cohesion")]
         [SerializeField, Min(0.1f)] private float evaluationInterval = 0.50f;
@@ -127,6 +131,7 @@ namespace TinyKingdom.AI
         public float ArmyCohesionRadius => Mathf.Max(1f, armyCohesionRadius);
         public float StragglerRadius => Mathf.Max(ArmyCohesionRadius, stragglerRadius);
         public float LocalEngagementRadius => Mathf.Max(1f, localEngagementRadius);
+        public float EngagementExitDelay => Mathf.Max(0f, engagementExitDelay);
         public float TargetStickiness => Mathf.Max(0f, targetStickiness);
         public float RetargetThreshold => Mathf.Max(0f, retargetThreshold);
         public float MinimumTargetHoldSeconds => Mathf.Max(0f, minimumTargetHoldSeconds);
@@ -143,6 +148,11 @@ namespace TinyKingdom.AI
         public int RetargetCount { get; private set; }
         public int FormationUpdateCount { get; private set; }
         public int RepositionCommandCount { get; private set; }
+        public float LastAcceptedCommandTime { get; private set; } = -1f;
+        public float LastRejectedCommandTime { get; private set; } = -1f;
+        public int LocalCandidateCount => localEnemies.Count;
+        public int TargetAssignmentCount => targetAssignments.Count;
+        public float LastEvaluationTime { get; private set; } = -1f;
         public IReadOnlyDictionary<UnitController, Vector3> FormationDestinations
             => formationDestinations;
 
@@ -197,6 +207,7 @@ namespace TinyKingdom.AI
             FactionKnowledge knowledge, ArmyGroupState strategicState, float now)
         {
             using var marker = EvaluationMarker.Auto();
+            LastEvaluationTime = now;
             RemoveStaleActors(members);
             int warriors = 0;
             int lancers = 0;
@@ -214,8 +225,11 @@ namespace TinyKingdom.AI
                 }
             }
             Snapshot = new ArmyTacticalSnapshot(warriors, lancers, archers, monks);
-            ArmyAnchor = CalculateRobustAnchor(members, ArmyAnchor);
-            StragglerCount = CountOutside(members, ArmyAnchor, StragglerRadius);
+            using (CohesionMarker.Auto())
+            {
+                ArmyAnchor = CalculateRobustAnchor(members, ArmyAnchor);
+                StragglerCount = CountOutside(members, ArmyAnchor, StragglerRadius);
+            }
             VisibleEnemyCount = CountLocalEnemies(knowledge, ArmyAnchor,
                 LocalEngagementRadius);
 
@@ -225,7 +239,15 @@ namespace TinyKingdom.AI
                 || now - lastThreatSeenTime <= Mathf.Max(0f, engagementExitDelay))
                 State = TacticalArmyState.Engaging;
             else if (StragglerCount > 0)
-                State = TacticalArmyState.LocalRegroup;
+            {
+                using var regroup = LocalRegroupMarker.Auto();
+                int severeThreshold = Mathf.Max(1, members.Count / 3);
+                State = StragglerCount > severeThreshold
+                    ? TacticalArmyState.LocalRegroup
+                    : strategicState is ArmyGroupState.Advancing
+                        or ArmyGroupState.Assaulting
+                        ? TacticalArmyState.Advancing : TacticalArmyState.Assembling;
+            }
             else if (strategicState is ArmyGroupState.Advancing or ArmyGroupState.Assaulting)
                 State = TacticalArmyState.Advancing;
             else State = TacticalArmyState.Assembling;
@@ -393,6 +415,7 @@ namespace TinyKingdom.AI
                     selected.RuntimeId);
                 if (result == CommanderCommandResult.Accepted)
                 {
+                    LastAcceptedCommandTime = context.Time;
                     if (hasCurrent && currentId.CompareTo(selected.RuntimeId) != 0)
                     {
                         RetargetCount++;
@@ -403,7 +426,11 @@ namespace TinyKingdom.AI
                         selectedScore, context.Time + MinimumTargetHoldSeconds);
                     AddSaturation(selected.RuntimeId);
                 }
-                else retryAfter[actor] = context.Time + commandRetrySeconds;
+                else
+                {
+                    LastRejectedCommandTime = context.Time;
+                    retryAfter[actor] = context.Time + commandRetrySeconds;
+                }
             }
             return true;
         }
@@ -433,6 +460,8 @@ namespace TinyKingdom.AI
             StragglerCount = VisibleEnemyCount = 0;
             AttackCommandsIssued = RetargetCount = FormationUpdateCount = 0;
             RepositionCommandCount = 0;
+            LastAcceptedCommandTime = LastRejectedCommandTime = -1f;
+            LastEvaluationTime = -1f;
         }
 
         private void GatherLocalEnemies(FactionKnowledge knowledge, Vector3 center,
@@ -660,13 +689,15 @@ namespace TinyKingdom.AI
             if (repositionDestinations.TryGetValue(actor, out Vector3 existing)
                 && Vector2.Distance(existing, destination) <= 0.5f
                 && actor.GetComponent<UnitMovement>()?.IsMoving == true) return true;
-            CommanderCommandResult result = context.Commands.TryMove(actor, destination,
-                traversalPolicy);
+            CommanderCommandResult result = context.Commands.TryMilitaryMove(actor,
+                destination, traversalPolicy);
             if (result != CommanderCommandResult.Accepted)
             {
+                LastRejectedCommandTime = context.Time;
                 retryAfter[actor] = context.Time + commandRetrySeconds;
                 return false;
             }
+            LastAcceptedCommandTime = context.Time;
             repositionDestinations[actor] = destination;
             repositionAfter[actor] = context.Time + Mathf.Max(0.1f, cooldown);
             RepositionCommandCount++;

@@ -77,6 +77,25 @@ namespace TinyKingdom.AI
                 CommanderCommandCategory.ScoutMove,
                 PathfindingRequestSource.CommanderScout);
 
+        public CommanderCommandResult TryMilitaryMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null,
+            bool regroup = false)
+            => TryMoveInternal(actor, destination, traversalPolicy,
+                CommanderCommandCategory.Move, regroup
+                    ? PathfindingRequestSource.MilitaryRegroup
+                    : PathfindingRequestSource.MilitaryFormation);
+
+        public CommanderCommandResult TryMilitaryDirectMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
+            => TryMoveInternal(actor, destination, traversalPolicy,
+                CommanderCommandCategory.Move, PathfindingRequestSource.MilitaryMove);
+
+        public CommanderCommandResult TryResourceFallbackMove(UnitController actor,
+            Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
+            => TryMoveInternal(actor, destination, traversalPolicy,
+                CommanderCommandCategory.Move,
+                PathfindingRequestSource.ResourceFallback);
+
         private CommanderCommandResult TryMoveInternal(UnitController actor,
             Vector3 destination, IPathTraversalPolicy traversalPolicy,
             CommanderCommandCategory category, PathfindingRequestSource pathSource)
@@ -100,9 +119,10 @@ namespace TinyKingdom.AI
         public CommanderCommandResult TryRetreatMove(UnitController actor,
             Vector3 destination, IPathTraversalPolicy traversalPolicy = null)
         {
+            Count(CommanderCommandCategory.Move);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
-                PathfindingRequestSource.CommanderMove);
+                PathfindingRequestSource.MilitaryRegroup);
             CommanderCommandResult actorResult = ValidateActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
             UnitMovement movement = actor.GetComponent<UnitMovement>();
@@ -140,13 +160,16 @@ namespace TinyKingdom.AI
             if (safety != null
                 && !safety.IsEligibleEconomicPosition(knowledge, target.transform.position))
                 return CommanderCommandResult.RejectedUnsafe;
+            // The Commander already searches alternate known nodes and applies a
+            // retry cooldown. A nested gatherer search can issue many A* probes
+            // in this same decision tick. Keep normal in-job depletion retargeting.
             return (safety == null
-                ? gatherer.Gather(target)
+                ? gatherer.Gather(target, null, null, null, false)
                 : gatherer.Gather(target,
                     candidate => candidate != null && safety.IsEligibleEconomicPosition(
                         knowledge, candidate.transform.position),
                     position => safety.IsEligibleEconomicPosition(knowledge, position),
-                    safety.CivilianTraversal))
+                    safety.CivilianTraversal, false))
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;
         }
@@ -185,10 +208,15 @@ namespace TinyKingdom.AI
             if (eligibilityResult != CommanderCommandResult.Accepted)
                 return eligibilityResult;
 
-            return PawnScoutPromotion.TryPromoteForFaction(actor, faction,
-                    knowledge.Stockpile)
-                ? CommanderCommandResult.Accepted
-                : CommanderCommandResult.RejectedCommandFailed;
+            if (!PawnScoutPromotion.TryPromoteForFaction(actor, faction,
+                    knowledge.Stockpile))
+                return CommanderCommandResult.RejectedCommandFailed;
+            // Promotion may deliberately select a working Pawn when scouting
+            // has been blocked for a long time. Release its old economy route
+            // only after the authoritative promotion succeeds.
+            actor.GetComponent<PawnGatherer>()?.CancelJob();
+            actor.GetComponent<UnitMovement>()?.Stop();
+            return CommanderCommandResult.Accepted;
         }
 
         public CommanderCommandResult TryAttack(UnitController actor, EntityId targetId)
@@ -239,7 +267,7 @@ namespace TinyKingdom.AI
             Count(CommanderCommandCategory.Attack);
             using var marker = CommandDispatchMarker.Auto();
             using var source = PathfindingSystem.TrackCommanderRequest(
-                PathfindingRequestSource.CommanderMove);
+                PathfindingRequestSource.MilitaryCombat);
             CommanderCommandResult actorResult = ValidateCombatActor(actor);
             if (actorResult != CommanderCommandResult.Accepted) return actorResult;
             GridManager grid = knowledge?.TeamVision?.GridManager;

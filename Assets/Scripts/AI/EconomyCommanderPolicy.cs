@@ -17,11 +17,15 @@ namespace TinyKingdom.AI
             { ResourceType.Food, ResourceType.Wood, ResourceType.Gold };
         private static readonly ProfilerMarker CivilianRetreatMarker =
             new("TinyKingdom.AI.CivilianRetreat");
+        private static readonly ProfilerMarker WorkerRebalanceMarker =
+            new("TinyKingdom.AI.WorkerRebalance");
         private static readonly Vector2Int[] RememberedApproachOffsets =
         {
             new(0, -1), new(-1, 0), new(1, 0), new(0, 1),
             new(-1, -1), new(1, -1), new(-1, 1), new(1, 1)
         };
+        private const int MaxRememberedCandidatesPerProbe = 128;
+        private const int MaxRememberedApproachesPerProbe = 4;
 
         private enum AssignmentMode { Gathering, SeekingMemory }
 
@@ -34,6 +38,11 @@ namespace TinyKingdom.AI
             public float AssignedAt;
         }
 
+        private struct RetreatRetry
+        {
+            public float Until;
+        }
+
         [SerializeField, Range(0f, 1f)] private float foodRatio = 0.40f;
         [SerializeField, Range(0f, 1f)] private float woodRatio = 0.35f;
         [SerializeField, Range(0f, 1f)] private float goldRatio = 0.25f;
@@ -43,11 +52,21 @@ namespace TinyKingdom.AI
 
         private readonly Dictionary<UnitController, WorkerAssignment> assignments = new();
         private readonly Dictionary<EntityId, float> blockedUntil = new();
+        private readonly Dictionary<UnitController, float> assignmentRetryUntil = new();
+        private readonly Dictionary<UnitController, RetreatRetry> retreatRetryUntil = new();
         private readonly List<UnitController> workers = new();
         private readonly List<UnitController> removals = new();
         private readonly List<UnitController> retreatRequests = new();
         private readonly Dictionary<UnitController, Vector2Int> retreats = new();
         private float nextStrategicReplanTime;
+        private int nextAssignmentWorkerIndex;
+        private float nextMemoryProbeTime;
+        private int nextMemoryProbeTypeIndex;
+        private ResourceType memoryProbeType;
+        private bool memoryProbeAvailable;
+        private readonly int[] nextRememberedMemoryIndexByType =
+            new int[FallbackTypes.Length];
+        private int nextRememberedApproachStart;
 
         public float FoodRatio => foodRatio;
         public float WoodRatio => woodRatio;
@@ -66,6 +85,8 @@ namespace TinyKingdom.AI
         {
             assignments.Clear();
             blockedUntil.Clear();
+            assignmentRetryUntil.Clear();
+            retreatRetryUntil.Clear();
             workers.Clear();
             removals.Clear();
             retreatRequests.Clear();
@@ -77,6 +98,14 @@ namespace TinyKingdom.AI
             LastReassignmentTime = -1f;
             LastReassignmentReason = "None";
             nextStrategicReplanTime = 0f;
+            nextAssignmentWorkerIndex = 0;
+            nextMemoryProbeTime = 0f;
+            nextMemoryProbeTypeIndex = 0;
+            memoryProbeType = default;
+            memoryProbeAvailable = false;
+            System.Array.Clear(nextRememberedMemoryIndexByType, 0,
+                nextRememberedMemoryIndexByType.Length);
+            nextRememberedApproachStart = 0;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -90,6 +119,8 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety, EconomicDemandModel demand)
         {
             CollectWorkers(context.Knowledge, roles);
+            PruneWorkerRetries(safety);
+            OpenMemoryProbeWindow(context.Time);
             RecoverIdleCargo(context, roles, safety);
             PruneRetreats(context, roles, safety);
             PruneAssignments(context, roles, safety);
@@ -113,20 +144,70 @@ namespace TinyKingdom.AI
                 out food, out wood, out gold);
             else DesiredCounts(workers.Count, out food, out wood, out gold);
 
-            TryRebalance(context, safety, demand, food, wood, gold);
+            using (WorkerRebalanceMarker.Auto())
+                TryRebalance(context, safety, demand, food, wood, gold);
             CountAssignments();
 
-            for (int i = 0; i < workers.Count; i++)
+            // A gather order can probe several adjacent interaction cells. Spread
+            // new assignments across commander ticks so simultaneous idle Pawns
+            // cannot multiply those A* probes into a single frame spike.
+            int workerCount = workers.Count;
+            for (int offset = 0; offset < workerCount; offset++)
             {
+                int i = (nextAssignmentWorkerIndex + offset) % workerCount;
                 UnitController worker = workers[i];
                 if (assignments.ContainsKey(worker) || retreats.ContainsKey(worker)) continue;
+                // A failed retreat must not turn into a resource order from inside
+                // known danger on the same decision tick.
+                if (safety != null && safety.RiskAt(worker.transform.position,
+                    StrategicPathKind.Civilian) >= StrategicRisk.Dangerous) continue;
                 PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
                 if (gatherer != null && gatherer.CarriedAmount > 0) continue;
+                if (assignmentRetryUntil.TryGetValue(worker, out float retryUntil)
+                    && context.Time < retryUntil) continue;
                 ResourceType type = NextDeficit(food, wood, gold);
                 if (TryAssignWithFallback(context, worker, type, safety,
                     food, wood, gold,
-                    out ResourceType assigned)) Increment(assigned);
+                    out ResourceType assigned))
+                {
+                    assignmentRetryUntil.Remove(worker);
+                    Increment(assigned);
+                }
+                else assignmentRetryUntil[worker] = context.Time
+                    + Mathf.Max(0.5f, unreachableRetrySeconds);
+                nextAssignmentWorkerIndex = (i + 1) % workerCount;
+                break;
             }
+        }
+
+        private void PruneWorkerRetries(StrategicSafetyMap safety)
+        {
+            removals.Clear();
+            foreach (UnitController worker in assignmentRetryUntil.Keys)
+                if (worker == null || !worker.IsAlive || !workers.Contains(worker))
+                    removals.Add(worker);
+            for (int i = 0; i < removals.Count; i++)
+                assignmentRetryUntil.Remove(removals[i]);
+
+            removals.Clear();
+            foreach (UnitController worker in retreatRetryUntil.Keys)
+                if (worker == null || !worker.IsAlive || !workers.Contains(worker)
+                    || safety != null && safety.RiskAt(worker.transform.position,
+                        StrategicPathKind.Civilian) < StrategicRisk.Dangerous)
+                    removals.Add(worker);
+            for (int i = 0; i < removals.Count; i++)
+                retreatRetryUntil.Remove(removals[i]);
+            removals.Clear();
+        }
+
+        private void OpenMemoryProbeWindow(float time)
+        {
+            if (time < nextMemoryProbeTime) return;
+            nextMemoryProbeTime = time + Mathf.Max(0.5f, unreachableRetrySeconds);
+            memoryProbeType = FallbackTypes[nextMemoryProbeTypeIndex];
+            nextMemoryProbeTypeIndex = (nextMemoryProbeTypeIndex + 1)
+                % FallbackTypes.Length;
+            memoryProbeAvailable = true;
         }
 
         private static void RecoverIdleCargo(CommanderDecisionContext context,
@@ -224,6 +305,12 @@ namespace TinyKingdom.AI
                         Block(assignment.TargetId, context.Time);
                     }
                     else if (movement != null && movement.IsMoving) continue;
+                    else
+                    {
+                        Block(assignment.TargetId, context.Time);
+                        assignmentRetryUntil[worker] = context.Time
+                            + Mathf.Max(0.5f, unreachableRetrySeconds);
+                    }
                 }
                 removals.Add(worker);
             }
@@ -304,6 +391,11 @@ namespace TinyKingdom.AI
                     best = FindBestVisible(context, worker, type, safety);
                 }
 
+                // One rotating memory probe per policy interval prevents several
+                // idle Pawns from scanning every remembered node in one frame.
+                // Visible resources above remain available every decision tick.
+                if (!memoryProbeAvailable || type != memoryProbeType) return false;
+                memoryProbeAvailable = false;
                 if (!TryFindRemembered(context, worker, type, safety,
                     out ResourceKnowledgeSnapshot remembered)) return false;
                 if (!TryMoveNearRemembered(context, worker, remembered, safety))
@@ -325,19 +417,23 @@ namespace TinyKingdom.AI
             }
         }
 
-        private static bool TryMoveNearRemembered(CommanderDecisionContext context,
+        private bool TryMoveNearRemembered(CommanderDecisionContext context,
             UnitController worker, ResourceKnowledgeSnapshot remembered,
             StrategicSafetyMap safety)
         {
             int triedMask = 0;
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null) return false;
-            for (int attempt = 0; attempt < RememberedApproachOffsets.Length; attempt++)
+            int start = nextRememberedApproachStart;
+            nextRememberedApproachStart = (start + MaxRememberedApproachesPerProbe)
+                % RememberedApproachOffsets.Length;
+            for (int attempt = 0; attempt < MaxRememberedApproachesPerProbe; attempt++)
             {
                 int best = -1;
                 float bestDistance = float.PositiveInfinity;
-                for (int i = 0; i < RememberedApproachOffsets.Length; i++)
+                for (int offset = 0; offset < MaxRememberedApproachesPerProbe; offset++)
                 {
+                    int i = (start + offset) % RememberedApproachOffsets.Length;
                     if ((triedMask & (1 << i)) != 0) continue;
                     Vector2Int cell = remembered.LogicalCell + RememberedApproachOffsets[i];
                     GridCell candidate = grid.GetCell(cell.x, cell.y);
@@ -357,7 +453,7 @@ namespace TinyKingdom.AI
                 triedMask |= 1 << best;
                 Vector2Int destination = remembered.LogicalCell
                     + RememberedApproachOffsets[best];
-                if (context.Commands.TryMove(worker,
+                if (context.Commands.TryResourceFallbackMove(worker,
                     grid.GridToWorld(destination.x, destination.y),
                     safety?.CivilianTraversal)
                     == CommanderCommandResult.Accepted) return true;
@@ -404,9 +500,23 @@ namespace TinyKingdom.AI
             bool found = false;
             float bestDistance = float.PositiveInfinity;
             IReadOnlyList<ResourceKnowledgeSnapshot> resources = context.Knowledge.KnownResources;
-            for (int i = 0; i < resources.Count; i++)
+            int resourceCount = resources.Count;
+            int typeIndex = (int)type;
+            if (resourceCount == 0)
             {
-                ResourceKnowledgeSnapshot item = resources[i];
+                nextRememberedMemoryIndexByType[typeIndex] = 0;
+                return false;
+            }
+            int limit = Mathf.Min(MaxRememberedCandidatesPerProbe, resourceCount);
+            // Advance each resource type through its own bounded window. A
+            // shared cursor can alias with the Food/Wood/Gold probe rotation
+            // and repeatedly inspect only one subset of known resources.
+            int start = nextRememberedMemoryIndexByType[typeIndex] % resourceCount;
+            nextRememberedMemoryIndexByType[typeIndex] =
+                (start + limit) % resourceCount;
+            for (int offset = 0; offset < limit; offset++)
+            {
+                ResourceKnowledgeSnapshot item = resources[(start + offset) % resourceCount];
                 if (item.ResourceType != type || item.LastSeenRemainingAmount <= 0
                     || IsBlocked(item.RuntimeId, context.Time)) continue;
                 if (!IsEligibleEconomicTarget(context, item.LastSeenPosition, safety)) continue;
@@ -457,9 +567,13 @@ namespace TinyKingdom.AI
                 if (safety.RiskAt(worker.transform.position, StrategicPathKind.Civilian)
                     == StrategicRisk.Safe && (movement == null || !movement.IsMoving))
                     removals.Add(worker);
+                // Retreat traversal may legitimately cross dangerous cells on its
+                // way out. Replan only if the route stops or its safe exit is lost.
                 else if (movement == null || !movement.IsMoving
-                    || !safety.IsPathSafe(movement.CurrentPath, StrategicPathKind.Civilian,
-                        movement.CurrentPathWaypointIndex))
+                    || safety.RiskAt(item.Value, StrategicPathKind.Civilian)
+                        >= StrategicRisk.Dangerous
+                    || context.Time - movement.LastMovementProgressTime
+                        >= UnitMovement.StaleMoveSeconds)
                     retreatRequests.Add(worker);
             }
             for (int i = 0; i < removals.Count; i++) retreats.Remove(removals[i]);
@@ -473,17 +587,41 @@ namespace TinyKingdom.AI
             for (int i = 0; i < retreatRequests.Count; i++)
             {
                 UnitController worker = retreatRequests[i];
-                if (worker == null || !worker.IsAlive
-                    || !safety.TryFindRetreatCell(context.Knowledge,
-                        worker.transform.position, StrategicPathKind.Civilian,
-                        out Vector2Int destination)) continue;
+                if (worker == null || !worker.IsAlive) continue;
                 GridManager grid = context.Knowledge.TeamVision?.GridManager;
                 if (grid == null) continue;
+                bool retreatExitBecameUnsafe = retreats.TryGetValue(worker,
+                    out Vector2Int previousDestination)
+                    && safety.RiskAt(previousDestination,
+                        StrategicPathKind.Civilian) >= StrategicRisk.Dangerous;
+                if (retreatExitBecameUnsafe)
+                {
+                    retreats.Remove(worker);
+                    worker.GetComponent<UnitMovement>()?.Stop();
+                }
+                if (retreatRetryUntil.TryGetValue(worker, out RetreatRetry retry)
+                    && context.Time < retry.Until && !retreatExitBecameUnsafe) continue;
+                // A rejected retreat or absence of a safe cell must also throttle
+                // the full-grid search, not only the subsequent Move command.
+                if (!safety.TryFindRetreatCell(context.Knowledge,
+                    worker.transform.position, StrategicPathKind.Civilian,
+                    out Vector2Int destination))
+                {
+                    retreatRetryUntil[worker] = new RetreatRetry
+                    {
+                        Until = context.Time + Mathf.Max(0.5f, unreachableRetrySeconds)
+                    };
+                    continue;
+                }
                 if (context.Commands.TryMove(worker,
                     grid.GridToWorld(destination.x, destination.y),
                     safety.CivilianRetreatTraversal)
                     == CommanderCommandResult.Accepted)
                     retreats[worker] = destination;
+                retreatRetryUntil[worker] = new RetreatRetry
+                {
+                    Until = context.Time + Mathf.Max(0.5f, unreachableRetrySeconds)
+                };
             }
             retreatRequests.Clear();
         }
@@ -528,6 +666,12 @@ namespace TinyKingdom.AI
                     continue;
                 PawnGatherer gatherer = worker.GetComponent<PawnGatherer>();
                 if (gatherer == null || gatherer.CarriedAmount > 0) continue;
+                // Keep a working gather job until this replan can actually
+                // inspect the requested type; memory fallback is intentionally
+                // rotated and may be deferred on this tick.
+                if (FindBestVisible(context, worker, target, safety) == null
+                    && (!memoryProbeAvailable || target != memoryProbeType))
+                    continue;
                 gatherer.CancelJob();
                 worker.GetComponent<UnitMovement>()?.Stop();
                 assignments.Remove(worker);

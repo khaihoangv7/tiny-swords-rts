@@ -452,9 +452,12 @@ Red scouting uses the same authoritative Pawn promotion as the human player.
 shared gameplay component validates a living faction-owned Pawn, spends exactly
 50 Wood, enforces one active Scout, applies Pawn vision x2.5, owns the fire marker
 and Fog-safe ambience, and clears registration on death. Red receives no free
-Scout, AI-only vision, or military-unit fallback. Promotion waits for at least
-four Pawns, an idle low-disruption Economy Pawn, meaningful information need and
-Wood remaining after the currently planned unpaid building cost.
+Scout, AI-only vision, or military-unit fallback. Promotion requires at least
+four Pawns and meaningful information need. It normally preserves Wood for the
+currently planned unpaid building. If that reservation blocks promotion for
+60 game seconds while at least 50 Wood is available, the Scout can use that
+Wood to resume exploration. It prefers an idle low-disruption Economy Pawn;
+the bounded busy-worker fallback is described below.
 
 `CommanderPawnRoles` treats an active promoted Pawn as `Scout` before Builder or
 Economy allocation. Economy and Building policies therefore cannot overwrite its
@@ -717,3 +720,95 @@ Optional Commander diagnostics expose current/previous intent, intent age, all s
 readiness, copied strengths/confidence, selected target and age, recent loss, staging cell,
 reason and transition game time. The validator is available at
 `Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Decision Layer`.
+
+### Phase 7E.5 full-match liveness and spike diagnostics
+
+Military command deduplication includes command health. An identical Move or chase is
+retained only while its path is making progress or the unit has actually arrived. A
+stopped or stale path can be requested again at a bounded retry interval; path failures
+and last request/progress times remain available to disabled-by-default diagnostics.
+
+Staging uses a majority fraction together with the robust army anchor and a bounded
+straggler allowance. One delayed unit cannot hold the main force indefinitely. Rally
+staging is valid only on explored, stable, unoccupied non-connector ground outside known
+resources and friendly footprints. A no-progress watchdog invalidates stale formation
+commands, requests an alternate staging cell after another stall, and then exits the
+offense if the force still cannot assemble. New units and movement by one straggler do
+not by themselves reset the whole army's stall clock. The strategic evaluator is asked
+to reevaluate, and the recovery has a cooldown rather than issuing commands every frame.
+
+Attack validates copied objectives against current legal knowledge. Re-observing an
+empty remembered location completes that objective. A living offensive force with no
+movement or combat progress performs a bounded command recovery and eventually
+fails the objective rather than waiting forever. `Recover` retains its normal health,
+strength, population and cohesion exit, and also leaves the withdrawal state after its
+maximum duration so a depleted force can rebuild under normal production gates.
+
+Tactical `Engaging` already leaves after its bounded no-enemy delay. Local regroup now
+requires more than the tolerated straggler minority while advancing, preserving an
+approximate formation without making one unit authoritative over the army.
+
+The performance capture records bounded spike snapshots above a configurable frame-time
+threshold (`-phase7BSpikeThresholdMs`). It keeps at most eight snapshots plus the peak,
+including GC bytes, path and command bursts, strategic/tactical state, bounded candidate
+sizes, audio pool size and the largest measured subsystem. Path counts distinguish Scout,
+Economy/Builder and Military formation/combat/regroup sources. Use
+`Tools > Tiny Kingdom > Profile Phase 7E.5 Liveness x10 (5 minutes)` for the long run and
+`Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Liveness` for static configuration.
+The profiler clears sparse marker samples between captures so a spike cannot inherit the
+last duration from an earlier Commander tick. In the initial standalone baseline, the
+largest intermittent spikes came from nested resource-slot path searches during new
+worker assignments. The Commander now issues at most one new worker assignment per
+think tick, and its initial Gather command leaves fallback selection to the economy
+policy. A Pawn already farming still uses its normal depletion and retarget behavior.
+An Economy Pawn in known civilian danger does not receive a new resource order while
+trying to retreat. A valid retreat may cross dangerous cells to reach its safe exit;
+the Commander replans if movement stops or the exit becomes dangerous. Failed
+retreat searches and idle assignments wait the configured unreachable-resource retry
+interval, and retry records are removed when roles change or Pawns die. Visible
+resource assignments still run on the normal Commander tick. Hidden resource fallback
+uses one rotating memory probe per retry interval: at most 128 remembered nodes are
+scored and four approach cells are path-tested per probe. Resource type and approach
+half rotate deterministically. Each resource type keeps its own memory cursor, so
+repeated probes of that type cover all known resources.
+A remembered resource that remains unseen after approach is temporarily blocked.
+
+An active `Scout` strategic intent can otherwise wait indefinitely when every
+Economy Pawn is continuously gathering. Promotion still prefers an idle Pawn. Once
+Wood eligibility passes, after 60 game seconds without an idle candidate it
+deterministically chooses the eligible busy Economy Pawn carrying the least cargo,
+never a Builder or military unit. A pending building reservation can first require
+its own 60 game-second wait, so both waits can apply. The authoritative promotion
+command cancels that Pawn's old gather route only after the paid promotion succeeds.
+If it carried resources, the new Scout first attempts a normal drop-off for up to
+30 game seconds, then proceeds with exploration so an unreachable drop-off cannot
+become a new scouting deadlock. Cargo remains carried if no drop-off can be reached;
+it is not granted to the stockpile. After a successful deposit, the promoted Scout
+does not automatically accept another gather job. Normal Fog and one-Scout limits
+remain authoritative.
+
+Profiling the first offense exposed a 27.7 ms pathfinding burst. Offensive
+preparation defaults to one staging move per Commander tick in round-robin
+order. A later trace showed that the first advance, still inside the preparation
+marker, submitted four MilitaryCombat paths of about 5–6 ms each in one frame.
+The advance now defaults to one AttackMove or Monk support move per Commander
+tick and rotates through the force. Route failure is counted only after a complete
+sweep of the members, so one rejected path cannot prematurely abandon the
+objective. The visible-building assault defaults to the same one-command budget for
+building attacks and Monk support moves. Immediate defense and retreat commands
+keep their existing cadence; pathfinding rules and game speed are unchanged.
+
+Near full exploration, the Scout rescout pass previously checked an approach ring
+around every stale resource memory in one decision. A captured x10 frame spent
+69.4 ms in that pass with about 330 known resources. The pass now evaluates a
+rotating window of 16 memories per Commander tick by default (configurable up to 64),
+covering the full memory list across subsequent evaluations without a single
+large ring-search burst. A later five-minute x10 fixture still measured 19.8 ms
+of Scout rescout scoring with the 32-memory default, so the default was reduced
+to 16 while retaining the rotating coverage. Rejected Scout destinations share
+the same per-tick window rather than starting three full windows. Long combat
+profiling also traced repeated building perimeter path probes to attackers that
+already had a progressing chase route. They now retain that route until it stops
+or stalls; an obstructed unit still tests its existing step every frame while
+redundant A* route searches back off to at most two game seconds until movement
+resumes.

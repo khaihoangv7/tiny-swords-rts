@@ -9,7 +9,9 @@ namespace TinyKingdom.Units
     public sealed class UnitMovement : MonoBehaviour
     {
         public const float BlockedPathRepathInterval = 0.35f;
+        private const float MaxNoProgressRepathInterval = 2f;
         public const float ConnectorStuckSeconds = 0.75f;
+        public const float StaleMoveSeconds = 1.5f;
         // The painted side ramp is visually wider than one centre-to-centre grid
         // diagonal. Extending each endpoint by a quarter cell horizontally makes
         // the on-screen route follow the middle of that artwork.
@@ -37,10 +39,16 @@ namespace TinyKingdom.Units
         private Vector3? chaseFinalPosition;
         private IPathTraversalPolicy activeTraversalPolicy;
         private float blockedRepathCooldown;
+        private int blockedRepathNoProgressAttempts;
         private float connectorNoProgressSeconds;
         private float connectorRecoveryCooldown;
         private bool connectorRecoveryAttempted;
         private Vector2 lastMovementDirection = Vector2.right;
+        private float lastMovementProgressTime = -1f;
+        private float lastAcceptedCommandTime = -1f;
+        private float lastPathRequestTime = -1f;
+        private float lastPathFailureTime = -1f;
+        private int pathFailureCount;
 
         public float MovementSpeed => movementSpeed;
         public GridManager GridManager => gridManager;
@@ -52,6 +60,14 @@ namespace TinyKingdom.Units
         public bool IsSuspended => suspended;
         public float CommandDestinationEpsilon => commandDestinationEpsilon;
         public Vector2 LastMovementDirection => lastMovementDirection;
+        public bool HasCommandDestination => hasCommandDestination || hasChaseDestination;
+        public Vector2Int CommandDestinationCell => hasChaseDestination
+            ? chaseDestinationCell : commandDestinationCell;
+        public float LastMovementProgressTime => lastMovementProgressTime;
+        public float LastAcceptedCommandTime => lastAcceptedCommandTime;
+        public float LastPathRequestTime => lastPathRequestTime;
+        public float LastPathFailureTime => lastPathFailureTime;
+        public int PathFailureCount => pathFailureCount;
 
         private void Awake()
         {
@@ -62,6 +78,7 @@ namespace TinyKingdom.Units
             if (combatData != null)
                 movementSpeed = combatData.MoveSpeed;
             ResolveNavigationReferences();
+            lastMovementProgressTime = Time.time;
         }
 
         private void OnDestroy()
@@ -162,7 +179,12 @@ namespace TinyKingdom.Units
                 && activePath.HasRemainingWaypoints
                 && destination == chaseDestinationCell
                 && EquivalentPoint(finalPosition, chaseFinalPosition);
-            if (traversalPolicy == null && (equivalentCommand || equivalentChase))
+            bool existingCommandHealthy = (activePath.HasRemainingWaypoints
+                && Time.time - lastMovementProgressTime < StaleMoveSeconds)
+                || IsAtDestination(destination, finalPosition);
+            if (traversalPolicy == null
+                && (equivalentCommand || equivalentChase)
+                && existingCommandHealthy)
             {
                 if (!chasing && !attackMove)
                     GetComponent<CombatController>()?.OnMoveIssued();
@@ -170,15 +192,26 @@ namespace TinyKingdom.Units
                     ? (chasing ? UnitState.Chasing : UnitState.Moving) : UnitState.Idle);
                 return true;
             }
+            lastPathRequestTime = Time.time;
             if (!TryFindPath(destination, traversalPolicy, out List<GridCell> path))
+            {
+                lastPathFailureTime = Time.time;
+                pathFailureCount++;
                 return false;
+            }
 
-            if (!TrySetActivePath(path, finalPosition)) return false;
+            if (!TrySetActivePath(path, finalPosition))
+            {
+                lastPathFailureTime = Time.time;
+                pathFailureCount++;
+                return false;
+            }
 
             if (!chasing && !attackMove)
                 GetComponent<CombatController>()?.OnMoveIssued();
             activeTraversalPolicy = traversalPolicy;
             blockedRepathCooldown = 0f;
+            blockedRepathNoProgressAttempts = 0;
             if (!chasing)
             {
                 hasChaseDestination = false;
@@ -196,7 +229,19 @@ namespace TinyKingdom.Units
             }
             unitController.SetState(activePath.HasRemainingWaypoints
                 ? (chasing ? UnitState.Chasing : UnitState.Moving) : UnitState.Idle);
+            lastAcceptedCommandTime = Time.time;
+            lastMovementProgressTime = Time.time;
             return true;
+        }
+
+        private bool IsAtDestination(Vector2Int destination, Vector3? finalPosition)
+        {
+            ResolveNavigationReferences();
+            Vector3 target = finalPosition ?? (gridManager != null
+                ? gridManager.GridToWorld(destination.x, destination.y)
+                : transform.position);
+            float tolerance = Mathf.Max(arrivalTolerance, commandDestinationEpsilon);
+            return Vector2.Distance(transform.position, target) <= tolerance;
         }
 
         private bool EquivalentPoint(Vector3? candidate, Vector3? current)
@@ -238,6 +283,7 @@ namespace TinyKingdom.Units
             chaseFinalPosition = null;
             activeTraversalPolicy = null;
             blockedRepathCooldown = 0f;
+            blockedRepathNoProgressAttempts = 0;
             ResetConnectorProgress();
             unitController ??= GetComponent<UnitController>();
             if (unitController.IsAlive)
@@ -251,6 +297,7 @@ namespace TinyKingdom.Units
             {
                 activePath.Clear();
                 ResetConnectorProgress();
+                blockedRepathNoProgressAttempts = 0;
             }
         }
 
@@ -299,7 +346,10 @@ namespace TinyKingdom.Units
             Vector3 connectorTarget = connectorWaypoint
                 ? activePath.CurrentWaypoint : default;
             bool completed = false;
+            bool blockedRepathAttempted = false;
             int previousWaypoint = activePath.NextWaypointIndex;
+            Vector3 previousWaypointTarget = hadPath
+                ? activePath.CurrentWaypoint : default;
             if (hadPath)
             {
                 desired = connectorWaypoint
@@ -316,8 +366,10 @@ namespace TinyKingdom.Units
                     desired = current;
                     completed = false;
                     TryRepathBlockedRoute(deltaTime);
+                    blockedRepathAttempted = true;
                 }
-                else blockedRepathCooldown = 0f;
+                else if (Time.time - lastMovementProgressTime < StaleMoveSeconds)
+                    blockedRepathCooldown = 0f;
             }
 
             // Preserve only separation along the connector axis. Lateral pushes can
@@ -337,10 +389,25 @@ namespace TinyKingdom.Units
             if (!resolvedSafe) resolved = desired;
             Vector2 movement = resolved - current;
             if (hadPath && movement.sqrMagnitude > 0.000001f)
+            {
                 lastMovementDirection = movement.normalized;
+                if (activePath.NextWaypointIndex > previousWaypoint
+                    || Vector2.Distance(current, previousWaypointTarget)
+                        - Vector2.Distance(resolved, previousWaypointTarget) > 0.005f)
+                {
+                    lastMovementProgressTime = Time.time;
+                    blockedRepathNoProgressAttempts = 0;
+                }
+            }
             transform.position = resolved;
             UpdateConnectorProgress(connectorWaypoint, connectorTarget,
                 current, resolved, deltaTime);
+            // Combat may keep an active chase path without issuing a new chase
+            // command. Recover a stale route here as well as on blocked segments.
+            if (!blockedRepathAttempted && hasChaseDestination
+                && activePath.HasRemainingWaypoints
+                && Time.time - lastMovementProgressTime >= StaleMoveSeconds)
+                TryRepathBlockedRoute(deltaTime);
             if (hadPath && completed)
                 Stop();
         }
@@ -442,15 +509,27 @@ namespace TinyKingdom.Units
             if (!hasCommandDestination && !hasChaseDestination) return;
             blockedRepathCooldown -= Mathf.Max(0f, deltaTime);
             if (blockedRepathCooldown > 0f) return;
-            blockedRepathCooldown = BlockedPathRepathInterval;
+            // Repeated A* requests for the same blocked segment do not help a
+            // unit squeeze through another unit. Keep trying the existing step
+            // every frame, but back off only the redundant route search until
+            // actual forward movement resets this counter.
+            blockedRepathCooldown = Mathf.Min(MaxNoProgressRepathInterval,
+                BlockedPathRepathInterval * (1 << Mathf.Min(
+                    blockedRepathNoProgressAttempts, 3)));
+            blockedRepathNoProgressAttempts++;
 
             Vector2Int destination = hasChaseDestination
                 ? chaseDestinationCell : commandDestinationCell;
             Vector3? finalPosition = hasChaseDestination
                 ? chaseFinalPosition : commandFinalPosition;
+            lastPathRequestTime = Time.time;
             if (!TryFindPath(destination, activeTraversalPolicy,
                     out List<GridCell> replacement))
+            {
+                lastPathFailureTime = Time.time;
+                pathFailureCount++;
                 return;
+            }
             TrySetActivePath(replacement, finalPosition);
         }
 

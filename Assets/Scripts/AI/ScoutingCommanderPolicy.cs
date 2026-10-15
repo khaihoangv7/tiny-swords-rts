@@ -46,13 +46,17 @@ namespace TinyKingdom.AI
         private static readonly ProfilerMarker RescoutScoringMarker =
             new("TinyKingdom.AI.ScoutRescoutScoring");
         private static readonly ProfilerMarker ReconScoringMarker =
-            new("TinyKingdom.AI.ScoutReconScoring");
+            new("TinyKingdom.AI.ReconScoring");
+        private static readonly ProfilerMarker ObservationPointGenerationMarker =
+            new("TinyKingdom.AI.ObservationPointGeneration");
         private static readonly ProfilerMarker ScoutRetreatMarker =
             new("TinyKingdom.AI.ScoutEvasion");
+        private const float PlannedBuildingWoodFallbackSeconds = 60f;
 
         [Header("Promotion")]
         [SerializeField, Min(1)] private int minimumPawnsForScout = 4;
         [SerializeField, Min(1f)] private float promotionRetrySeconds = 5f;
+        [SerializeField, Min(10f)] private float busyPromotionFallbackSeconds = 60f;
 
         [Header("Target stability")]
         [SerializeField, Min(0.05f)] private float arrivalDistance = 0.35f;
@@ -79,6 +83,7 @@ namespace TinyKingdom.AI
         [SerializeField] private StrategicRisk explorationRiskBudget = StrategicRisk.Safe;
         [SerializeField] private StrategicRisk reconRiskBudget = StrategicRisk.Risky;
         [SerializeField, Range(8, 64)] private int maxReconCandidates = 40;
+        [SerializeField, Range(8, 64)] private int maxRescoutResourceCandidates = 16;
         [SerializeField, Min(0f)] private float reconInformationWeight = 2.5f;
         [SerializeField, Min(0f)] private float reconStrategicWeight = 4f;
         [SerializeField, Min(0f)] private float reconStalenessWeight = 0.35f;
@@ -125,12 +130,18 @@ namespace TinyKingdom.AI
         private bool explorationExhausted;
         private float nextTargetEvaluationTime;
         private float nextPromotionAttemptTime;
+        private float noIdlePromotionSince = -1f;
+        private float reservedWoodShortageSince = -1f;
+        private bool awaitingPromotedCargoReturn;
+        private float promotedCargoReturnDeadline;
+        private float nextPromotedCargoReturnAttempt;
         private float targetAssignedTime;
         private float nextEvasionAttemptTime;
         private float reconArrivedTime = -1f;
         private float nextReconMissionTime;
         private int recentTargetCount;
         private int recentTargetWriteIndex;
+        private int nextRescoutMemoryIndex;
         private bool strategicInformationPriority;
 
         public UnitController Scout => scout;
@@ -145,6 +156,8 @@ namespace TinyKingdom.AI
         public bool HasRetreatDestination => hasRetreatDestination;
         public int MinimumPawnsForScout => minimumPawnsForScout;
         public int MinimumPawnsForWorkerScout => minimumPawnsForScout;
+        public float BusyPromotionFallbackSeconds
+            => Mathf.Max(10f, busyPromotionFallbackSeconds);
         public int MaxFrontierCandidates => maxFrontierCandidates;
         public float InformationGainWeight => informationGainWeight;
         public float NoveltyWeight => noveltyWeight;
@@ -155,6 +168,8 @@ namespace TinyKingdom.AI
         public float ExplorationDepthWeight => explorationDepthWeight;
         public float ReconStrategicWeight => reconStrategicWeight;
         public int MaxReconCandidates => maxReconCandidates;
+        public int MaxRescoutResourceCandidates
+            => Mathf.Clamp(maxRescoutResourceCandidates, 8, 64);
         public StrategicRisk ExplorationRiskBudget => explorationRiskBudget;
         public StrategicRisk ReconRiskBudget => reconRiskBudget;
         public int RecentTargetCapacity => Mathf.Clamp(recentTargetCapacity, 4,
@@ -189,6 +204,11 @@ namespace TinyKingdom.AI
             explorationExhausted = false;
             nextTargetEvaluationTime = 0f;
             nextPromotionAttemptTime = 0f;
+            noIdlePromotionSince = -1f;
+            reservedWoodShortageSince = -1f;
+            awaitingPromotedCargoReturn = false;
+            promotedCargoReturnDeadline = 0f;
+            nextPromotedCargoReturnAttempt = 0f;
             nextEvasionAttemptTime = 0f;
             LastPromotionResult = "Not attempted";
             LastScoutDeathTime = -1f;
@@ -204,6 +224,7 @@ namespace TinyKingdom.AI
             reconScratch.Clear();
             recentTargetCount = 0;
             recentTargetWriteIndex = 0;
+            nextRescoutMemoryIndex = 0;
             reconArrivedTime = -1f;
             nextReconMissionTime = 0f;
             intent = ScoutIntent.SearchingForEnemy;
@@ -233,6 +254,8 @@ namespace TinyKingdom.AI
                 TryPromoteScout(context, roles, safety, building);
                 if (scout == null) return;
             }
+
+            if (FinishPromotedCargoReturn(context, safety)) return;
 
             UnitMovement movement = scout.GetComponent<UnitMovement>();
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
@@ -283,9 +306,12 @@ namespace TinyKingdom.AI
             if (context.Time < nextTargetEvaluationTime) return;
 
             const int maxMoveAttempts = 3;
+            int rescoutBudget = Mathf.Min(MaxRescoutResourceCandidates,
+                context.Knowledge.KnownResources.Count);
             for (int attempt = 0; attempt < maxMoveAttempts; attempt++)
             {
-                if (!TrySelectTarget(context, safety, out ScoutTarget selected))
+                if (!TrySelectTarget(context, safety, ref rescoutBudget,
+                    out ScoutTarget selected))
                 {
                     explorationExhausted = true;
                     nextTargetEvaluationTime = context.Time + (strategicInformationPriority
@@ -320,6 +346,7 @@ namespace TinyKingdom.AI
             UnitController authoritative = active != null ? active.Controller : null;
             if (authoritative == scout && IsUsableOfficialScout(context, scout))
             {
+                reservedWoodShortageSince = -1f;
                 roles?.TryAssign(scout, CommanderPawnRole.Scout);
                 return;
             }
@@ -327,11 +354,16 @@ namespace TinyKingdom.AI
             if (!ReferenceEquals(scout, null) && authoritative == null)
                 LastScoutDeathTime = context.Time;
             scout = IsUsableOfficialScout(context, authoritative) ? authoritative : null;
+            awaitingPromotedCargoReturn = false;
             ClearTarget();
             hasRetreatDestination = false;
             safetyState = ScoutSafetyState.Exploring;
             intent = ScoutIntent.SearchingForEnemy;
-            if (scout != null) roles?.TryAssign(scout, CommanderPawnRole.Scout);
+            if (scout != null)
+            {
+                reservedWoodShortageSince = -1f;
+                roles?.TryAssign(scout, CommanderPawnRole.Scout);
+            }
         }
 
         private void TryPromoteScout(CommanderDecisionContext context,
@@ -343,36 +375,95 @@ namespace TinyKingdom.AI
 
             if (!HasMeaningfulInformationNeed(context))
             {
+                noIdlePromotionSince = -1f;
+                reservedWoodShortageSince = -1f;
                 LastPromotionResult = "Deferred: no frontier or stale strategic memory";
                 return;
             }
 
-            int requiredWood = PawnScoutPromotion.WoodCost + ReservedBuildingWood(
-                context, building);
+            int reservedBuildingWood = ReservedBuildingWood(context, building);
             ResourceStockpile stockpile = context.Knowledge.Stockpile;
-            if (stockpile == null
-                || stockpile.GetAmount(ResourceType.Wood) < requiredWood)
+            int availableWood = stockpile != null
+                ? stockpile.GetAmount(ResourceType.Wood) : 0;
+            if (availableWood < PawnScoutPromotion.WoodCost)
             {
+                noIdlePromotionSince = -1f;
+                reservedWoodShortageSince = -1f;
                 LastPromotionResult = "Deferred: insufficient uncommitted Wood";
                 return;
             }
+            if (reservedBuildingWood > 0
+                && availableWood < PawnScoutPromotion.WoodCost + reservedBuildingWood)
+            {
+                if (reservedWoodShortageSince < 0f)
+                    reservedWoodShortageSince = context.Time;
+                // A planned building has not spent its Wood yet. Give that plan
+                // time to proceed, then allow the Scout to discover more
+                // resource options if the reservation keeps it blocked.
+                if (context.Time - reservedWoodShortageSince
+                    < PlannedBuildingWoodFallbackSeconds)
+                {
+                    noIdlePromotionSince = -1f;
+                    LastPromotionResult = "Deferred: insufficient uncommitted Wood";
+                    return;
+                }
+            }
+            else reservedWoodShortageSince = -1f;
 
             UnitController candidate = ChoosePromotionCandidate(context.Knowledge, roles);
             if (candidate == null)
             {
-                LastPromotionResult = "Deferred: no idle low-disruption Pawn";
-                return;
+                if (!strategicInformationPriority)
+                    noIdlePromotionSince = -1f;
+                else if (noIdlePromotionSince < 0f)
+                    noIdlePromotionSince = context.Time;
+                if (strategicInformationPriority && noIdlePromotionSince >= 0f
+                    && context.Time - noIdlePromotionSince
+                        >= BusyPromotionFallbackSeconds)
+                    candidate = ChooseBusyPromotionCandidate(context.Knowledge, roles);
+                if (candidate == null)
+                {
+                    LastPromotionResult = "Deferred: no available Economy Pawn";
+                    return;
+                }
             }
 
             CommanderCommandResult result = context.Commands.TryPromoteScout(candidate);
             LastPromotionResult = result.ToString();
             if (result != CommanderCommandResult.Accepted) return;
 
+            noIdlePromotionSince = -1f;
+            reservedWoodShortageSince = -1f;
             scout = candidate;
             roles?.TryAssign(scout, CommanderPawnRole.Scout);
+            PawnGatherer cargo = scout.GetComponent<PawnGatherer>();
+            awaitingPromotedCargoReturn = cargo != null && cargo.CarriedAmount > 0;
+            promotedCargoReturnDeadline = context.Time + 30f;
+            nextPromotedCargoReturnAttempt = context.Time;
             ClearTarget();
             intent = ScoutIntent.SearchingForEnemy;
             nextTargetEvaluationTime = context.Time;
+        }
+
+        private bool FinishPromotedCargoReturn(CommanderDecisionContext context,
+            StrategicSafetyMap safety)
+        {
+            if (!awaitingPromotedCargoReturn || scout == null) return false;
+            PawnGatherer gatherer = scout.GetComponent<PawnGatherer>();
+            if (gatherer == null || gatherer.CarriedAmount <= 0
+                || context.Time >= promotedCargoReturnDeadline)
+            {
+                gatherer?.CancelJob();
+                scout.GetComponent<UnitMovement>()?.Stop();
+                awaitingPromotedCargoReturn = false;
+                return false;
+            }
+            if (context.Time >= nextPromotedCargoReturnAttempt)
+            {
+                context.Commands.TryReturnResources(scout, safety);
+                nextPromotedCargoReturnAttempt = context.Time + promotionRetrySeconds;
+            }
+            return true;
         }
 
         private static int ReservedBuildingWood(CommanderDecisionContext context,
@@ -397,6 +488,39 @@ namespace TinyKingdom.AI
                 if (!IsPromotionCandidate(unit, roles)) continue;
                 if (best == null
                     || unit.GetEntityId().CompareTo(best.GetEntityId()) < 0) best = unit;
+            }
+            return best;
+        }
+
+        private UnitController ChooseBusyPromotionCandidate(FactionKnowledge knowledge,
+            CommanderPawnRoles roles)
+        {
+            if (CountLivingPawns(knowledge) < minimumPawnsForScout) return null;
+            UnitController best = null;
+            int leastCargo = int.MaxValue;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                if (unit == null || !unit.IsAlive || !unit.IsWorldParticipant
+                    || roles == null
+                    || roles.GetRole(unit) != CommanderPawnRole.Economy
+                    || unit.GetComponent<PawnScoutPromotion>()?.IsPromoted == true
+                    || unit.CurrentState is UnitState.Attacking or UnitState.Chasing)
+                    continue;
+                UnitCombatData data = unit.GetComponent<HealthComponent>()?.CombatData;
+                PawnGatherer gatherer = unit.GetComponent<PawnGatherer>();
+                PawnBuilder builder = unit.GetComponent<PawnBuilder>();
+                if (data == null || data.UnitType != UnitType.Pawn
+                    || gatherer == null || builder != null && builder.HasJob) continue;
+                int cargo = gatherer.CarriedAmount;
+                if (best == null || cargo < leastCargo
+                    || cargo == leastCargo
+                        && unit.GetEntityId().CompareTo(best.GetEntityId()) < 0)
+                {
+                    best = unit;
+                    leastCargo = cargo;
+                }
             }
             return best;
         }
@@ -433,17 +557,20 @@ namespace TinyKingdom.AI
         }
 
         private bool TrySelectTarget(CommanderDecisionContext context,
-            StrategicSafetyMap safety, out ScoutTarget result)
+            StrategicSafetyMap safety, ref int rescoutBudget,
+            out ScoutTarget result)
         {
             StaleRevisitCandidateCount = 0;
             bool hasEnemyInterest = HasEnemyInterest(context.Knowledge);
             if (hasEnemyInterest && context.Time >= nextReconMissionTime
                 && TrySelectReconTarget(context, safety, out result)) return true;
             if (strategicInformationPriority
-                && TrySelectRescoutTarget(context, safety, out result)) return true;
+                && TrySelectRescoutTarget(context, safety, ref rescoutBudget,
+                    out result)) return true;
             if (TrySelectFrontier(context, safety, out result)) return true;
             if (!strategicInformationPriority
-                && TrySelectRescoutTarget(context, safety, out result)) return true;
+                && TrySelectRescoutTarget(context, safety, ref rescoutBudget,
+                    out result)) return true;
             result = default;
             return false;
         }
@@ -626,31 +753,34 @@ namespace TinyKingdom.AI
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null || scout == null) return false;
 
-            IReadOnlyList<BuildingKnowledgeSnapshot> buildings =
-                context.Knowledge.KnownEnemyBuildings;
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.Castle);
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.Barracks);
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.Archery);
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.Monastery);
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.Tower);
-            AddBuildingReconCandidates(context, grid, safety, buildings,
-                BuildingType.House);
-
-            MilitaryObservationSnapshot military =
-                context.Knowledge.LastMilitaryObservation;
-            if (military.HasObservation && reconScratch.Count < maxReconCandidates)
+            using (ObservationPointGenerationMarker.Auto())
             {
-                if (context.Time - military.LastSeenTime >= staleMemorySeconds)
-                    StaleRevisitCandidateCount++;
-                Vector2Int anchor = grid.WorldToGrid(military.ObservationRegion);
-                AddReconRing(context, grid, safety, anchor, default,
-                    ScoutTargetKind.MilitaryRecon, Mathf.Min(8f, military.TotalCount),
-                    context.Time - military.LastSeenTime, true, 0f);
+                IReadOnlyList<BuildingKnowledgeSnapshot> buildings =
+                    context.Knowledge.KnownEnemyBuildings;
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.Castle);
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.Barracks);
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.Archery);
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.Monastery);
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.Tower);
+                AddBuildingReconCandidates(context, grid, safety, buildings,
+                    BuildingType.House);
+
+                MilitaryObservationSnapshot military =
+                    context.Knowledge.LastMilitaryObservation;
+                if (military.HasObservation && reconScratch.Count < maxReconCandidates)
+                {
+                    if (context.Time - military.LastSeenTime >= staleMemorySeconds)
+                        StaleRevisitCandidateCount++;
+                    Vector2Int anchor = grid.WorldToGrid(military.ObservationRegion);
+                    AddReconRing(context, grid, safety, anchor, default,
+                        ScoutTargetKind.MilitaryRecon, Mathf.Min(8f, military.TotalCount),
+                        context.Time - military.LastSeenTime, true, 0f);
+                }
             }
 
             ReconCandidateCount = reconScratch.Count;
@@ -755,7 +885,8 @@ namespace TinyKingdom.AI
                 || knowledge.LastMilitaryObservation.HasObservation);
 
         private bool TrySelectRescoutTarget(CommanderDecisionContext context,
-            StrategicSafetyMap safety, out ScoutTarget result)
+            StrategicSafetyMap safety, ref int rescoutBudget,
+            out ScoutTarget result)
         {
             using var marker = RescoutScoringMarker.Auto();
             result = default;
@@ -763,9 +894,26 @@ namespace TinyKingdom.AI
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null) return false;
             IReadOnlyList<ResourceKnowledgeSnapshot> resources = context.Knowledge.KnownResources;
-            for (int i = 0; i < resources.Count; i++)
+            int resourceCount = resources.Count;
+            if (resourceCount == 0)
             {
-                ResourceKnowledgeSnapshot memory = resources[i];
+                nextRescoutMemoryIndex = 0;
+                return false;
+            }
+            // Finding an approach checks a ring of cells for each memory. A
+            // rotating fixed window covers all memories across evaluations
+            // without scoring hundreds of rings in one Commander frame.
+            // Three rejected move attempts can reach this method in one Tick.
+            // Share one window across them so total scoring stays bounded.
+            int limit = Mathf.Min(rescoutBudget, resourceCount);
+            if (limit <= 0) return false;
+            int start = nextRescoutMemoryIndex % resourceCount;
+            nextRescoutMemoryIndex = (start + limit) % resourceCount;
+            rescoutBudget -= limit;
+            for (int offset = 0; offset < limit; offset++)
+            {
+                ResourceKnowledgeSnapshot memory =
+                    resources[(start + offset) % resourceCount];
                 float age = context.Time - memory.LastSeenTime;
                 if (age < staleMemorySeconds
                     || context.Knowledge.IsCellVisible(memory.LogicalCell)

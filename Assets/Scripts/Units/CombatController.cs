@@ -677,8 +677,13 @@ namespace TinyKingdom.Units
                 return;
             }
             repathRemaining -= Mathf.Max(0f, deltaTime);
-            if (repathRemaining <= 0f && (!movement.IsMoving
-                || buildingTarget.DistanceFrom(transform.position) > range))
+            // Keep a healthy chase route toward the building. Recomputing all
+            // perimeter attack cells while already advancing can probe A* many
+            // times every combat interval without changing the destination.
+            bool chaseRouteHealthy = movement.IsMoving
+                && Time.time - movement.LastMovementProgressTime
+                    < UnitMovement.StaleMoveSeconds;
+            if (repathRemaining <= 0f && !chaseRouteHealthy)
             {
                 grid ??= movement.GridManager != null ? movement.GridManager
                     : FindAnyObjectByType<GridManager>();

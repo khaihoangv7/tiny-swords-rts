@@ -168,6 +168,12 @@ namespace TinyKingdom.Economy
         public bool Gather(ResourceNode node, Predicate<ResourceNode> retargetEligibility,
             Predicate<Vector3> retargetPositionEligibility,
             IPathTraversalPolicy traversalPolicy)
+            => Gather(node, retargetEligibility, retargetPositionEligibility,
+                traversalPolicy, true);
+
+        public bool Gather(ResourceNode node, Predicate<ResourceNode> retargetEligibility,
+            Predicate<Vector3> retargetPositionEligibility,
+            IPathTraversalPolicy traversalPolicy, bool tryAlternateOnCommand)
         {
             if (!MatchManager.AllowsGameplay || node == null || !node.IsAvailable
                 || controller == null || !controller.IsAlive)
@@ -191,7 +197,7 @@ namespace TinyKingdom.Economy
             // a group is ordered to one crowded node. Overflow workers retain the
             // same resource intent and reserve another legal same-type node.
             bool accepted = BeginGatherTrip(false);
-            if (!accepted) accepted = TryAutoRetarget();
+            if (!accepted && tryAlternateOnCommand) accepted = TryAutoRetarget();
             if (!accepted)
             {
                 // Never discard the resource intent while cargo still needs to be
@@ -332,6 +338,8 @@ namespace TinyKingdom.Economy
                         completedDropOff.Release(controller);
                         dropOff = null;
                         if (!deposited) BeginReturn();
+                        else if (GetComponent<PawnScoutPromotion>()?.IsPromoted == true)
+                            CancelJob();
                         else if (resourceJobActive && target != null && target.IsAvailable
                             && BeginGatherTrip(false)) { }
                         else if (resourceJobActive && TryAutoRetarget()) { }

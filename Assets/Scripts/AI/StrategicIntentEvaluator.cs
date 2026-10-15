@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.AI
@@ -164,6 +165,12 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class StrategicIntentEvaluator
     {
+        private static readonly ProfilerMarker EvaluationMarker =
+            new("TinyKingdom.AI.StrategicIntent.Evaluate");
+        private static readonly ProfilerMarker SnapshotMarker =
+            new("TinyKingdom.AI.StrategicSnapshot.Build");
+        private static readonly ProfilerMarker TargetScoreMarker =
+            new("TinyKingdom.AI.StrategicTarget.Score");
         private static readonly StrategicIntent[] Intents =
         {
             StrategicIntent.DevelopEconomy, StrategicIntent.Scout,
@@ -200,6 +207,7 @@ namespace TinyKingdom.AI
         public string TransitionReason => DecisionReason;
         public float TransitionTime => transitionTime;
         public float TransitionGameTime => transitionTime;
+        public float LastEvaluationTime { get; private set; } = -1f;
         public float IntentAge(float now) => Mathf.Max(0f, now - transitionTime);
         public float EvaluationInterval => Mathf.Max(1f, evaluationInterval);
         public float MinimumIntentHold => Mathf.Max(1f, minimumIntentHold);
@@ -226,6 +234,12 @@ namespace TinyKingdom.AI
             observedLaunchSerial = observedCompletionSerial = 0;
             failedLaunchSerial = 0;
             hasScores = false;
+            LastEvaluationTime = -1f;
+        }
+
+        public void RequestImmediateReevaluation()
+        {
+            nextEvaluationTime = 0f;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
@@ -243,9 +257,14 @@ namespace TinyKingdom.AI
             if (context.Time < nextEvaluationTime && !emergency && !withdrawal) return;
             nextEvaluationTime = context.Time + EvaluationInterval;
 
-            target = SelectTarget(context, military, safety);
-            Situation = BuildSnapshot(context, roles, demand, economy, buildings,
-                production, scouting, military, safety, emergency);
+            using var evaluation = EvaluationMarker.Auto();
+            LastEvaluationTime = context.Time;
+
+            using (TargetScoreMarker.Auto())
+                target = SelectTarget(context, military, safety);
+            using (SnapshotMarker.Auto())
+                Situation = BuildSnapshot(context, roles, demand, economy, buildings,
+                    production, scouting, military, safety, emergency);
             AttackReadiness = CalculateAttackReadiness(Situation, production, military,
                 safety, target);
             StrategicIntentScores raw = CalculateScores(Situation, demand, production,
@@ -290,6 +309,7 @@ namespace TinyKingdom.AI
                 desired = target.IsValid ? StrategicIntent.PrepareAttack
                     : StrategicIntent.Scout;
                 reason = target.IsValid ? "ArmyNearlyReady" : "TargetInvalid";
+                if (!target.IsValid) majorOverride = true;
             }
             else if (desired == StrategicIntent.Attack
                 && CurrentIntent != StrategicIntent.PrepareAttack
@@ -437,8 +457,11 @@ namespace TinyKingdom.AI
             if (scouting != null && scouting.SafetyState == ScoutSafetyState.Evading)
                 scoutNeed *= 0.65f;
 
+            float threatConfidence = s.IntelAge < 0f ? 0f
+                : Mathf.Clamp01(s.IntelConfidence);
             float fortify = s.BaseThreatened ? 1f
-                : Mathf.Clamp01(s.EnemyStrength / Mathf.Max(1f, s.OwnStrength)) * 0.30f
+                : Mathf.Clamp01(s.EnemyStrength / Mathf.Max(1f, s.OwnStrength))
+                    * 0.30f * threatConfidence
                     + Mathf.Clamp01(s.KnownDangerCount / 4f) * 0.12f;
             float prepare = s.HasKnownTarget
                 ? Mathf.Clamp01(0.25f + AttackReadiness * 0.65f) : 0.10f;
@@ -636,7 +659,9 @@ namespace TinyKingdom.AI
                 ? "LowWorkerCount" : "EarlyEconomy",
             StrategicIntent.Scout => situation.IntelAge < 0f
                 ? "EnemyUnknown" : "IntelStale",
-            StrategicIntent.Fortify => "KnownDefensivePressure",
+            StrategicIntent.Fortify => situation.BaseThreatened
+                ? "KnownThreat" : situation.IntelConfidence >= 0.5f
+                    ? "ArmyDisadvantage" : "BaseRisk",
             StrategicIntent.PrepareAttack => "ArmyNearlyReady",
             StrategicIntent.Attack => "AttackReady",
             StrategicIntent.Recover => "RecoverFromLoss",

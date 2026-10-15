@@ -298,6 +298,11 @@ namespace TinyKingdom.AI
                         + ", Pawns=" + productionPolicy.LivingPawnCount
                         + ", GatherAssignments=" + economyPolicy.AssignmentCount
                         + ", ArmyMembers=" + militaryPolicy.Army.Members.Count, this);
+                if (warnOnStrategicStall
+                    && progressDiagnostics.TryCaptureMilitaryLivenessStall(
+                        context.Time, StallWarningSeconds, context.Knowledge,
+                        strategicIntent, militaryPolicy, out string militarySnapshot))
+                    Debug.LogWarning(militarySnapshot, this);
                 ThinkTick++;
                 if (exposeRuntimeDebug) RefreshDebug();
             }

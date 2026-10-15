@@ -2,6 +2,7 @@ using System;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Units;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.AI
@@ -12,6 +13,8 @@ namespace TinyKingdom.AI
     [Serializable]
     public sealed class EconomicDemandModel
     {
+        private static readonly ProfilerMarker RefreshMarker =
+            new("TinyKingdom.AI.EconomicDemand");
         [SerializeField, Min(0)] private int foodBuffer = 80;
         [SerializeField, Min(0)] private int woodBuffer = 100;
         [SerializeField, Min(0)] private int goldBuffer = 50;
@@ -43,6 +46,7 @@ namespace TinyKingdom.AI
             BuildingCommanderPolicy buildings, ProductionCommanderPolicy production,
             ScoutingCommanderPolicy scouting)
         {
+            using var marker = RefreshMarker.Auto();
             ResourceStockpile stockpile = context.Knowledge?.Stockpile;
             Food = stockpile != null ? stockpile.GetAmount(ResourceType.Food) : 0;
             Wood = stockpile != null ? stockpile.GetAmount(ResourceType.Wood) : 0;

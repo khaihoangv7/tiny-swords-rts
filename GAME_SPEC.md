@@ -2273,3 +2273,10 @@ Economy, construction, production and Scout policies continue independently duri
 intents. The strategic layer does not issue unit commands or add hidden scans, resources,
 units, building types or placement authority. `Fortify` uses existing base defense and
 Tower capabilities only.
+
+Full-match military decisions must remain live. Staging and formations are approximate:
+a sufficient majority near the robust army anchor may continue while a bounded minority
+recovers independently. Stale or invalid staging, stopped paths, invalid attack targets
+and depleted recovery states have bounded reevaluation paths. These safeguards preserve
+normal command authority, Fog knowledge and pathfinding; they do not teleport units or
+grant hidden information.

@@ -1675,7 +1675,7 @@ Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
 
 ### Phase 7E.5 Strategic Decision Layer
 
-Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
+Status: **IMPLEMENTED - HEADLESS MATCH TESTS PASS; TARGETED UNITY PLAY MODE VALIDATION PENDING**.
 
 - [x] Create `feature/phase-7e5-strategic-decision-layer` from integrated Phase 7E.4
 - [x] Add six explicit strategic intents and a centralized evaluator
@@ -1694,7 +1694,7 @@ Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
 - [x] Add `TinyKingdom.AI.StrategicIntent` Profiler marker
 - [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Decision Layer`
 - [x] Compile Runtime and Editor projects with 0 errors and 0 warnings
-- [ ] Run the Phase 7E.5 validator in Unity Edit Mode
+- [x] Run the Phase 7E.5 validator in Unity Edit Mode (batch-mode static validation)
 - [ ] Run early economy, unknown enemy and stale-intel scenarios
 - [ ] Run strong/weak/unknown-enemy-strength AttackReadiness scenarios
 - [ ] Run PrepareAttack, staging, commitment, legal target and hidden target scenarios
@@ -1704,6 +1704,43 @@ Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
 - [ ] Confirm Fog, human controls, economy, production, tactical combat and Console regressions
 - [x] Do not implement RL
 - [x] Do not commit, push or merge Phase 7E.5 automatically
+
+### Phase 7E.5 Full-Match Liveness & Frame-Spike Hotfix
+
+Status: **AUTOMATED VALIDATION PASS - TARGETED UNITY EDITOR PLAY MODE VALIDATION PENDING**.
+
+- [x] Make identical Move dedupe conditional on an active path or actual arrival
+- [x] Track per-unit movement progress, path requests and path failures
+- [x] Add majority/anchor/straggler-aware staging arrival
+- [x] Reject occupied, building, resource and stair/connector staging cells
+- [x] Add cooldown-bound staging invalidation and strategic reevaluation
+- [x] Add bounded Attack idle recovery and invalid-objective exit
+- [x] Add maximum-duration Recover exit for depleted armies
+- [x] Keep Engaging zero-target exit and tolerate one non-severe straggler
+- [x] Add disabled-by-default bounded military liveness snapshot diagnostics
+- [x] Split military formation, combat and regroup path counters
+- [x] Add strategic, tactical, Scout, economy, production and safety Profiler markers
+- [x] Add bounded eight-entry frame-spike telemetry plus peak snapshot
+- [x] Add `Tools > Tiny Kingdom > Validate Phase 7E.5 Strategic Liveness`
+- [x] Compile Runtime and Editor projects with zero errors and warnings
+- [x] Run strategic liveness validator in Unity Edit Mode (batch-mode static validation)
+- [ ] Reproduce and validate PrepareAttack, straggler and invalid-staging cases
+- [ ] Validate destroyed/missing target, Recover and stale-Fortify cases
+- [ ] Validate zero-target Engaging, stale Move and temporary path-failure cases
+- [x] Run a 240-real-second natural x1 standalone baseline: Scout promoted, economy and production continued, zero errors/exceptions
+- [x] Run natural x5 and x10 standalone matches to Red victory with zero errors/exceptions
+- [x] Run a 300-real-second x10 isolated stress fixture: forced Red army loss, second offensive launch, zero errors/exceptions and no post-startup frame above the 35 ms capture threshold
+- [x] Capture and identify the dominant subsystem for an actual severe spike
+- [x] Compare early and late stress snapshots: known resources remained near 410-425, audio pool stabilized at 72, and path requests did not accelerate
+- [ ] Exercise the 60-game-second planned-building Wood-reservation Scout fallback in a controlled Unity scenario
+- [ ] Complete at least two natural Prepare/Attack/Recover cycles
+- [ ] Confirm Console and Scout/Economy/Production/Fog/construction/stairs regressions
+- [x] Commit and merge after the user's explicit validation request; do not push
+
+The x10 fixture used an isolated ignored test copy with increased Castle HP so combat
+continued for five real minutes; the repository Castle data remains unchanged. An earlier
+x5 capture included one 35.6 ms building-site search frame, so Editor Profiler and the
+targeted gameplay scenarios above remain pending despite the clean final headless runs.
 
 ## Phase 6E - Audio Expansion: completion, combat impacts and command voices
 
