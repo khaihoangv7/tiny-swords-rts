@@ -26,6 +26,8 @@ namespace TinyKingdom.EditorTools
         {
             new(GameplayAudioEvent.WarriorAttack,
                 "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3"),
+            new(GameplayAudioEvent.WarriorAttackAlternate,
+                "Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3"),
             new(GameplayAudioEvent.LancerAttack,
                 "Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3"),
             new(GameplayAudioEvent.ArcherAttack,
@@ -99,6 +101,14 @@ namespace TinyKingdom.EditorTools
                     ValidateCue(catalog, Required[i], ref valid);
                 ValidateHammerVariation(catalog, ref valid);
                 ValidateWarriorHitVariations(catalog, ref valid);
+                if (catalog.TryGetCue(GameplayAudioEvent.WarriorAttack,
+                        out GameplayAudioCue warriorHit))
+                    Check(Mathf.Approximately(warriorHit.Volume, 0.65f),
+                        "WarriorAttack volume must remain at 0.65.", ref valid);
+                if (catalog.TryGetCue(GameplayAudioEvent.WarriorAttackAlternate,
+                        out GameplayAudioCue warriorAlternate))
+                    Check(Mathf.Approximately(warriorAlternate.Volume, 0.65f),
+                        "WarriorAttackAlternate volume must remain at 0.65.", ref valid);
                 if (catalog.TryGetCue(GameplayAudioEvent.PawnMining, out GameplayAudioCue mining))
                     Check(Mathf.Approximately(mining.Volume, 0.20f),
                         "PawnMining volume must remain at 0.20.", ref valid);
@@ -266,7 +276,8 @@ namespace TinyKingdom.EditorTools
                 ref valid);
             Check(SourceContains("Assets/Scripts/Units/CombatController.cs",
                     "LaunchProjectile", "PlayArcherAttackSound",
-                    "if (damaged) PlayMeleeAttackSound"),
+                    "if (damaged) PlayMeleeAttackSound", "UsesWarriorSwordHit",
+                    "GameplayAudioEvent.WarriorAttackAlternate"),
                 "Archer release or successful Warrior hit hook is missing.", ref valid);
             Check(SourceContains("Assets/Scripts/Units/CombatProjectile.cs",
                     "bool damaged = target.ReceiveAttack", "damaged && unitTarget",
@@ -275,8 +286,21 @@ namespace TinyKingdom.EditorTools
                 ref valid);
             Check(SourceContains("Assets/Scripts/Input/PlayerCommandController.cs",
                     "FinishAcceptedCommand", "HumanCommandVoiceFeedback",
-                    "AcceptCommand"),
+                    "AcceptCommand", "IssuePointerCommand",
+                    "commandVoiceAllowedForPointerCommand"),
                 "Human command voice is not connected after accepted recipients.",
+                ref valid);
+            Check(!File.ReadAllText("Assets/Scripts/Input/PlayerCommandController.cs")
+                    .Contains("AcknowledgeAcceptedExternalCommand"),
+                "An external non-pointer command can still trigger Human command voice.",
+                ref valid);
+            Check(SourceContains("Assets/Scripts/Input/PlayerCommandController.cs",
+                    "AcknowledgeAcceptedBuildingPlacementClick",
+                    "leftButton.wasPressedThisFrame")
+                && SourceContains("Assets/Scripts/Buildings/BuildingPlacementController.cs",
+                    "mouse.leftButton.wasPressedThisFrame",
+                    "AcknowledgeAcceptedBuildingPlacementClick"),
+                "Building placement voice is not restricted to its accepted mouse click.",
                 ref valid);
             Check(!DirectoryContains("Assets/Scripts/AI", "GenericCommandVoice")
                 && !DirectoryContains("Assets/Scripts/AI", "ArmyCommandVoice")

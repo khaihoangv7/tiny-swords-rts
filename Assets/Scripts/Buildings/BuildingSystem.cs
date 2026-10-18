@@ -15,6 +15,7 @@ namespace TinyKingdom.Buildings
         BlockedByResource,
         OccupiedByUnit,
         WouldTrapFriendlyUnits,
+        WouldSealWalkablePocket,
         NoConstructionAccess
     }
 
@@ -52,11 +53,16 @@ namespace TinyKingdom.Buildings
         public GridManager Grid => grid;
         public BuildingPlacementFailureReason LastPlacementFailureReason { get; private set; }
         public int LastPlacementTrappedUnitCount { get; private set; }
+        public int LastPlacementSealedCellCount { get; private set; }
         public int LastReachableBuilderSlotCount { get; private set; }
-        public string LastPlacementDiagnostic => LastPlacementFailureReason
-            == BuildingPlacementFailureReason.WouldTrapFriendlyUnits
-                ? $"Placement rejected: would trap {LastPlacementTrappedUnitCount} friendly units"
-                : LastPlacementFailureReason.ToString();
+        public string LastPlacementDiagnostic => LastPlacementFailureReason switch
+        {
+            BuildingPlacementFailureReason.WouldTrapFriendlyUnits =>
+                $"Placement rejected: would trap {LastPlacementTrappedUnitCount} friendly units",
+            BuildingPlacementFailureReason.WouldSealWalkablePocket =>
+                $"Placement rejected: would seal {LastPlacementSealedCellCount} walkable cells",
+            _ => LastPlacementFailureReason.ToString()
+        };
 
         public bool IsReady => grid != null && paths != null && stockpile != null
             && HasValidData(BuildingType.House)
@@ -115,6 +121,7 @@ namespace TinyKingdom.Buildings
         {
             LastPlacementFailureReason = BuildingPlacementFailureReason.None;
             LastPlacementTrappedUnitCount = 0;
+            LastPlacementSealedCellCount = 0;
             LastReachableBuilderSlotCount = 0;
             BuildingData data = GetData(type);
             if (data == null || grid == null || data.Footprint.x < 1 || data.Footprint.y < 1)
@@ -163,12 +170,20 @@ namespace TinyKingdom.Buildings
                     return false;
                 }
             }
-            if (trapValidator.WouldTrapFriendlyUnits(grid, owner, origin,
-                    data.Footprint, out int trappedUnits))
+            bool trapsUnits = trapValidator.WouldTrapFriendlyUnits(grid, owner, origin,
+                data.Footprint, out int trappedUnits, out int sealedCells);
+            LastPlacementSealedCellCount = sealedCells;
+            if (trapsUnits)
             {
                 LastPlacementFailureReason =
                     BuildingPlacementFailureReason.WouldTrapFriendlyUnits;
                 LastPlacementTrappedUnitCount = trappedUnits;
+                return false;
+            }
+            if (sealedCells > 0)
+            {
+                LastPlacementFailureReason =
+                    BuildingPlacementFailureReason.WouldSealWalkablePocket;
                 return false;
             }
             SetFootprint(origin, data.Footprint, true);

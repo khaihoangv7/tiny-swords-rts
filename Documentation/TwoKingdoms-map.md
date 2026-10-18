@@ -18,18 +18,20 @@ Mở lại `Assets/Scenes/Map.unity` và nhấn Play.
   độc lập, vẫn còn ít nhất 171 ô trống ở Blue và 180 ô ở Red để đi lại và xây dựng.
 - Mỏ vàng 2 × 2 tại `(29,21)` nằm trên đất phẳng ở giữa đảo. Các tầng đồi,
   bóng đổ và dốc cũ quanh mỏ đã được gỡ bỏ; quân tiếp cận từ hai phía.
-- Có 73 cừu: mỗi phe 12 con ở đồng phía trên và 12 con phía dưới khu đất
-  Castle, thêm 12 con ở đồng trung lập. Cừu được đặt lệch nhau thành cụm nhỏ,
-  cùng 4 con ở các góc ngoài tầng dưới mỗi phe và 5 con trên tầng 2 của Blue.
+- Có 51 cừu: Blue giữ 12 con ở phía bắc đồi và 1 con ở phía nam; Red giữ
+  12 con ở phía nam và 1 con ở phía bắc. Mỗi bãi ngoài thay 11 con bằng cây.
+  Vẫn có 12 con ở đồng trung lập, 4 con tại các góc ngoài tầng dưới mỗi phe
+  và 5 con trên hai sân Castle Blue.
 - Mỗi căn cứ có 2 cây ở rìa phía trên của tầng dưới, bên ngoài sân Castle,
   và 2 cây ở các góc rìa tầng dưới.
   Rìa sân tầng trên có 1 đá vàng lớn và 1 đá vàng nhỏ, cân bằng giữa hai phe.
   Các cụm tài nguyên tránh sân giữa và hai lối lên.
 - Castle Blue có thêm 2 thông sẫm Tree1 trên mỗi tầng và 4 cụm cỏ Bushe3,
   mỗi cụm gồm 3 bụi sát nhau, đặt gần rìa. Cỏ chỉ trang trí, không cản đường.
-- Có 342 cây, dùng đủ 4 loại cây và gốc cây Tiny Swords, đều khai thác được. Các
-  cụm rừng trải khắp đảo, giữ thoáng hành lang giữa, đường quanh căn cứ và
-  bãi cừu. Có 64 đá nhỏ cạnh rừng và 12 đá ven bờ, cùng 48 đá trên nước
+- Mỗi bãi ngoài phía nam Blue và phía bắc Red có thêm 27 cây khai thác được,
+  bố trí đối xứng, dùng 4 cặp cây/gốc Tiny Swords đã có. Các cụm rừng trải khắp
+  đảo nhưng vẫn chừa lối đi và ô đứng để khai thác. Có 64 đá nhỏ cạnh rừng và
+  12 đá ven bờ, cùng 48 đá trên nước
   có hoạt ảnh sóng và 16 cụm mây nằm trong map.
 - Mây lớn hơn khoảng 1,6–1,8 lần, bay chậm qua lại theo chu kỳ 48–78 giây.
   Mỗi hồ có một cụm mây nhẹ, các cụm khác bay trên rừng và đất ven bờ. Cả cụm
@@ -39,8 +41,8 @@ Mở lại `Assets/Scenes/Map.unity` và nhấn Play.
   phải tài nguyên thức ăn và không cản đường.
 - Mỏ vẫn chứa 2.000 Gold; 6 đá vàng giữa map chứa tổng cộng 2.400 Gold.
   Thông số chiến đấu, khai thác, xây dựng và hoạt ảnh giữ nguyên.
-- Tổng cộng 431 nút tài nguyên đều tiếp cận được. Chi phí đường tới mỏ từ
-  hai Castle là Blue 21,31 và Red 21,90, chênh khoảng 2,7%.
+- Sau khi thay cừu bằng cây, cần kiểm tra lại khả năng tiếp cận từng nút tài
+  nguyên và đường từ cả hai Castle tới mỏ giữa bằng validator của map.
 
 ## Chỉnh sửa và kiểm tra
 
@@ -54,7 +56,8 @@ cục mặc định và ghi đè placement/trang trí của map này. Lưu bản
 đã chỉnh tay. `Battlefield_EditorPreview` chỉ hiện ngoài Play Mode.
 
 Kiểm tra tự động bao gồm đường tới mỏ của hai phe, khả năng tiếp cận từng
-nút tài nguyên, đồng cừu trên/dưới, khoảng sân xây dựng trống, hai tầng Castle,
+nút tài nguyên, các bãi cừu còn lại và hai rừng ngoài, khoảng sân xây dựng
+trống, hai tầng Castle,
 hai lối lên độc lập (chặn một lối để kiểm tra lối còn lại), địa hình phẳng ở mỏ,
 kích thước camera, Fog of War, số lượng cảnh vật và vị trí/khung hình hoạt ảnh
 của vịt, đá nước trong Play Mode. Kiểm tra mây gồm giới hạn toàn bộ hình trong

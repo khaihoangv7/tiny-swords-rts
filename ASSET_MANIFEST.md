@@ -36,11 +36,16 @@ a nested 10x7 upper terrace at height 2, with two ascent routes per faction.
 Each route uses two native ramp flights, one per height boundary. Each cliff uses the native
 finished foot row (`r5c5/r5c6/r5c7`) once. The extra wall-extension row 4 is
 omitted, eliminating the doubled visible face. Side ramps retain the verified
-64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching Color3 and
-their original same-column visual assembly. The verified runtime paths are
+64x64 `r4c0/r5c0` (west) and `r4c3/r5c3` (east) pairs, matching the destination
+terrace color and their original same-column visual assembly. Ground-to-landing
+flights retain Color3; landing-to-court flights use brighter Color1. The verified
+Color3 runtime paths are
 `Assets/Tiles/Terrain/Color3/Tilemap_color3_r4c0.asset`, `r5c0.asset`,
 `r4c3.asset` and `r5c3.asset`; all reference centered 64x64 sprites from
-`Assets/Terrain/Tileset/Tilemap_color3.png` at 64 PPU. The ramp halves remain
+`Assets/Terrain/Tileset/Tilemap_color3.png` at 64 PPU. The equivalent Color1 paths
+are `Assets/Tiles/Terrain/Color1/Tilemap_color1_r4c0.asset`, `r5c0.asset`,
+`r4c3.asset` and `r5c3.asset`, referencing the same native regions of
+`Assets/Terrain/Tileset/Tilemap_color1.png` at 64 PPU. The ramp halves remain
 in one outside visual column, while the diagonally adjacent logical upper exit
 must replace its left/right plateau edge with the matching center tile from
 column 6. Interior exits use `r1c6`. South-edge exits use `r2c6`, and the cliff
@@ -59,9 +64,13 @@ corner, while its wider horizontal run keeps the unit ground pivot centered on
 the painted slope in either direction. The two finished cliff rows are separated by a
 walkable lower landing, never stacked into one wall. The mine remains flat.
 
-Sheep retain the verified Idle/Grass mapping. There are 73: twelve above and
-twelve below each Castle plateau, twelve neutral Sheep, and four at each base's
-lower outer corners, plus two on Blue's upper court and three on its lower terrace.
+Sheep retain the verified Idle/Grass mapping. There are 51: Blue has twelve
+north of its plateau and one south, while Red has twelve south and one north;
+twelve more are neutral Sheep, with four at each base's lower outer corners,
+plus two on Blue's upper
+court and three on its lower terrace. Eleven Sheep were removed from each outer
+meadow and replaced by 27 gatherable Trees per faction, using the existing four
+verified Tree/Stump variants. Open aisles preserve travel and harvest access.
 Each base uses four existing Tree variants: two at the
 lower terrace's northern rim (height 1) and two at the
 southern corners of the lower terrace.
@@ -87,8 +96,9 @@ sheets, four trees, four bushes, four rocks, four water-rock sheets, eight cloud
 the Blue/Red Castle pair and Red Pawn Idle/Run. Existing gameplay animation
 mappings below are retained. No sprite is AI-generated or recolored.
 
-* `Tilemap_color1` supplies the main island, `color3` Castle plateaus and bright meadow
-  patches, `color4` the flat mine clearing and
+* `Tilemap_color1` supplies the main island and brighter upper Castle courts;
+  `color3` supplies the original lower Castle landings and bright meadow patches;
+  `color4` supplies the flat mine clearing and
   approach paths, and `color5` cool coastal vegetation. All are 64x64 tiles.
 * `Terrain/Decorations/Bushes/Bushe1.png`: Aseprite tag `Bush 1`, source frames
   0..7, exported sprites `Bushe1_0..7`, 100 ms each; LARGE scale 1.50.
@@ -874,11 +884,19 @@ and `Assets/Units/Red Units/Pawn/`. Every source frame occupies a 192x192
 cell. Unity's previous automatic slicing split loose Axe/Pickaxe/Knife pixels
 into extra sprite fragments (7/8/7 sprites); those three sheets now preserve
 the complete 6/6/4 source cells as named sprite frames. PPU remains 100.
+The separate `Pawn_Run Axe.png`, `Pawn_Run Pickaxe.png`, and
+`Pawn_Run Knife.png` sheets were also visually inspected for both factions.
+Each is 1152x192 with six complete 192x192 cells. Automatic slicing splits
+detached tool pixels in Run Axe and Run Knife into a seventh fragment; their
+importers now use six fixed cells instead of those fragment sprites.
 
 | Gameplay visual | Sheet in each faction Pawn directory | Frames | Playback |
 | --- | --- | --- | --- |
 | Idle | `Pawn_Idle.png` | `_0`–`_7` (8) | loop, about 10 fps |
 | Move | `Pawn_Run.png` | `_0`–`_5` (6) | loop, about 10 fps |
+| Move to Wood | `Pawn_Run Axe.png` | `_0`–`_5` (6) | loop, about 10 fps while traveling to gather Wood |
+| Move to Gold | `Pawn_Run Pickaxe.png` | `_0`–`_5` (6) | loop, about 10 fps while traveling to gather Gold |
+| Move to Food | `Pawn_Run Knife.png` | `_0`–`_5` (6) | loop, about 10 fps while traveling to gather Food |
 | Wood work | `Pawn_Interact Axe.png` | `_0`–`_5` (6) | 12 fps, 0.5 s once per 1.5 s gather cycle |
 | Gold work | `Pawn_Interact Pickaxe.png` | `_0`–`_5` (6) | 12 fps, 0.5 s once per 1.5 s gather cycle |
 | Food work and combat | `Pawn_Interact Knife.png` | `_0`–`_3` (4) | work: 8 fps, 0.5 s once per 1.5 s cycle; combat: 10 fps |
@@ -888,6 +906,12 @@ the complete 6/6/4 source cells as named sprite frames. PPU remains 100.
 | Carry Wood moving / still | `Pawn_Run Wood.png` / `Pawn_Idle Wood.png` | 6 / 8 | loop, about 10 fps |
 | Carry Gold moving / still | `Pawn_Run Gold.png` / `Pawn_Idle Gold.png` | 6 / 8 | loop, about 10 fps |
 | Carry Food moving / still | `Pawn_Run Meat.png` / `Pawn_Idle Meat.png` | 6 / 8 | loop, about 10 fps |
+
+Tool Run is presentation for the outbound gather trip, including travel toward
+a remembered resource of the same known type. A returning Pawn uses its
+existing cargo Run; an explicit Move cancels the gather job and uses generic
+Run or cargo Run if carrying resources. Visual frames do not change movement,
+the gather timer, or resource transfers.
 
 The Map test scene uses the Blue set in `Assets/UnitAnimations/BluePawn.asset`.
 The three Blue tool Idle sheets were inspected as eight-frame 192x192-cell

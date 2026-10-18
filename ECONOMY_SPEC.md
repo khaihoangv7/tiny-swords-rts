@@ -23,12 +23,21 @@ the gameplay cycle, then return to the matching Axe, Pickaxe, or Knife Idle
 visual for a 1.0-second recovery. Gameplay applies up to two resource units at the configured 0.45-second
 impact after each cycle begins. Work animation observes cycle events; sprite
 frames and AnimationEvents never add resources.
+Repeating a Gather order for the same resource while the job is active leaves
+its timer, interaction reservation, and deposit trip intact. A Pawn also keeps
+the 1.5-second impact interval when retargeted to another resource.
+
+While traveling to a resource for an active gather job, the Pawn uses the
+verified six-frame Run Axe, Run Pickaxe, or Run Knife visual for Wood, Gold,
+or Food. This also represents travel to a legally remembered resource of the
+same type. It is presentation only and does not change movement or work timing.
 
 The Pawn uses verified Wood, Gold, or Meat carry Idle/Run frames while
 transporting cargo, or after an interrupted job with retained cargo. During
 Gathering recovery, the tool Idle visual has priority over cargo. A new command
-cancels the worker job and its reservations but retains cargo. On node depletion, the Pawn returns
-with cargo already gathered, or becomes Idle if empty.
+cancels the worker job and its reservations but retains cargo. Explicit Move
+uses generic Run when empty or the existing cargo Run when carrying. On node
+depletion, the Pawn returns with cargo already gathered, or becomes Idle if empty.
 
 Each Castle has three reserved physical drop-off positions near its front
 entrance, at offsets (-0.8,-1.35), (0,-1.35), and (0.8,-1.35) world units.

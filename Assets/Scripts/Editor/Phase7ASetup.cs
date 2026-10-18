@@ -68,6 +68,9 @@ namespace TinyKingdom.EditorTools
             Put(data, "runWood", Frames("Pawn_Run Wood.png"));
             Put(data, "runGold", Frames("Pawn_Run Gold.png"));
             Put(data, "runFood", Frames("Pawn_Run Meat.png"));
+            Put(data, "runAxe", ToolRunFrames("Pawn_Run Axe.png"));
+            Put(data, "runPickaxe", ToolRunFrames("Pawn_Run Pickaxe.png"));
+            Put(data, "runKnife", ToolRunFrames("Pawn_Run Knife.png"));
             Put(data, "hammer", Frames("Pawn_Interact Hammer.png"));
             Put(data, "idleHammer", Frames("Pawn_Idle Hammer.png"));
             Put(data, "runHammer", Frames("Pawn_Run Hammer.png")
@@ -83,6 +86,14 @@ namespace TinyKingdom.EditorTools
             Sprite[] sprites = AssetDatabase.LoadAllAssetsAtPath(path)
                 .OfType<Sprite>().OrderBy(SpriteIndex).ToArray();
             if (sprites.Length == 0) throw new InvalidOperationException("Missing sprites: " + path);
+            return sprites;
+        }
+
+        private static Sprite[] ToolRunFrames(string file)
+        {
+            Sprite[] sprites = Frames(file);
+            if (sprites.Length != 6)
+                throw new InvalidOperationException("Prepare the six complete Pawn tool-run frames first: " + file);
             return sprites;
         }
 

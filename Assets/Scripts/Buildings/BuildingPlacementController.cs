@@ -135,8 +135,9 @@ namespace TinyKingdom.Buildings
                 if (selection.PlayerFaction == PlayerViewRelation.PlayerViewFaction)
                 {
                     GameplayAudioService.RequestUi(GameplayAudioEvent.BuildingPlan);
-                    GetComponent<PlayerCommandController>()?.AcknowledgeAcceptedExternalCommand(
-                        site != null ? site.ActiveBuilderCount : 1);
+                    GetComponent<PlayerCommandController>()
+                        ?.AcknowledgeAcceptedBuildingPlacementClick(
+                            site != null ? site.ActiveBuilderCount : 1);
                 }
                 Cancel();
             }

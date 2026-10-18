@@ -208,6 +208,12 @@ small inward interaction offset so the Pawn remains visibly close enough to the
 rock. The larger Gold Stone 6 uses an outward offset so the Pawn remains outside
 its artwork before the mining cycle begins.
 
+On a gather trip, Pawns run holding the matching Axe, Pickaxe, or Knife for
+Wood, Gold, or Food. On a return trip they use the matching carried-resource
+run visual. An explicit Move uses ordinary Run, or carried-resource Run if the
+Pawn retains cargo. These animations are visual only; movement and gathering
+timers remain authoritative gameplay state.
+
 Move to resource
 
 → Gather
@@ -2141,10 +2147,13 @@ to produce simultaneous legitimate work sounds.
 # 67. Phase 7E.1 Full-Match Stability
 
 All construction placement, whether requested by the player or a Commander, must
-reject a footprint that newly seals friendly controllable units inside a local
-walkable pocket. Connectivity follows authoritative logical navigation, including
+reject a footprint that newly seals a local walkable pocket, even if it is empty
+when placed: a Barracks or Archery may later try to spawn units into that gap.
+Placement also rejects pockets containing friendly controllable units.
+Connectivity follows authoritative logical navigation, including
 occupancy, elevation and authored stair links. Existing disconnected terrain is not
-retroactively invalidated, narrow passages remain legal while an exit exists, and
+retroactively invalidated, map borders are not exits, narrow passages remain legal
+while an exit exists, and
 Sheep continue to use their dedicated footprint evacuation behavior.
 
 An AI Economy Pawn carrying resources prioritizes a reachable completed friendly

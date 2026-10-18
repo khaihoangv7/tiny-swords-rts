@@ -47,7 +47,8 @@ own unit production completion, victory and defeat.
 | BuildingCompleted | `Assets/Audio/SFX/Buildings/Construction/building_completed.mp3` | First normal construction completion transition | World one-shot |
 | ArcherAttack | `Assets/Audio/SFX/Units/Archer/sfx_arrow_sound.mp3` | Actual Archer projectile creation | World one-shot |
 | ArcherArrowImpact | `Assets/Audio/SFX/Units/Archer/sfx_arrow_dmg.mp3` | Successful Archer projectile damage to a unit | World one-shot |
-| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` through `_07.mp3` | Successful Warrior damage to a unit | World one-shot variation |
+| WarriorAttack | `Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3` through `_07.mp3` | Successful Warrior damage to a Warrior, Lancer or Archer | World one-shot variation |
+| WarriorAttackAlternate | `Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3` | Successful Warrior damage to a Pawn, Monk or building | World one-shot |
 | PawnHammer | `Assets/Audio/SFX/Units/Pawn/sfx_pawn_building_01.mp3` and `_02.mp3` | Construction cycle or positive repair impact | World one-shot variation |
 | CommandClick | `Assets/Audio/SFX/UI/Notification/click.mp3` | Accepted bottom-panel command click | 2D one-shot |
 | CommandRejected | `Assets/Audio/SFX/UI/Notification/cant_click.mp3` | Disabled or rejected bottom-panel command click | 2D one-shot |
@@ -84,8 +85,12 @@ from a later successful placement, which requests `building_plan.mp3`.
 by the current Human view faction. Enqueue does not trigger it and hidden Red
 production cannot notify Blue.
 
-Human unit command voice is evaluated only after at least one selected unit accepts
-the command. Army count includes accepted living Warrior, Lancer and Archer units;
+Human unit command voice is evaluated only in the same input call as a direct
+world-command mouse click, and only after at least one selected unit accepts the
+command. This covers Move, Gather, Attack, Attack Move, Heal, Garrison and
+construction/repair assignments. Formation selection from the command panel,
+programmatic command calls and AI decisions stay silent. Army count includes
+accepted living Warrior, Lancer and Archer units;
 Pawn, Pawn Scout and Monk are excluded from that count. The army and generic groups
 are mutually exclusive and keep independent cooldowns measured with scaled game
 time. A failed probability roll, missing clip, unavailable source or rejected

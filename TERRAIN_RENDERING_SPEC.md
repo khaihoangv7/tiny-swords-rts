@@ -32,21 +32,24 @@ top. Along a reciprocal height connector, presentation elevation interpolates
 from the lower endpoint to the upper endpoint inside a 0.65-cell corridor. Since
 the official stair endpoints change world Y and logical elevation by one cell,
 both ends have the same projected depth and the transition is continuous in both
-directions. Navigation data and movement waypoints remain unchanged.
+directions. Navigation data stays unchanged; movement aligns to the current
+connector endpoint before following its authored diagonal.
 
 ## Platforms and ramps
 
 `BattlefieldTerraces.Platforms` defines both tiers of the two Castle bases. Color3
-supplies their surfaces, with proper edge/corner tiles from columns 5/6/7.
+remains on the lower landings at height 1; brighter Color1 supplies the upper
+Castle courts at height 2. Both use their native edge/corner tiles from columns 5/6/7.
 Use one row of finished cliff feet (`r5c5/r5c6/r5c7`) immediately below each
 surface. Do not stack row 4 and row 5; that doubles the visible cliff height.
 
-The two ascent routes per Castle each contain two flights using matching Color3 native
+The two ascent routes per Castle each contain two flights. Ground-to-landing
+flights use Color3 and landing-to-court flights use Color1, with the matching native
 left pair r4c0/r5c0 or right pair r4c3/r5c3. Each flight is painted as one
 native same-column pair immediately outside the matching plateau edge. Its
 logical lower endpoint is in that outside column and its logical upper endpoint
 is the diagonally adjacent walkable surface cell. The edge tile at that upper
-exit must be replaced by the Color3 center connection tile; leaving `c5/c7`
+exit must be replaced by the same-color center connection tile; leaving `c5/c7`
 there recreates the invalid red-X seam from the official guide. Interior exits
 use `r1c6`. A south-edge exit beside a cliff uses `r2c6` at the walkable top and
 `r5c6` directly below, replacing the closed `r2c5/r2c7` plus `r5c5/r5c7`
@@ -67,6 +70,10 @@ no collision. Imports remain Point, uncompressed, Clamp and without mipmaps.
 
 Most Sheep and gatherable forests occupy low ground. Each Castle also has two
 Trees along the lower terrace's northern rim and two at its southern corners.
+The outer low meadow south of Blue and its mirrored meadow north of Red each
+retain one Sheep and gain 27 gatherable Trees in place of eleven Sheep. The
+groves use the existing Tree art and leave walkable harvest aisles; terrain
+palette, elevation, cliff and stair tiles are unchanged by this resource pass.
 The upper court has one large and one small native Gold Rock;
 four Sheep graze at the lower landing's corners. Castle
 construction space and main roads remain clear. Blue has two additional dark

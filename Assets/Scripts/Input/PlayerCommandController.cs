@@ -35,6 +35,7 @@ namespace TinyKingdom.Input
         private readonly List<UnitController> acceptedCommandUnits = new();
         private readonly HumanCommandVoiceFeedback commandVoice = new();
         private bool attackMovePending;
+        private bool commandVoiceAllowedForPointerCommand;
         private BuildingPlacementController placement;
         private Vector2 lastFormationForward = Vector2.right;
         private bool hasFormationForward;
@@ -136,7 +137,7 @@ namespace TinyKingdom.Input
                     Vector2 click = mouse.position.ReadValue();
                     Vector3 ground = worldCamera.ScreenToWorldPoint(new Vector3(click.x, click.y,
                         -worldCamera.transform.position.z));
-                    if (IssueAttackMoveCommand(ground) > 0)
+                    if (IssuePointerCommand(() => IssueAttackMoveCommand(ground)) > 0)
                     {
                         AttackMoveCommandFeedback.Spawn(ground);
                         attackMovePending = false;
@@ -167,27 +168,29 @@ namespace TinyKingdom.Input
                 return;
             }
             HealthComponent friendlyHealTarget = FindFriendlyDamagedUnit(pointer);
-            if (friendlyHealTarget != null && IssueHealCommand(friendlyHealTarget) > 0)
+            if (friendlyHealTarget != null
+                && IssuePointerCommand(() => IssueHealCommand(friendlyHealTarget)) > 0)
                 return;
             UnitController enemy = FindEnemyAtScreenPosition(pointer);
             if (enemy != null)
-                IssueAttackCommand(enemy);
+                IssuePointerCommand(() => IssueAttackCommand(enemy));
             else if (FindEnemyBuilding(world) is BuildingCombatTarget enemyBuilding)
-                IssueAttackCommand(enemyBuilding);
+                IssuePointerCommand(() => IssueAttackCommand(enemyBuilding));
             else if (FindFriendlyGarrison(world) is BuildingGarrison garrison)
             {
                 BuildingSite site = garrison.GetComponent<BuildingSite>();
                 if (site != null && (site.State == BuildingState.UnderConstruction
-                    || site.NeedsRepair)) IssueBuildingCommand(site);
-                else IssueGarrisonCommand(garrison);
+                    || site.NeedsRepair))
+                    IssuePointerCommand(() => IssueBuildingCommand(site));
+                else IssuePointerCommand(() => IssueGarrisonCommand(garrison));
             }
             else if (FindFriendlyBuilding(world) is BuildingSite building)
-                IssueBuildingCommand(building);
+                IssuePointerCommand(() => IssueBuildingCommand(building));
             else if (FindGoldMine(world) is GoldMineObjective mine)
-                IssueGoldMineCommand(mine);
+                IssuePointerCommand(() => IssueGoldMineCommand(mine));
             else if (FindResourceAtScreenPosition(pointer) is ResourceNode node)
-                IssueGatherCommand(node);
-            else if (IssueMoveCommand(world) > 0)
+                IssuePointerCommand(() => IssueGatherCommand(node));
+            else if (IssuePointerCommand(() => IssueMoveCommand(world)) > 0)
                 MoveCommandFeedback.Spawn(world);
         }
 
@@ -775,11 +778,25 @@ namespace TinyKingdom.Input
             return 1;
         }
 
-        public void AcknowledgeAcceptedExternalCommand(int acceptedCount,
-            int armyCombatCount = 0)
+        private int IssuePointerCommand(Func<int> issue)
         {
-            if (acceptedCount > 0)
-                commandVoice.TryAcknowledge(acceptedCount, armyCombatCount, Time.time);
+            bool previous = commandVoiceAllowedForPointerCommand;
+            commandVoiceAllowedForPointerCommand = true;
+            try
+            {
+                return issue != null ? issue() : 0;
+            }
+            finally
+            {
+                commandVoiceAllowedForPointerCommand = previous;
+            }
+        }
+
+        public void AcknowledgeAcceptedBuildingPlacementClick(int acceptedBuilderCount)
+        {
+            if (acceptedBuilderCount <= 0
+                || Mouse.current?.leftButton.wasPressedThisFrame != true) return;
+            commandVoice.TryAcknowledge(acceptedBuilderCount, 0, Time.time);
         }
 
         private void BeginAcceptedCommand() => acceptedCommandUnits.Clear();
@@ -792,7 +809,7 @@ namespace TinyKingdom.Input
 
         private int FinishAcceptedCommand(int issued)
         {
-            if (issued > 0)
+            if (issued > 0 && commandVoiceAllowedForPointerCommand)
             {
                 int armyCombatCount = 0;
                 for (int i = 0; i < acceptedCommandUnits.Count; i++)

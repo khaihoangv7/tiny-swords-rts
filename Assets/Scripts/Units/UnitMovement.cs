@@ -357,6 +357,8 @@ namespace TinyKingdom.Units
                         arrivalTolerance, out completed)
                     : activePath.Advance(current, movementSpeed, deltaTime,
                         arrivalTolerance, out completed);
+                if (crossingHeightConnector)
+                    desired = AdvancePastConnectorCorner(current, desired, connectorTarget);
                 bool safe = crossingHeightConnector
                     ? IsSafeConnectorStep(current, desired, connectorTarget)
                     : UnitSeparation.IsSafeSegment(gridManager, current, desired);
@@ -383,6 +385,11 @@ namespace TinyKingdom.Units
                     ? UnitSeparation.ApplyAlongAxis(this, desired, deltaTime, gridManager,
                         connectorTarget - current)
                     : UnitSeparation.Apply(this, desired, deltaTime, gridManager);
+            // A soft separation push must not consume the stair endpoint while
+            // leaving the transform short of it. The next ordinary waypoint
+            // could otherwise cut across the cliff beside the stair.
+            if (connectorWaypoint && activePath.NextWaypointIndex > previousWaypoint)
+                resolved = desired;
             bool resolvedSafe = crossingHeightConnector
                 ? IsSafeConnectorStep(current, resolved, connectorTarget)
                 : UnitSeparation.IsSafeSegment(gridManager, current, resolved);
@@ -430,6 +437,18 @@ namespace TinyKingdom.Units
             if (currentCell == null || targetCell == null)
                 return false;
 
+            // The approach endpoint must be reached before the height crossing.
+            // Otherwise Advance can consume it and local separation can leave
+            // the unit off-axis when the next frame starts toward its partner.
+            if (waypointIndex + 1 < activePath.Waypoints.Count)
+            {
+                Vector2Int nextGrid = gridManager.WorldToGrid(
+                    activePath.Waypoints[waypointIndex + 1]);
+                GridCell nextCell = gridManager.GetCell(nextGrid.x, nextGrid.y);
+                if (IsReciprocalHeightConnector(targetCell, nextCell))
+                    return true;
+            }
+
             // Keep the approach to the endpoint centre stable after the transform has
             // crossed the cell boundary, as well as the actual endpoint-to-endpoint step.
             if (currentGrid == targetGrid)
@@ -454,6 +473,30 @@ namespace TinyKingdom.Units
             // classify its exact shared corner as either orthogonal cliff-side cell.
             Vector2Int desiredPosition = gridManager.WorldToGrid(desired);
             return desiredPosition == fromPosition || desiredPosition == targetPosition;
+        }
+
+        private Vector3 AdvancePastConnectorCorner(Vector3 current, Vector3 desired,
+            Vector3 connectorTarget)
+        {
+            Vector2Int fromPosition = gridManager.WorldToGrid(current);
+            Vector2Int targetPosition = gridManager.WorldToGrid(connectorTarget);
+            GridCell from = gridManager.GetCell(fromPosition.x, fromPosition.y);
+            GridCell target = gridManager.GetCell(targetPosition.x, targetPosition.y);
+            if (!IsReciprocalHeightConnector(from, target)) return desired;
+
+            // These two diagonal cells meet at a single corner. A frame landing
+            // exactly on it (or just either side due to float rounding) can be
+            // classified as one of the adjacent cliff cells and stall forever.
+            // Cross that tiny boundary on the authored diagonal in one step.
+            Vector2 corner = ((Vector2)from.WorldPosition
+                + (Vector2)target.WorldPosition) * 0.5f;
+            float epsilon = Mathf.Max(0.001f,
+                gridManager.NavigationData.CellSize * 0.005f);
+            if (((Vector2)desired - corner).sqrMagnitude > epsilon * epsilon)
+                return desired;
+            Vector2 direction = ((Vector2)connectorTarget - corner).normalized;
+            return new Vector3(corner.x + direction.x * epsilon,
+                corner.y + direction.y * epsilon, desired.z);
         }
 
         private void UpdateConnectorProgress(bool connectorWaypoint, Vector3 connectorTarget,
@@ -546,8 +589,15 @@ namespace TinyKingdom.Units
 
             // A* includes the start cell. Reissuing or rebuilding a route while
             // between centers must not send the unit back to its previous center.
-            var worldPath = new List<Vector3>(Mathf.Max(0, path.Count - 1));
-            for (int i = path.Count > 1 ? 1 : 0; i < path.Count; i++)
+            bool startsOnConnector = path.Count > 1
+                && IsReciprocalHeightConnector(path[0], path[1]);
+            var worldPath = new List<Vector3>(path.Count);
+            // A* includes the start cell. Normally it can be skipped, but a
+            // route starting inside a stair must first reach the aligned entry
+            // point. Otherwise an off-centre start aims straight at the other
+            // endpoint and enters the cliff-side cell before the legal corner.
+            for (int i = startsOnConnector || path.Count == 1 ? 0 : 1;
+                i < path.Count; i++)
             {
                 worldPath.Add(ResolvePathWaypoint(path, i,
                     gridManager.NavigationData.CellSize, transform.position.z));

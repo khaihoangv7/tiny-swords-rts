@@ -429,10 +429,13 @@ namespace TinyKingdom.Units
                     else
                     {
                         AttackPerformed?.Invoke(direction);
+                        Vector3 hitPosition = target.transform.position;
+                        UnitType? hitTargetType = targetHealth.CombatData != null
+                            ? targetHealth.CombatData.UnitType : null;
                         bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
                             combatData.UnitType, combatData.AttackDelivery, 1f, true,
                             controller);
-                        if (damaged) PlayMeleeAttackSound(target.transform.position);
+                        if (damaged) PlayMeleeAttackSound(hitPosition, hitTargetType);
                     }
                 }
                 return;
@@ -472,10 +475,12 @@ namespace TinyKingdom.Units
                 // Mark first because a lethal hit synchronously clears the target.
                 committedMeleeHitApplied = true;
                 Vector3 hitPosition = target.transform.position;
+                UnitType? hitTargetType = targetHealth.CombatData != null
+                    ? targetHealth.CombatData.UnitType : null;
                 bool damaged = targetHealth.ReceiveAttack(combatData.BaseDamage,
                     combatData.UnitType, combatData.AttackDelivery, 1f, true,
                     controller);
-                if (damaged) PlayMeleeAttackSound(hitPosition);
+                if (damaged) PlayMeleeAttackSound(hitPosition, hitTargetType);
             }
             if (!committedMeleeAttackPending || committedMeleeRecoveryRemaining > 0f)
                 return;
@@ -665,14 +670,15 @@ namespace TinyKingdom.Units
                 if (attackCooldown <= 0f)
                 {
                     attackCooldown = combatData.AttackInterval;
-                    Vector3 attackDirection = buildingTarget.AttackPresentationPoint(
-                        transform.position) - transform.position;
+                    Vector3 hitPosition = buildingTarget.AttackPresentationPoint(
+                        transform.position);
+                    Vector3 attackDirection = hitPosition - transform.position;
                     AttackPerformed?.Invoke(attackDirection);
                     bool damaged = buildingTarget.ReceiveAttack(combatData.BaseDamage,
                         combatData.UnitType, combatData.AttackDelivery);
-                    if (damaged && combatData.UnitType == UnitType.Lancer)
-                        PlayMeleeAttackSound(buildingTarget.AttackPresentationPoint(
-                            transform.position));
+                    if (damaged && (combatData.UnitType == UnitType.Warrior
+                        || combatData.UnitType == UnitType.Lancer))
+                        PlayMeleeAttackSound(hitPosition, null);
                 }
                 return;
             }
@@ -948,11 +954,13 @@ namespace TinyKingdom.Units
             PlayArcherAttackSound();
         }
 
-        private void PlayMeleeAttackSound(Vector3 hitPosition)
+        private void PlayMeleeAttackSound(Vector3 hitPosition, UnitType? targetUnitType)
         {
             GameplayAudioEvent? eventId = combatData.UnitType switch
             {
-                UnitType.Warrior => GameplayAudioEvent.WarriorAttack,
+                UnitType.Warrior => UsesWarriorSwordHit(targetUnitType)
+                    ? GameplayAudioEvent.WarriorAttack
+                    : GameplayAudioEvent.WarriorAttackAlternate,
                 UnitType.Lancer => GameplayAudioEvent.LancerAttack,
                 _ => null
             };
@@ -960,6 +968,9 @@ namespace TinyKingdom.Units
                 GameplayAudioService.Request(eventId.Value, hitPosition,
                     controller.Faction);
         }
+
+        private static bool UsesWarriorSwordHit(UnitType? targetUnitType)
+            => targetUnitType is UnitType.Warrior or UnitType.Lancer or UnitType.Archer;
 
         private void PlayArcherAttackSound()
         {

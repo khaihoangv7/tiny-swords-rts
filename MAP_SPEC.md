@@ -137,12 +137,16 @@ at height 1. The height-2 Castle courts are inset: Blue x=8..17, y=14..20;
 Red x=42..51, y=30..36. Each 10 x 7 court is one cell narrower on both
 sides than the previous court, begins two cells farther north, and extends to
 the rear edge of its lower terrace. Single cliff rows sit immediately south of each tier;
+the lower landings retain native Color3 terrain and the upper courts use brighter
+native Color1 terrain, with matching ramp and connection tiles;
 the lower landing visibly separates them. `BattlefieldTerraces` defines all
 four platforms and eight ramp flights: two independent ascent routes per base,
 on opposite flanks, each connecting ground -> lower terrace -> upper court.
 Each connector's lower and upper endpoints retain
 an explicit partner: only that pair may cross the height boundary. Cliff faces
-and diagonal shortcuts remain blocked.
+and diagonal shortcuts remain blocked. When a route begins inside a stair,
+movement aligns with the current connector cell before crossing its diagonal;
+the path continues through the visual ramp center in both directions.
 
 The logical grid's Occupied flag represents permanent terrain/building
 blockers. Moving or standing units do not set this flag. Living units use
@@ -189,15 +193,17 @@ The central mine stands on flat ground; only the Castle bases are elevated.
 Blue Castle is at (13, 19.5), Red Castle at (47, 35.5); each Castle is centered
 left-to-right on its 10 x 7 upper court, with its 3 x 2 footprint occupying the
 two northernmost rows.
-Both start with three Pawns and open construction space. There are 24
-Sheep per faction: twelve scattered on low meadows above its Castle plateau and
-twelve below its cliff foot, plus twelve additional Sheep in neutral meadows.
+Both start with three Pawns and open construction space. Blue retains twelve
+Sheep north of its plateau and one south; Red retains twelve south of its
+plateau and one north. Eleven Sheep on each outer meadow were replaced by 27
+gatherable Trees per side, forming mirrored groves with open harvest and travel
+aisles. Twelve additional Sheep remain in neutral meadows.
 Each Castle base also has two Trees along the lower terrace's northern rim and two at the
 southern corners of its lower terrace. One large and one small Gold Rock sit at
 the upper court's edges, with four Sheep near
 the lower landing's corners. Blue additionally has two dark Tree1 pines on each
 tier, two Sheep near the upper court's lower corners, and three Sheep on the
-lower terrace (73 Sheep total). This keeps the Castle court and its starting
+lower terrace (51 Sheep total). This keeps the Castle court and its starting
 Pawn row clear. Four compact
 clusters of three native Bushe3 tufts decorate Blue's terrace edges. These additions
 leave the central building space and both stair routes clear, with at least
@@ -207,8 +213,9 @@ large Gold Stones and the capturable Gold Mine make the central clearing the pri
 economic objective. Static bushes are traversable ground cover; coastal rocks
 remain outside movement corridors. Clouds are nonblocking overhead decoration.
 Resource trees and gold are
-real gatherable objects and occupy their logical cells. Dense paired woodlands
-fill the surrounding island while leaving Castle skirts, pastures and the central
+real gatherable objects and occupy their logical cells. Dense paired woodlands,
+including the two outer Castle-meadow groves, fill the surrounding island while
+leaving Castle skirts, the remaining Sheep, and the central
 battle lane open; the whole resource layout must remain reachable. Woods now
 use dense stands separated by harvest aisles. Sixteen decorative Ducks float
 on the two ponds and coast; 48 animated water rocks, 16 enlarged drifting clouds and

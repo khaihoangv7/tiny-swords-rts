@@ -31,6 +31,8 @@ namespace TinyKingdom.EditorTools
         {
             new(GameplayAudioEvent.WarriorAttack,
                 "Assets/Audio/SFX/Units/Warrior/sfx_sword_hit_01.mp3"),
+            new(GameplayAudioEvent.WarriorAttackAlternate,
+                "Assets/Audio/SFX/Units/Warrior/sfx_warrior_attack_01.mp3"),
             new(GameplayAudioEvent.LancerAttack,
                 "Assets/Audio/SFX/Units/Lancer/sfx_lancer_attack_01.mp3"),
             new(GameplayAudioEvent.ArcherAttack,

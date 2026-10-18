@@ -133,12 +133,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_0
       rect:
         serializedVersion: 2
-        x: 58
-        y: 56
-        width: 72
-        height: 77
+        x: 0
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -155,12 +155,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_1
       rect:
         serializedVersion: 2
-        x: 245
-        y: 56
-        width: 79
-        height: 79
+        x: 192
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -177,12 +177,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_2
       rect:
         serializedVersion: 2
-        x: 441
-        y: 56
-        width: 73
-        height: 74
+        x: 384
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -199,12 +199,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_3
       rect:
         serializedVersion: 2
-        x: 640
-        y: 56
-        width: 56
-        height: 76
+        x: 576
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -221,12 +221,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_4
       rect:
         serializedVersion: 2
-        x: 835
-        y: 56
-        width: 52
-        height: 79
+        x: 768
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -243,12 +243,12 @@ TextureImporter:
       name: Pawn_Run Pickaxe_5
       rect:
         serializedVersion: 2
-        x: 1021
-        y: 56
-        width: 62
-        height: 71
+        x: 960
+        y: 0
+        width: 192
+        height: 192
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -265,7 +265,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 8e00662808501244baba62f499a6d294
     internalID: 0
     vertices: []
     indices: 

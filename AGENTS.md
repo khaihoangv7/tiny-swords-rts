@@ -180,3 +180,28 @@ Before using an animation:
 Gameplay state is the source of truth.
 
 Animation must never control gameplay logic.
+
+## Terrain Rendering Rules
+
+Before changing:
+
+- map visuals
+- terrain tile placement
+- tile layering
+- water edges
+- shadows
+- stairs
+
+you must read:
+
+TERRAIN_RENDERING_SPEC.md
+
+Tiny Swords terrain uses specific rendering rules.
+
+Important:
+- Shadow is visual only.
+- Water Foam is visual only.
+- Both are placed relative to a 64x64 terrain grid.
+- Shadow is offset downward by one tile from elevated terrain.
+- Water Foam is placed wherever terrain touches BG Color / water.
+- Navigation logic must remain separate from visual rendering.

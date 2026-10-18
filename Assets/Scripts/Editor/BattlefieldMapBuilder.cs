@@ -90,8 +90,8 @@ namespace TinyKingdom.EditorTools
                 new(18.5f,27.5f),new(20.5f,28.5f),new(22.5f,27.5f),
                 new(17.5f,5.5f),new(19.5f,4.5f),new(21.5f,5.5f),
                 new(18.5f,3.5f),new(20.5f,3.5f),new(22.5f,4.5f) };
-            // Twelve Sheep above and twelve below each base, all on the low meadows.
-            // Stagger their positions; the plateau remains clear for construction.
+            // One outer Sheep remains on each side of the Blue southern / Red northern grove.
+            // The other low-meadow Sheep still graze outside the marked replacement area.
             Vector2[] sheep = { new(7.5f,23.5f),new(11.5f,22.5f),new(14.5f,24.5f),new(18.5f,22.5f),
                 new(7.5f,4.5f),new(10.5f,6.5f),new(13.5f,4.5f),new(16.5f,6.5f),
                 new(5.5f,25.5f),new(9.5f,25.5f),new(16.5f,23.5f),new(20.5f,22.5f),
@@ -106,11 +106,27 @@ namespace TinyKingdom.EditorTools
                     Add(name+"_Wood_"+(i+1),ResourceType.Wood,
                         side==0?forest[i]:Mirror(forest[i]),i%4);
                 for(int i=0;i<sheep.Length;i++)
+                {
+                    if(IsBlueSouthGrove(sheep[i])) continue;
                     Add(name+"_Sheep_"+(i+1),ResourceType.Food,
                         side==0?sheep[i]:Mirror(sheep[i]),i);
+                }
                 for(int i=0;i<gold.Length;i++)
                     Add(name+"_Gold_"+(i+1),ResourceType.Gold,
                         side==0?gold[i]:Mirror(gold[i]),i);
+            }
+            // Replace the eleven Sheep inside the marked Blue southern meadow and
+            // its Red mirror with harvestable stands. Row 5 and columns 9/14 stay
+            // clear as continuous footpaths between and through the groves.
+            int replacementIndex=0;
+            foreach(int y in new[]{3,4,6})
+            foreach(int x in new[]{5,6,7,8,10,11,12,13,15,16})
+            {
+                if(y==3 && (x==5 || x==6 || x==13)) continue;
+                Vector2 position=new(x+.5f,y+.5f);
+                Add("Blue_South_Grove_"+replacementIndex,ResourceType.Wood,position,replacementIndex%4);
+                Add("Red_North_Grove_"+replacementIndex,ResourceType.Wood,Mirror(position),(replacementIndex+2)%4);
+                replacementIndex++;
             }
             Vector2[] centralGold = { new(24.5f,24.5f),new(25.5f,26.5f),new(34.5f,21.5f),
                 new(35.5f,20.5f),new(27.5f,26.5f),new(32.5f,26.5f) };
@@ -135,7 +151,16 @@ namespace TinyKingdom.EditorTools
             {
                 if(!BattlefieldLayout.IsLand((int)p.x,(int)p.y)
                     || BattlefieldLayout.IsShoreline((int)p.x,(int)p.y)
+                    || IsBlueSouthGrove(p) || IsBlueSouthGrove(Mirror(p))
                     || IsBattleLane(p)) return false;
+                // Keep the old pasture exclusion while generating the rest of
+                // the seeded forest, so this local replacement does not move
+                // unrelated woodland outside the two marked regions.
+                foreach(Vector2 formerSheep in sheep)
+                    if(IsBlueSouthGrove(formerSheep)
+                        && (Vector2.Distance(p,formerSheep)<1.7f
+                            || Vector2.Distance(p,Mirror(formerSheep))<1.7f))
+                        return false;
                 for(int dy=-1;dy<=1;dy++) for(int dx=-1;dx<=1;dx++)
                     if(BattlefieldTerraces.Covers((int)p.x+dx,(int)p.y+dy)) return false;
                 return resources.All(r=>Vector2.Distance(r.position,p)>=(r.type==ResourceType.Wood?.88f:1.7f)
@@ -198,6 +223,9 @@ namespace TinyKingdom.EditorTools
                 || Segment(new(21.5f,15.5f),new(28,21))<2.4f
                 || Segment(new(38.5f,29.5f),new(32,23))<2.4f;
         }
+
+        private static bool IsBlueSouthGrove(Vector2 p)
+            => p.x>=5f && p.x<17f && p.y>=3f && p.y<7f;
 
         private static PawnAnimationSet MakeRedPawnSet()
         {

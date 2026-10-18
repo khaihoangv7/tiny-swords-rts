@@ -53,6 +53,9 @@ namespace TinyKingdom.Economy
                 if (ReferenceEquals(frames, animationSet.Hammer)) return "Hammer";
                 if (ReferenceEquals(frames, animationSet.RunHammer)) return "RunHammer";
                 if (ReferenceEquals(frames, animationSet.IdleHammer)) return "IdleHammer";
+                if (ReferenceEquals(frames, animationSet.RunAxe)) return "RunAxe";
+                if (ReferenceEquals(frames, animationSet.RunPickaxe)) return "RunPickaxe";
+                if (ReferenceEquals(frames, animationSet.RunKnife)) return "RunKnife";
                 if (ReferenceEquals(frames, animationSet.Chop)) return "Chop";
                 if (ReferenceEquals(frames, animationSet.Mine)) return "Mine";
                 if (ReferenceEquals(frames, animationSet.Knife)) return "Knife";
@@ -250,6 +253,25 @@ namespace TinyKingdom.Economy
                     (ResourceType.Gold, false) => animationSet.IdlePickaxe,
                     (_, true) => animationSet.Knife,
                     _ => animationSet.IdleKnife
+                };
+            }
+            else if (gatherer != null && (gatherer.State == WorkerState.MovingToResource
+                || gatherer.State == WorkerState.MovingToRememberedResource))
+            {
+                chosen = (gatherer.CurrentJobResourceType, moving) switch
+                {
+                    (ResourceType.Wood, true) => animationSet.RunAxe.Length > 0
+                        ? animationSet.RunAxe : animationSet.Run,
+                    (ResourceType.Wood, false) => animationSet.IdleAxe.Length > 0
+                        ? animationSet.IdleAxe : animationSet.Idle,
+                    (ResourceType.Gold, true) => animationSet.RunPickaxe.Length > 0
+                        ? animationSet.RunPickaxe : animationSet.Run,
+                    (ResourceType.Gold, false) => animationSet.IdlePickaxe.Length > 0
+                        ? animationSet.IdlePickaxe : animationSet.Idle,
+                    (ResourceType.Food, true) => animationSet.RunKnife.Length > 0
+                        ? animationSet.RunKnife : animationSet.Run,
+                    _ => animationSet.IdleKnife.Length > 0
+                        ? animationSet.IdleKnife : animationSet.Idle
                 };
             }
             else if (gatherer != null && gatherer.CarriedAmount > 0)

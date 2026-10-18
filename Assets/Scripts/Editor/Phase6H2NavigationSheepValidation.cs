@@ -25,7 +25,7 @@ namespace TinyKingdom.EditorTools
             ValidateAuthoredConnectors();
             ValidateTraversalArchitecture();
             ValidateSoftSheepAndPlacement();
-            Debug.Log("Phase 6H.2 stairs navigation validation passed: verified Color3 "
+            Debug.Log("Phase 6H.2 stairs navigation validation passed: verified Color1/Color3 "
                 + "side-stair assets, reciprocal endpoints, reserved transit corridors, "
                 + "bounded traversal recovery, stable gather/build/formation destinations, "
                 + "and soft Sheep behavior verified. Complete the mandatory Play Mode "
@@ -34,30 +34,32 @@ namespace TinyKingdom.EditorTools
 
         private static void ValidateVerifiedStairAssets()
         {
-            const string sheetPath = "Assets/Terrain/Tileset/Tilemap_color3.png";
-            TextureImporter importer = AssetImporter.GetAtPath(sheetPath) as TextureImporter;
-            Texture2D sheet = AssetDatabase.LoadAssetAtPath<Texture2D>(sheetPath);
-            Require(importer != null && Mathf.Approximately(importer.spritePixelsPerUnit, 64f)
-                && importer.filterMode == FilterMode.Point && !importer.mipmapEnabled,
-                "Color3 stair sheet must retain 64 PPU, Point filtering and no mipmaps.");
-            Require(sheet != null && sheet.width == 576 && sheet.height == 384,
-                "Color3 stair sheet must retain its verified 576x384 dimensions.");
-            string[] names =
+            foreach (int color in new[] { 1, 3 })
             {
-                "Tilemap_color3_r4c0", "Tilemap_color3_r5c0",
-                "Tilemap_color3_r4c3", "Tilemap_color3_r5c3"
-            };
-            foreach (string name in names)
-            {
-                Tile tile = AssetDatabase.LoadAssetAtPath<Tile>(
-                    $"Assets/Tiles/Terrain/Color3/{name}.asset");
-                Require(tile != null && tile.sprite != null && tile.sprite.name == name,
-                    $"Verified stair Tile asset is missing or mismapped: {name}.");
-                Require(Mathf.Approximately(tile.sprite.rect.width, 64f)
-                    && Mathf.Approximately(tile.sprite.rect.height, 64f)
-                    && Mathf.Approximately(tile.sprite.pixelsPerUnit, 64f)
-                    && Vector2.Distance(tile.sprite.pivot, new Vector2(32f, 32f)) < 0.01f,
-                    $"{name} must remain a centered native 64x64 tile at 64 PPU.");
+                string sheetPath = $"Assets/Terrain/Tileset/Tilemap_color{color}.png";
+                TextureImporter importer = AssetImporter.GetAtPath(sheetPath) as TextureImporter;
+                Texture2D sheet = AssetDatabase.LoadAssetAtPath<Texture2D>(sheetPath);
+                Require(importer != null && Mathf.Approximately(importer.spritePixelsPerUnit, 64f)
+                    && importer.filterMode == FilterMode.Point && !importer.mipmapEnabled,
+                    $"Color{color} stair sheet must retain 64 PPU, Point filtering and no mipmaps.");
+                Require(sheet != null && sheet.width == 576 && sheet.height == 384,
+                    $"Color{color} stair sheet must retain its verified 576x384 dimensions.");
+                foreach (string name in new[]
+                {
+                    $"Tilemap_color{color}_r4c0", $"Tilemap_color{color}_r5c0",
+                    $"Tilemap_color{color}_r4c3", $"Tilemap_color{color}_r5c3"
+                })
+                {
+                    Tile tile = AssetDatabase.LoadAssetAtPath<Tile>(
+                        $"Assets/Tiles/Terrain/Color{color}/{name}.asset");
+                    Require(tile != null && tile.sprite != null && tile.sprite.name == name,
+                        $"Verified stair Tile asset is missing or mismapped: {name}.");
+                    Require(Mathf.Approximately(tile.sprite.rect.width, 64f)
+                        && Mathf.Approximately(tile.sprite.rect.height, 64f)
+                        && Mathf.Approximately(tile.sprite.pixelsPerUnit, 64f)
+                        && Vector2.Distance(tile.sprite.pivot, new Vector2(32f, 32f)) < 0.01f,
+                        $"{name} must remain a centered native 64x64 tile at 64 PPU.");
+                }
             }
         }
 
@@ -71,6 +73,8 @@ namespace TinyKingdom.EditorTools
             {
                 GridManager grid = root.AddComponent<GridManager>();
                 grid.SetNavigationData(data);
+                PathfindingSystem pathfinding = root.AddComponent<PathfindingSystem>();
+                pathfinding.SetGridManager(grid);
                 var corridor = new HashSet<Vector2Int>();
                 Transform visualGrid = GameObject.Find("Map")?.transform.Find("Grid");
                 for (int i = 0; i < BattlefieldTerraces.ConnectorCount; i++)
@@ -99,6 +103,8 @@ namespace TinyKingdom.EditorTools
                     Require(AStarPathfinder.FindPath(grid, lower, upper).Count == 2
                         && AStarPathfinder.FindPath(grid, upper, lower).Count == 2,
                         $"Connector {i} does not produce the direct reciprocal edge.");
+                    ValidateMovementFromOffCentre(grid, pathfinding, lower, upper, i);
+                    ValidateMovementFromOffCentre(grid, pathfinding, upper, lower, i);
                     float cellSize = data.CellSize;
                     Require(Mathf.Approximately(Mathf.Abs(upper.WorldPosition.x
                             - lower.WorldPosition.x), cellSize)
@@ -134,6 +140,87 @@ namespace TinyKingdom.EditorTools
             finally
             {
                 UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        private static void ValidateMovementFromOffCentre(GridManager grid,
+            PathfindingSystem pathfinding, GridCell start, GridCell destination,
+            int connectorIndex)
+        {
+            var actor = new GameObject($"Connector{connectorIndex}MovementValidation");
+            try
+            {
+                // A displaced entry point used to cut into the adjacent cliff
+                // when a path began inside a connector and skipped its start cell.
+                Vector2 toward = ((Vector2)destination.WorldPosition
+                    - (Vector2)start.WorldPosition).normalized;
+                actor.transform.position = start.WorldPosition
+                    + new Vector3(toward.x * 0.3f, -toward.y * 0.1f, 0f);
+                actor.AddComponent<UnitController>();
+                UnitMovement movement = actor.AddComponent<UnitMovement>();
+                movement.Configure(grid, pathfinding);
+                Require(movement.TryIssueMove(new Vector2Int(
+                        destination.GridX, destination.GridY))
+                    && movement.CurrentPath.Count == 2,
+                    $"Connector {connectorIndex} omitted the aligned entry point.");
+
+                Vector2 sharedCorner = ((Vector2)start.WorldPosition
+                    + (Vector2)destination.WorldPosition) * 0.5f;
+                Vector2 pathMidpoint = ((Vector2)movement.CurrentPath[0]
+                    + (Vector2)movement.CurrentPath[1]) * 0.5f;
+                Require(Vector2.Distance(sharedCorner, pathMidpoint) < 0.001f,
+                    $"Connector {connectorIndex} route does not cross its shared corner.");
+                for (int tick = 0; tick < 100 && movement.IsMoving; tick++)
+                {
+                    movement.TickMovement(0.02f);
+                    Vector2Int cell = grid.WorldToGrid(actor.transform.position);
+                    Require(cell == new Vector2Int(start.GridX, start.GridY)
+                        || cell == new Vector2Int(destination.GridX, destination.GridY),
+                        $"Connector {connectorIndex} movement entered a cliff-side cell.");
+                }
+                Require(!movement.IsMoving
+                    && grid.WorldToGrid(actor.transform.position)
+                        == new Vector2Int(destination.GridX, destination.GridY),
+                    $"Connector {connectorIndex} movement stalled before its exit.");
+
+                GridCell approach = null;
+                foreach (Vector2Int direction in new[]
+                         { Vector2Int.right, Vector2Int.left,
+                           Vector2Int.up, Vector2Int.down })
+                {
+                    GridCell candidate = grid.GetCell(start.GridX + direction.x,
+                        start.GridY + direction.y);
+                    if (!TerrainRules.IsStableStandingCell(candidate)
+                        || candidate.HeightLevel != start.HeightLevel
+                        || !AStarPathfinder.CanTraverseStep(grid, candidate, start))
+                        continue;
+                    approach = candidate;
+                    break;
+                }
+                Require(approach != null,
+                    $"Connector {connectorIndex} has no stable approach cell.");
+                actor.transform.position = approach.WorldPosition;
+                Require(movement.TryIssueMove(new Vector2Int(
+                        destination.GridX, destination.GridY))
+                    && movement.CurrentPath.Count == 2,
+                    $"Connector {connectorIndex} missed its approach endpoint.");
+                for (int tick = 0; tick < 100 && movement.IsMoving; tick++)
+                {
+                    movement.TickMovement(0.02f);
+                    Vector2Int cell = grid.WorldToGrid(actor.transform.position);
+                    Require(cell == new Vector2Int(approach.GridX, approach.GridY)
+                        || cell == new Vector2Int(start.GridX, start.GridY)
+                        || cell == new Vector2Int(destination.GridX, destination.GridY),
+                        $"Connector {connectorIndex} approach entered a cliff-side cell.");
+                }
+                Require(!movement.IsMoving
+                    && grid.WorldToGrid(actor.transform.position)
+                        == new Vector2Int(destination.GridX, destination.GridY),
+                    $"Connector {connectorIndex} approach stalled before its exit.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(actor);
             }
         }
 

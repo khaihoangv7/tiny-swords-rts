@@ -29,6 +29,7 @@ namespace TinyKingdom.Audio
         BuildingCompleted,
         ArcherArrowImpact,
         GenericCommandVoice,
-        ArmyCommandVoice
+        ArmyCommandVoice,
+        WarriorAttackAlternate
     }
 }

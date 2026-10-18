@@ -137,7 +137,7 @@ namespace TinyKingdom.Audio
         {
             (float volume, float start, float limit) = id switch
             {
-                GameplayAudioEvent.WarriorAttack => (0.8f, 0f, 0.8f),
+                GameplayAudioEvent.WarriorAttack => (0.65f, 0f, 0.8f),
                 GameplayAudioEvent.LancerAttack => (0.8f, 0f, 1.25f),
                 GameplayAudioEvent.ArcherAttack => (0.75f, 0f, 1.25f),
                 GameplayAudioEvent.MonkHeal => (0.75f, 0f, 1.5f),
@@ -153,9 +153,10 @@ namespace TinyKingdom.Audio
                 GameplayAudioEvent.UnitProductionFinished => (0.80f, 0f, 0f),
                 GameplayAudioEvent.ScoutPromotion => (0.75f, 0f, 0f),
                 GameplayAudioEvent.BuildingCompleted => (0.80f, 0f, 0f),
-                GameplayAudioEvent.ArcherArrowImpact => (0.70f, 0f, 0f),
+                GameplayAudioEvent.ArcherArrowImpact => (0.45f, 0f, 0f),
                 GameplayAudioEvent.GenericCommandVoice => (0.75f, 0f, 0f),
                 GameplayAudioEvent.ArmyCommandVoice => (0.80f, 0f, 0f),
+                GameplayAudioEvent.WarriorAttackAlternate => (0.65f, 0f, 0.8f),
                 GameplayAudioEvent.Victory or GameplayAudioEvent.Defeat => (0.85f, 0f, 0f),
                 _ => (0.75f, 0f, 0f)
             };

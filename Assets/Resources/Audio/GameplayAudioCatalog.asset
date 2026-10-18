@@ -22,7 +22,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: c96f90b2b7e5427eb768993eae4a420b, type: 3}
     - {fileID: 8300000, guid: 99c371f69fb34db7a93e4f206c423f85, type: 3}
     - {fileID: 8300000, guid: f0fa55409fc942f8b77a1766af714288, type: 3}
-    volume: 0.8
+    volume: 0.65
     startTimeSeconds: 0
     maxPlaybackSeconds: 0.8
   - eventId: 1
@@ -173,7 +173,7 @@ MonoBehaviour:
   - eventId: 25
     clip: {fileID: 8300000, guid: c8abb6e6d6ce41129188b4e805b0cf21, type: 3}
     variations: []
-    volume: 0.7
+    volume: 0.45
     startTimeSeconds: 0
     maxPlaybackSeconds: 0
   - eventId: 26
@@ -188,6 +188,12 @@ MonoBehaviour:
     volume: 0.8
     startTimeSeconds: 0
     maxPlaybackSeconds: 0
+  - eventId: 28
+    clip: {fileID: 8300000, guid: e0a822901eed0f94d8ece2638213856f, type: 3}
+    variations: []
+    volume: 0.65
+    startTimeSeconds: 0
+    maxPlaybackSeconds: 0.8
   poolSize: 12
   poolGrowthSize: 4
   catastrophicSourceLimit: 256

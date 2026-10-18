@@ -25,12 +25,15 @@ namespace TinyKingdom.Buildings
 
         private int[] componentByCell = Array.Empty<int>();
         private bool[] componentEscapes = Array.Empty<bool>();
-        private bool[] componentChecked = Array.Empty<bool>();
+        private bool[] componentSealed = Array.Empty<bool>();
+        private int[] componentSeed = Array.Empty<int>();
+        private int[] componentCellCount = Array.Empty<int>();
         private int[] visitStampByCell = Array.Empty<int>();
         private int[] queue = Array.Empty<int>();
         private int visitStamp;
 
         public int LastTrappedUnitCount { get; private set; }
+        public int LastSealedCellCount { get; private set; }
 
         public void Configure(GridManager grid)
         {
@@ -41,16 +44,27 @@ namespace TinyKingdom.Buildings
         public bool WouldTrapFriendlyUnits(GridManager grid, Faction faction,
             Vector2Int footprintOrigin, Vector2Int footprintSize,
             out int trappedUnitCount)
+            => WouldTrapFriendlyUnits(grid, faction, footprintOrigin, footprintSize,
+                out trappedUnitCount, out _);
+
+        // Empty pockets matter too: a producer can later choose one as its first
+        // spawn cell even though no friendly unit stood there during placement.
+        public bool WouldTrapFriendlyUnits(GridManager grid, Faction faction,
+            Vector2Int footprintOrigin, Vector2Int footprintSize,
+            out int trappedUnitCount, out int sealedCellCount)
         {
             using var marker = ValidationMarker.Auto();
             trappedUnitCount = 0;
+            sealedCellCount = 0;
             LastTrappedUnitCount = 0;
+            LastSealedCellCount = 0;
             if (grid == null || grid.Width <= 0 || grid.Height <= 0) return false;
 
             EnsureBuffers(grid.Width * grid.Height);
             Array.Clear(componentByCell, 0, componentByCell.Length);
             Array.Clear(componentEscapes, 0, componentEscapes.Length);
-            Array.Clear(componentChecked, 0, componentChecked.Length);
+            Array.Clear(componentSealed, 0, componentSealed.Length);
+            Array.Clear(componentCellCount, 0, componentCellCount.Length);
 
             int minX = Mathf.Max(0, footprintOrigin.x - ConnectivityMargin);
             int minY = Mathf.Max(0, footprintOrigin.y - ConnectivityMargin);
@@ -61,6 +75,18 @@ namespace TinyKingdom.Buildings
 
             int componentCount = LabelPostPlacementComponents(grid, footprintOrigin,
                 footprintSize, minX, minY, maxX, maxY);
+            for (int component = 1; component <= componentCount; component++)
+            {
+                if (componentEscapes[component]) continue;
+                int seed = componentSeed[component];
+                Vector2Int start = new(seed % grid.Width, seed / grid.Width);
+                // Existing sealed terrain stays legal. Reject only a pocket whose
+                // route to surrounding space is closed by this new footprint.
+                if (!CanReachSurroundingSpace(grid, start, footprintOrigin,
+                        footprintSize, minX, minY, maxX, maxY, false)) continue;
+                componentSealed[component] = true;
+                sealedCellCount += componentCellCount[component];
+            }
             IReadOnlyList<UnitController> units = UnitController.ActiveUnits;
             for (int i = 0; i < units.Count; i++)
             {
@@ -72,26 +98,11 @@ namespace TinyKingdom.Buildings
                     || Contains(footprintOrigin, footprintSize, cell)) continue;
                 int component = componentByCell[ToIndex(cell.x, cell.y, grid.Width)];
                 if (component <= 0 || component > componentCount
-                    || componentEscapes[component] || componentChecked[component]) continue;
-
-                componentChecked[component] = true;
-                // Reject only a newly created enclosure. Existing disconnected map
-                // pockets do not become illegal merely because a building is nearby.
-                if (!CanReachSurroundingSpace(grid, cell, footprintOrigin,
-                        footprintSize, minX, minY, maxX, maxY, false)) continue;
-                for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
-                {
-                    UnitController trapped = units[unitIndex];
-                    if (trapped == null || !trapped.IsAlive || !trapped.IsWorldParticipant
-                        || trapped.Faction != faction) continue;
-                    Vector2Int trappedCell = grid.WorldToGrid(trapped.transform.position);
-                    if (grid.IsInsideGrid(trappedCell.x, trappedCell.y)
-                        && componentByCell[ToIndex(trappedCell.x, trappedCell.y,
-                            grid.Width)] == component)
-                        trappedUnitCount++;
-                }
+                    || !componentSealed[component]) continue;
+                trappedUnitCount++;
             }
             LastTrappedUnitCount = trappedUnitCount;
+            LastSealedCellCount = sealedCellCount;
             return trappedUnitCount > 0;
         }
 
@@ -106,6 +117,7 @@ namespace TinyKingdom.Buildings
                 if (componentByCell[index] != 0
                     || !IsOpen(grid, x, y, origin, size, true)) continue;
                 component++;
+                componentSeed[component] = index;
                 componentEscapes[component] = FloodComponent(grid, x, y, origin, size,
                     minX, minY, maxX, maxY, component);
             }
@@ -125,6 +137,7 @@ namespace TinyKingdom.Buildings
             while (head < tail)
             {
                 int currentIndex = queue[head++];
+                componentCellCount[component]++;
                 int x = currentIndex % grid.Width;
                 int y = currentIndex / grid.Width;
                 GridCell current = grid.GetCell(x, y);
@@ -132,11 +145,8 @@ namespace TinyKingdom.Buildings
                 {
                     int nx = x + Neighbours[i].x;
                     int ny = y + Neighbours[i].y;
-                    if (!grid.IsInsideGrid(nx, ny))
-                    {
-                        escapes = true;
-                        continue;
-                    }
+                    // The map edge is a wall, not an exit from a spawn pocket.
+                    if (!grid.IsInsideGrid(nx, ny)) continue;
                     if (!CanTraverse(grid, current, nx, ny, origin, size, true)) continue;
                     if (nx < minX || nx > maxX || ny < minY || ny > maxY)
                     {
@@ -173,7 +183,7 @@ namespace TinyKingdom.Buildings
                 {
                     int nx = x + Neighbours[i].x;
                     int ny = y + Neighbours[i].y;
-                    if (!grid.IsInsideGrid(nx, ny)) return true;
+                    if (!grid.IsInsideGrid(nx, ny)) continue;
                     if (!CanTraverse(grid, current, nx, ny, origin, size,
                             blockCandidate)) continue;
                     if (nx < minX || nx > maxX || ny < minY || ny > maxY) return true;
@@ -228,7 +238,9 @@ namespace TinyKingdom.Buildings
             if (componentByCell.Length == cellCount) return;
             componentByCell = new int[cellCount];
             componentEscapes = new bool[cellCount + 1];
-            componentChecked = new bool[cellCount + 1];
+            componentSealed = new bool[cellCount + 1];
+            componentSeed = new int[cellCount + 1];
+            componentCellCount = new int[cellCount + 1];
             visitStampByCell = new int[cellCount];
             queue = new int[cellCount];
             visitStamp = 0;

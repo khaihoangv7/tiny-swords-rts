@@ -55,6 +55,7 @@ namespace TinyKingdom.Economy
         private IResourceDropOff dropOff;
         private Vector2Int interactionCell;
         private float gatherTimer;
+        private float lastGatherImpactTime = float.NegativeInfinity;
         private float dropOffRetry;
         private int consecutiveDropOffFailures;
         private int dropOffPathFailureCount;
@@ -94,6 +95,7 @@ namespace TinyKingdom.Economy
         public int AmountPerGather => amountPerGather;
         public int CarriedAmount => carriedAmount;
         public ResourceType CarriedResourceType => carriedType;
+        public ResourceType CurrentJobResourceType => resourceJobType;
         public ResourceNode Target => target;
         public bool HasDropOffTarget => ResourceDropOffRegistry.IsUsable(dropOff,
             controller != null ? controller.Faction : default);
@@ -178,6 +180,21 @@ namespace TinyKingdom.Economy
             if (!MatchManager.AllowsGameplay || node == null || !node.IsAvailable
                 || controller == null || !controller.IsAlive)
                 return false;
+            // Repeating an order to the current resource must not restart its
+            // work animation, impact timer, reserved slot, or return trip.
+            // A stopped route that has not arrived can still be retried.
+            if (resourceJobActive && target == node
+                && (State == WorkerState.Gathering
+                    || State == WorkerState.ReturningToDropOff
+                    || State == WorkerState.WaitingForDropOff
+                    || (State == WorkerState.MovingToResource
+                        && (movement.IsMoving || Arrived()))))
+            {
+                autoRetargetEligibility = retargetEligibility;
+                autoRetargetPositionEligibility = retargetPositionEligibility;
+                strategicTraversal = traversalPolicy;
+                return true;
+            }
             ResolveNavigation();
             if (grid == null || paths == null) return false;
 
@@ -311,7 +328,8 @@ namespace TinyKingdom.Economy
                     gatherTimer += Mathf.Max(0f, deltaTime);
                     while (State == WorkerState.Gathering)
                     {
-                        if (!impactApplied && gatherTimer >= gatherImpactDelay)
+                        if (!impactApplied && gatherTimer >= gatherImpactDelay
+                            && Time.time - lastGatherImpactTime >= gatherIntervalSeconds)
                         {
                             impactApplied = true;
                             ApplyGatherImpact();
@@ -458,6 +476,10 @@ namespace TinyKingdom.Economy
             int taken = target.Take(Mathf.Min(amountPerGather, carryCapacity - carriedAmount));
             if (taken > 0)
             {
+                // The gameplay cooldown belongs to the Pawn, not the currently
+                // targeted node or animation cycle. Switching nodes cannot
+                // shorten the 1.5-second interval between successful impacts.
+                lastGatherImpactTime = Time.time;
                 carriedType = target.ResourceType;
                 carriedAmount += taken;
                 ResourceGathered?.Invoke(carriedType, taken);

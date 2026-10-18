@@ -168,6 +168,11 @@ namespace TinyKingdom.EditorTools
         {
             GridManager grid=Object.FindAnyObjectByType<GridManager>();
             Transform root=GameObject.Find("Map").transform.Find("Grid");
+            Require(BattlefieldTerraces.Platforms.Length==4
+                && BattlefieldTerraces.Platforms[0].Color==BattlefieldTerraces.Platforms[1].Color
+                && BattlefieldTerraces.Platforms[2].Color==BattlefieldTerraces.Platforms[3].Color
+                && BattlefieldTerraces.Platforms[0].Color!=BattlefieldTerraces.Platforms[2].Color,
+                "Castle lower landings and upper courts must use distinct, symmetric terrain palettes.");
             for(int i=0;i<BattlefieldTerraces.ConnectorCount;i++)
             {
                 var stair=BattlefieldTerraces.Connector(i);
@@ -208,9 +213,17 @@ namespace TinyKingdom.EditorTools
                     || (surfaceOrder==3+2*terrace.Height
                         && shadowOrder==2+2*terrace.Height),
                     "Terrace layer order invalid.");
+                string colorPrefix="Tilemap_color"+terrace.Color+"_";
+                for(int x=terrace.Surface.xMin;x<terrace.Surface.xMax;x++)
+                for(int y=terrace.Surface.yMin;y<terrace.Surface.yMax;y++)
+                    Require(map.GetTile<Tile>(new(x,y,0))?.sprite?.name.StartsWith(colorPrefix,
+                            StringComparison.Ordinal)==true,
+                        "Terrace surface palette mismatch at "+x+","+y);
                 for(int x=terrace.Surface.xMin;x<terrace.Surface.xMax;x++)
                 for(int y=terrace.Surface.yMin-1;y<terrace.Surface.yMin;y++)
-                    Require(grid.GetCell(x,y).TerrainType==TerrainType.Cliff && map.HasTile(new(x,y,0)),
+                    Require(grid.GetCell(x,y).TerrainType==TerrainType.Cliff
+                        && map.GetTile<Tile>(new(x,y,0))?.sprite?.name.StartsWith(colorPrefix,
+                            StringComparison.Ordinal)==true,
                         "South cliff is missing or has an unintended entrance.");
             }
             for(int y=0;y<grid.Height;y++) for(int x=0;x<grid.Width;x++)
@@ -289,12 +302,25 @@ namespace TinyKingdom.EditorTools
                 RectInt plateau=BattlefieldTerraces.Platforms[side].Surface;
                 string prefix=side==0?"Blue_Sheep_":"Red_Sheep_";
                 BattlefieldResource[] sheep=layout.resources.Where(r=>r.name.StartsWith(prefix)).ToArray();
-                Require(sheep.Length==24 && sheep.Count(r=>r.position.y>plateau.yMax)==12
-                    && sheep.Count(r=>r.position.y<plateau.yMin-1)==12,
-                    "Each base needs twelve scattered Sheep above and twelve below its plateau.");
+                int expectedAbove=side==0?12:1;
+                int expectedBelow=side==0?1:12;
+                Require(sheep.Length==13 && sheep.Count(r=>r.position.y>plateau.yMax)==expectedAbove
+                    && sheep.Count(r=>r.position.y<plateau.yMin-1)==expectedBelow,
+                    "The mirrored woodland must leave one outer Sheep on each side.");
                 Require(sheep.All(r=>r.position.x>plateau.xMin && r.position.x<plateau.xMax
                     && grid.GetCell((int)r.position.x,(int)r.position.y).HeightLevel==0),
                     "Sheep must graze on the low meadows around their base.");
+                string grovePrefix=side==0?"Blue_South_Grove_":"Red_North_Grove_";
+                BattlefieldResource[] grove=layout.resources.Where(r=>r.name.StartsWith(grovePrefix)).ToArray();
+                Require(grove.Length==27 && grove.All(r=>r.type==ResourceType.Wood
+                    && grid.GetCell((int)r.position.x,(int)r.position.y).HeightLevel==0),
+                    "The mirrored outer woodland must have 27 harvestable Trees per side.");
+                int aisleY=side==0?5:38;
+                int aisleMinX=side==0?5:43;
+                int aisleMaxX=side==0?16:54;
+                for(int x=aisleMinX;x<=aisleMaxX;x++)
+                    Require(!grid.GetCell(x,aisleY).Occupied,
+                        "A woodland cross aisle is blocked at "+x+","+aisleY);
                 int free=0;
                 foreach(Vector2Int p in plateau.allPositionsWithin)
                     if(grid.GetCell(p.x,p.y).Walkable && !grid.GetCell(p.x,p.y).Occupied) free++;
@@ -307,7 +333,8 @@ namespace TinyKingdom.EditorTools
             Transform root=GameObject.Find("Map").transform.Find("BattlefieldScenery");
             var visuals=root.GetComponentsInChildren<SpriteRenderer>();
             Require(layout.resources.Count(r=>r.type==ResourceType.Wood)>=300,"Dense woodland is missing.");
-            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==73,"Expected 60 meadow Sheep, 8 Castle-rim Sheep and 5 Blue terrace Sheep.");
+            Require(layout.resources.Count(r=>r.type==ResourceType.Food)==51,
+                "Expected 38 outer-meadow Sheep, 8 Castle-rim Sheep and 5 Blue terrace Sheep.");
             Require(visuals.Count(r=>r.name.StartsWith("Cloud_"))==16,"Expected 16 full-cloud illustrations.");
             AmbientCloudDrift[] clouds=root.GetComponentsInChildren<AmbientCloudDrift>();
             Require(clouds.Length==16 && clouds.Count(c=>BattlefieldLayout.IsPond((int)c.Anchor.x,(int)c.Anchor.y))==2,
@@ -349,7 +376,7 @@ namespace TinyKingdom.EditorTools
                 Require(visual.GetComponent<Collider2D>()==null && visual.GetComponent<ResourceNode>()==null
                     && visual.GetComponent<UnitController>()==null,"Ambient art must not become a gameplay entity.");
             }
-            Debug.Log($"Lush scenery verified: {layout.resources.Count(r=>r.type==ResourceType.Wood)} Trees, 73 Sheep, 16 Ducks, 48 animated water rocks and 16 Clouds.");
+            Debug.Log($"Lush scenery verified: {layout.resources.Count(r=>r.type==ResourceType.Wood)} Trees, 51 Sheep, 16 Ducks, 48 animated water rocks and 16 Clouds.");
         }
 
         private static double PathCost(GridManager grid,Vector2Int from,Vector2Int to)

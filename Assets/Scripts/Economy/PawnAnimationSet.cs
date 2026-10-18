@@ -7,6 +7,9 @@ namespace TinyKingdom.Economy
     {
         [SerializeField] private Sprite[] idle = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] run = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] runAxe = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] runPickaxe = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] runKnife = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] chop = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] mine = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] knife = System.Array.Empty<Sprite>();
@@ -25,6 +28,9 @@ namespace TinyKingdom.Economy
 
         public Sprite[] Idle => idle;
         public Sprite[] Run => run;
+        public Sprite[] RunAxe => runAxe;
+        public Sprite[] RunPickaxe => runPickaxe;
+        public Sprite[] RunKnife => runKnife;
         public Sprite[] Chop => chop;
         public Sprite[] Mine => mine;
         public Sprite[] Knife => knife;
