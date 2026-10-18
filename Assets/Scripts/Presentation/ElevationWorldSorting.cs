@@ -172,6 +172,10 @@ namespace TinyKingdom.Presentation
                         ElevatedTerrainBackgroundOrder(level, false));
                     SetTilemapOrder(visualGrid, "ElevatedGround_L" + level,
                         ElevatedTerrainBackgroundOrder(level, true));
+                    // LinearLane's front stair copies must stay above terrain,
+                    // but below the depth-sorted units crossing the ramp.
+                    SetTilemapOrder(visualGrid, "StairFront_L" + level,
+                        TerrainBackgroundOrder(16 + level));
                 }
                 EnsureProjectedTerrainForeground(map?.transform, visualGrid, grid);
 
@@ -183,7 +187,8 @@ namespace TinyKingdom.Presentation
                     for (int i = 0; i < renderers.Length; i++)
                     {
                         SpriteRenderer renderer = renderers[i];
-                        if (renderer == null || renderer.name.StartsWith("Cloud_")) continue;
+                        if (renderer == null || renderer.name.StartsWith("Cloud_")
+                            || renderer.name.StartsWith("Bridge_")) continue;
                         Vector3 groundPosition = renderer.transform.position;
                         if (TryBushVariant(renderer.sprite, out int variant)
                             && catalog != null && catalog.BushFrames(variant).Length == 8)
@@ -229,10 +234,24 @@ namespace TinyKingdom.Presentation
                 root = rootObject.transform;
             }
 
-            for (int terraceIndex = 0; terraceIndex < BattlefieldTerraces.Platforms.Length;
+            bool island = map.gameObject.scene.name == "GoblinIsland";
+            TerraceDefinition[] platforms = island ? GoblinIslandLayout.Platforms : BattlefieldTerraces.Platforms;
+            if(island)
+            {
+                for(int level=1;level<=GoblinIslandLayout.MaxHeight;level++)
+                {
+                    Tilemap surface=visualGrid.Find("ElevatedGround_L"+level)?.GetComponent<Tilemap>();
+                    for(int y=0;y<grid.Height;y++) for(int x=0;x<grid.Width;x++)
+                        if(GoblinIslandLayout.IsCliff(x,y,level)
+                            && GoblinIslandLayout.Cell(x,y).terrainType==TerrainType.Cliff)
+                            EnsureForegroundSprite(root,surface,new(x,y,0),$"IslandCliff_{level}_{x}_{y}",
+                                ProjectedTerrainRole.CliffFace,level-1,CliffFaceAdditionalOrder,grid);
+                }
+            }
+            for (int terraceIndex = 0; !island && terraceIndex < platforms.Length;
                 terraceIndex++)
             {
-                TerraceDefinition terrace = BattlefieldTerraces.Platforms[terraceIndex];
+                TerraceDefinition terrace = platforms[terraceIndex];
                 Tilemap source = visualGrid.Find("ElevatedGround_L" + terrace.Height)
                     ?.GetComponent<Tilemap>();
                 for (int x = terrace.Surface.xMin; x < terrace.Surface.xMax; x++)
@@ -244,9 +263,11 @@ namespace TinyKingdom.Presentation
                 }
             }
 
-            for (int i = 0; i < BattlefieldTerraces.ConnectorCount; i++)
+            int connectorCount=island?GoblinIslandLayout.ConnectorCount:BattlefieldTerraces.ConnectorCount;
+            for (int i = 0; i < connectorCount; i++)
             {
-                TerrainHeightConnectorDefinition stair = BattlefieldTerraces.Connector(i);
+                TerrainHeightConnectorDefinition stair = island ? GoblinIslandLayout.Connector(i)
+                    : BattlefieldTerraces.Connector(i);
                 Tilemap source = visualGrid.Find("ElevatedGround_L" + (stair.LowerHeight + 1))
                     ?.GetComponent<Tilemap>();
                 EnsureForegroundSprite(root, source,

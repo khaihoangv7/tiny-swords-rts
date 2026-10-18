@@ -1372,13 +1372,32 @@ disabled in the active Map setup, runtime spawn flow, current objective and
 automated validator. Their verified assets, data and dormant implementation are
 retained. Re-enabling them is a separate future gameplay task.
 
+Map 3 enables three Torch, three TNT and three Barrel guarding its island mine
+and three Goblin huts, plus one of each existing Goblin type on the
+middle western resource hill. The northern hill has no Goblins. These three additional guards use the same gameplay
+data and normal autonomous combat. Huts are neutral hostile static buildings with 400 HP
+and a 2x2 logical footprint, configured in a ScriptableObject. They may be
+attacked through ordinary building combat; destruction releases occupancy and
+leaves the verified wreck. They have no production, economy, population,
+garrison, free attacks or match-result authority. Their physical footprint and
+unit stats remain independent of the Goblin visual scale of 1.7.
+Maps 1 and 2 keep their current setup without guards. Torch/TNT retain the above
+stats. Barrel provisional values live in configurable assets: 100 HP, speed 3,
+detection 6, home leash 7, fuse distance 1.1, fuse 0.3 seconds, blast damage 60,
+radius 1.75 and knockback 0.6. It emerges before pursuit and returns home when
+no target remains. Its armed fuse stays in place; death or match end cancels it.
+Detonation damages each targetable Blue/Red unit in the radius once, never other
+Goblins, buildings or resources, then kills the Barrel. Killing it before the
+fuse ends causes ordinary death without a blast. Gameplay timers control damage;
+the two building explosion sheets play at a smaller 0.8 presentation scale.
+
 ---
 
 # 41. MVP Scope
 
 The first complete playable version contains only:
 
-1 map
+3 selectable maps: Two Kingdoms, Straight Lane and Goblin Island
 
 2 factions
 

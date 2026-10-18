@@ -384,6 +384,7 @@ namespace TinyKingdom.Economy
             if (navigation == null) return;
             Vector2Int preferred = new(StrategicObjectiveMapLayout.MineOriginX,
                 StrategicObjectiveMapLayout.MineOriginY);
+            if (battlefieldLayout != null) preferred = battlefieldLayout.mineOrigin;
             Vector2Int footprint = new(StrategicObjectiveMapLayout.MineWidth,
                 StrategicObjectiveMapLayout.MineHeight);
             if (!TryFindOpenFootprint(navigation, preferred, footprint,

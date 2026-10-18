@@ -58,6 +58,41 @@ Rendering never infers the elevation edge. A route is on each flank, with a land
 Closing either route must leave the other fully usable.
 The central mine has no ramps.
 
+`LinearLane.unity` follows the user's revised reference: two 15x16 lower bases
+with outer 7x5 upper Castle courts centered on their Castles, connected by one eleven-cell horizontal
+strip and a round central mine island. Color1 renders ground/shore, Color4
+the five-cell road and round mine clearing, Color3 both Castle tiers.
+Each gate is two adjacent identical native ramp pairs of the same orientation,
+not opposite slopes meeting at a point. The latest approved front/back copies
+share one X per gate, with endpoint rows 20/21 and 21/22 overlapping one cell
+to bring them closer. Blue gate X is 18/10, Red 41/49. Color3 r1c6 backs
+transparent ramp corners on MeadowsAndPaths, eliminating contrasting grass
+at the seam. Both full native r4/r5 pairs remain intact: the rear copy is on
+ElevatedGround_L1/L2 and the front copy on StairFront_L1/L2. The front
+Tilemaps render above the other terrain layers but below depth-sorted units,
+so a unit crossing the ramp stays visible.
+The inward-side entries follow the expanded rectangular tiers, with no
+extra side landings or stairs along the southern cliff.
+Blue retains the native descending-right pair; Red the descending-left pair.
+Navigation is baked separately with four explicit endpoint pairs at y=20/21,
+one per shared gate. The rear copy's upper cell is a same-height approach.
+Tree1/Tree2 woodlands border the land and lane. Following the October sketch,
+two outer H2 pines are removed, four northern-rim pines added per side and six
+added in Blue's marked flank/court corners. The latest northern red bands add
+six H0 pines per side and bring the existing y=32 row inward to y=31, leaving
+y=32/local x=17 open for harvesting: 93/87 overall, 28/22 on the tiers.
+Other regions keep their pine placement/variants. The four latest pink-marked
+Sheep are deleted, leaving 20 per faction (40 total); remaining H1 flocks keep
+their irregular positions.
+Six differently sized native Gold Stones form one close H1 cluster per side.
+Four new static Bushe1/2/3/4 decorations render at order 8. Six water-only Ducks
+reuse the existing three-frame ambient loop, order 3 and scale 1.6. No resource
+covers a gate/road; decorations have no colliders or navigation occupancy.
+The three yellow patches add 24 mixed Bushe1/2/3/4 sprites at order 8. Six
+varied static Rock1/2/3/4 sprites form the two marked land-edge patches; four
+Water Rocks_02/04 ambient loops form the water patches at order 3. Ten whole
+native large/small cloud illustrations drift at order 19 with alpha 0.62-0.72,
+52-79 second cycles and native 64 PPU, without covering gameplay landmarks.
 Phase 6H.2 stabilization preserves these verified ramp and connection tiles and projected sorting.
 Only the two reciprocal logical endpoints are reserved as the connector corridor;
 debug endpoint/corridor Gizmos are optional and disabled by default.

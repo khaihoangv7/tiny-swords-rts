@@ -64,8 +64,9 @@ phase2-path.txt
 /Assets/Terrain/Tileset/Bridge_All.png.meta
 /Assets/Buildings/Goblins Building/
 /Assets/Buildings/Goblins Building.meta
-/Assets/Units/Goblins Units/Goblins_Barrel/
-/Assets/Units/Goblins Units/Goblins_Barrel.meta
+!/Assets/Units/Goblins Units/Goblins_Barrel/Barrel_Red.png
+!/Assets/Terrain/GoblinIsland/GoblinHut.png
+!/Assets/Terrain/GoblinIsland/GoblinHutDestroyed.png
 /Assets/Units/Goblins Units/**/*.aseprite.meta
 
 # Unity template / welcome assets

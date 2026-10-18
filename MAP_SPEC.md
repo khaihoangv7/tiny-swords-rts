@@ -19,7 +19,7 @@ Render from bottom to top:
 3. Flat Ground
 4. Meadows and Paths
 5. Shadow L1
-6. Elevated Ground L1 (Castle bases only)
+6. Elevated Ground L1 (Castle bases)
 7. Shadow and Elevated Ground L2 (upper Castle courts)
 8. Decorations / Units / Buildings
 9. Effects / drifting clouds
@@ -64,7 +64,7 @@ not walkable
 
 ELEVATED_GROUND:
 walkable
-height = 1 or 2 on the Castle terraces
+height = 1 or 2 on Castle terraces; the central lane/mine remains at height 0
 
 STAIRS:
 walkable
@@ -248,3 +248,116 @@ Map center contains:
 - flat contested clearing with open approaches
 
 Avoid unfair resource placement.
+
+---
+
+## Second Map: Straight Lane
+
+Map two is a simple linear battlefield on the shared 60 x 44 logical grid.
+Blue occupies the left clearing and Red the right, at (6.5,23.5) and
+(53.5,23.5). Each starts with one main Castle and three Pawns on height 2.
+Following the user's revised reference, each base has a 15x16 height-1
+rectangle (expanded from 13x12) and an outer-side 7x5 height-2 Castle court.
+Blue: (3,15) and (3,21); Red: (42,15) and (50,21).
+Each upper court is centered exactly on its Castle, and both bases mirror X.
+First-tier construction space stays largely open. ALL Sheep occupy height 1,
+hand-scattered into uneven groups north/south of the upper court rather than
+straight rows. Small within-cell offsets retain authoritative occupancy cells.
+Each side has 20 Sheep and six Gold Rocks; the flocks use different, irregular
+positions rather than exact mirrored patterns. After the earlier relocation,
+the latest four pink-marked Sheep are deleted (two per side), reducing 44 to 40.
+The other Sheep keep their positions and identities.
+Only Tree1 (dark pine) and Tree2 (bright pine) may be used on map two.
+The October sketch removes the two outer H2 trees next to the Castles, adds
+four trees along each northern tier rim, and six in the marked Blue flank/court
+corners. Other tree positions and variants remain intact. Dense forest rows frame
+the shoreline and both sides of the lane, separated by harvest aisles.
+Additional pines line y=19/25 beside the road without occupying the road or mine clearing.
+Additional H0 pines fill the shoreline and lane-edge gaps. The latest red-marked
+northern bands add six pines per side; their existing H0 y=32 row moves to y=31,
+with the end pine at local x=17 moved to x=16, leaving a continuous y=32 harvest
+aisle reachable through local x=17. Other forest regions remain unchanged.
+Blue has 93 trees, Red 87 (28/22 on the tiers); the slight asymmetry follows the user's marked
+green regions. Food and Gold remain equal, with all resource work cells reachable.
+The narrow H0 coastal aisles beside the enlarged platforms remain resource-free.
+Each side's six Gold Rocks now form one compact H1 cluster with two large,
+two medium, one small and one tiny native stone (variants 4/5/2/3/1/0), matching
+the user's reference. Their existing per-variant capacities remain unchanged;
+both factions have the same composition. The central Gold Mine is unchanged.
+Four additional nonblocking bushes use Bushe1/2/3/4, one of each, scattered
+across the bases and center. Six decorative Ducks float on water only; their
+existing ambient animation has no collision, resource value or gameplay role.
+Three yellow patches receive 24 additional varied static bushes. Two lower
+land-edge patches receive six large/small decorative rocks; two marked water
+patches receive four animated water rocks. Ten large/small whole-sprite clouds
+drift slowly over woodland/coast, staying inside map bounds and keeping Castle,
+Gold cluster, stair and central-mine views clear. All scenery stays nonblocking.
+
+The broad base clearings occupy the left/right ends, connected ONLY by one
+straight horizontal land corridor at y=17..27, widened to eleven cells.
+The clear olive road is five cells wide at y=20..24; a round central island
+of radius 8 contains a round mine clearing of radius 4.8. Both remain H0.
+Water surrounds the two bases and strip; no separate flanking route exists.
+The existing 2x2 Gold Mine stays at (29,21), with open passages on both sides.
+Each of the four height gates (H0->H1 and H1->H2 for each faction) consists of
+two adjacent identical native stair flights with the same orientation. The
+user explicitly confirmed front/back copies touching, then requested moving
+them one cell closer. Both copies use one X: Blue x=18 (H0/H1) and x=10 (H1/H2);
+Red x=41/49. Complete pairs occupy y=20/21 and y=21/22, overlapping one cell.
+Color3 ground behind their transparent pixels avoids a contrasting grass gap
+at the joint. Each retains its complete native r4/r5 pair, without rotation,
+rescaling or flipping within a gate. Gates stay on the inward side of each
+expanded tier; no stairs are added to the southern cliff. Each gate has ONE
+explicit bidirectional height connection at y=20/21. The rear visual copy's
+upper cell y=22 is a same-height approach, not another height jump. Separate
+visual layers preserve both full ramp copies without giving the shared cell
+conflicting navigation heights. Closing the shared gate blocks passage;
+neighboring cliffs and decorative ramps never permit shortcuts.
+One finished cliff-foot row per tier leaves visible landings between levels.
+
+`Assets/Scenes/LinearLane.unity`, `Assets/Data/LinearLaneLayout.asset` and
+`Assets/Data/Navigation/LinearLaneNavigation.asset` are the map-two assets.
+Their previous RiverMountains paths are migrated with GUIDs preserved. The
+original map remains available separately. The map selection card is named
+STRAIGHT LANE. The legacy editor builder can rebuild the scene through
+`Tools/Tiny Kingdom/Build Map 2 - Straight Lane`.
+
+## Third Map: Goblin Island
+
+Separate 66x44 scene, layout and navigation assets. Blue is bottom-right, Red
+top-right, both Castles on flat height-0 ground. Both start with one Castle,
+three Pawns and equal local Food/Wood/Gold compositions. The wider western
+strip (x=1..17,y=1..42) is flat around three separate resource hills.
+The southern and middle hills have asymmetric height-1 shelves with smaller,
+offset height-2 summits. The broad northern hill is height 1. Their stepped
+outlines, widths and tier placements differ. Each has two shelf entrances;
+only the two taller hills have summit ramps. Trees, Sheep and small/large Gold nodes occupy all three
+heights with reachable work cells, clear ramps and no buildings. The middle
+shelf has three Goblins (one Torch, one TNT, one Barrel); the northern hill has none.
+The middle group occupies height-1 ground with clear resource/ramp approaches. The enlarged island
+(x=20..62,y=14..29) is flat at height 0, including
+its mine, huts and bridge approaches. It has no elevation layers or island stairs.
+The western resource area uses denser irregular planting, flocks and Gold
+clusters covering all six verified small/large Gold Stone variants.
+It contains 85 Trees, 50 Sheep and 32 Gold nodes. The editor accepts a new
+resource only if the game's traversal rules still connect every resource's
+work cells, all hill clearings and both endpoints of every ramp to the base.
+Western Gold nodes stay inside a full same-height grass ring so their visual
+ground contact cannot hang over cliff faces, ramps or shore edges.
+The river is two cells wide instead of four.
+Exactly three smaller 2x4 bridges connect north, south and west directly at
+height 0. Eight Color1/3 ramps serve the western hills. Other river cells
+remain Water; decorative artwork never grants a height change. Color1/3/4
+patches and paths mix the outer grass colors, with matching Tree2/3/4 groves.
+The dark Color5 island mixes Tree1 dark and Tree2 bright pines. Resources have
+irregular authored placements with open harvest aisles, bridge approaches,
+ramps, Castle skirts and construction space. The 2x2 capturable Gold Mine
+starts at (44,22) on height 0. Nine Goblins and three 2x2 huts guard the island.
+Bushes and large/small drifting clouds remain nonblocking scenery.
+Twelve decorative Ducks and sixteen animated water rocks occupy river cells
+away from all three crossings. Twenty-four static rocks are scattered on the
+west strip, island and outer forest gaps. These props have no collision,
+resources or navigation occupancy; bridge approaches and ramps remain clear.
+`Assets/Scenes/GoblinIsland.unity`, `Assets/Data/GoblinIslandLayout.asset` and
+`Assets/Data/Navigation/GoblinIslandNavigation.asset` are baked independently by
+`Tools/Tiny Kingdom/Build Map 3 - Goblin Island`. MapSelection includes the third card.

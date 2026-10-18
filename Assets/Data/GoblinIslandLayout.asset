@@ -1,0 +1,1487 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e199f9a0aa468074d94e3de579b7e99c, type: 3}
+  m_Name: GoblinIslandLayout
+  m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Terrain.BattlefieldLayout
+  blueCastle: {x: 53, y: 9.5}
+  redCastle: {x: 53, y: 40.5}
+  bluePawns:
+  - {x: 51.5, y: 7.5}
+  - {x: 53.5, y: 7.5}
+  - {x: 55.5, y: 7.5}
+  redPawns:
+  - {x: 51.5, y: 38.5}
+  - {x: 53.5, y: 38.5}
+  - {x: 55.5, y: 38.5}
+  redPawnAnimations: {fileID: 11400000, guid: f99e8f48276242848a6962d1be0f83de, type: 2}
+  mineOrigin: {x: 44, y: 22}
+  resources:
+  - name: Blue_Tree_0
+    type: 1
+    position: {x: 45.3, y: 9.7}
+    variant: 1
+  - name: Blue_Tree_1
+    type: 1
+    position: {x: 47.2, y: 10.6}
+    variant: 1
+  - name: Blue_Tree_2
+    type: 1
+    position: {x: 59.7, y: 10.2}
+    variant: 1
+  - name: Blue_Tree_3
+    type: 1
+    position: {x: 61.2, y: 8.3}
+    variant: 1
+  - name: Blue_Tree_4
+    type: 1
+    position: {x: 46.3, y: 2.8}
+    variant: 2
+  - name: Blue_Tree_5
+    type: 1
+    position: {x: 49.4, y: 2.4}
+    variant: 3
+  - name: Blue_Tree_6
+    type: 1
+    position: {x: 56.2, y: 2.6}
+    variant: 2
+  - name: Blue_Tree_7
+    type: 1
+    position: {x: 60.1, y: 3.2}
+    variant: 3
+  - name: Blue_Gold_0
+    type: 2
+    position: {x: 46.5, y: 7.5}
+    variant: 0
+  - name: Blue_Gold_1
+    type: 2
+    position: {x: 46.5, y: 8.5}
+    variant: 1
+  - name: Blue_Gold_2
+    type: 2
+    position: {x: 59.5, y: 6.5}
+    variant: 2
+  - name: Blue_Gold_3
+    type: 2
+    position: {x: 59.5, y: 7.5}
+    variant: 3
+  - name: Blue_Gold_4
+    type: 2
+    position: {x: 49.5, y: 4.5}
+    variant: 4
+  - name: Blue_Gold_5
+    type: 2
+    position: {x: 50.5, y: 4.5}
+    variant: 5
+  - name: Blue_Sheep_0
+    type: 0
+    position: {x: 47.3, y: 3.6}
+    variant: 0
+  - name: Blue_Sheep_1
+    type: 0
+    position: {x: 48.5, y: 4.7}
+    variant: 0
+  - name: Blue_Sheep_2
+    type: 0
+    position: {x: 51.4, y: 3.6}
+    variant: 0
+  - name: Blue_Sheep_3
+    type: 0
+    position: {x: 52.5, y: 4.6}
+    variant: 0
+  - name: Blue_Sheep_4
+    type: 0
+    position: {x: 54.4, y: 3.5}
+    variant: 0
+  - name: Blue_Sheep_5
+    type: 0
+    position: {x: 55.3, y: 4.6}
+    variant: 0
+  - name: Blue_Sheep_6
+    type: 0
+    position: {x: 57.6, y: 3.7}
+    variant: 0
+  - name: Blue_Sheep_7
+    type: 0
+    position: {x: 58.4, y: 4.6}
+    variant: 0
+  - name: Blue_Sheep_9
+    type: 0
+    position: {x: 46.4, y: 4.4}
+    variant: 0
+  - name: Blue_MeadowSheep_0
+    type: 0
+    position: {x: 24.3, y: 6.4}
+    variant: 0
+  - name: Blue_MeadowSheep_1
+    type: 0
+    position: {x: 25.699999, y: 7.7}
+    variant: 0
+  - name: Blue_MeadowSheep_2
+    type: 0
+    position: {x: 27.099998, y: 6.4}
+    variant: 0
+  - name: Blue_MeadowSheep_3
+    type: 0
+    position: {x: 28.5, y: 7.7}
+    variant: 0
+  - name: Blue_MeadowSheep_4
+    type: 0
+    position: {x: 29.9, y: 6.4}
+    variant: 0
+  - name: Blue_MeadowSheep_5
+    type: 0
+    position: {x: 31.3, y: 7.7}
+    variant: 0
+  - name: Blue_OuterGold_0
+    type: 2
+    position: {x: 40.5, y: 4.5}
+    variant: 2
+  - name: Blue_OuterGold_1
+    type: 2
+    position: {x: 41.8, y: 4.5}
+    variant: 3
+  - name: Blue_OuterGold_2
+    type: 2
+    position: {x: 40.5, y: 5.8}
+    variant: 4
+  - name: Blue_OuterGold_3
+    type: 2
+    position: {x: 41.8, y: 5.8}
+    variant: 5
+  - name: Blue_Grove_0
+    type: 1
+    position: {x: 42.559822, y: 1.9865196}
+    variant: 2
+  - name: Blue_Grove_1
+    type: 1
+    position: {x: 21.143858, y: 10.621473}
+    variant: 1
+  - name: Blue_Grove_2
+    type: 1
+    position: {x: 31.53377, y: 10.433745}
+    variant: 1
+  - name: Blue_Grove_3
+    type: 1
+    position: {x: 23.315416, y: 3.7720292}
+    variant: 3
+  - name: Blue_Grove_4
+    type: 1
+    position: {x: 26.992762, y: 4.3636136}
+    variant: 1
+  - name: Blue_Grove_5
+    type: 1
+    position: {x: 21.111473, y: 5.8869405}
+    variant: 1
+  - name: Blue_Grove_6
+    type: 1
+    position: {x: 23.55853, y: 1.4182615}
+    variant: 2
+  - name: Blue_Grove_7
+    type: 1
+    position: {x: 39.012627, y: 1.339906}
+    variant: 3
+  - name: Blue_Grove_8
+    type: 1
+    position: {x: 30.304083, y: 2.410452}
+    variant: 2
+  - name: Blue_Grove_9
+    type: 1
+    position: {x: 26.38151, y: 9.889243}
+    variant: 1
+  - name: Blue_Grove_10
+    type: 1
+    position: {x: 35.500862, y: 2.309149}
+    variant: 2
+  - name: Blue_Grove_11
+    type: 1
+    position: {x: 20.721539, y: 3.583487}
+    variant: 3
+  - name: Blue_Grove_12
+    type: 1
+    position: {x: 42.649067, y: 9.852501}
+    variant: 2
+  - name: Blue_Grove_13
+    type: 1
+    position: {x: 19.314007, y: 4.7631445}
+    variant: 3
+  - name: Blue_Grove_14
+    type: 1
+    position: {x: 24.416182, y: 9.081729}
+    variant: 1
+  - name: Blue_Grove_15
+    type: 1
+    position: {x: 22.202015, y: 9.258042}
+    variant: 1
+  - name: Blue_Grove_16
+    type: 1
+    position: {x: 41.286583, y: 8.179419}
+    variant: 2
+  - name: Blue_Grove_17
+    type: 1
+    position: {x: 35.04821, y: 7.894989}
+    variant: 3
+  - name: Blue_Grove_18
+    type: 1
+    position: {x: 33.157616, y: 2.477702}
+    variant: 2
+  - name: Blue_Grove_19
+    type: 1
+    position: {x: 23.463696, y: 10.816032}
+    variant: 1
+  - name: Blue_Grove_20
+    type: 1
+    position: {x: 37.700996, y: 7.4921985}
+    variant: 2
+  - name: Blue_Grove_21
+    type: 1
+    position: {x: 40.83391, y: 1.8059442}
+    variant: 3
+  - name: Blue_Grove_22
+    type: 1
+    position: {x: 25.435448, y: 2.2260003}
+    variant: 2
+  - name: Blue_Grove_23
+    type: 1
+    position: {x: 29.8234, y: 9.949562}
+    variant: 1
+  - name: Red_Tree_0
+    type: 1
+    position: {x: 45.3, y: 40.7}
+    variant: 1
+  - name: Red_Tree_1
+    type: 1
+    position: {x: 47.2, y: 41.6}
+    variant: 1
+  - name: Red_Tree_2
+    type: 1
+    position: {x: 59.7, y: 41.2}
+    variant: 1
+  - name: Red_Tree_3
+    type: 1
+    position: {x: 61.2, y: 39.3}
+    variant: 1
+  - name: Red_Tree_4
+    type: 1
+    position: {x: 46.3, y: 33.8}
+    variant: 2
+  - name: Red_Tree_5
+    type: 1
+    position: {x: 49.4, y: 33.4}
+    variant: 3
+  - name: Red_Tree_6
+    type: 1
+    position: {x: 56.2, y: 33.6}
+    variant: 2
+  - name: Red_Tree_7
+    type: 1
+    position: {x: 60.1, y: 34.2}
+    variant: 3
+  - name: Red_Gold_0
+    type: 2
+    position: {x: 46.5, y: 38.5}
+    variant: 0
+  - name: Red_Gold_1
+    type: 2
+    position: {x: 46.5, y: 39.5}
+    variant: 1
+  - name: Red_Gold_2
+    type: 2
+    position: {x: 59.5, y: 37.5}
+    variant: 2
+  - name: Red_Gold_3
+    type: 2
+    position: {x: 59.5, y: 38.5}
+    variant: 3
+  - name: Red_Gold_4
+    type: 2
+    position: {x: 49.5, y: 35.5}
+    variant: 4
+  - name: Red_Gold_5
+    type: 2
+    position: {x: 50.5, y: 35.5}
+    variant: 5
+  - name: Red_Sheep_0
+    type: 0
+    position: {x: 47.3, y: 34.6}
+    variant: 0
+  - name: Red_Sheep_1
+    type: 0
+    position: {x: 48.5, y: 35.7}
+    variant: 0
+  - name: Red_Sheep_2
+    type: 0
+    position: {x: 51.4, y: 34.6}
+    variant: 0
+  - name: Red_Sheep_3
+    type: 0
+    position: {x: 52.5, y: 35.6}
+    variant: 0
+  - name: Red_Sheep_4
+    type: 0
+    position: {x: 54.4, y: 34.5}
+    variant: 0
+  - name: Red_Sheep_5
+    type: 0
+    position: {x: 55.3, y: 35.6}
+    variant: 0
+  - name: Red_Sheep_6
+    type: 0
+    position: {x: 57.6, y: 34.7}
+    variant: 0
+  - name: Red_Sheep_7
+    type: 0
+    position: {x: 58.4, y: 35.6}
+    variant: 0
+  - name: Red_Sheep_9
+    type: 0
+    position: {x: 46.4, y: 35.4}
+    variant: 0
+  - name: Red_MeadowSheep_0
+    type: 0
+    position: {x: 24.3, y: 37.4}
+    variant: 0
+  - name: Red_MeadowSheep_1
+    type: 0
+    position: {x: 25.699999, y: 38.7}
+    variant: 0
+  - name: Red_MeadowSheep_2
+    type: 0
+    position: {x: 27.099998, y: 37.4}
+    variant: 0
+  - name: Red_MeadowSheep_3
+    type: 0
+    position: {x: 28.5, y: 38.7}
+    variant: 0
+  - name: Red_MeadowSheep_4
+    type: 0
+    position: {x: 29.9, y: 37.4}
+    variant: 0
+  - name: Red_MeadowSheep_5
+    type: 0
+    position: {x: 31.3, y: 38.7}
+    variant: 0
+  - name: Red_OuterGold_0
+    type: 2
+    position: {x: 40.5, y: 35.5}
+    variant: 2
+  - name: Red_OuterGold_1
+    type: 2
+    position: {x: 41.8, y: 35.5}
+    variant: 3
+  - name: Red_OuterGold_2
+    type: 2
+    position: {x: 40.5, y: 36.8}
+    variant: 4
+  - name: Red_OuterGold_3
+    type: 2
+    position: {x: 41.8, y: 36.8}
+    variant: 5
+  - name: Red_Grove_0
+    type: 1
+    position: {x: 42.59517, y: 40.13489}
+    variant: 2
+  - name: Red_Grove_1
+    type: 1
+    position: {x: 34.292805, y: 39.939377}
+    variant: 1
+  - name: Red_Grove_2
+    type: 1
+    position: {x: 27.943956, y: 41.51046}
+    variant: 2
+  - name: Red_Grove_3
+    type: 1
+    position: {x: 27.145359, y: 34.673462}
+    variant: 1
+  - name: Red_Grove_4
+    type: 1
+    position: {x: 20.12066, y: 35.35516}
+    variant: 1
+  - name: Red_Grove_5
+    type: 1
+    position: {x: 20.82895, y: 42.14923}
+    variant: 3
+  - name: Red_Grove_6
+    type: 1
+    position: {x: 27.472713, y: 32.800854}
+    variant: 1
+  - name: Red_Grove_7
+    type: 1
+    position: {x: 42.175713, y: 32.968903}
+    variant: 3
+  - name: Red_Grove_8
+    type: 1
+    position: {x: 30.32575, y: 40.713467}
+    variant: 1
+  - name: Red_Grove_9
+    type: 1
+    position: {x: 37.61931, y: 39.854465}
+    variant: 1
+  - name: Red_Grove_10
+    type: 1
+    position: {x: 26.392788, y: 40.76756}
+    variant: 1
+  - name: Red_Grove_11
+    type: 1
+    position: {x: 38.329075, y: 41.634666}
+    variant: 3
+  - name: Red_Grove_12
+    type: 1
+    position: {x: 23.414726, y: 33.43384}
+    variant: 1
+  - name: Red_Grove_13
+    type: 1
+    position: {x: 29.374418, y: 33.208576}
+    variant: 1
+  - name: Red_Grove_14
+    type: 1
+    position: {x: 41.362568, y: 41.75852}
+    variant: 2
+  - name: Red_Grove_15
+    type: 1
+    position: {x: 33.0114, y: 41.18627}
+    variant: 3
+  - name: Red_Grove_16
+    type: 1
+    position: {x: 31.947844, y: 33.61832}
+    variant: 1
+  - name: Red_Grove_17
+    type: 1
+    position: {x: 25.744429, y: 32.422733}
+    variant: 1
+  - name: Red_Grove_18
+    type: 1
+    position: {x: 35.796158, y: 42.008106}
+    variant: 2
+  - name: Red_Grove_19
+    type: 1
+    position: {x: 43.218246, y: 34.5038}
+    variant: 3
+  - name: Red_Grove_20
+    type: 1
+    position: {x: 30.655075, y: 42.399384}
+    variant: 2
+  - name: Red_Grove_21
+    type: 1
+    position: {x: 20.67595, y: 38.0575}
+    variant: 1
+  - name: Red_Grove_22
+    type: 1
+    position: {x: 21.246264, y: 32.962322}
+    variant: 2
+  - name: Red_Grove_23
+    type: 1
+    position: {x: 23.65978, y: 41.344574}
+    variant: 3
+  - name: Island_Gold_0
+    type: 2
+    position: {x: 40.4, y: 15.4}
+    variant: 0
+  - name: Island_Gold_1
+    type: 2
+    position: {x: 44.3, y: 15.7}
+    variant: 1
+  - name: Island_Gold_2
+    type: 2
+    position: {x: 47.5, y: 17.2}
+    variant: 2
+  - name: Island_Gold_3
+    type: 2
+    position: {x: 50.2, y: 15.5}
+    variant: 3
+  - name: Island_Gold_4
+    type: 2
+    position: {x: 53.3, y: 16.2}
+    variant: 4
+  - name: Island_Gold_5
+    type: 2
+    position: {x: 59.4, y: 16.7}
+    variant: 5
+  - name: Island_Gold_6
+    type: 2
+    position: {x: 57.2, y: 27.3}
+    variant: 0
+  - name: Island_Gold_7
+    type: 2
+    position: {x: 59.3, y: 28.4}
+    variant: 1
+  - name: Island_Gold_8
+    type: 2
+    position: {x: 61.1, y: 26.4}
+    variant: 2
+  - name: Island_Gold_9
+    type: 2
+    position: {x: 43.4, y: 27.6}
+    variant: 3
+  - name: Island_Gold_10
+    type: 2
+    position: {x: 41.7, y: 28.5}
+    variant: 4
+  - name: Island_Gold_11
+    type: 2
+    position: {x: 28.5, y: 26.4}
+    variant: 5
+  - name: Island_Sheep_0
+    type: 0
+    position: {x: 30.52998, y: 16.623184}
+    variant: 0
+  - name: Island_Sheep_1
+    type: 0
+    position: {x: 29.385841, y: 16.983803}
+    variant: 0
+  - name: Island_Sheep_2
+    type: 0
+    position: {x: 26.692612, y: 15.785305}
+    variant: 0
+  - name: Island_Sheep_3
+    type: 0
+    position: {x: 26.834505, y: 18.13789}
+    variant: 0
+  - name: Island_Sheep_4
+    type: 0
+    position: {x: 30.323793, y: 18.270773}
+    variant: 0
+  - name: Island_Sheep_5
+    type: 0
+    position: {x: 29.437466, y: 21.934746}
+    variant: 0
+  - name: Island_Sheep_6
+    type: 0
+    position: {x: 25.799225, y: 20.503471}
+    variant: 0
+  - name: Island_Sheep_7
+    type: 0
+    position: {x: 30.164244, y: 27.748667}
+    variant: 0
+  - name: Island_Sheep_8
+    type: 0
+    position: {x: 27.008879, y: 17.015673}
+    variant: 0
+  - name: Island_Sheep_10
+    type: 0
+    position: {x: 28.295076, y: 21.938105}
+    variant: 0
+  - name: Island_Sheep_11
+    type: 0
+    position: {x: 25.467945, y: 17.975868}
+    variant: 0
+  - name: Island_Sheep_12
+    type: 0
+    position: {x: 28.302397, y: 25.586151}
+    variant: 0
+  - name: Island_Sheep_14
+    type: 0
+    position: {x: 27.201113, y: 16.787783}
+    variant: 0
+  - name: Island_Sheep_15
+    type: 0
+    position: {x: 31.057125, y: 19.222046}
+    variant: 0
+  - name: Island_Pine_0
+    type: 1
+    position: {x: 52.60965, y: 21.78668}
+    variant: 1
+  - name: Island_Pine_1
+    type: 1
+    position: {x: 29.869978, y: 24.117985}
+    variant: 0
+  - name: Island_Pine_2
+    type: 1
+    position: {x: 46.157658, y: 18.508654}
+    variant: 0
+  - name: Island_Pine_3
+    type: 1
+    position: {x: 57.371758, y: 25.480707}
+    variant: 1
+  - name: Island_Pine_4
+    type: 1
+    position: {x: 31.764112, y: 20.817715}
+    variant: 0
+  - name: Island_Pine_5
+    type: 1
+    position: {x: 23.648037, y: 28.240221}
+    variant: 0
+  - name: Island_Pine_6
+    type: 1
+    position: {x: 47.511246, y: 19.79115}
+    variant: 1
+  - name: Island_Pine_7
+    type: 1
+    position: {x: 59.4581, y: 23.825916}
+    variant: 0
+  - name: Island_Pine_8
+    type: 1
+    position: {x: 50.1616, y: 18.026}
+    variant: 0
+  - name: Island_Pine_9
+    type: 1
+    position: {x: 45.77802, y: 26.452515}
+    variant: 1
+  - name: Island_Pine_10
+    type: 1
+    position: {x: 45.077766, y: 28.99411}
+    variant: 0
+  - name: Island_Pine_11
+    type: 1
+    position: {x: 25.168102, y: 25.481556}
+    variant: 0
+  - name: Island_Pine_12
+    type: 1
+    position: {x: 57.5274, y: 15.805851}
+    variant: 1
+  - name: Island_Pine_13
+    type: 1
+    position: {x: 41.51668, y: 26.111256}
+    variant: 0
+  - name: Island_Pine_14
+    type: 1
+    position: {x: 51.383614, y: 19.397083}
+    variant: 0
+  - name: Island_Pine_15
+    type: 1
+    position: {x: 31.936905, y: 28.355738}
+    variant: 1
+  - name: Island_Pine_16
+    type: 1
+    position: {x: 60.325615, y: 18.85226}
+    variant: 0
+  - name: Island_Pine_17
+    type: 1
+    position: {x: 43.862812, y: 19.76446}
+    variant: 0
+  - name: Island_Pine_18
+    type: 1
+    position: {x: 48.017, y: 28.594439}
+    variant: 1
+  - name: Island_Pine_19
+    type: 1
+    position: {x: 61.274216, y: 15.776367}
+    variant: 0
+  - name: Island_Pine_20
+    type: 1
+    position: {x: 21.88792, y: 18.234594}
+    variant: 0
+  - name: Island_Pine_21
+    type: 1
+    position: {x: 56.134136, y: 22.506653}
+    variant: 1
+  - name: Island_Pine_22
+    type: 1
+    position: {x: 27.940716, y: 23.789345}
+    variant: 0
+  - name: Island_Pine_23
+    type: 1
+    position: {x: 31.581478, y: 25.133156}
+    variant: 0
+  - name: Island_Pine_24
+    type: 1
+    position: {x: 23.699669, y: 17.136795}
+    variant: 1
+  - name: Island_Pine_25
+    type: 1
+    position: {x: 26.715988, y: 28.689209}
+    variant: 0
+  - name: Island_Pine_26
+    type: 1
+    position: {x: 55.543777, y: 25.283634}
+    variant: 0
+  - name: Island_Pine_27
+    type: 1
+    position: {x: 54.40103, y: 22.90388}
+    variant: 1
+  - name: Island_Pine_28
+    type: 1
+    position: {x: 51.664444, y: 16.67138}
+    variant: 0
+  - name: Island_Pine_29
+    type: 1
+    position: {x: 53.32556, y: 18.710783}
+    variant: 0
+  - name: Island_Pine_30
+    type: 1
+    position: {x: 31.599163, y: 23.234097}
+    variant: 1
+  - name: Island_Pine_31
+    type: 1
+    position: {x: 61.462425, y: 21.90718}
+    variant: 0
+  - name: Island_Pine_32
+    type: 1
+    position: {x: 48.712708, y: 26.129242}
+    variant: 0
+  - name: Island_Pine_33
+    type: 1
+    position: {x: 61.731728, y: 28.39597}
+    variant: 1
+  - name: Island_Pine_34
+    type: 1
+    position: {x: 23.255274, y: 19.766771}
+    variant: 0
+  - name: Island_Pine_35
+    type: 1
+    position: {x: 21.457066, y: 26.1197}
+    variant: 0
+  - name: Island_Pine_36
+    type: 1
+    position: {x: 45.73863, y: 16.853714}
+    variant: 1
+  - name: Island_Pine_37
+    type: 1
+    position: {x: 59.797054, y: 20.80059}
+    variant: 0
+  - name: Island_Pine_38
+    type: 1
+    position: {x: 54.403584, y: 27.640265}
+    variant: 0
+  - name: Island_Pine_39
+    type: 1
+    position: {x: 28.58732, y: 18.892338}
+    variant: 1
+  - name: Island_Pine_40
+    type: 1
+    position: {x: 21.508595, y: 15.991638}
+    variant: 0
+  - name: Island_Pine_41
+    type: 1
+    position: {x: 58.89041, y: 26.493492}
+    variant: 0
+  - name: Island_Pine_42
+    type: 1
+    position: {x: 57.77057, y: 23.25897}
+    variant: 1
+  - name: Island_Pine_43
+    type: 1
+    position: {x: 47.785, y: 15.422008}
+    variant: 0
+  - name: Island_Pine_44
+    type: 1
+    position: {x: 56.501263, y: 29.068823}
+    variant: 0
+  - name: Island_Pine_45
+    type: 1
+    position: {x: 23.32715, y: 25.644104}
+    variant: 1
+  - name: Island_Pine_46
+    type: 1
+    position: {x: 25.368176, y: 22.503319}
+    variant: 0
+  - name: Island_Pine_47
+    type: 1
+    position: {x: 25.264795, y: 27.192696}
+    variant: 0
+  - name: Island_Pine_48
+    type: 1
+    position: {x: 23.964907, y: 15.328911}
+    variant: 1
+  - name: Island_Pine_49
+    type: 1
+    position: {x: 21.750664, y: 28.127684}
+    variant: 0
+  - name: Island_Pine_50
+    type: 1
+    position: {x: 53.16742, y: 29.095165}
+    variant: 0
+  - name: Island_Pine_51
+    type: 1
+    position: {x: 56.41194, y: 20.31654}
+    variant: 1
+  - name: Island_Pine_52
+    type: 1
+    position: {x: 61.140144, y: 24.388798}
+    variant: 0
+  - name: Island_Pine_53
+    type: 1
+    position: {x: 52.44068, y: 23.706629}
+    variant: 0
+  - name: Island_Pine_54
+    type: 1
+    position: {x: 43.750248, y: 17.888144}
+    variant: 1
+  - name: Island_Pine_55
+    type: 1
+    position: {x: 28.608366, y: 28.535378}
+    variant: 0
+  - name: Island_Pine_56
+    type: 1
+    position: {x: 55.71478, y: 15.695302}
+    variant: 0
+  - name: Island_Pine_57
+    type: 1
+    position: {x: 49.790905, y: 28.221052}
+    variant: 1
+  - name: West_Gold_0
+    type: 2
+    position: {x: 13.66552, y: 36.372498}
+    variant: 0
+  - name: West_Gold_1
+    type: 2
+    position: {x: 15.993893, y: 30.018063}
+    variant: 1
+  - name: West_Gold_2
+    type: 2
+    position: {x: 12.99439, y: 35.50066}
+    variant: 2
+  - name: West_Gold_3
+    type: 2
+    position: {x: 14.605241, y: 3.6082711}
+    variant: 3
+  - name: West_Gold_4
+    type: 2
+    position: {x: 12.035373, y: 30.048405}
+    variant: 4
+  - name: West_Gold_5
+    type: 2
+    position: {x: 5.68949, y: 26.202177}
+    variant: 5
+  - name: West_Gold_6
+    type: 2
+    position: {x: 11.930454, y: 36.924374}
+    variant: 0
+  - name: West_Gold_7
+    type: 2
+    position: {x: 14.88398, y: 4.427124}
+    variant: 1
+  - name: West_Gold_8
+    type: 2
+    position: {x: 2.4980469, y: 17.762148}
+    variant: 2
+  - name: West_Gold_9
+    type: 2
+    position: {x: 4.1166105, y: 17.285316}
+    variant: 3
+  - name: West_Gold_10
+    type: 2
+    position: {x: 14.764192, y: 30.097986}
+    variant: 4
+  - name: West_Gold_11
+    type: 2
+    position: {x: 10.270116, y: 34.836517}
+    variant: 5
+  - name: West_Gold_12
+    type: 2
+    position: {x: 16.236856, y: 4.6380367}
+    variant: 0
+  - name: West_Gold_13
+    type: 2
+    position: {x: 10.468307, y: 36.69}
+    variant: 1
+  - name: West_Gold_14
+    type: 2
+    position: {x: 14.564983, y: 29.180288}
+    variant: 2
+  - name: West_Gold_15
+    type: 2
+    position: {x: 10.785886, y: 35.942944}
+    variant: 3
+  - name: West_Gold_16
+    type: 2
+    position: {x: 13.192871, y: 37.474663}
+    variant: 4
+  - name: West_Gold_17
+    type: 2
+    position: {x: 11.8925705, y: 34.678955}
+    variant: 5
+  - name: West_Gold_18
+    type: 2
+    position: {x: 15.533623, y: 29.327557}
+    variant: 0
+  - name: West_Gold_19
+    type: 2
+    position: {x: 11.535067, y: 11.980143}
+    variant: 1
+  - name: West_Gold_20
+    type: 2
+    position: {x: 15.912777, y: 28.099813}
+    variant: 2
+  - name: West_Gold_21
+    type: 2
+    position: {x: 15.354111, y: 4.7437496}
+    variant: 3
+  - name: West_Gold_22
+    type: 2
+    position: {x: 16.458141, y: 5.230497}
+    variant: 4
+  - name: West_Gold_23
+    type: 2
+    position: {x: 3.8613565, y: 17.436707}
+    variant: 5
+  - name: West_Gold_24
+    type: 2
+    position: {x: 13.619997, y: 35.949337}
+    variant: 0
+  - name: West_Gold_25
+    type: 2
+    position: {x: 10.485439, y: 11.691405}
+    variant: 1
+  - name: West_Gold_26
+    type: 2
+    position: {x: 15.171565, y: 3.6993513}
+    variant: 2
+  - name: West_Gold_27
+    type: 2
+    position: {x: 2.1707177, y: 16.525822}
+    variant: 3
+  - name: West_Gold_28
+    type: 2
+    position: {x: 3.2659862, y: 16.80873}
+    variant: 4
+  - name: West_Gold_29
+    type: 2
+    position: {x: 4.886799, y: 16.58521}
+    variant: 5
+  - name: West_Gold_30
+    type: 2
+    position: {x: 16.437822, y: 3.6915274}
+    variant: 0
+  - name: West_Gold_31
+    type: 2
+    position: {x: 14.326385, y: 28.507944}
+    variant: 1
+  - name: West_Sheep_0
+    type: 0
+    position: {x: 3.5457227, y: 6.9334044}
+    variant: 0
+  - name: West_Sheep_1
+    type: 0
+    position: {x: 10.4177, y: 21.919418}
+    variant: 0
+  - name: West_Sheep_2
+    type: 0
+    position: {x: 1.4720151, y: 14.607902}
+    variant: 0
+  - name: West_Sheep_3
+    type: 0
+    position: {x: 16.112087, y: 31.070484}
+    variant: 0
+  - name: West_Sheep_4
+    type: 0
+    position: {x: 7.506076, y: 22.415575}
+    variant: 0
+  - name: West_Sheep_5
+    type: 0
+    position: {x: 15.126905, y: 39.322834}
+    variant: 0
+  - name: West_Sheep_6
+    type: 0
+    position: {x: 12.291501, y: 10.425738}
+    variant: 0
+  - name: West_Sheep_7
+    type: 0
+    position: {x: 10.461337, y: 41.213787}
+    variant: 0
+  - name: West_Sheep_8
+    type: 0
+    position: {x: 9.021917, y: 16.192019}
+    variant: 0
+  - name: West_Sheep_9
+    type: 0
+    position: {x: 12.773217, y: 4.117755}
+    variant: 0
+  - name: West_Sheep_10
+    type: 0
+    position: {x: 13.723228, y: 2.8833737}
+    variant: 0
+  - name: West_Sheep_11
+    type: 0
+    position: {x: 2.584382, y: 13.664249}
+    variant: 0
+  - name: West_Sheep_12
+    type: 0
+    position: {x: 9.90511, y: 29.785091}
+    variant: 0
+  - name: West_Sheep_13
+    type: 0
+    position: {x: 4.3709316, y: 36.440533}
+    variant: 0
+  - name: West_Sheep_14
+    type: 0
+    position: {x: 6.0889006, y: 12.951838}
+    variant: 0
+  - name: West_Sheep_15
+    type: 0
+    position: {x: 14.345815, y: 16.261303}
+    variant: 0
+  - name: West_Sheep_16
+    type: 0
+    position: {x: 7.101809, y: 14.03954}
+    variant: 0
+  - name: West_Sheep_17
+    type: 0
+    position: {x: 4.723277, y: 23.963825}
+    variant: 0
+  - name: West_Sheep_18
+    type: 0
+    position: {x: 5.212588, y: 15.555287}
+    variant: 0
+  - name: West_Sheep_19
+    type: 0
+    position: {x: 5.830866, y: 41.358643}
+    variant: 0
+  - name: West_Sheep_20
+    type: 0
+    position: {x: 1.4827399, y: 20.753738}
+    variant: 0
+  - name: West_Sheep_21
+    type: 0
+    position: {x: 7.1159515, y: 2.0589132}
+    variant: 0
+  - name: West_Sheep_22
+    type: 0
+    position: {x: 1.81372, y: 30.523031}
+    variant: 0
+  - name: West_Sheep_23
+    type: 0
+    position: {x: 13.896431, y: 34.625164}
+    variant: 0
+  - name: West_Sheep_24
+    type: 0
+    position: {x: 12.2673645, y: 40.856075}
+    variant: 0
+  - name: West_Sheep_25
+    type: 0
+    position: {x: 13.781137, y: 31.350943}
+    variant: 0
+  - name: West_Sheep_26
+    type: 0
+    position: {x: 13.217968, y: 27.930958}
+    variant: 0
+  - name: West_Sheep_27
+    type: 0
+    position: {x: 6.569511, y: 7.399789}
+    variant: 0
+  - name: West_Sheep_28
+    type: 0
+    position: {x: 10.973385, y: 5.8896074}
+    variant: 0
+  - name: West_Sheep_29
+    type: 0
+    position: {x: 13.297017, y: 8.712915}
+    variant: 0
+  - name: West_Sheep_30
+    type: 0
+    position: {x: 10.8829155, y: 40.395115}
+    variant: 0
+  - name: West_Sheep_31
+    type: 0
+    position: {x: 14.266277, y: 34.549995}
+    variant: 0
+  - name: West_Sheep_32
+    type: 0
+    position: {x: 9.859777, y: 35.26326}
+    variant: 0
+  - name: West_Sheep_33
+    type: 0
+    position: {x: 6.5592685, y: 37.76519}
+    variant: 0
+  - name: West_Sheep_34
+    type: 0
+    position: {x: 4.728328, y: 11.930842}
+    variant: 0
+  - name: West_Sheep_35
+    type: 0
+    position: {x: 6.7718115, y: 21.61596}
+    variant: 0
+  - name: West_Sheep_36
+    type: 0
+    position: {x: 7.227034, y: 7.0287795}
+    variant: 0
+  - name: West_Sheep_37
+    type: 0
+    position: {x: 11.6305275, y: 6.601782}
+    variant: 0
+  - name: West_Sheep_38
+    type: 0
+    position: {x: 9.325961, y: 17.144592}
+    variant: 0
+  - name: West_Sheep_39
+    type: 0
+    position: {x: 4.376521, y: 6.1688843}
+    variant: 0
+  - name: West_Sheep_40
+    type: 0
+    position: {x: 2.9079337, y: 37.22964}
+    variant: 0
+  - name: West_Sheep_41
+    type: 0
+    position: {x: 3.5605476, y: 5.080366}
+    variant: 0
+  - name: West_Sheep_42
+    type: 0
+    position: {x: 4.171826, y: 39.051323}
+    variant: 0
+  - name: West_Sheep_43
+    type: 0
+    position: {x: 6.189841, y: 18.820171}
+    variant: 0
+  - name: West_Sheep_44
+    type: 0
+    position: {x: 5.3497686, y: 30.533663}
+    variant: 0
+  - name: West_Sheep_45
+    type: 0
+    position: {x: 6.883381, y: 16.479765}
+    variant: 0
+  - name: West_Sheep_46
+    type: 0
+    position: {x: 1.8369548, y: 10.392175}
+    variant: 0
+  - name: West_Sheep_47
+    type: 0
+    position: {x: 13.315429, y: 16.873598}
+    variant: 0
+  - name: West_Sheep_48
+    type: 0
+    position: {x: 12.711791, y: 12.90942}
+    variant: 0
+  - name: West_Sheep_49
+    type: 0
+    position: {x: 10.652078, y: 1.4030887}
+    variant: 0
+  - name: West_Grove_0
+    type: 1
+    position: {x: 8.004214, y: 29.465836}
+    variant: 1
+  - name: West_Grove_1
+    type: 1
+    position: {x: 6.665851, y: 5.506657}
+    variant: 1
+  - name: West_Grove_2
+    type: 1
+    position: {x: 3.0102384, y: 12.044464}
+    variant: 1
+  - name: West_Grove_3
+    type: 1
+    position: {x: 10.746485, y: 16.159452}
+    variant: 3
+  - name: West_Grove_4
+    type: 1
+    position: {x: 1.8349266, y: 4.4271555}
+    variant: 2
+  - name: West_Grove_5
+    type: 1
+    position: {x: 2.330933, y: 35.419933}
+    variant: 3
+  - name: West_Grove_6
+    type: 1
+    position: {x: 15.906874, y: 41.082825}
+    variant: 2
+  - name: West_Grove_7
+    type: 1
+    position: {x: 11.724067, y: 28.41226}
+    variant: 1
+  - name: West_Grove_8
+    type: 1
+    position: {x: 3.6353204, y: 10.480132}
+    variant: 1
+  - name: West_Grove_9
+    type: 1
+    position: {x: 7.04259, y: 33.923878}
+    variant: 1
+  - name: West_Grove_10
+    type: 1
+    position: {x: 2.6400008, y: 2.018554}
+    variant: 2
+  - name: West_Grove_11
+    type: 1
+    position: {x: 2.1644266, y: 32.104}
+    variant: 3
+  - name: West_Grove_12
+    type: 1
+    position: {x: 13.44545, y: 25.570015}
+    variant: 1
+  - name: West_Grove_13
+    type: 1
+    position: {x: 4.8742046, y: 2.0176632}
+    variant: 3
+  - name: West_Grove_14
+    type: 1
+    position: {x: 7.537837, y: 20.188038}
+    variant: 1
+  - name: West_Grove_15
+    type: 1
+    position: {x: 6.5526276, y: 31.450924}
+    variant: 1
+  - name: West_Grove_16
+    type: 1
+    position: {x: 15.650458, y: 33.45503}
+    variant: 2
+  - name: West_Grove_17
+    type: 1
+    position: {x: 3.2159398, y: 29.815977}
+    variant: 1
+  - name: West_Grove_18
+    type: 1
+    position: {x: 15.259909, y: 25.712536}
+    variant: 2
+  - name: West_Grove_19
+    type: 1
+    position: {x: 15.17055, y: 14.932037}
+    variant: 3
+  - name: West_Grove_20
+    type: 1
+    position: {x: 7.903928, y: 41.33756}
+    variant: 1
+  - name: West_Grove_21
+    type: 1
+    position: {x: 4.925805, y: 4.2176046}
+    variant: 1
+  - name: West_Grove_22
+    type: 1
+    position: {x: 2.1633441, y: 26.795193}
+    variant: 1
+  - name: West_Grove_23
+    type: 1
+    position: {x: 8.700364, y: 6.563264}
+    variant: 1
+  - name: West_Grove_24
+    type: 1
+    position: {x: 11.7202425, y: 31.913355}
+    variant: 1
+  - name: West_Grove_25
+    type: 1
+    position: {x: 4.850592, y: 32.5173}
+    variant: 1
+  - name: West_Grove_26
+    type: 1
+    position: {x: 8.147261, y: 36.038998}
+    variant: 1
+  - name: West_Grove_27
+    type: 1
+    position: {x: 9.162623, y: 23.27285}
+    variant: 1
+  - name: West_Grove_28
+    type: 1
+    position: {x: 3.8080463, y: 21.20494}
+    variant: 1
+  - name: West_Grove_29
+    type: 1
+    position: {x: 9.22644, y: 4.098773}
+    variant: 1
+  - name: West_Grove_30
+    type: 1
+    position: {x: 15.213973, y: 8.869832}
+    variant: 2
+  - name: West_Grove_31
+    type: 1
+    position: {x: 9.246279, y: 2.4612784}
+    variant: 3
+  - name: West_Grove_32
+    type: 1
+    position: {x: 6.5631833, y: 8.904204}
+    variant: 1
+  - name: West_Grove_33
+    type: 1
+    position: {x: 4.559233, y: 13.676873}
+    variant: 1
+  - name: West_Grove_34
+    type: 1
+    position: {x: 16.11205, y: 17.35546}
+    variant: 2
+  - name: West_Grove_35
+    type: 1
+    position: {x: 10.860773, y: 8.099076}
+    variant: 1
+  - name: West_Grove_36
+    type: 1
+    position: {x: 12.816695, y: 33.188324}
+    variant: 1
+  - name: West_Grove_37
+    type: 1
+    position: {x: 15.096964, y: 7.2022243}
+    variant: 3
+  - name: West_Grove_38
+    type: 1
+    position: {x: 3.658237, y: 33.59166}
+    variant: 2
+  - name: West_Grove_39
+    type: 1
+    position: {x: 12.831057, y: 21.083366}
+    variant: 1
+  - name: West_Grove_40
+    type: 1
+    position: {x: 4.9590144, y: 34.920044}
+    variant: 2
+  - name: West_Grove_41
+    type: 1
+    position: {x: 10.375019, y: 18.677103}
+    variant: 1
+  - name: West_Grove_42
+    type: 1
+    position: {x: 13.756765, y: 14.170426}
+    variant: 1
+  - name: West_Grove_43
+    type: 1
+    position: {x: 15.336166, y: 13.1955185}
+    variant: 3
+  - name: West_Grove_44
+    type: 1
+    position: {x: 8.220069, y: 31.952412}
+    variant: 1
+  - name: West_Grove_45
+    type: 1
+    position: {x: 9.4171505, y: 39.031677}
+    variant: 1
+  - name: West_Grove_46
+    type: 1
+    position: {x: 11.339408, y: 2.8922503}
+    variant: 2
+  - name: West_Grove_47
+    type: 1
+    position: {x: 16.048914, y: 1.6166533}
+    variant: 3
+  - name: West_Grove_48
+    type: 1
+    position: {x: 10.648827, y: 10.169426}
+    variant: 2
+  - name: West_Grove_49
+    type: 1
+    position: {x: 6.063581, y: 36.008846}
+    variant: 1
+  - name: West_Grove_50
+    type: 1
+    position: {x: 8.315649, y: 8.522148}
+    variant: 1
+  - name: West_Grove_51
+    type: 1
+    position: {x: 13.317177, y: 39.710705}
+    variant: 1
+  - name: West_Grove_52
+    type: 1
+    position: {x: 6.9756136, y: 25.260502}
+    variant: 2
+  - name: West_Grove_53
+    type: 1
+    position: {x: 8.543849, y: 24.950378}
+    variant: 1
+  - name: West_Grove_54
+    type: 1
+    position: {x: 16.293262, y: 12.017046}
+    variant: 2
+  - name: West_Grove_55
+    type: 1
+    position: {x: 9.364152, y: 20.739527}
+    variant: 1
+  - name: West_Grove_56
+    type: 1
+    position: {x: 3.5689147, y: 22.907917}
+    variant: 1
+  - name: West_Grove_57
+    type: 1
+    position: {x: 11.845473, y: 22.957272}
+    variant: 1
+  - name: West_Grove_58
+    type: 1
+    position: {x: 11.168028, y: 14.512754}
+    variant: 2
+  - name: West_Grove_59
+    type: 1
+    position: {x: 15.21492, y: 19.427406}
+    variant: 3
+  - name: West_Grove_60
+    type: 1
+    position: {x: 9.254275, y: 14.086144}
+    variant: 2
+  - name: West_Grove_61
+    type: 1
+    position: {x: 13.3014965, y: 5.909214}
+    variant: 3
+  - name: West_Grove_62
+    type: 1
+    position: {x: 5.593987, y: 39.852802}
+    variant: 1
+  - name: West_Grove_63
+    type: 1
+    position: {x: 1.4227839, y: 37.739876}
+    variant: 3
+  - name: West_Grove_64
+    type: 1
+    position: {x: 1.4103531, y: 12.336173}
+    variant: 2
+  - name: West_Grove_65
+    type: 1
+    position: {x: 12.352861, y: 18.594767}
+    variant: 1
+  - name: West_Grove_66
+    type: 1
+    position: {x: 5.499029, y: 10.641417}
+    variant: 1
+  - name: West_Grove_67
+    type: 1
+    position: {x: 8.673048, y: 34.31507}
+    variant: 1
+  - name: West_Grove_68
+    type: 1
+    position: {x: 4.197016, y: 40.571575}
+    variant: 1
+  - name: West_Grove_69
+    type: 1
+    position: {x: 13.771147, y: 41.261765}
+    variant: 3
+  - name: West_Grove_70
+    type: 1
+    position: {x: 13.065671, y: 24.104692}
+    variant: 1
+  - name: West_Grove_71
+    type: 1
+    position: {x: 6.5051394, y: 23.767826}
+    variant: 1
+  - name: West_Grove_72
+    type: 1
+    position: {x: 10.36881, y: 33.230774}
+    variant: 1
+  - name: West_Grove_73
+    type: 1
+    position: {x: 6.001445, y: 29.047464}
+    variant: 3
+  - name: West_Grove_74
+    type: 1
+    position: {x: 7.9436707, y: 18.164108}
+    variant: 1
+  - name: West_Grove_75
+    type: 1
+    position: {x: 2.8604462, y: 19.930403}
+    variant: 1
+  - name: West_Grove_76
+    type: 1
+    position: {x: 13.045428, y: 1.5169976}
+    variant: 2
+  - name: West_Grove_77
+    type: 1
+    position: {x: 4.0721326, y: 25.599009}
+    variant: 3
+  - name: West_Grove_78
+    type: 1
+    position: {x: 7.6150017, y: 4.2463584}
+    variant: 1
+  - name: West_Grove_79
+    type: 1
+    position: {x: 1.5932204, y: 28.542658}
+    variant: 3
+  - name: West_Grove_80
+    type: 1
+    position: {x: 3.5632777, y: 14.925293}
+    variant: 1
+  - name: West_Grove_81
+    type: 1
+    position: {x: 5.116009, y: 22.067513}
+    variant: 1
+  - name: West_Grove_82
+    type: 1
+    position: {x: 9.814508, y: 28.142399}
+    variant: 1
+  - name: West_Grove_83
+    type: 1
+    position: {x: 11.653399, y: 20.001099}
+    variant: 1
+  - name: West_Grove_84
+    type: 1
+    position: {x: 1.4616175, y: 34.17874}
+    variant: 2

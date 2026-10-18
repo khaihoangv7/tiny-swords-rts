@@ -82,7 +82,9 @@ namespace TinyKingdom.Units
             var root = new GameObject("TinySwordsHealthBar");
             bar = root.transform;
             bar.SetParent(transform, false);
-            bar.localPosition = new Vector3(0f, 1.01f, -0.1f);
+            float scale = GetComponent<UnitAnimator>()?.AnimationSet?.VisualScale
+                ?? UnitVisualPresentation.Scale;
+            bar.localPosition = new Vector3(0f, 1.01f * scale / UnitVisualPresentation.Scale, -0.1f);
             MakeSprite("Frame", frameSprite, 0f, 0f, 32);
             // Frame pixels [11,84] x [6,11] are the rectangular interior.
             // A left-pivot fill starts at the first inner pixel and stays there.
