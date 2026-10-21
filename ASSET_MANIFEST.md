@@ -49,6 +49,14 @@ horizontal rect (16,192,160,64) and vertical rect (0,16,64,160), centered at
 64 PPU, scaled 1.6 to span four-cell crossings. Static art has no collision;
 walkable bridge cells are baked independently into navigation.
 
+The bridge PNG is local licensed art and is ignored by Git. After cloning or
+pulling on a machine without that image, copy the 192x256 bridge sheet from the
+locally installed Tiny Swords assets to `Assets/Terrain/GoblinIsland/Bridge.png`
+(or copy the existing `Assets/Terrain/TwoKingdoms/Bridge.png`). Keep the tracked
+`Bridge.png.meta` file: its GUID and horizontal/vertical sprite IDs are used by
+the three bridge renderers in `GoblinIsland.unity`. Reimport `Bridge.png` in
+Unity after copying it; do not replace its `.meta` with one generated elsewhere.
+
 Map 3's three animation sets use visual scale 1.7 (reduced from 2.3); ordinary
 units remain 1.6. Only the animated child and aligned offsets change, with
 raised health bars. Gameplay roots, range, colliders and stats remain unchanged.
