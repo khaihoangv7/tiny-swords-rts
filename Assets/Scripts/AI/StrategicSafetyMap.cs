@@ -150,7 +150,9 @@ namespace TinyKingdom.AI
             for (int i = 0; i < units.Count; i++)
             {
                 VisibleUnitObservation item = units[i];
-                if (item.UnitType is UnitType.Warrior or UnitType.Archer or UnitType.Lancer)
+                if (item.UnitType is UnitType.Warrior or UnitType.Archer
+                    or UnitType.Lancer or UnitType.GoblinTorch
+                    or UnitType.GoblinTNT or UnitType.GoblinBarrel)
                 {
                     float radius = Mathf.Max(1f, item.AttackRange)
                         + MilitaryReactionBuffer;

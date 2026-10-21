@@ -332,10 +332,11 @@ namespace TinyKingdom.AI
         public bool TryEngageVisibleEnemies(CommanderDecisionContext context,
             IReadOnlyList<UnitController> members, Vector3 engagementCenter,
             float engagementRadius, EntityId priorityTarget,
-            IPathTraversalPolicy traversalPolicy)
+            IPathTraversalPolicy traversalPolicy, bool includePawns = false)
         {
             float radius = Mathf.Max(1f, engagementRadius);
-            GatherLocalEnemies(context.Knowledge, engagementCenter, radius);
+            GatherLocalEnemies(context.Knowledge, engagementCenter, radius,
+                includePawns);
             if (localEnemies.Count == 0)
             {
                 bool lingering = context.Time - lastThreatSeenTime
@@ -465,7 +466,7 @@ namespace TinyKingdom.AI
         }
 
         private void GatherLocalEnemies(FactionKnowledge knowledge, Vector3 center,
-            float radius)
+            float radius, bool includePawns)
         {
             localEnemies.Clear();
             if (knowledge == null) return;
@@ -474,7 +475,8 @@ namespace TinyKingdom.AI
             for (int i = 0; i < visible.Count; i++)
             {
                 VisibleUnitObservation candidate = visible[i];
-                if (!IsMeaningfulTacticalTarget(candidate)
+                if (!(includePawns && candidate.UnitType == UnitType.Pawn)
+                    && !IsMeaningfulTacticalTarget(candidate)
                     || DistanceSquared(candidate.Position, center) > radiusSquared) continue;
                 AddBoundedLocalEnemy(candidate, center);
             }
@@ -523,7 +525,8 @@ namespace TinyKingdom.AI
 
         private static bool IsMeaningfulTacticalTarget(VisibleUnitObservation target)
             => target.UnitType is UnitType.Warrior or UnitType.Lancer
-                or UnitType.Archer or UnitType.Monk
+                or UnitType.Archer or UnitType.Monk or UnitType.GoblinTorch
+                or UnitType.GoblinTNT or UnitType.GoblinBarrel
                 || target.ThreatActivity != ObservedThreatActivity.None;
 
         private float ScoreTarget(UnitController actor, UnitType attacker,

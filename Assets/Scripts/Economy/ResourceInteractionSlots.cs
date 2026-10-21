@@ -57,6 +57,7 @@ namespace TinyKingdom.Economy
             int slotCount = diameter * diameter - Mathf.Max(0, diameter - 2)
                 * Mathf.Max(0, diameter - 2);
             ulong tried = 0UL;
+            HashSet<GridCell> reachable = null;
             for (int attempt = 0; attempt < slotCount && attempt < 64; attempt++)
             {
                 int bestIndex = -1;
@@ -91,7 +92,19 @@ namespace TinyKingdom.Economy
                 }
                 if (bestIndex < 0) return false;
                 tried |= 1UL << bestIndex;
-                if (paths.FindPath(start, bestCell, traversalPolicy).Count == 0) continue;
+                GridCell selected = grid.GetCell(bestCell.x, bestCell.y);
+                if (reachable != null)
+                {
+                    if (!reachable.Contains(selected)) continue;
+                }
+                else if (paths.FindPath(start, bestCell, traversalPolicy,
+                    out HashSet<GridCell> exhausted).Count == 0)
+                {
+                    // On a failed full search, every legal cell in this connected
+                    // region is known. Other slots need only a membership check.
+                    reachable = exhausted;
+                    continue;
+                }
                 destination = bestCell;
                 reservations.Add(worker, destination);
                 return true;

@@ -69,10 +69,13 @@ namespace TinyKingdom.AI
         private Vector2Int stagingCell = new(-1, -1);
         private Vector2Int excludedStagingCell = new(-1, -1);
         private float stagingExclusionUntil;
+        private int strategicMilitaryPopulation;
+        private float strategicMilitaryTargetUntil;
         private UnitType? lastPreferredMilitary;
 
         public int TargetPawnCount => targetPawnCount;
-        public int TargetMilitaryPopulation => targetMilitaryPopulation;
+        public int TargetMilitaryPopulation => Mathf.Max(targetMilitaryPopulation,
+            strategicMilitaryPopulation);
         public int DesiredQueueDepth => desiredQueueDepth;
         public int MonkLimit => monkLimit;
         public float StrategyReevaluationSeconds => strategyReevaluationSeconds;
@@ -128,6 +131,18 @@ namespace TinyKingdom.AI
             InfrastructureRequestCount = 0;
         }
 
+        // A known guarded objective can temporarily raise the ordinary army
+        // target. Expiry returns production to its configured baseline if the
+        // mine becomes stale, lost, or strategically irrelevant.
+        public void RequestStrategicMilitaryPopulation(int population, float now)
+        {
+            int requested = Mathf.Clamp(population, targetMilitaryPopulation, 16);
+            if (requested != strategicMilitaryPopulation)
+                nextStrategyEvaluationTime = 0f;
+            strategicMilitaryPopulation = requested;
+            strategicMilitaryTargetUntil = now + 12f;
+        }
+
         public void InvalidateRallyStagingCell(bool avoidCurrent = false, float now = 0f)
         {
             if (avoidCurrent && hasStagingCell)
@@ -162,6 +177,8 @@ namespace TinyKingdom.AI
             stagingCell = new Vector2Int(-1, -1);
             excludedStagingCell = new Vector2Int(-1, -1);
             stagingExclusionUntil = 0f;
+            strategicMilitaryPopulation = 0;
+            strategicMilitaryTargetUntil = 0f;
             LivingPawnCount = MilitaryPopulation = QueuedMilitaryPopulation = 0;
             EffectiveFreePopulation = 0;
             PopulationBlocked = false;
@@ -180,6 +197,12 @@ namespace TinyKingdom.AI
         public void Tick(CommanderDecisionContext context,
             BuildingCommanderPolicy buildingPolicy)
         {
+            if (strategicMilitaryPopulation > 0
+                && context.Time >= strategicMilitaryTargetUntil)
+            {
+                strategicMilitaryPopulation = 0;
+                nextStrategyEvaluationTime = 0f;
+            }
             RefreshState(context.Knowledge);
             MaintainMilitaryRallies(context);
             enemyComposition ??= new EnemyCompositionMemory();
@@ -204,7 +227,7 @@ namespace TinyKingdom.AI
                 TryRequest(context, UnitType.Pawn);
                 return;
             }
-            if (MilitaryPopulation + QueuedMilitaryPopulation >= targetMilitaryPopulation)
+            if (MilitaryPopulation + QueuedMilitaryPopulation >= TargetMilitaryPopulation)
             {
                 PendingEconomicDemand = null;
                 DecisionReason = "MilitaryTargetReached";
@@ -319,7 +342,7 @@ namespace TinyKingdom.AI
                 raw[(int)candidate] = directThreat > 0f ? utility / directThreat : 1f;
                 counterTotal += raw[(int)candidate];
             }
-            float nonMonkSlots = Mathf.Max(1f, targetMilitaryPopulation - monkTarget);
+            float nonMonkSlots = Mathf.Max(1f, TargetMilitaryPopulation - monkTarget);
             float combatTotal = 0f;
             for (int i = 0; i < 3; i++)
             {
@@ -390,7 +413,7 @@ namespace TinyKingdom.AI
         private void BuildBaseline(int monkTarget)
         {
             Array.Clear(baselineCounts, 0, baselineCounts.Length);
-            float combat = Mathf.Max(1f, targetMilitaryPopulation - monkTarget);
+            float combat = Mathf.Max(1f, TargetMilitaryPopulation - monkTarget);
             float total = Mathf.Max(0.01f, baselineWarriorWeight
                 + baselineArcherWeight + baselineLancerWeight);
             baselineCounts[(int)UnitType.Warrior] = combat
@@ -657,6 +680,66 @@ namespace TinyKingdom.AI
                     || IsInsideOwnBuilding(knowledge, cellPosition)) continue;
                 result = cellPosition;
                 return true;
+            }
+            // Some authored Castle courts have no suitable tile in the narrow
+            // horizontal band above. Search bounded rings toward map center and
+            // check one army member's actual route before accepting a fallback.
+            Vector2 towardCenter = new(grid.Width * 0.5f - center.x,
+                grid.Height * 0.5f - center.y);
+            towardCenter = towardCenter.sqrMagnitude > 0.001f
+                ? towardCenter.normalized : Vector2.left;
+            UnitController representative = null;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitType? type = units[i]?.GetComponent<HealthComponent>()
+                    ?.CombatData?.UnitType;
+                if (type is not (UnitType.Warrior or UnitType.Archer
+                    or UnitType.Lancer or UnitType.Monk)) continue;
+                representative = units[i];
+                break;
+            }
+            PathfindingSystem paths = grid.GetComponent<PathfindingSystem>();
+            HashSet<GridCell> reachable = null;
+            for (int radius = 4; radius <= 12; radius++)
+            {
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    Vector2Int best = default;
+                    float bestScore = float.NegativeInfinity;
+                    bool found = false;
+                    for (int y = -radius; y <= radius; y++)
+                    for (int x = -radius; x <= radius; x++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != radius) continue;
+                        Vector2Int candidate = center + new Vector2Int(x, y);
+                        GridCell cell = grid.GetCell(candidate.x, candidate.y);
+                        if (cell == null || !TerrainRules.IsStableStandingCell(cell)
+                            || !knowledge.IsCellExplored(candidate)
+                            || now < stagingExclusionUntil
+                                && candidate == excludedStagingCell
+                            || IsNearKnownResource(knowledge, candidate, 2)
+                            || IsInsideOwnBuilding(knowledge, candidate)
+                            || reachable != null && !reachable.Contains(cell)) continue;
+                        float score = Vector2.Dot(new Vector2(x, y).normalized,
+                            towardCenter);
+                        if (!found || score > bestScore)
+                        { best = candidate; bestScore = score; found = true; }
+                    }
+                    if (!found) break;
+                    if (representative != null && paths != null
+                        && reachable == null
+                        && paths.FindPath(grid.WorldToGrid(
+                                representative.transform.position), best, null,
+                            out HashSet<GridCell> exhausted).Count == 0)
+                    {
+                        reachable = exhausted;
+                        if (reachable != null) continue;
+                        break;
+                    }
+                    result = best;
+                    return true;
+                }
             }
             return false;
         }

@@ -1335,7 +1335,13 @@ replaced by another explicit command.
 
 The central Gold Mine is a neutral 2x2 logical blocker with 1500 HP and 2000
 Gold. The first Blue or Red Pawn to enter claims it; ownership persists while
-empty. Up to three internal Pawns generate 15 Gold each every 5 seconds. A
+empty. Either faction can recapture an intact mine: when its Warrior, Lancer or
+Archer is within 7 world units and no opposing military unit is in that area,
+the current internal Pawns are ejected. An opposing Pawn may enter only while
+its faction retains that uncontested military presence; ownership transfers
+on that Pawn's successful entry. The same rule applies to Blue and Red. An
+empty mine keeps its previous owner until such an entry. Up to three internal
+Pawns generate 15 Gold each every 5 seconds. A
 partial final payout uses only remaining Gold. Depletion safely ejects Pawns and
 leaves the destroyed visual without an explosion. Combat destruction kills only
 Pawns currently internal, uses normal death authority and leaves the same wreck.
@@ -1390,6 +1396,11 @@ Detonation damages each targetable Blue/Red unit in the radius once, never other
 Goblins, buildings or resources, then kills the Barrel. Killing it before the
 fuse ends causes ordinary death without a blast. Gameplay timers control damage;
 the two building explosion sheets play at a smaller 0.8 presentation scale.
+
+Phase 7E.6 adds Red strategic decisions for this existing Gold Mine and its
+guards. The mine's HP, Gold reserve, capacity, ownership, payout, destruction,
+and victory rules above are unchanged. Red must observe the area and use normal
+combat and Pawn entry commands to secure and exploit it.
 
 ---
 

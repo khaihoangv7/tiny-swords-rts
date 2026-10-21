@@ -712,10 +712,14 @@ unit from immediately starting another attack.
 Economy, production, construction and scouting continue at their own established
 cadences while any strategic intent is active. `Fortify` relies on current base defense
 and the existing Tower capability; it introduces no new building type or Tower spam path.
-`Scout` gives the existing scouting policy a bounded information-priority signal: stale
-re-observation is considered before ordinary frontier travel and exhausted searches retry
-sooner. The scouting policy still selects destinations and issues the command, and the
-one-active-Scout rule is unchanged.
+`Scout` gives the existing scouting policy a bounded information-priority signal.
+Legal enemy-building or military recon is considered first. While the enemy Castle
+remains unknown, a safe frontier then takes priority over stale resource revisits;
+this prevents resource memory from indefinitely delaying base discovery. Once
+the Castle is known, stale re-observation retains its earlier priority over
+ordinary frontier travel. Exhausted searches retry sooner. The scouting policy
+still selects destinations and issues the command, and the one-active-Scout rule
+is unchanged.
 Optional Commander diagnostics expose current/previous intent, intent age, all six scores,
 readiness, copied strengths/confidence, selected target and age, recent loss, staging cell,
 reason and transition game time. The validator is available at
@@ -812,3 +816,68 @@ already had a progressing chase route. They now retain that route until it stops
 or stalls; an obstructed unit still tests its existing step every frame while
 redundant A* route searches back off to at most two game seconds until movement
 resumes.
+
+### Phase 7E.6 contested Gold Mine control
+
+`SecureGoldMine` is evaluated alongside the existing strategic intents. The
+`GoldMineStrategyModel` reads copied Gold Mine and Goblin observations from
+`FactionKnowledge`; hidden objects do not refresh their last seen position,
+health, owner, reserve or guard state. A bounded candidate pass considers reserve,
+Gold need, travel distance, recent guard strength, army strength, available
+population, economic workers and observed area. A Blue-owned mine remains a
+candidate only when its observed value and Red's known military readiness
+justify recapture. The army must contest it before a Red Pawn can enter;
+`GoldMineObjective` applies the same unopposed local military-control rule to
+both factions and transfers ownership only on successful Pawn entry. Visible
+opposing Pawns ejected from the mine can be tactical targets during this
+operation. An owned Red mine under a legally observed threat can
+become a defense objective. Emergency base defense, retreat and recovery remain
+above the mine score, and normal score smoothing/dwell time limits switching.
+If known guards exceed the current army's strength, production temporarily raises
+its military population target (bounded at 16) and returns to its ordinary
+configured target when the mine opportunity expires. A ready army may approach a
+recently observed mine that is currently hidden; it must regain vision before
+Pawns are assigned.
+
+The existing military policy executes a selected mine objective with its normal
+staging, formation, AttackMove, tactical target selection, path retry and retreat
+rules. Goblins are valid tactical targets and contribute to the existing combat
+strength and safety evaluations. The mine is never attacked as a building during
+the clearing operation. After clearing it, the army covers Pawn entry for up to
+90 game seconds, then regroups if Red has claimed the mine or cools down a failed
+attempt. No Gold is granted by the Commander. A remembered guard
+loses certainty only with time and is removed when its last position becomes
+visible without that Goblin; stale hidden units are not queried live.
+
+Pawns enter a visible, sufficiently observed and safe mine through
+`FactionCommandService.TryEnterGoldMine` and `GoldMineObjective.TryEnter` with
+the existing civilian traversal policy. The worker policy reserves a bounded
+number of eligible zero-cargo Pawns, leaves at least three Economy Pawns, and
+uses the mine's authoritative capacity and payout. Pending entries are released
+when a known threat appears or the route remains unseen for 30 game seconds;
+brief vision loss alone does not discard an already accepted entry order. A
+threatened visible friendly mine ejects its occupants.
+`TinyKingdom.AI.GoldMine.Score`, `.Threat` and `.AssignWorkers` are Profiler
+markers; counters report candidates, worker assignments, failed entries and
+ejections without per-frame logging. Structural checks are available at
+`Tools > Tiny Kingdom > Validate Phase 7E.6 Contested Gold Mine Control`.
+The authoritative local-control scan has its own
+`TinyKingdom.GoldMine.Control` Profiler marker. Its periodic occupancy check
+runs at most twice per game second, and entry commands validate control when
+issued or completed. Only world-participating direct military on
+the mine's elevation counts; internal Pawns remain protected by stationing.
+The AI never infers control from hidden live Blue units. It can order a miner
+into an observed opponent-owned mine only after its own military is locally
+present and the ordinary visible-threat safety gate has passed.
+
+Scout movement uses `UnitMovement.LastMovementProgressTime` to distinguish a
+long valid trip from a stalled route. A stalled trip is stopped, its destination
+is temporarily blocked, and target selection resumes. Three consecutive
+batches of rejected destinations trigger an 18-game-second cooldown and clear
+the `Repositioning` state; later scouting remains enabled. Counters expose
+stalled-route recoveries, rejected destinations, last rejection reason and
+failed-target recovery time without per-frame log strings.
+
+Later RL work could observe legally known mine reserve, guard risk, army readiness
+and current objective state, then choose a high-level contest or postpone action.
+It would still use ordinary military, movement and mining authority.

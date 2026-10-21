@@ -174,6 +174,9 @@ namespace TinyKingdom.Input
             UnitController enemy = FindEnemyAtScreenPosition(pointer);
             if (enemy != null)
                 IssuePointerCommand(() => IssueAttackCommand(enemy));
+            else if (FindGoldMine(world) is GoldMineObjective contestedMine
+                && CanEnterGoldMineAt(world))
+                IssuePointerCommand(() => IssueGoldMineCommand(contestedMine));
             else if (FindEnemyBuilding(world) is BuildingCombatTarget enemyBuilding)
                 IssuePointerCommand(() => IssueAttackCommand(enemyBuilding));
             else if (FindFriendlyGarrison(world) is BuildingGarrison garrison)
@@ -345,7 +348,9 @@ namespace TinyKingdom.Input
             if (mine == null || selectionManager == null
                 || !CanPlayerObserveResource(mine.transform.position)) return false;
             foreach (UnitSelection selected in selectionManager.SelectedUnits)
-                if (selected != null && mine.CanAccept(selected.Controller))
+                if (selected != null
+                    && selected.Controller.Faction == selectionManager.PlayerFaction
+                    && mine.CanAccept(selected.Controller))
                     return true;
             return false;
         }

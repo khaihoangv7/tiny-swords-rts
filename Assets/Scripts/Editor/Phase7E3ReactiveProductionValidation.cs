@@ -67,7 +67,7 @@ namespace TinyKingdom.EditorTools
                     && memory.EvidenceCount(UnitType.Warrior, 20f) >= 1f,
                     "A partial sighting illegally erased or refreshed hidden evidence.");
                 Require(Mathf.Approximately(memory.ConfidenceAt(10f), 1f)
-                    && memory.ConfidenceAt(10f + memory.FullConfidenceSeconds
+                    && memory.ConfidenceAt(20f + memory.FullConfidenceSeconds
                         + memory.DecaySeconds + 1f) <= 0f,
                     "Enemy intelligence confidence does not decay as configured.");
                 RequireNoHiddenLiveReferences(typeof(EnemyCompositionMemory));

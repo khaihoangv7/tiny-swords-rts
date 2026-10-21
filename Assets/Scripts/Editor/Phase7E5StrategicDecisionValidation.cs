@@ -31,9 +31,8 @@ namespace TinyKingdom.EditorTools
                     "Attack", "Recover"
                 };
                 string[] configured = Enum.GetNames(typeof(StrategicIntent));
-                Require(required.All(configured.Contains)
-                    && configured.Length == required.Length,
-                    "Strategic intent model does not contain the six bounded intents.");
+                Require(required.All(configured.Contains),
+                    "Strategic intent model lost a Phase 7E.5 intent.");
 
                 var evaluator = new StrategicIntentEvaluator();
                 Require(evaluator.EvaluationInterval is >= 1f and <= 3f,
@@ -91,9 +90,10 @@ namespace TinyKingdom.EditorTools
                 int defense = military.IndexOf("TryRetainCurrentThreat",
                     StringComparison.Ordinal);
                 int strategyGate = military.IndexOf(
-                    "strategy.CurrentIntent == StrategicIntent.Attack",
+                    "strategy.CurrentIntent is StrategicIntent.Attack",
                     StringComparison.Ordinal);
                 Require(defense >= 0 && strategyGate > defense
+                    && military.Contains("or StrategicIntent.SecureGoldMine")
                     && military.Contains("ArmyGroupState.Retreating")
                     && military.Contains("ArmyGroupState.Recovering"),
                     "BaseDefense/Retreat must remain above routine strategic intent.");

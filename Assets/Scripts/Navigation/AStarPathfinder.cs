@@ -12,6 +12,24 @@ namespace TinyKingdom.Navigation
 
     public static class AStarPathfinder
     {
+        private readonly struct OpenEntry
+        {
+            public OpenEntry(GridCell cell, double cost, double heuristic, long order)
+            {
+                Cell = cell;
+                Cost = cost;
+                Heuristic = heuristic;
+                Score = cost + heuristic;
+                Order = order;
+            }
+
+            public GridCell Cell { get; }
+            public double Cost { get; }
+            public double Heuristic { get; }
+            public double Score { get; }
+            public long Order { get; }
+        }
+
         public static readonly double DiagonalCost = Math.Sqrt(2d);
         private static readonly Vector2Int[] Directions =
         {
@@ -30,7 +48,15 @@ namespace TinyKingdom.Navigation
 
         public static List<GridCell> FindPath(IGridCellProvider grid, GridCell start,
             GridCell destination, IPathTraversalPolicy policy)
+            => FindPath(grid, start, destination, policy, out _);
+
+        // A failed full search has already visited every reachable cell. Callers
+        // probing alternate destinations can reuse that result without repeating A*.
+        public static List<GridCell> FindPath(IGridCellProvider grid, GridCell start,
+            GridCell destination, IPathTraversalPolicy policy,
+            out HashSet<GridCell> exhaustedReachable)
         {
+            exhaustedReachable = null;
             var emptyPath = new List<GridCell>();
             if (grid == null || start == null || destination == null)
                 return emptyPath;
@@ -42,19 +68,27 @@ namespace TinyKingdom.Navigation
             if (policy != null && !policy.CanEnter(destination))
                 return emptyPath;
 
-            var open = new List<GridCell> { start };
+            var open = new List<OpenEntry>();
             var closed = new HashSet<GridCell>();
             var cameFrom = new Dictionary<GridCell, GridCell>();
             var gScore = new Dictionary<GridCell, double> { [start] = 0d };
-            var fScore = new Dictionary<GridCell, double> { [start] = Heuristic(start, destination) };
+            var insertionOrder = new Dictionary<GridCell, long> { [start] = 0L };
+            long nextOrder = 0L;
+            Push(open, new OpenEntry(start, 0d, Heuristic(start, destination), 0L));
 
             while (open.Count > 0)
             {
-                GridCell current = GetLowestScore(open, fScore, destination);
+                OpenEntry entry = Pop(open);
+                GridCell current = entry.Cell;
+                // A shorter route may have queued a replacement for this cell.
+                // Keep the same closed-cell rule as the original search.
+                if (closed.Contains(current)
+                    || !gScore.TryGetValue(current, out double currentCost)
+                    || entry.Cost != currentCost)
+                    continue;
                 if (current == destination)
                     return ReconstructPath(cameFrom, current);
 
-                open.Remove(current);
                 closed.Add(current);
 
                 foreach (Vector2Int direction in Directions)
@@ -74,19 +108,21 @@ namespace TinyKingdom.Navigation
                             || !policy.CanEnter(grid.GetCell(current.GridX, neighbor.GridY))))
                         continue;
 
-                    double tentativeScore = gScore[current] + StepCost(current, neighbor)
+                    double tentativeScore = currentCost + StepCost(current, neighbor)
                         + (policy?.AdditionalCost(current, neighbor) ?? 0d);
                     if (gScore.TryGetValue(neighbor, out double existingScore) && tentativeScore >= existingScore)
                         continue;
 
                     cameFrom[neighbor] = current;
                     gScore[neighbor] = tentativeScore;
-                    fScore[neighbor] = tentativeScore + Heuristic(neighbor, destination);
-                    if (!open.Contains(neighbor))
-                        open.Add(neighbor);
+                    if (!insertionOrder.TryGetValue(neighbor, out long order))
+                        insertionOrder[neighbor] = order = ++nextOrder;
+                    Push(open, new OpenEntry(neighbor, tentativeScore,
+                        Heuristic(neighbor, destination), order));
                 }
             }
 
+            exhaustedReachable = closed;
             return emptyPath;
         }
 
@@ -126,27 +162,47 @@ namespace TinyKingdom.Navigation
                 && from.HeightConnection == new Vector2Int(to.GridX, to.GridY)
                 && to.HeightConnection == new Vector2Int(from.GridX, from.GridY);
 
-        private static GridCell GetLowestScore(List<GridCell> open, Dictionary<GridCell, double> fScore,
-            GridCell destination)
+        private static bool IsHigherPriority(OpenEntry first, OpenEntry second)
         {
-            GridCell best = open[0];
-            double bestScore = fScore[best];
-            double bestHeuristic = Heuristic(best, destination);
+            if (first.Score != second.Score) return first.Score < second.Score;
+            if (first.Heuristic != second.Heuristic)
+                return first.Heuristic < second.Heuristic;
+            return first.Order < second.Order;
+        }
 
-            for (int i = 1; i < open.Count; i++)
+        private static void Push(List<OpenEntry> heap, OpenEntry entry)
+        {
+            int index = heap.Count;
+            heap.Add(entry);
+            while (index > 0)
             {
-                GridCell candidate = open[i];
-                double candidateScore = fScore[candidate];
-                double candidateHeuristic = Heuristic(candidate, destination);
-                if (candidateScore < bestScore
-                    || (candidateScore == bestScore && candidateHeuristic < bestHeuristic))
-                {
-                    best = candidate;
-                    bestScore = candidateScore;
-                    bestHeuristic = candidateHeuristic;
-                }
+                int parent = (index - 1) / 2;
+                if (!IsHigherPriority(entry, heap[parent])) break;
+                heap[index] = heap[parent];
+                index = parent;
             }
+            heap[index] = entry;
+        }
 
+        private static OpenEntry Pop(List<OpenEntry> heap)
+        {
+            OpenEntry best = heap[0];
+            int lastIndex = heap.Count - 1;
+            OpenEntry last = heap[lastIndex];
+            heap.RemoveAt(lastIndex);
+            if (lastIndex == 0) return best;
+
+            int index = 0;
+            while (index * 2 + 1 < lastIndex)
+            {
+                int child = index * 2 + 1;
+                if (child + 1 < lastIndex
+                    && IsHigherPriority(heap[child + 1], heap[child])) child++;
+                if (!IsHigherPriority(heap[child], last)) break;
+                heap[index] = heap[child];
+                index = child;
+            }
+            heap[index] = last;
             return best;
         }
 

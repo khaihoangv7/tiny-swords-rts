@@ -7,6 +7,7 @@ using TinyKingdom.Navigation;
 using TinyKingdom.Presentation;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -30,6 +31,10 @@ namespace TinyKingdom.Economy
         public const float VisualScale = 2.60f;
         public const float VisualGroundOffsetY = 0.92f;
         public const float GuardVisualClearance = 2f;
+        public const float ContestRadius = 7f;
+        private const float ContestCheckSeconds = 0.5f;
+        private static readonly ProfilerMarker ContestMarker =
+            new("TinyKingdom.GoldMine.Control");
         private static readonly List<GoldMineObjective> active = new();
         private readonly List<UnitController> occupants = new();
         private readonly List<PendingEntry> pending = new();
@@ -47,6 +52,7 @@ namespace TinyKingdom.Economy
         private int currentHP = MaximumHP;
         private int remainingGold = MaximumGold;
         private float incomeRemaining = IncomeSeconds;
+        private float nextContestCheckTime;
         private GoldMineState state = GoldMineState.Neutral;
         private Vector2Int origin;
         private ResourceSelectionIndicator selectionIndicator;
@@ -120,6 +126,12 @@ namespace TinyKingdom.Economy
         {
             if (!MatchManager.AllowsGameplay || state is GoldMineState.Depleted or GoldMineState.Destroyed)
                 return;
+            if (hasOwner && occupants.Count > 0 && Time.time >= nextContestCheckTime)
+            {
+                nextContestCheckTime = Time.time + ContestCheckSeconds;
+                if (HasUnopposedMilitaryControl(OpponentOf(owner)))
+                    EjectAll();
+            }
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 PendingEntry entry = pending[i];
@@ -135,7 +147,11 @@ namespace TinyKingdom.Economy
                 station.ClearPending(this);
                 if (!station.EnterInternal(this)) continue;
                 occupants.Add(pawn);
-                if (!hasOwner) { owner = pawn.Faction; hasOwner = true; state = GoldMineState.Owned; }
+                if (!hasOwner || owner != pawn.Faction)
+                {
+                    owner = pawn.Faction; hasOwner = true; state = GoldMineState.Owned;
+                    incomeRemaining = IncomeSeconds;
+                }
                 RefreshVisual(); Changed?.Invoke();
             }
             occupants.RemoveAll(unit => unit == null || !unit.IsAlive);
@@ -152,12 +168,17 @@ namespace TinyKingdom.Economy
             if (remainingGold <= 0) Deplete();
         }
 
-        public bool TryEnter(UnitController pawn)
+        public bool TryEnter(UnitController pawn) => TryEnter(pawn, null);
+
+        public bool TryEnter(UnitController pawn, IPathTraversalPolicy traversalPolicy)
         {
             if (!MatchManager.AllowsGameplay || !CanEnter(pawn, true)) return false;
             if (!TryFindEntry(pawn, out Vector3 position)) return false;
             UnitMovement movement = pawn.GetComponent<UnitMovement>();
-            if (movement == null || !movement.TryIssueMove(position)) return false;
+            if (movement == null || !(traversalPolicy == null
+                    ? movement.TryIssueMove(position)
+                    : movement.TryIssueStrategicMove(position, traversalPolicy)))
+                return false;
             pawn.GetComponent<PawnGatherer>()?.CancelJob();
             pawn.GetComponent<PawnBuilder>()?.CancelJob();
             pawn.GetComponent<MonkHealer>()?.CancelExplicitOrder();
@@ -214,11 +235,51 @@ namespace TinyKingdom.Economy
                 || state is GoldMineState.Depleted or GoldMineState.Destroyed) return false;
             if (pawn.GetComponent<HealthComponent>()?.CombatData?.UnitType != UnitType.Pawn) return false;
             if (!FactionRelations.IsPlayable(pawn.Faction)) return false;
-            if (hasOwner && pawn.Faction != owner) return false;
+            if (hasOwner && pawn.Faction != owner)
+            {
+                if (occupants.Count > 0
+                    || !HasUnopposedMilitaryControl(pawn.Faction)) return false;
+            }
+            else if (hasOwner && HasUnopposedMilitaryControl(OpponentOf(owner)))
+                return false;
             UnitStationing station = pawn.GetComponent<UnitStationing>();
             if (station != null && (station.IsStationed || (includeCapacity && station.IsPending))) return false;
             return !includeCapacity || occupants.Count + pending.Count < PawnCapacity;
         }
+
+        // This is gameplay authority, not AI knowledge. Both playable factions
+        // obey the same control rule; strategic AI still uses FactionKnowledge.
+        private bool HasUnopposedMilitaryControl(Faction challenger)
+        {
+            using var marker = ContestMarker.Auto();
+            if (!FactionRelations.IsPlayable(challenger)) return false;
+            bool challengerPresent = false;
+            float radiusSquared = ContestRadius * ContestRadius;
+            int mineHeight = grid?.GetCell(origin.x, origin.y)?.HeightLevel ?? 0;
+            IReadOnlyList<UnitController> units = UnitController.ActiveUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitController unit = units[i];
+                if (unit == null || !unit.IsTargetable
+                    || ((Vector2)(unit.transform.position - transform.position))
+                        .sqrMagnitude > radiusSquared) continue;
+                if (grid != null)
+                {
+                    Vector2Int cell = grid.WorldToGrid(unit.transform.position);
+                    if (grid.GetCell(cell.x, cell.y)?.HeightLevel != mineHeight)
+                        continue;
+                }
+                UnitType? type = unit.GetComponent<HealthComponent>()?.CombatData?.UnitType;
+                if (type is not (UnitType.Warrior or UnitType.Lancer
+                    or UnitType.Archer)) continue;
+                if (unit.Faction == challenger) challengerPresent = true;
+                else if (FactionRelations.IsPlayable(unit.Faction)) return false;
+            }
+            return challengerPresent;
+        }
+
+        private static Faction OpponentOf(Faction faction)
+            => faction == Faction.Blue ? Faction.Red : Faction.Blue;
 
         private bool TryFindEntry(UnitController pawn, out Vector3 position)
         {

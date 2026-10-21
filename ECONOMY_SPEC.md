@@ -162,3 +162,25 @@ cost is affordable beyond current buffers and reservations. Existing nearby drop
 danger, small clusters, active projects and cooldown reject the plan. House planning
 continues to use population pressure and the authoritative 80 Wood cost; Sheep spawning
 does not create House demand.
+
+## Phase 7E.6 Gold Mine exploitation
+
+The contested Gold Mine remains a station, not a `ResourceNode`: the first Pawn
+to enter claims it, at most three Pawns occupy it, and its existing five-second
+payout adds Gold directly to the faction stockpile. Entry does not create Pawn
+cargo or use a Castle/Tower drop-off. Red's worker policy uses the visible mine's
+authoritative entry command only after legal knowledge and the civilian safety
+check consider the area clear. It keeps at least three Pawns in ordinary Economy
+roles and prefers idle or Gold workers with no cargo. Rejected entry attempts
+have a retry interval; pending orders are released if danger returns. Depletion,
+destruction, ownership, ejection and payouts remain owned by `GoldMineObjective`.
+For recapture, an unopposed opposing Warrior, Lancer or Archer within seven
+world units ejects current miners. A Pawn of that faction can enter only while
+that uncontested military presence remains; successful entry transfers the
+mine's persistent owner and resets the payout interval. This applies to both
+playable factions. The AI still waits for a visible, sufficiently safe approach
+and leaves ordinary Food and Wood workers available.
+An already accepted Pawn entry order survives brief loss of mine vision while
+traveling, but is canceled on legally observed danger or after 30 game seconds
+without a fresh safe observation. The army covers a newly cleared mine long
+enough for Pawns to occupy it, with a 90-game-second limit.

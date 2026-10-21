@@ -63,6 +63,8 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0.5f)] private float targetReevaluationSeconds = 3f;
         [SerializeField, Min(0.5f)] private float exhaustedRecheckSeconds = 8f;
         [SerializeField, Min(0.5f)] private float unreachableRetrySeconds = 5f;
+        [SerializeField, Min(2f)] private float noProgressRecoverySeconds = 8f;
+        [SerializeField, Min(5f)] private float failedTargetRecoverySeconds = 18f;
 
         [Header("Bounded exploration")]
         [SerializeField, Range(8, 96)] private int maxFrontierCandidates = 48;
@@ -108,6 +110,7 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0.5f)] private float evasionRetrySeconds = 1.5f;
 
         private readonly Dictionary<int, float> blockedUntil = new();
+        private readonly Vector2Int[] rejectedDestinations = new Vector2Int[3];
         private readonly List<Vector2Int> frontierScratch = new(128);
         private readonly List<FrontierSeed> frontierSelection = new(48);
         private readonly List<ReconCandidate> reconScratch = new(48);
@@ -137,6 +140,8 @@ namespace TinyKingdom.AI
         private float nextPromotedCargoReturnAttempt;
         private float targetAssignedTime;
         private float nextEvasionAttemptTime;
+        private float repositioningStartTime = -1f;
+        private int rejectedTargetBatches;
         private float reconArrivedTime = -1f;
         private float nextReconMissionTime;
         private int recentTargetCount;
@@ -193,6 +198,16 @@ namespace TinyKingdom.AI
         public bool StrategicInformationPriority => strategicInformationPriority;
         public uint SuccessfulDestinationSerial { get; private set; }
         public float LastSuccessfulDestinationTime { get; private set; } = -1f;
+        public uint StallRecoveryCount { get; private set; }
+        public uint RejectedDestinationCount { get; private set; }
+        public uint FailedTargetRecoveryCount { get; private set; }
+        public float LastFailedTargetRecoveryTime { get; private set; } = -1f;
+        public CommanderCommandResult LastRejectedMoveResult { get; private set; }
+            = CommanderCommandResult.Accepted;
+        public float RepositioningDuration(float time) =>
+            safetyState == ScoutSafetyState.Repositioning
+                && repositioningStartTime >= 0f
+                ? Mathf.Max(0f, time - repositioningStartTime) : 0f;
 
         public void Reset()
         {
@@ -218,6 +233,12 @@ namespace TinyKingdom.AI
             ReconCandidateCount = 0;
             SuccessfulDestinationSerial = 0;
             LastSuccessfulDestinationTime = -1f;
+            StallRecoveryCount = RejectedDestinationCount = 0;
+            FailedTargetRecoveryCount = 0;
+            LastFailedTargetRecoveryTime = -1f;
+            LastRejectedMoveResult = CommanderCommandResult.Accepted;
+            repositioningStartTime = -1f;
+            rejectedTargetBatches = 0;
             blockedUntil.Clear();
             frontierScratch.Clear();
             frontierSelection.Clear();
@@ -271,8 +292,14 @@ namespace TinyKingdom.AI
 
             if (safetyState == ScoutSafetyState.Evading)
             {
-                if (movement.IsMoving) return;
+                if (movement.IsMoving && HasRecentMovementProgress(movement)) return;
+                if (movement.IsMoving)
+                {
+                    movement.Stop();
+                    StallRecoveryCount++;
+                }
                 safetyState = ScoutSafetyState.Repositioning;
+                repositioningStartTime = context.Time;
                 intent = ScoutIntent.Repositioning;
                 hasRetreatDestination = false;
                 dangerReason = "None";
@@ -281,6 +308,11 @@ namespace TinyKingdom.AI
 
             if (hasDestination)
             {
+                if (movement.IsMoving && !HasRecentMovementProgress(movement))
+                {
+                    movement.Stop();
+                    StallRecoveryCount++;
+                }
                 bool reached = Vector2.Distance(scout.transform.position,
                     grid.GridToWorld(destinationCell.x, destinationCell.y)) <= arrivalDistance;
                 if (!reached && movement.IsMoving && IsTargetStillUseful(context, safety)
@@ -314,6 +346,13 @@ namespace TinyKingdom.AI
                     out ScoutTarget selected))
                 {
                     explorationExhausted = true;
+                    rejectedTargetBatches = 0;
+                    // No viable destination is an exhausted search, not an
+                    // indefinitely active repositioning operation.
+                    safetyState = ScoutSafetyState.Exploring;
+                    repositioningStartTime = -1f;
+                    intent = HasEnemyInterest(context.Knowledge)
+                        ? ScoutIntent.Exploring : ScoutIntent.SearchingForEnemy;
                     nextTargetEvaluationTime = context.Time + (strategicInformationPriority
                         ? exhaustedRecheckSeconds * 0.5f : exhaustedRecheckSeconds);
                     return;
@@ -327,17 +366,43 @@ namespace TinyKingdom.AI
                     AssignTarget(selected, context.Time,
                         HasEnemyInterest(context.Knowledge));
                     safetyState = ScoutSafetyState.Exploring;
+                    repositioningStartTime = -1f;
+                    rejectedTargetBatches = 0;
                     explorationExhausted = false;
                     SuccessfulDestinationSerial++;
                     LastSuccessfulDestinationTime = context.Time;
                     return;
                 }
                 Block(selected.Destination, grid.Width, context.Time);
+                rejectedDestinations[attempt] = selected.Destination;
+                RejectedDestinationCount++;
+                LastRejectedMoveResult = result;
             }
 
+            if (++rejectedTargetBatches >= 3)
+            {
+                float cooldown = Mathf.Max(5f, failedTargetRecoverySeconds);
+                for (int i = 0; i < maxMoveAttempts; i++)
+                    blockedUntil[CellKey(rejectedDestinations[i], grid.Width)]
+                        = context.Time + cooldown;
+                rejectedTargetBatches = 0;
+                FailedTargetRecoveryCount++;
+                LastFailedTargetRecoveryTime = context.Time;
+                explorationExhausted = true;
+                safetyState = ScoutSafetyState.Exploring;
+                repositioningStartTime = -1f;
+                intent = HasEnemyInterest(context.Knowledge)
+                    ? ScoutIntent.Exploring : ScoutIntent.SearchingForEnemy;
+                nextTargetEvaluationTime = context.Time + cooldown;
+                return;
+            }
             nextTargetEvaluationTime = context.Time + (strategicInformationPriority
                 ? targetReevaluationSeconds * 0.5f : targetReevaluationSeconds);
         }
+
+        private bool HasRecentMovementProgress(UnitMovement movement)
+            => Time.time - movement.LastMovementProgressTime
+                < Mathf.Max(2f, noProgressRecoverySeconds);
 
         private void SynchronizeOfficialScout(CommanderDecisionContext context,
             CommanderPawnRoles roles)
@@ -358,6 +423,8 @@ namespace TinyKingdom.AI
             ClearTarget();
             hasRetreatDestination = false;
             safetyState = ScoutSafetyState.Exploring;
+            repositioningStartTime = -1f;
+            rejectedTargetBatches = 0;
             intent = ScoutIntent.SearchingForEnemy;
             if (scout != null)
             {
@@ -564,10 +631,18 @@ namespace TinyKingdom.AI
             bool hasEnemyInterest = HasEnemyInterest(context.Knowledge);
             if (hasEnemyInterest && context.Time >= nextReconMissionTime
                 && TrySelectReconTarget(context, safety, out result)) return true;
+            // When the enemy Castle is still unknown, a safe frontier provides
+            // new strategic information. Do not let plentiful stale resource
+            // memories consume every Scout mission after recon has no target.
+            bool preferFrontier = strategicInformationPriority
+                && !HasKnownEnemyCastle(context.Knowledge);
+            if (preferFrontier && TrySelectFrontier(context, safety, out result))
+                return true;
             if (strategicInformationPriority
                 && TrySelectRescoutTarget(context, safety, ref rescoutBudget,
                     out result)) return true;
-            if (TrySelectFrontier(context, safety, out result)) return true;
+            if (!preferFrontier && TrySelectFrontier(context, safety, out result))
+                return true;
             if (!strategicInformationPriority
                 && TrySelectRescoutTarget(context, safety, ref rescoutBudget,
                     out result)) return true;
@@ -884,6 +959,16 @@ namespace TinyKingdom.AI
             => knowledge != null && (knowledge.KnownEnemyBuildings.Count > 0
                 || knowledge.LastMilitaryObservation.HasObservation);
 
+        private static bool HasKnownEnemyCastle(FactionKnowledge knowledge)
+        {
+            if (knowledge == null) return false;
+            IReadOnlyList<BuildingKnowledgeSnapshot> buildings =
+                knowledge.KnownEnemyBuildings;
+            for (int i = 0; i < buildings.Count; i++)
+                if (buildings[i].BuildingType == BuildingType.Castle) return true;
+            return false;
+        }
+
         private bool TrySelectRescoutTarget(CommanderDecisionContext context,
             StrategicSafetyMap safety, ref int rescoutBudget,
             out ScoutTarget result)
@@ -1061,11 +1146,14 @@ namespace TinyKingdom.AI
         {
             using var marker = ScoutRetreatMarker.Auto();
             if (safetyState == ScoutSafetyState.Evading && movement.IsMoving
+                && HasRecentMovementProgress(movement)
                 && safety.IsPathSafe(movement.CurrentPath, StrategicPathKind.Scout,
                     movement.CurrentPathWaypointIndex)) return;
             if (safetyState == ScoutSafetyState.Evading
                 && context.Time < nextEvasionAttemptTime) return;
             nextEvasionAttemptTime = context.Time + evasionRetrySeconds;
+            if (movement.IsMoving && !HasRecentMovementProgress(movement))
+                StallRecoveryCount++;
             movement.Stop();
             RememberLastTarget(context.Time);
             ClearTarget();

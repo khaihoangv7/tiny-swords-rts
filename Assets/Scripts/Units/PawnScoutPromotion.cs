@@ -233,6 +233,9 @@ namespace TinyKingdom.Units
 
         private bool Activate(Sprite[] fireFrames)
         {
+            // Edit Mode validation can add this component before Awake runs.
+            controller ??= GetComponent<UnitController>();
+            health ??= GetComponent<HealthComponent>();
             if (!HasValidFrames(fireFrames) || controller == null || !controller.IsAlive)
                 return false;
             promoted = true;

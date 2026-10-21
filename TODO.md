@@ -1675,7 +1675,7 @@ Status: **IMPLEMENTED - UNITY PLAY MODE VALIDATION PENDING**.
 
 ### Phase 7E.5 Strategic Decision Layer
 
-Status: **IMPLEMENTED - HEADLESS MATCH TESTS PASS; TARGETED UNITY PLAY MODE VALIDATION PENDING**.
+Status: **IMPLEMENTED - AUTOMATED FULL MATCHES AND UNITY EDITOR x5 PASS; TARGETED EDGE CASES PENDING**.
 
 - [x] Create `feature/phase-7e5-strategic-decision-layer` from integrated Phase 7E.4
 - [x] Add six explicit strategic intents and a centralized evaluator
@@ -1700,14 +1700,14 @@ Status: **IMPLEMENTED - HEADLESS MATCH TESTS PASS; TARGETED UNITY PLAY MODE VALI
 - [ ] Run PrepareAttack, staging, commitment, legal target and hidden target scenarios
 - [ ] Run failed attack, Recover exit, single reinforcement and healthy reinforcement scenarios
 - [ ] Run base-defense-during-prepare/attack and strategic Retreat regressions
-- [ ] Run x1/x5/x10 full matches and record strategy/command/path/GC rates
+- [x] Run x1/x5/x10 full matches and record strategy/command/path/GC rates
 - [ ] Confirm Fog, human controls, economy, production, tactical combat and Console regressions
 - [x] Do not implement RL
 - [x] Do not commit, push or merge Phase 7E.5 automatically
 
 ### Phase 7E.5 Full-Match Liveness & Frame-Spike Hotfix
 
-Status: **AUTOMATED VALIDATION PASS - TARGETED UNITY EDITOR PLAY MODE VALIDATION PENDING**.
+Status: **AUTOMATED FULL MATCHES AND UNITY EDITOR x5 PASS; TARGETED EDGE CASES PENDING**.
 
 - [x] Make identical Move dedupe conditional on an active path or actual arrival
 - [x] Track per-unit movement progress, path requests and path failures
@@ -1729,18 +1729,156 @@ Status: **AUTOMATED VALIDATION PASS - TARGETED UNITY EDITOR PLAY MODE VALIDATION
 - [ ] Validate zero-target Engaging, stale Move and temporary path-failure cases
 - [x] Run a 240-real-second natural x1 standalone baseline: Scout promoted, economy and production continued, zero errors/exceptions
 - [x] Run natural x5 and x10 standalone matches to Red victory with zero errors/exceptions
-- [x] Run a 300-real-second x10 isolated stress fixture: forced Red army loss, second offensive launch, zero errors/exceptions and no post-startup frame above the 35 ms capture threshold
+- [x] Run a 300-real-second x10 isolated stress fixture: forced Red army losses, recovery and repeated offensive launches, zero errors/exceptions; record post-startup frame peaks
 - [x] Capture and identify the dominant subsystem for an actual severe spike
+- [x] Remove the repeated full-map A* searches for unreachable gathering slots and use a priority queue for the A* open set
+- [x] Verify the optimized baseline in standalone x1/x5/x10, a five-real-minute x10 forced-loss fixture, and Unity Editor x5 Play Mode
 - [x] Compare early and late stress snapshots: known resources remained near 410-425, audio pool stabilized at 72, and path requests did not accelerate
 - [ ] Exercise the 60-game-second planned-building Wood-reservation Scout fallback in a controlled Unity scenario
 - [ ] Complete at least two natural Prepare/Attack/Recover cycles
 - [ ] Confirm Console and Scout/Economy/Production/Fog/construction/stairs regressions
 - [x] Commit and merge after the user's explicit validation request; do not push
 
-The x10 fixture used an isolated ignored test copy with increased Castle HP so combat
-continued for five real minutes; the repository Castle data remains unchanged. An earlier
-x5 capture included one 35.6 ms building-site search frame, so Editor Profiler and the
-targeted gameplay scenarios above remain pending despite the clean final headless runs.
+The unoptimized x1 capture attributed 158-181 ms frames and 11-13 MB allocations to
+repeated unreachable gathering-slot path searches. With the navigation fix, a 540-real-second
+standalone x1 run reached Red victory with zero errors/exceptions and a 37.5 ms peak sampled
+frame during active play. Standalone x5 and x10 reached Red victory with zero errors/exceptions;
+their sampled post-startup peaks were 39.5 ms and 49.6 ms. Unity Editor x5 Play Mode reached
+Red victory at 349 game seconds with zero errors/exceptions. The isolated x10 fixture used
+increased Castle HP and two forced army losses, then observed two Recover exits and a third
+offensive launch over 300 real seconds with zero errors/exceptions. It had one isolated 71.1 ms
+sampled frame with no recorded path request, GC collection, or dominant instrumented marker.
+The fixture did not change repository Castle data. Forced losses are not evidence of two natural
+attack/recovery cycles; targeted gameplay, human controls, and visual regressions above remain
+to be checked separately.
+
+### Phase 7E.6 Contested Gold Mine Control
+
+Status: **IMPLEMENTED; AUTOMATED PLAY MODE RECAPTURE AND SCOUT RECOVERY PASS; INTERACTIVE QA PENDING**.
+
+- [x] Create `feature/phase-7e6-contested-gold-mine-control` from current `integration/full-game` commit while preserving uncommitted work
+- [x] Inspect the authoritative Gold Mine entry/payout mechanics and Goblin combat
+- [x] Add legally observed Mine and Goblin snapshots without hidden live refresh
+- [x] Integrate mine opportunity with strategic intent and existing military orders
+- [x] Gate Pawn entry on visibility, guard safety, capacity and ordinary economy reserve
+- [x] Add structural validator and bounded performance counters
+- [x] Compile runtime and Editor C# projects without errors
+- [x] Run the Phase 7E.6 structural validator in Unity Edit Mode
+- [x] Run a Map 3 x10 guarded-mine capture through claim, three-Pawn mining, danger ejection, re-entry and depletion
+- [x] Run a final-revision x5 Map 3 full match: RedVictory at 669 game seconds after mine depletion
+- [x] Run final-revision x1 and x10 captures; x10 reached RedVictory, while x1 stayed active through the 900-game-second observation window without a result
+- [x] Prioritize safe Scout frontiers over stale resource revisits while the enemy Castle remains unknown; rerun x1 to RedVictory at 610 game seconds
+- [x] Rerun x5 and x10 full matches after the Scout correction; both reached RedVictory without errors
+- [x] Run Unity regression validators for 7E.1-7E.6, Audio and HUD; correct stale Edit Mode/test-source assertions
+- [x] Run Map 3 Play Mode validation across all 12 navigation waypoints and Goblin combat/Hut cases
+- [x] Render guarded and Red-occupied mine world snapshots from the isolated graphics player
+- [x] Verify controlled severe army losses, Blue contest, hidden mine-memory freeze and blocked-route recovery in isolated Map 3 fixtures
+- [x] Reproduce a stationary `Repositioning` Scout with repeated rejected destinations; add progress-based route recovery and a bounded failed-target cooldown
+- [x] Confirm Scout recovery in a controlled Play Mode obstruction and an x1 full match
+- [ ] Check Console, Fog, Scout, economy, construction, stairs, audio and UI regressions
+- [x] Add symmetric local military contest, incumbent miner ejection and ownership transfer on successful opposing Pawn entry
+- [x] Verify a controlled Blue-held mine through Red legal discovery, weak-army delay, military commitment, Pawn claim, direct Gold income and depletion at x10
+- [x] Verify a defended Blue-held mine and the reverse Blue recapture path in isolated Play Mode scenarios
+- [x] Preserve unrelated uncommitted assets and the `phase6d4-transfer` stash; commit and merge only after the user's explicit request
+
+The third isolated Map 3 x10 run used an earlier revision of the mine cover and
+intent-continuity code. It observed a legally discovered mine, a committed Red
+army, three Red miners, direct Gold payouts, two danger ejections, re-entry, and
+depletion to zero by about 750 game seconds. It ran for 165 real seconds / 1649
+game seconds with zero Console errors or exceptions and no sampled active-play
+frame over 33.3 ms. The match did not end: the Scout remained `Repositioning`
+at cell (56, 28) without a new destination after the mine depleted. The final
+revision and x1/x5 scenarios still need independent validation.
+The final-revision x5 standalone run reached RedVictory at 669 game seconds
+after Red had mined the central objective to zero. It recorded 1,744 path
+requests and 497 command attempts across 149,145 frames, with zero errors or
+exceptions. Its only frame above 33.3 ms was the initial 440 ms startup frame.
+The final-revision x10 standalone run reached RedVictory at 1,045 game seconds
+after mine depletion, with 2,309 path requests, 1,977 command attempts, zero
+errors/exceptions and only its initial 358 ms frame above 33.3 ms. The x1 run
+captured the mine, occupied it with three Pawns and depleted it, then continued
+economy and Scout activity through the 900-game-second cutoff without a match
+result (2,169 paths, 772 commands, zero errors/exceptions and only its initial
+394 ms frame above 33.3 ms). This is a stability capture, not an x1 full-match
+PASS; Blue Castle discovery and match completion were unverified in that run.
+
+A later isolated x1 rerun with the Scout frontier priority correction discovered
+the Blue Castle and reached RedVictory at 610 game seconds. Red had claimed the
+mine and three Pawns were mining when the match ended. The run recorded 1,979
+path requests, 576 command attempts, 514,178 frames and zero errors/exceptions.
+Its 410 ms startup frame and several later spikes include concurrent Unity build
+and visual-test activity, so that run is a functional match result rather than a
+clean standalone frame-time benchmark.
+On the same corrected build, an isolated x5 match reached RedVictory at 445
+game seconds with three Red miners in the claimed mine, 1,177 paths and 430
+commands. An isolated x10 match reached RedVictory at 484 game seconds with
+1,110 paths and 295 commands; this particular match won before Red claimed
+the mine, so earlier controlled mine scenarios remain the mine-lifecycle
+evidence. Both had zero errors/exceptions. The x5 run sampled one 34.7 ms
+active frame, and x10 one 35.7 ms active frame; neither showed a recurring
+post-startup spike pattern.
+The combined Unity Edit Mode gate passed the Phase 7E.1-7E.6, Audio and HUD
+structural validators after repairing their stale fixture/assertions. The Map 3
+Play Mode validator traversed all 12 Pawn waypoints and passed its Goblin,
+Barrel, Hut and cloud checks. An isolated Direct3D player rendered snapshots
+of the guarded mine and the Red-occupied mine, then reached RedVictory at 560
+game seconds with zero errors/exceptions. These checks do not verify manual
+mouse interaction, audible output, HUD layout in the Game view or every stairs
+animation frame; those remain interactive QA items.
+
+In a controlled x10 Blue-contest fixture, one Blue Warrior was placed on a
+Red-visible cell beside an occupied Red mine. Red resumed `SecureGoldMine`,
+advanced/assaulted, ejected threatened miners and resumed mining; RedVictory
+followed at 868 game seconds with zero errors/exceptions. In a separate x10
+loss fixture, two genuine mine assaults each lost five Red military units;
+the AI entered `Recover`, rebuilt, launched again and eventually won at 1,347
+game seconds with zero errors/exceptions. These fixtures prove recovery from
+forced losses, not that natural Goblins caused those losses.
+
+An isolated blocked-route fixture occupied 23 stable entry-ring cells after
+legal mine discovery. No Pawn entered or mined through the blocked route;
+the military failed/reevaluated the mine objective three times with cooldown,
+then won against Blue at 939 game seconds. It recorded 45 rejected mine-entry
+attempts, 2,454 paths and 644 commands with zero errors/exceptions and no
+post-startup frame above 33.3 ms. A separate x10 observation capture showed
+hidden mine memory frozen at 1,955 Gold while the real reserve dropped from
+1,775 to 1,325; the snapshot updated after Red regained vision. It ran 1,200
+game seconds with zero errors/exceptions, but did not finish the match.
+
+Final isolated Play Mode checks exercised a Blue-owned mine with a live Blue
+Warrior guard. Red legally observed the mine at 234 game seconds, defeated the
+guard at 309, ejected the Blue miner, claimed the mine at 349, and received its
+first 15-Gold payout at 354. The match ended in RedVictory at 685 with zero
+errors/exceptions. A reverse-control fixture started with a Red miner and used
+a Blue guard to eject it; Blue claimed the mine at 56 and received 15 Gold at
+61. These fixture-spawned guards establish the control mechanics, not a claim
+that an unscripted Blue commander defended the mine in the same way.
+
+A Scout obstruction fixture surrounded a live Scout with four occupied cells.
+The policy rejected nine unreachable destinations, recorded one bounded failed
+target recovery at 206 game seconds, left `Repositioning`, and selected a new
+destination at 224. A natural x1 full match ended in RedVictory at 630 game
+seconds with three Red miners, 2,014 paths, 498 command attempts and zero
+errors/exceptions. The corresponding x5 full match ended in RedVictory at 496
+game seconds with three Red miners, 1,345 paths, 356 commands and zero
+errors/exceptions. Three isolated x1 frame spikes above 33.3 ms occurred while
+other Unity build/test processes were running; they are not an isolated
+performance benchmark. Interactive Game View inspection of HUD, audio, Fog,
+stairs and exact movement frames remains open.
+The final Unity batch regression gate again passed Phase 7E.1-7E.6, Gameplay
+Audio and RTS HUD validators. The final Map 3 Play Mode validator passed all
+12 live Pawn waypoints, Goblin Torch/TNT combat, Barrel behavior, Hut destruction
+and cloud motion. These automated checks do not substitute for Game View review.
+A targeted recapture-loss fixture killed seven Red attackers while the Blue
+guard and Blue miner still held the mine at 284 game seconds. The Red army
+entered `Recovering` at 285, rebuilt, defeated the guard at 461, claimed the
+mine at 506 and received Gold at 511; RedVictory followed at 702 with zero
+errors/exceptions. This is a controlled casualty injection through the normal
+health/death API, not proof that seven natural Blue attacks happened together.
+The final build also completed a natural x10 match in RedVictory at 533 game
+seconds / 55 real seconds. Three Red Pawns worked the mine, reducing its reserve
+to 275 Gold; the run recorded 1,466 path requests, 467 command attempts and
+zero errors/exceptions. The only frame above 33.3 ms was initial loading.
 
 ## Phase 6E - Audio Expansion: completion, combat impacts and command voices
 

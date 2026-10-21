@@ -34,6 +34,9 @@ namespace TinyKingdom.EditorTools
             }
 
             GameObject root = null;
+            MatchManager previousMatch = MatchManager.Instance;
+            FieldInfo matchInstanceField = typeof(MatchManager).GetField(
+                "<Instance>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
             try
             {
                 RtsHudAssetCatalog hud = RtsHudAssetCatalog.Load();
@@ -122,6 +125,11 @@ namespace TinyKingdom.EditorTools
                 UnitController lancer = CreateUnit(root.transform, "RedLancer", lancerData);
                 UnitController monk = CreateUnit(root.transform, "RedMonk", monkData);
                 root.SetActive(true);
+                // Awake does not run on ordinary scene objects in Edit Mode.
+                // Give command validation the fixture MatchManager explicitly.
+                Require(matchInstanceField != null,
+                    "MatchManager.Instance backing field changed.");
+                matchInstanceField.SetValue(null, match);
 
                 Require(commands.TryPromoteScout(first)
                         == CommanderCommandResult.RejectedInsufficientResources,
@@ -187,6 +195,7 @@ namespace TinyKingdom.EditorTools
             finally
             {
                 if (root != null) UnityEngine.Object.DestroyImmediate(root);
+                matchInstanceField?.SetValue(null, previousMatch);
             }
         }
 

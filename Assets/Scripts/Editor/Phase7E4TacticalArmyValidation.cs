@@ -81,7 +81,7 @@ namespace TinyKingdom.EditorTools
                     && !tacticalSource.Contains("UnitController.ActiveUnits"),
                     "Tactical targeting contains an unauthorized scene scan.");
                 Require(tacticalSource.Contains("context.Commands.TryAttack")
-                    && tacticalSource.Contains("context.Commands.TryMove"),
+                    && tacticalSource.Contains("context.Commands.TryMilitaryMove"),
                     "Tactical commands must route through FactionCommandService.");
                 Require(militarySource.Contains("Tactical.TryEngageVisibleEnemies")
                     && militarySource.Contains("Tactical.BuildFormationAssignments")

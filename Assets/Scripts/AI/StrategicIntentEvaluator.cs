@@ -14,13 +14,14 @@ namespace TinyKingdom.AI
         Fortify,
         PrepareAttack,
         Attack,
-        Recover
+        Recover,
+        SecureGoldMine
     }
 
     public readonly struct StrategicIntentScores
     {
         public StrategicIntentScores(float economy, float scout, float fortify,
-            float prepare, float attack, float recover)
+            float prepare, float attack, float recover, float secureGoldMine = 0f)
         {
             DevelopEconomy = Mathf.Clamp01(economy);
             Scout = Mathf.Clamp01(scout);
@@ -28,6 +29,7 @@ namespace TinyKingdom.AI
             PrepareAttack = Mathf.Clamp01(prepare);
             Attack = Mathf.Clamp01(attack);
             Recover = Mathf.Clamp01(recover);
+            SecureGoldMine = Mathf.Clamp01(secureGoldMine);
         }
 
         public float DevelopEconomy { get; }
@@ -36,6 +38,7 @@ namespace TinyKingdom.AI
         public float PrepareAttack { get; }
         public float Attack { get; }
         public float Recover { get; }
+        public float SecureGoldMine { get; }
 
         public float Get(StrategicIntent intent) => intent switch
         {
@@ -45,6 +48,7 @@ namespace TinyKingdom.AI
             StrategicIntent.PrepareAttack => PrepareAttack,
             StrategicIntent.Attack => Attack,
             StrategicIntent.Recover => Recover,
+            StrategicIntent.SecureGoldMine => SecureGoldMine,
             _ => 0f
         };
     }
@@ -175,7 +179,8 @@ namespace TinyKingdom.AI
         {
             StrategicIntent.DevelopEconomy, StrategicIntent.Scout,
             StrategicIntent.Fortify, StrategicIntent.PrepareAttack,
-            StrategicIntent.Attack, StrategicIntent.Recover
+            StrategicIntent.Attack, StrategicIntent.Recover,
+            StrategicIntent.SecureGoldMine
         };
 
         [SerializeField, Min(1f)] private float evaluationInterval = 2f;
@@ -186,6 +191,7 @@ namespace TinyKingdom.AI
         [SerializeField, Min(1f)] private float attackCommitmentSeconds = 12f;
         [SerializeField, Min(1f)] private float failedAttackRecoverySeconds = 16f;
         [SerializeField, Range(4, 48)] private int maximumTargetCandidates = 24;
+        [SerializeField] private GoldMineStrategyModel goldMine = new();
 
         private float nextEvaluationTime;
         private float transitionTime;
@@ -220,6 +226,7 @@ namespace TinyKingdom.AI
         public int MaximumTargetCandidates => Mathf.Clamp(maximumTargetCandidates, 4, 48);
         public bool HasStrategicTarget => target.IsValid;
         public StrategicTargetSnapshot StrategicTarget => target;
+        public GoldMineStrategyModel GoldMine => goldMine;
 
         public void Reset()
         {
@@ -235,6 +242,7 @@ namespace TinyKingdom.AI
             failedLaunchSerial = 0;
             hasScores = false;
             LastEvaluationTime = -1f;
+            goldMine?.Reset();
         }
 
         public void RequestImmediateReevaluation()
@@ -262,6 +270,8 @@ namespace TinyKingdom.AI
 
             using (TargetScoreMarker.Auto())
                 target = SelectTarget(context, military, safety);
+            goldMine ??= new GoldMineStrategyModel();
+            goldMine.Evaluate(context, military, production, safety);
             using (SnapshotMarker.Auto())
                 Situation = BuildSnapshot(context, roles, demand, economy, buildings,
                     production, scouting, military, safety, emergency);
@@ -287,6 +297,15 @@ namespace TinyKingdom.AI
                 desired = StrategicIntent.Recover;
                 reason = withdrawal ? "StrategicRetreat" : "AttackFailed";
                 majorOverride = true;
+            }
+            else if (CurrentIntent == StrategicIntent.SecureGoldMine
+                && military.HasOffensiveTarget
+                && military.OffensiveTarget.BuildingType == BuildingType.GoldMine
+                && (military.Army.State is ArmyGroupState.PreparingAttack
+                    or ArmyGroupState.Advancing or ArmyGroupState.Assaulting))
+            {
+                desired = StrategicIntent.SecureGoldMine;
+                reason = "MineOperationCommitted";
             }
             else if (CurrentIntent == StrategicIntent.Attack
                 && (military.Army.State is ArmyGroupState.PreparingAttack
@@ -471,8 +490,10 @@ namespace TinyKingdom.AI
                 ? Mathf.Clamp01(0.20f + AttackReadiness * 0.80f) : 0f;
             float recovery = Mathf.Clamp01(s.RecentLossRatio * 0.90f
                 + (now - failedAttackTime < FailedAttackRecoverySeconds ? 0.75f : 0f));
+            float secureMine = goldMine?.Current.CanCommit == true
+                ? goldMine.Current.Score : 0f;
             return new StrategicIntentScores(economy, scoutNeed, fortify, prepare,
-                attack, recovery);
+                attack, recovery, secureMine);
         }
 
         private float CalculateAttackReadiness(StrategicSituationSnapshot s,
@@ -563,8 +584,8 @@ namespace TinyKingdom.AI
             float radiusSquared = radius * radius;
             IReadOnlyList<VisibleUnitObservation> visible = knowledge.VisibleEnemyUnits;
             for (int i = 0; i < visible.Count; i++)
-                if (visible[i].ThreatActivity != ObservedThreatActivity.None
-                    || ((Vector2)(visible[i].Position - military.BaseAnchor)).sqrMagnitude
+                if (FactionRelations.IsPlayable(visible[i].Faction)
+                    && ((Vector2)(visible[i].Position - military.BaseAnchor)).sqrMagnitude
                         <= radiusSquared)
                     return true;
             return false;
@@ -620,7 +641,9 @@ namespace TinyKingdom.AI
                 Mathf.Lerp(oldScores.Fortify, raw.Fortify, t),
                 Mathf.Lerp(oldScores.PrepareAttack, raw.PrepareAttack, t),
                 Mathf.Lerp(oldScores.Attack, raw.Attack, t),
-                Mathf.Lerp(oldScores.Recover, raw.Recover, t));
+                Mathf.Lerp(oldScores.Recover, raw.Recover, t),
+                Mathf.Lerp(oldScores.SecureGoldMine,
+                    raw.SecureGoldMine, t));
         }
 
         private static float QueuedStrength(ProductionCommanderPolicy production,
@@ -665,6 +688,7 @@ namespace TinyKingdom.AI
             StrategicIntent.PrepareAttack => "ArmyNearlyReady",
             StrategicIntent.Attack => "AttackReady",
             StrategicIntent.Recover => "RecoverFromLoss",
+            StrategicIntent.SecureGoldMine => "ContestedGoldMine",
             _ => "HighestScore"
         };
     }

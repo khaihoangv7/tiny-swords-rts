@@ -26,6 +26,9 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0f)] private float monkSupportValue = 0.45f;
         [SerializeField, Min(0f)] private float towerThreatValue = 2f;
         [SerializeField, Min(0f)] private float castleThreatValue = 3f;
+        [SerializeField, Min(0f)] private float goblinTorchValue = 1f;
+        [SerializeField, Min(0f)] private float goblinTntValue = 1.2f;
+        [SerializeField, Min(0f)] private float goblinBarrelValue = 1.4f;
 
         public float WarriorValue => warriorValue > 0f ? warriorValue : 1f;
         public float ArcherValue => archerValue > 0f ? archerValue : 0.75f;
@@ -33,6 +36,9 @@ namespace TinyKingdom.AI
         public float MonkSupportValue => monkSupportValue > 0f ? monkSupportValue : 0.45f;
         public float TowerThreatValue => towerThreatValue > 0f ? towerThreatValue : 2f;
         public float CastleThreatValue => castleThreatValue > 0f ? castleThreatValue : 3f;
+        public float GoblinTorchValue => goblinTorchValue > 0f ? goblinTorchValue : 1f;
+        public float GoblinTntValue => goblinTntValue > 0f ? goblinTntValue : 1.2f;
+        public float GoblinBarrelValue => goblinBarrelValue > 0f ? goblinBarrelValue : 1.4f;
 
         public float UnitBaseValue(UnitType type)
             => type switch
@@ -41,6 +47,9 @@ namespace TinyKingdom.AI
                 UnitType.Archer => ArcherValue,
                 UnitType.Lancer => LancerValue,
                 UnitType.Monk => MonkSupportValue,
+                UnitType.GoblinTorch => GoblinTorchValue,
+                UnitType.GoblinTNT => GoblinTntValue,
+                UnitType.GoblinBarrel => GoblinBarrelValue,
                 _ => 0f
             };
 

@@ -19,7 +19,8 @@ namespace TinyKingdom.AI
         Build,
         Attack,
         Train,
-        Rally
+        Rally,
+        EnterGoldMine
     }
 
     // Shared gameplay authority for human, Rule-Based and future RL command sources.
@@ -194,6 +195,43 @@ namespace TinyKingdom.AI
                     safety.CivilianTraversal);
             return recovered ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;
+        }
+
+        public CommanderCommandResult TryEnterGoldMine(UnitController actor,
+            EntityId mineId, StrategicSafetyMap safety = null)
+        {
+            Count(CommanderCommandCategory.EnterGoldMine);
+            using var marker = CommandDispatchMarker.Auto();
+            using var source = PathfindingSystem.TrackCommanderRequest(
+                PathfindingRequestSource.CommanderGather);
+            CommanderCommandResult actorResult = ValidateActor(actor);
+            if (actorResult != CommanderCommandResult.Accepted) return actorResult;
+            if (actor.GetComponent<PawnGatherer>() == null)
+                return CommanderCommandResult.RejectedWrongUnitType;
+            if (knowledge == null) return CommanderCommandResult.RejectedNotObserved;
+            bool observed = false;
+            IReadOnlyList<GoldMineKnowledgeSnapshot> visible = knowledge.VisibleGoldMines;
+            for (int i = 0; i < visible.Count; i++)
+                if (visible[i].RuntimeId.CompareTo(mineId) == 0)
+                { observed = true; break; }
+            if (!observed) return CommanderCommandResult.RejectedNotObserved;
+
+            IReadOnlyList<GoldMineObjective> mines = GoldMineObjective.Active;
+            for (int i = 0; i < mines.Count; i++)
+            {
+                GoldMineObjective mine = mines[i];
+                if (mine == null || mine.GetEntityId().CompareTo(mineId) != 0)
+                    continue;
+                if (!mine.CanAccept(actor))
+                    return CommanderCommandResult.RejectedInvalidTarget;
+                if (safety != null && safety.RiskAt(mine.transform.position,
+                        StrategicPathKind.Civilian) >= StrategicRisk.Dangerous)
+                    return CommanderCommandResult.RejectedUnsafe;
+                return mine.TryEnter(actor, safety?.CivilianTraversal)
+                    ? CommanderCommandResult.Accepted
+                    : CommanderCommandResult.RejectedUnreachable;
+            }
+            return CommanderCommandResult.RejectedInvalidTarget;
         }
 
         public CommanderCommandResult TryPromoteScout(UnitController actor)

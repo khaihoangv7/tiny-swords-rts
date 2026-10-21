@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
+using TinyKingdom.Economy;
 using TinyKingdom.Input;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
@@ -102,6 +103,8 @@ namespace TinyKingdom.AI
         [SerializeField] private TacticalArmyController tactical = new();
 
         private readonly ArmyGroup army = new();
+        [NonSerialized] private GoldMineStrategyModel activeGoldMineModel;
+        private float mineOccupationWaitStart = -1f;
         private readonly Dictionary<UnitController, EntityId> attackIntents = new();
         private readonly Dictionary<UnitController, Vector3> moveIntents = new();
         private readonly Dictionary<UnitController, Vector3> attackMoveIntents = new();
@@ -290,6 +293,7 @@ namespace TinyKingdom.AI
             ProductionCommanderPolicy production, UnitController activeScout,
             StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
         {
+            activeGoldMineModel = strategy?.GoldMine;
             army.Synchronize(context.Knowledge, activeScout);
             Tactical.Refresh(army.Members, context.Knowledge, army.State, context.Time);
             CombatStrengthEvaluator.OwnArmy(army.Members, CombatStrength,
@@ -395,7 +399,7 @@ namespace TinyKingdom.AI
 
             if (IsOffensiveState)
             {
-                TickOffense(context, safety);
+                TickOffense(context, safety, strategy);
                 return;
             }
 
@@ -421,7 +425,8 @@ namespace TinyKingdom.AI
             {
                 if (strategy == null)
                     TryBeginOffense(context, safety);
-                else if (strategy.CurrentIntent == StrategicIntent.Attack)
+                else if (strategy.CurrentIntent is StrategicIntent.Attack
+                    or StrategicIntent.SecureGoldMine)
                     TryBeginOffense(context, safety, strategy);
                 else if (strategy.CurrentIntent == StrategicIntent.PrepareAttack)
                     objectiveReason = "Strategic preparation at staging";
@@ -430,6 +435,7 @@ namespace TinyKingdom.AI
 
         public void Reset()
         {
+            mineOccupationWaitStart = -1f;
             foreach (CombatController combat in combatProgressSources)
                 if (combat != null) combat.AttackPerformed -= OnCombatAction;
             combatProgressSources.Clear();
@@ -525,6 +531,7 @@ namespace TinyKingdom.AI
                 }
                 hasOffensiveTarget = true;
                 offensiveTarget = target;
+                mineOccupationWaitStart = -1f;
                 currentObjectivePosition = target.LastKnownPosition;
                 IsOffensiveTargetVisible = context.Knowledge
                     .TryGetVisibleEnemyBuilding(target.RuntimeId, out _);
@@ -553,6 +560,21 @@ namespace TinyKingdom.AI
             StrategicIntentEvaluator strategy, out OffensiveTargetSnapshot result)
         {
             result = default;
+            if (strategy.CurrentIntent == StrategicIntent.SecureGoldMine)
+            {
+                GoldMineOpportunity opportunity = strategy.GoldMine.Current;
+                GoldMineKnowledgeSnapshot mine = opportunity.Mine;
+                if (!opportunity.IsValid || !opportunity.CanCommit
+                    || context.Time < blockedTargetUntil
+                        && mine.RuntimeId.CompareTo(blockedTargetId) == 0)
+                    return false;
+                result = new OffensiveTargetSnapshot(mine.RuntimeId,
+                    BuildingType.GoldMine, mine.HasOwner ? mine.Owner : Faction.Goblin,
+                    mine.LastSeenPosition, StrategicTargetCategory.EconomicBuilding,
+                    context.Knowledge.IsCellVisible(context.Knowledge.TeamVision
+                        .GridManager.WorldToGrid(mine.LastSeenPosition)));
+                return true;
+            }
             if (strategy == null || !strategy.TryGetTarget(
                     out StrategicTargetSnapshot selected)) return false;
             IReadOnlyList<BuildingKnowledgeSnapshot> known =
@@ -635,8 +657,14 @@ namespace TinyKingdom.AI
         }
 
         private void TickOffense(CommanderDecisionContext context,
-            StrategicSafetyMap safety)
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
         {
+            if (hasOffensiveTarget
+                && offensiveTarget.BuildingType == BuildingType.GoldMine)
+            {
+                TickGoldMineOffense(context, safety, strategy?.GoldMine);
+                return;
+            }
             if (!hasOffensiveTarget || !TryRefreshObjective(context.Knowledge,
                     out BuildingKnowledgeSnapshot known))
             {
@@ -684,6 +712,110 @@ namespace TinyKingdom.AI
                     TickAssault(context, safety);
                     break;
             }
+        }
+
+        private void TickGoldMineOffense(CommanderDecisionContext context,
+            StrategicSafetyMap safety, GoldMineStrategyModel mineModel)
+        {
+            GoldMineKnowledgeSnapshot mine = default;
+            bool found = false;
+            IReadOnlyList<GoldMineKnowledgeSnapshot> known =
+                context.Knowledge.KnownGoldMines;
+            for (int i = 0; i < known.Count; i++)
+                if (known[i].RuntimeId.CompareTo(offensiveTarget.RuntimeId) == 0)
+                { mine = known[i]; found = true; break; }
+            if (!found || mine.State is GoldMineState.Depleted
+                or GoldMineState.Destroyed)
+            {
+                CompleteOffense(context, "Gold Mine resolved or unavailable");
+                return;
+            }
+            currentObjectivePosition = mine.LastSeenPosition;
+            IsOffensiveTargetVisible = context.Knowledge.IsCellVisible(
+                context.Knowledge.TeamVision.GridManager.WorldToGrid(
+                    currentObjectivePosition));
+            if (operationMembers.Count == 0 || CountAttackers(operationMembers) == 0)
+            {
+                EnterRecovering(context, "Mine force unavailable");
+                return;
+            }
+            if (mineOccupationWaitStart < 0f
+                && army.State != ArmyGroupState.PreparingAttack
+                && HandleAttackNoProgress(context, safety)) return;
+            if (army.State is ArmyGroupState.Advancing
+                or ArmyGroupState.Assaulting && EvaluateRetreat(context))
+            {
+                BeginRetreat(context, safety, pendingRetreatReason);
+                return;
+            }
+            if (army.State == ArmyGroupState.PreparingAttack)
+            {
+                TickPreparingAttack(context, safety);
+                return;
+            }
+            Tactical.Refresh(operationMembers, context.Knowledge, army.State,
+                context.Time);
+            if (Tactical.TryEngageVisibleEnemies(context, operationMembers,
+                    Tactical.ArmyAnchor, Tactical.LocalEngagementRadius, default,
+                    safety?.ArmyTraversal, true))
+            {
+                mineOccupationWaitStart = -1f;
+                army.SetState(ArmyGroupState.Assaulting);
+                objectiveReason = "Clear visible mine guards";
+                return;
+            }
+            if (IsOffensiveTargetVisible && context.Knowledge.IsCellExplored(
+                    context.Knowledge.TeamVision.GridManager.WorldToGrid(
+                        currentObjectivePosition))
+                && !HasKnownMineThreat(context.Knowledge,
+                    currentObjectivePosition, context.Time, mineModel)
+                && (safety == null || safety.RiskAt(currentObjectivePosition,
+                    StrategicPathKind.Civilian) < StrategicRisk.Dangerous)
+                && Vector2.Distance(Tactical.ArmyAnchor, currentObjectivePosition)
+                    <= Tactical.LocalEngagementRadius * 0.6f)
+            {
+                if (mine.HasOwner && mine.Owner == context.Faction
+                    && mine.LastSeenOccupants >= 2)
+                {
+                    CompleteOffense(context, "Mine occupied by Red Pawns");
+                    return;
+                }
+                if (mineOccupationWaitStart < 0f)
+                    mineOccupationWaitStart = context.Time;
+                if (context.Time - mineOccupationWaitStart > 90f)
+                {
+                    if (mine.HasOwner && mine.Owner == context.Faction
+                        && mine.LastSeenOccupants > 0)
+                        CompleteOffense(context, "Mine claimed; one Pawn mining");
+                    else FailOffense(context, "Cleared mine was not occupied in time");
+                    return;
+                }
+                army.SetState(ArmyGroupState.Assaulting);
+                objectiveReason = "Cover cleared mine while Pawns enter";
+                return;
+            }
+            mineOccupationWaitStart = -1f;
+            army.SetState(ArmyGroupState.Advancing);
+            objectiveReason = "Advancing on known mine guards";
+            IssueAdvance(context, safety, false);
+        }
+
+        private static bool HasKnownMineThreat(FactionKnowledge knowledge,
+            Vector3 mine, float now, GoldMineStrategyModel model)
+        {
+            if (model == null) return true;
+            IReadOnlyList<GoblinKnowledgeSnapshot> goblins = knowledge.KnownGoblins;
+            for (int i = 0; i < goblins.Count; i++)
+                if (now - goblins[i].LastSeenTime <= model.GuardMemorySeconds
+                    && Vector2.Distance(goblins[i].LastSeenPosition, mine)
+                        <= model.GuardRegionRadius)
+                    return true;
+            IReadOnlyList<VisibleUnitObservation> visible = knowledge.VisibleEnemyUnits;
+            for (int i = 0; i < visible.Count; i++)
+                if (Vector2.Distance(visible[i].Position, mine)
+                    <= model.WorkerSafetyRadius)
+                    return true;
+            return false;
         }
 
         private void TickPreparingAttack(CommanderDecisionContext context,
@@ -1072,9 +1204,13 @@ namespace TinyKingdom.AI
             }
             if (hasOffensiveTarget)
             {
+                if (offensiveTarget.BuildingType == BuildingType.GoldMine)
+                    activeGoldMineModel?.RecordFailure(offensiveTarget.RuntimeId,
+                        context.Time);
                 blockedTargetId = offensiveTarget.RuntimeId;
                 blockedTargetUntil = context.Time + FailedObjectiveCooldown;
             }
+            mineOccupationWaitStart = -1f;
             hasOffensiveTarget = false;
             offensiveTarget = default;
             currentObjectivePosition = default;
@@ -1216,6 +1352,7 @@ namespace TinyKingdom.AI
 
         private void ClearCampaignForRecovery()
         {
+            mineOccupationWaitStart = -1f;
             hasOffensiveTarget = false;
             offensiveTarget = default;
             currentObjectivePosition = default;
@@ -1284,6 +1421,9 @@ namespace TinyKingdom.AI
         {
             if (hasOffensiveTarget)
             {
+                if (offensiveTarget.BuildingType == BuildingType.GoldMine)
+                    activeGoldMineModel?.RecordFailure(offensiveTarget.RuntimeId,
+                        context.Time);
                 blockedTargetId = offensiveTarget.RuntimeId;
                 blockedTargetUntil = context.Time + FailedObjectiveCooldown;
             }
@@ -1295,6 +1435,7 @@ namespace TinyKingdom.AI
 
         private void CancelOffense(string reason, float time, bool cooldown)
         {
+            mineOccupationWaitStart = -1f;
             hasOffensiveTarget = false;
             offensiveTarget = default;
             currentObjectivePosition = default;

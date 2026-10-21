@@ -45,6 +45,7 @@ namespace TinyKingdom.AI
         [SerializeField] private MilitaryCommanderPolicy militaryPolicy = new();
         [SerializeField] private StrategicSafetyMap strategicSafety = new();
         [SerializeField] private StrategicIntentEvaluator strategicIntent = new();
+        [SerializeField] private GoldMineWorkerPolicy goldMineWorkers = new();
         [SerializeField] private CommanderProgressDiagnostics progressDiagnostics = new();
         [SerializeField] private bool drawScoutGizmo = false;
         [SerializeField] private bool drawMilitaryGizmos = false;
@@ -152,6 +153,11 @@ namespace TinyKingdom.AI
         [SerializeField] private string debugLastMilitaryObservation;
         [SerializeField] private string debugRecentScoutTargets;
         [SerializeField] private float debugScoutTargetAge;
+        [SerializeField] private float debugScoutRepositioningDuration;
+        [SerializeField] private uint debugScoutStallRecoveries;
+        [SerializeField] private uint debugScoutFailedTargetRecoveries;
+        [SerializeField] private uint debugScoutRejectedDestinations;
+        [SerializeField] private string debugScoutLastRejectedMove;
         [SerializeField] private string debugScoutPromotionResult;
         [SerializeField] private float debugLastScoutDeathTime;
         [SerializeField] private float debugLastGatherAssignmentTime;
@@ -186,6 +192,10 @@ namespace TinyKingdom.AI
         [SerializeField] private float debugStrategicTargetScore;
         [SerializeField] private Vector2Int debugStrategicStagingCell;
         [SerializeField] private float debugStrategicTransitionTime;
+        [SerializeField] private string debugGoldMineOpportunity;
+        [SerializeField] private int debugKnownGoblins;
+        [SerializeField] private uint debugMineAssignments;
+        [SerializeField] private uint debugMineFailures;
 
         private float nextThinkTime;
 
@@ -204,6 +214,7 @@ namespace TinyKingdom.AI
         public MilitaryCommanderPolicy MilitaryPolicy => militaryPolicy;
         public StrategicSafetyMap StrategicSafety => strategicSafety;
         public StrategicIntentEvaluator StrategicIntent => strategicIntent;
+        public GoldMineWorkerPolicy GoldMineWorkers => goldMineWorkers;
         public CommanderProgressDiagnostics ProgressDiagnostics => progressDiagnostics;
         public float StallWarningSeconds => Mathf.Max(20f, stallWarningSeconds);
         public UnitController CurrentScout => scoutingPolicy?.Scout;
@@ -226,6 +237,7 @@ namespace TinyKingdom.AI
             militaryPolicy ??= new MilitaryCommanderPolicy();
             strategicSafety ??= new StrategicSafetyMap();
             strategicIntent ??= new StrategicIntentEvaluator();
+            goldMineWorkers ??= new GoldMineWorkerPolicy();
             progressDiagnostics ??= new CommanderProgressDiagnostics();
             economicDemand ??= new EconomicDemandModel();
             nextThinkTime = Time.time;
@@ -241,6 +253,7 @@ namespace TinyKingdom.AI
             militaryPolicy?.Reset();
             strategicSafety?.Reset();
             strategicIntent?.Reset();
+            goldMineWorkers?.Reset(pawnRoles);
             progressDiagnostics?.Reset();
             pawnRoles?.Reset();
             ThinkTick = 0;
@@ -286,6 +299,8 @@ namespace TinyKingdom.AI
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety, strategicIntent);
+                goldMineWorkers.Tick(context, pawnRoles,
+                    strategicIntent.GoldMine.Current, strategicSafety);
                 using (EconomyPolicyMarker.Auto())
                     economyPolicy.Tick(context, pawnRoles, strategicSafety, economicDemand);
                 progressDiagnostics.Observe(context.Time, context.Knowledge,
@@ -367,7 +382,8 @@ namespace TinyKingdom.AI
                 + $"Fortify={strategicScores.Fortify:0.00} "
                 + $"Prepare={strategicScores.PrepareAttack:0.00} "
                 + $"Attack={strategicScores.Attack:0.00} "
-                + $"Recover={strategicScores.Recover:0.00}";
+                + $"Recover={strategicScores.Recover:0.00} "
+                + $"Mine={strategicScores.SecureGoldMine:0.00}";
             debugAttackReadiness = strategicIntent.AttackReadiness;
             debugStrategicTarget = strategicIntent.HasStrategicTarget
                 ? strategicIntent.StrategicTarget.BuildingType + " "
@@ -389,6 +405,18 @@ namespace TinyKingdom.AI
                 ? strategicIntent.StrategicTarget.Score : 0f;
             debugStrategicStagingCell = strategicIntent.Situation.StagingCell;
             debugStrategicTransitionTime = strategicIntent.TransitionGameTime;
+            GoldMineOpportunity mineOpportunity = strategicIntent.GoldMine.Current;
+            debugGoldMineOpportunity = mineOpportunity.IsValid
+                ? $"{mineOpportunity.Mine.RuntimeId} score={mineOpportunity.Score:0.00} "
+                    + $"guard={mineOpportunity.KnownGuardStrength:0.0} "
+                    + $"force={mineOpportunity.OwnStrength:0.0} "
+                    + $"commit={mineOpportunity.CanCommit} "
+                    + $"safe={mineOpportunity.SafeForMiners} "
+                    + mineOpportunity.Reason : "No known viable mine";
+            debugKnownGoblins = knowledge.KnownGoblins.Count;
+            debugMineAssignments = goldMineWorkers.AssignmentSerial;
+            debugMineFailures = strategicIntent.GoldMine.FailedAttemptCount
+                + goldMineWorkers.FailedAttemptCount;
             debugScout = scoutingPolicy.Scout;
             debugScoutDestination = scoutingPolicy.HasDestination
                 ? scoutingPolicy.DestinationCell : new Vector2Int(-1, -1);
@@ -562,6 +590,11 @@ namespace TinyKingdom.AI
                 : "None";
             debugRecentScoutTargets = scoutingPolicy.RecentTargetHistory(Time.time);
             debugScoutTargetAge = scoutingPolicy.CurrentTargetAge(Time.time);
+            debugScoutRepositioningDuration = scoutingPolicy.RepositioningDuration(Time.time);
+            debugScoutStallRecoveries = scoutingPolicy.StallRecoveryCount;
+            debugScoutFailedTargetRecoveries = scoutingPolicy.FailedTargetRecoveryCount;
+            debugScoutRejectedDestinations = scoutingPolicy.RejectedDestinationCount;
+            debugScoutLastRejectedMove = scoutingPolicy.LastRejectedMoveResult.ToString();
             debugScoutPromotionResult = scoutingPolicy.LastPromotionResult;
             debugLastScoutDeathTime = scoutingPolicy.LastScoutDeathTime;
             debugLastGatherAssignmentTime = progressDiagnostics.LastGatherAssignmentTime;

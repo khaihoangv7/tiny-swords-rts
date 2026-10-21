@@ -128,6 +128,55 @@ namespace TinyKingdom.AI
         public float LastSeenTime { get; }
     }
 
+    // Mine and Goblin memories are copied only while visible. Hidden objects are
+    // never queried to refresh their health, reserve, ownership, or position.
+    public readonly struct GoldMineKnowledgeSnapshot
+    {
+        public GoldMineKnowledgeSnapshot(EntityId id, Vector3 position,
+            GoldMineState state, Faction owner, bool hasOwner, int remainingGold,
+            int occupants, float healthRatio, float lastSeenTime)
+        {
+            RuntimeId = id;
+            LastSeenPosition = position;
+            State = state;
+            Owner = owner;
+            HasOwner = hasOwner;
+            LastSeenRemainingGold = remainingGold;
+            LastSeenOccupants = occupants;
+            LastSeenHealthRatio = healthRatio;
+            LastSeenTime = lastSeenTime;
+        }
+
+        public EntityId RuntimeId { get; }
+        public Vector3 LastSeenPosition { get; }
+        public GoldMineState State { get; }
+        public Faction Owner { get; }
+        public bool HasOwner { get; }
+        public int LastSeenRemainingGold { get; }
+        public int LastSeenOccupants { get; }
+        public float LastSeenHealthRatio { get; }
+        public float LastSeenTime { get; }
+    }
+
+    public readonly struct GoblinKnowledgeSnapshot
+    {
+        public GoblinKnowledgeSnapshot(VisibleUnitObservation unit, float lastSeenTime)
+        {
+            RuntimeId = unit.RuntimeId;
+            UnitType = unit.UnitType;
+            LastSeenPosition = unit.Position;
+            LastSeenHealthRatio = CombatStrengthEvaluator.HealthRatio(
+                unit.CurrentHP, unit.MaxHP);
+            LastSeenTime = lastSeenTime;
+        }
+
+        public EntityId RuntimeId { get; }
+        public UnitType UnitType { get; }
+        public Vector3 LastSeenPosition { get; }
+        public float LastSeenHealthRatio { get; }
+        public float LastSeenTime { get; }
+    }
+
     // The only observation surface used by Commanders. Enemy observations are copied
     // from current team vision and rebuilt without live references on every refresh.
     public sealed class FactionKnowledge : MonoBehaviour
@@ -145,6 +194,12 @@ namespace TinyKingdom.AI
         private readonly List<BuildingKnowledgeSnapshot> knownEnemyBuildings = new();
         private readonly List<ResourceNode> visibleResources = new();
         private readonly List<ResourceKnowledgeSnapshot> knownResources = new();
+        private readonly List<GoldMineKnowledgeSnapshot> visibleGoldMines = new();
+        private readonly List<GoldMineKnowledgeSnapshot> knownGoldMines = new();
+        private readonly Dictionary<EntityId, GoldMineKnowledgeSnapshot> mineMemory = new();
+        private readonly List<GoblinKnowledgeSnapshot> knownGoblins = new();
+        private readonly Dictionary<EntityId, GoblinKnowledgeSnapshot> goblinMemory = new();
+        private readonly List<EntityId> forgotten = new();
 
         public Faction Faction => faction;
         public TeamVisionSystem TeamVision => teamVision;
@@ -160,6 +215,9 @@ namespace TinyKingdom.AI
             => knownEnemyBuildings;
         public IReadOnlyList<ResourceNode> VisibleResources => visibleResources;
         public IReadOnlyList<ResourceKnowledgeSnapshot> KnownResources => knownResources;
+        public IReadOnlyList<GoldMineKnowledgeSnapshot> VisibleGoldMines => visibleGoldMines;
+        public IReadOnlyList<GoldMineKnowledgeSnapshot> KnownGoldMines => knownGoldMines;
+        public IReadOnlyList<GoblinKnowledgeSnapshot> KnownGoblins => knownGoblins;
         public MilitaryObservationSnapshot LastMilitaryObservation
             => lastMilitaryObservation;
         public int ExploredCellCount { get; private set; }
@@ -183,6 +241,8 @@ namespace TinyKingdom.AI
             stockpile = resources;
             population = factionPopulation;
             lastMilitaryObservation = default;
+            mineMemory.Clear();
+            goblinMemory.Clear();
             Refresh();
         }
 
@@ -195,6 +255,9 @@ namespace TinyKingdom.AI
             knownEnemyBuildings.Clear();
             visibleResources.Clear();
             knownResources.Clear();
+            visibleGoldMines.Clear();
+            knownGoldMines.Clear();
+            knownGoblins.Clear();
             ExploredCellCount = 0;
             if (teamVision == null || !teamVision.IsReady) return;
 
@@ -219,6 +282,8 @@ namespace TinyKingdom.AI
             }
 
             RefreshMilitaryObservation(Time.time);
+            RefreshGoblinMemory();
+            RefreshGoldMineMemory();
 
             IReadOnlyList<IVisionSource> sources = VisionSourceRegistry.ActiveSources;
             for (int i = 0; i < sources.Count; i++)
@@ -282,6 +347,67 @@ namespace TinyKingdom.AI
             region /= total;
             lastMilitaryObservation = new MilitaryObservationSnapshot(warriors,
                 archers, lancers, monks, observationTime, region);
+        }
+
+        private void RefreshGoldMineMemory()
+        {
+            IReadOnlyList<GoldMineObjective> activeMines = GoldMineObjective.Active;
+            for (int i = 0; i < activeMines.Count; i++)
+            {
+                GoldMineObjective mine = activeMines[i];
+                if (mine == null || !teamVision.IsVisible(faction,
+                        mine.transform.position)) continue;
+                var observation = new GoldMineKnowledgeSnapshot(mine.GetEntityId(),
+                    mine.transform.position, mine.State, mine.Faction, mine.HasOwner,
+                    mine.RemainingGold, mine.OccupantCount,
+                    mine.MaxHP > 0 ? Mathf.Clamp01(mine.CurrentHP / mine.MaxHP) : 0f,
+                    Time.time);
+                visibleGoldMines.Add(observation);
+                mineMemory[observation.RuntimeId] = observation;
+            }
+
+            forgotten.Clear();
+            foreach (KeyValuePair<EntityId, GoldMineKnowledgeSnapshot> item in mineMemory)
+            {
+                if (!teamVision.IsVisible(faction, item.Value.LastSeenPosition)) continue;
+                bool stillVisible = false;
+                for (int i = 0; i < visibleGoldMines.Count; i++)
+                    if (visibleGoldMines[i].RuntimeId.CompareTo(item.Key) == 0)
+                    { stillVisible = true; break; }
+                if (!stillVisible) forgotten.Add(item.Key);
+            }
+            for (int i = 0; i < forgotten.Count; i++) mineMemory.Remove(forgotten[i]);
+            foreach (GoldMineKnowledgeSnapshot item in mineMemory.Values)
+                knownGoldMines.Add(item);
+            knownGoldMines.Sort(static (a, b) => a.RuntimeId.CompareTo(b.RuntimeId));
+        }
+
+        private void RefreshGoblinMemory()
+        {
+            for (int i = 0; i < visibleEnemyUnits.Count; i++)
+            {
+                VisibleUnitObservation unit = visibleEnemyUnits[i];
+                if (unit.Faction != Faction.Goblin) continue;
+                goblinMemory[unit.RuntimeId] = new GoblinKnowledgeSnapshot(unit,
+                    Time.time);
+            }
+            forgotten.Clear();
+            foreach (KeyValuePair<EntityId, GoblinKnowledgeSnapshot> item in goblinMemory)
+            {
+                if (Time.time - item.Value.LastSeenTime > 180f)
+                { forgotten.Add(item.Key); continue; }
+                if (!teamVision.IsVisible(faction,
+                        item.Value.LastSeenPosition)) continue;
+                bool stillVisible = false;
+                for (int i = 0; i < visibleEnemyUnits.Count; i++)
+                    if (visibleEnemyUnits[i].RuntimeId.CompareTo(item.Key) == 0)
+                    { stillVisible = true; break; }
+                if (!stillVisible) forgotten.Add(item.Key);
+            }
+            for (int i = 0; i < forgotten.Count; i++) goblinMemory.Remove(forgotten[i]);
+            foreach (GoblinKnowledgeSnapshot item in goblinMemory.Values)
+                knownGoblins.Add(item);
+            knownGoblins.Sort(static (a, b) => a.RuntimeId.CompareTo(b.RuntimeId));
         }
 
         public bool IsCellVisible(Vector2Int cell)

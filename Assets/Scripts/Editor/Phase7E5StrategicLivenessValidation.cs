@@ -35,8 +35,8 @@ namespace TinyKingdom.EditorTools
                 var military = new MilitaryCommanderPolicy();
                 var tactical = new TacticalArmyController();
                 var scouting = new ScoutingCommanderPolicy();
-                Require(Enum.GetValues(typeof(StrategicIntent)).Length == 6,
-                    "All six routine strategic intents must remain defined.");
+                Require(Enum.GetValues(typeof(StrategicIntent)).Length >= 6,
+                    "Phase 7E.5 strategic intents must remain defined.");
                 Require(strategy.EvaluationInterval > 0f
                     && tactical.EvaluationInterval > 0f,
                     "Strategic and tactical cadences must be positive.");

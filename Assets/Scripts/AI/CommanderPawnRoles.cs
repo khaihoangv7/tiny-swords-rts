@@ -10,7 +10,8 @@ namespace TinyKingdom.AI
     {
         Economy,
         Scout,
-        Builder
+        Builder,
+        Mine
     }
 
     [Serializable]

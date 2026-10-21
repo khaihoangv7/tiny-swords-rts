@@ -54,6 +54,7 @@ namespace TinyKingdom.EditorTools
             occupied.SetOccupied(false);
 
             ValidateStairsSupport();
+            ValidateFailedPathReachability();
 
             if (logSuccess)
                 Debug.Log("Phase 2 validation passed: flat path, Water, Cliff, explicit stair height transition, occupancy and unreachable cases.");
@@ -69,6 +70,27 @@ namespace TinyKingdom.EditorTools
             });
             Require(Find(stairGrid, 0, 0, 2, 0).Count == 3,
                 "A Stairs cell did not connect height 0 and height 1.");
+        }
+
+        private static void ValidateFailedPathReachability()
+        {
+            var data = new List<NavigationCellData>();
+            for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 5; x++)
+                data.Add(new NavigationCellData(x, y,
+                    x == 2 ? TerrainType.Cliff : TerrainType.FlatGround, 0));
+            var grid = new ValidationGrid(5, 3, data);
+            GridCell start = grid.GetCell(0, 1);
+            List<GridCell> failed = AStarPathfinder.FindPath(grid, start,
+                grid.GetCell(4, 1), null, out HashSet<GridCell> exhausted);
+            Require(failed.Count == 0 && exhausted != null
+                && exhausted.Contains(grid.GetCell(1, 2))
+                && !exhausted.Contains(grid.GetCell(4, 1)),
+                "A failed path did not expose the complete reachable region.");
+            List<GridCell> reachable = AStarPathfinder.FindPath(grid, start,
+                grid.GetCell(1, 2), null, out HashSet<GridCell> unfinished);
+            Require(reachable.Count > 0 && unfinished == null,
+                "A successful path reported an exhausted search.");
         }
 
         private static List<GridCell> Find(IGridCellProvider grid, int startX, int startY, int endX, int endY)
