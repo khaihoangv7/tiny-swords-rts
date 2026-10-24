@@ -20,10 +20,10 @@ namespace TinyKingdom.EditorTools
             BuildingData tower = Resources.Load<BuildingData>("Buildings/Tower");
             BuildingData castle = Resources.Load<BuildingData>("Buildings/Castle");
             Require(tower != null && castle != null, "Tower/Castle BuildingData is missing.");
-            Require(tower.MaxHP == 300 && tower.WoodCost == 75 && tower.GoldCost == 50,
+            Require(tower.MaxHP == 300 && tower.WoodCost == 125 && tower.GoldCost == 85,
                 "Tower HP/cost regression.");
-            Require(tower.InternalGarrisonCapacity == 2 && tower.MountedArcherCapacity == 1,
-                "Tower capacities must be internal 2, mounted 1.");
+            Require(tower.InternalGarrisonCapacity == 3 && tower.MountedArcherCapacity == 1,
+                "Tower capacities must be internal 3, mounted 1.");
             Require(castle.InternalGarrisonCapacity == 5 && castle.MountedArcherCapacity == 3,
                 "Castle capacities must be internal 5, mounted 3.");
             Require(tower.DefensiveArrowDamage == 5 && castle.DefensiveArrowDamage == 5,
@@ -61,7 +61,7 @@ namespace TinyKingdom.EditorTools
             Require(VisionSourceRegistry.ActiveSources.Count > 0,
                 "Vision source registry has no active sources.");
 
-            Debug.Log("Phase 5C2 defense validation passed: Tower 2+1, Castle 5+3, "
+            Debug.Log("Phase 5C2 defense validation passed: Tower 3+1, Castle 5+3, "
                 + "5-damage generic arrows, 1.5s volleys, mounted x1.20 damage/x1.25 range, "
                 + "building targets and vision sources.");
         }

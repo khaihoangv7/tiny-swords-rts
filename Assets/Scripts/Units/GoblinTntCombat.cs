@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
+using TinyKingdom.Audio;
 using Unity.Profiling;
 using UnityEngine;
 
@@ -165,14 +166,26 @@ namespace TinyKingdom.Units
         private Sprite[] frames;
         private Sprite[] explosion;
         private UnitController source;
+        private Faction sourceFaction;
+        private bool impacted;
 
         public static void Spawn(Vector3 origin, Vector3 destination, UnitController owner,
             Phase6C2AssetCatalog assets)
+            => SpawnInternal(origin, destination, owner != null
+                ? owner.Faction : Faction.Goblin, owner, assets);
+
+        public static void Spawn(Vector3 origin, Vector3 destination, Faction owner,
+            Phase6C2AssetCatalog assets)
+            => SpawnInternal(origin, destination, owner, null, assets);
+
+        private static void SpawnInternal(Vector3 origin, Vector3 destination,
+            Faction ownerFaction, UnitController owner, Phase6C2AssetCatalog assets)
         {
             var obj = new GameObject("GoblinDynamiteProjectile");
             obj.transform.position = origin;
             GoblinDynamiteProjectile projectile = obj.AddComponent<GoblinDynamiteProjectile>();
-            projectile.start = origin; projectile.target = destination; projectile.source = owner;
+            projectile.start = origin; projectile.target = destination;
+            projectile.source = owner; projectile.sourceFaction = ownerFaction;
             projectile.frames = assets?.Dynamite; projectile.explosion = assets?.Explosion03;
             projectile.distance = Vector2.Distance(origin, destination);
             projectile.duration = Mathf.Max(0.1f, projectile.distance / Speed);
@@ -181,7 +194,7 @@ namespace TinyKingdom.Units
             if (projectile.frames != null && projectile.frames.Length > 0)
                 projectile.visual.sprite = projectile.frames[0];
             projectile.visual.enabled = Vision.FogWorldVisibility.Instance == null
-                || Vision.FogWorldVisibility.Instance.ShouldPresent(Faction.Goblin, origin);
+                || Vision.FogWorldVisibility.Instance.ShouldPresent(ownerFaction, origin);
         }
 
         private void Update()
@@ -195,20 +208,25 @@ namespace TinyKingdom.Units
                 visual.sprite = frames[Mathf.FloorToInt(elapsed * 12f) % frames.Length];
             visual.enabled = Vision.FogWorldVisibility.Instance == null
                 || Vision.FogWorldVisibility.Instance.ShouldPresent(
-                    Faction.Goblin, transform.position);
+                    sourceFaction, transform.position);
             if (t >= 1f) Impact();
         }
 
         private void Impact()
         {
+            if (impacted) return;
+            impacted = true;
+            GameplayAudioService.Request(GameplayAudioEvent.BuildingExplosion,
+                target, sourceFaction);
             OneShotSpriteVfx.Spawn("GoblinTntExplosion", target, explosion,
-                12f, 1f, 19, Faction.Goblin);
+                12f, 1f, 19, sourceFaction);
             // Damage may kill a unit, which unregisters it from ActiveUnits.
             // Iterate over a snapshot so those removals cannot invalidate this pass.
             var targets = new List<UnitController>(UnitController.ActiveUnits);
             foreach (UnitController unit in targets)
             {
-                if (unit == null || unit.Faction is not (Faction.Blue or Faction.Red)) continue;
+                if (unit == null || !FactionRelations.AreHostile(sourceFaction,
+                        unit.Faction)) continue;
                 if (Vector2.Distance(unit.transform.position, target) > GoblinTntCombat.ExplosionRadius)
                     continue;
                 HealthComponent health = unit.GetComponent<HealthComponent>();

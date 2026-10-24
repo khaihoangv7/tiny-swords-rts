@@ -16,6 +16,11 @@ namespace TinyKingdom.EditorTools
         private const string WoodTable = "Assets/UI Elements/UI Elements/Wood Table/WoodTable.png";
         private const string Slot = "Assets/UI Elements/UI Elements/Wood Table/WoodTable_Slots.png";
         private const string Paper = "Assets/UI Elements/UI Elements/Papers/SpecialPaper.png";
+        private const string Banner = "Assets/UI Elements/UI Elements/Banners/Banner.png";
+        private const string Swords = "Assets/UI Elements/UI Elements/Swords/Swords.png";
+        private const string BigRibbons = "Assets/UI Elements/UI Elements/Ribbons/BigRibbons.png";
+        private const string SmallRibbons = "Assets/UI Elements/UI Elements/Ribbons/SmallRibbons.png";
+        private const string SelectionCorners = "Assets/UI Elements/UI Elements/Cursors/Cursor_04.png";
         private const string Icons = "Assets/UI Elements/UI Elements/Icons/";
         private const string Avatars = "Assets/UI Elements/UI Elements/Human Avatars/";
         private const string ScoutFire = "Assets/Particle FX/Fire.png";
@@ -36,7 +41,12 @@ namespace TinyKingdom.EditorTools
                 Configure(WoodTable, 9);
                 Configure(Slot, 1);
                 Configure(Paper, 9);
-                foreach (int number in new[] { 1, 2, 3, 4, 5, 6, 9 })
+                Configure(Banner, 9);
+                Configure(Swords, 11);
+                Configure(BigRibbons, 15);
+                Configure(SmallRibbons, 30);
+                Configure(SelectionCorners, 4);
+                foreach (int number in new[] { 1, 2, 3, 4, 5, 6, 9, 10, 11, 12 })
                     Configure(Icons + $"Icon_{number:00}.png", 1);
                 for (int number = 1; number <= 5; number++)
                     Configure(Avatars + $"Avatars_{number:00}.png", 1);
@@ -60,6 +70,13 @@ namespace TinyKingdom.EditorTools
                     First(Avatars + "Avatars_03.png"),
                     First(Avatars + "Avatars_04.png"),
                     First(Avatars + "Avatars_05.png"));
+                catalog.SetTopHud(Load(Banner),
+                    AssetDatabase.LoadAssetAtPath<Texture2D>(Swords),
+                    Load(Swords), Load(BigRibbons), Load(SmallRibbons),
+                    First(Icons + "Icon_11.png"),
+                    First(Icons + "Icon_12.png"),
+                    First(Icons + "Icon_10.png"));
+                catalog.SetSelectionCorners(Load(SelectionCorners));
                 if (hasScoutFire)
                 {
                     Sprite[] scoutFire = LoadScoutFire();

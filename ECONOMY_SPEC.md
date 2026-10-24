@@ -12,8 +12,8 @@ Reachable cardinal slots are preferred; diagonal slots remain a fallback.
 The interaction point is 0.49 cell widths from the reserved cell center
 toward the node, still inside the reserved walkable cell.
 
-Each Sheep contains 200 Food. Tree 100 Wood and base Gold Rock 100 Gold remain
-provisional capacities. Gathering timing, carry capacity and depletion behavior
+Each Sheep contains 200 Food. Tree capacity is 125 Wood and base Gold Rock
+capacity remains 100 Gold. Gathering timing, carry capacity and depletion behavior
 were unchanged by that Sheep capacity adjustment; Phase 6H.1 below later raises
 Pawn carry and per-impact collection independently.
 
@@ -157,7 +157,7 @@ the target score. A completed economic Tower therefore shortens legal deposit ro
 without changing gather, carry, payment or depletion authority.
 
 The outpost planner groups a bounded set of known value snapshots. It may construct one
-safe Tower near a rich distant cluster only when the authoritative 75 Wood / 50 Gold
+safe Tower near a rich distant cluster only when the authoritative 125 Wood / 85 Gold
 cost is affordable beyond current buffers and reservations. Existing nearby drop-offs,
 danger, small clusters, active projects and cooldown reject the plan. House planning
 continues to use population pressure and the authoritative 80 Wood cost; Sheep spawning
@@ -166,14 +166,22 @@ does not create House demand.
 ## Phase 7E.6 Gold Mine exploitation
 
 The contested Gold Mine remains a station, not a `ResourceNode`: the first Pawn
-to enter claims it, at most three Pawns occupy it, and its existing five-second
-payout adds Gold directly to the faction stockpile. Entry does not create Pawn
-cargo or use a Castle/Tower drop-off. Red's worker policy uses the visible mine's
+to enter claims it, and at most three Pawns work inside it at once. Each Pawn
+works for an ordinary full Gold Rock load duration (currently ten 1.5-second
+cycles, or 15 seconds), then exits with up to 2.5 ordinary loads of Gold
+(currently 50). The final load is capped by the remaining 2,000-Gold reserve.
+The Pawn carries this Gold through the existing cargo/return movement system
+and deposits it only at its own main Castle; the mine does not add Gold to the
+stockpile directly and a Tower cannot accept this mine cargo. After delivery,
+the Pawn automatically returns for another load if the mine is usable. A
+returning Pawn keeps its mine capacity reservation until re-entry or job
+cancellation. Other resource cargo still uses the normal Castle/Tower rule.
+Red's worker policy uses the visible mine's
 authoritative entry command only after legal knowledge and the civilian safety
 check consider the area clear. It keeps at least three Pawns in ordinary Economy
 roles and prefers idle or Gold workers with no cargo. Rejected entry attempts
 have a retry interval; pending orders are released if danger returns. Depletion,
-destruction, ownership, ejection and payouts remain owned by `GoldMineObjective`.
+destruction, ownership, ejection and extraction remain owned by `GoldMineObjective`.
 For recapture, an unopposed opposing Warrior, Lancer or Archer within seven
 world units ejects current miners. A Pawn of that faction can enter only while
 that uncontested military presence remains; successful entry transfers the

@@ -21,9 +21,14 @@ namespace TinyKingdom.EditorTools
         private const string WoodTable = "Assets/UI Elements/UI Elements/Wood Table/WoodTable.png";
         private const string Slot = "Assets/UI Elements/UI Elements/Wood Table/WoodTable_Slots.png";
         private const string Paper = "Assets/UI Elements/UI Elements/Papers/SpecialPaper.png";
+        private const string Swords = "Assets/UI Elements/UI Elements/Swords/Swords.png";
+        private const string BigRibbons = "Assets/UI Elements/UI Elements/Ribbons/BigRibbons.png";
+        private const string SmallRibbons = "Assets/UI Elements/UI Elements/Ribbons/SmallRibbons.png";
         private const string Icons = "Assets/UI Elements/UI Elements/Icons/";
         private const string Avatars = "Assets/UI Elements/UI Elements/Human Avatars/";
         private const string HandCursor = "Assets/UI Elements/UI Elements/Cursors/Cursor_02.png";
+        private const string SelectionCorners =
+            "Assets/UI Elements/UI Elements/Cursors/Cursor_04.png";
 
         [MenuItem("Tools/Tiny Kingdom/Validate RTS HUD")]
         public static void Run()
@@ -31,7 +36,13 @@ namespace TinyKingdom.EditorTools
             Check(WoodTable, 448, 448, 9);
             Check(Slot, 192, 192, 1);
             Check(Paper, 320, 320, 9);
+            Check(Swords, 448, 640, 11);
+            Check(BigRibbons, 448, 640, 15);
+            Check(SmallRibbons, 320, 640, 30);
+            Check(SelectionCorners, 128, 128, 4);
             foreach (int number in new[] { 1, 2, 3, 4, 5, 6, 9 })
+                Check(Icons + $"Icon_{number:00}.png", 64, 64, 1);
+            foreach (int number in new[] { 10, 11, 12 })
                 Check(Icons + $"Icon_{number:00}.png", 64, 64, 1);
             for (int number = 1; number <= 5; number++)
                 Check(Avatars + $"Avatars_{number:00}.png", 256, 256, 1);
@@ -41,6 +52,15 @@ namespace TinyKingdom.EditorTools
                 "RTS HUD catalog is missing or incomplete. Run Prepare RTS HUD.");
             Require(catalog.WoodTable.Length == 9 && catalog.SpecialPaper.Length == 9,
                 "RTS HUD nine-piece panel references are incomplete.");
+            Require(catalog.Banner != null && catalog.Banner.Length == 9
+                && catalog.Swords != null && catalog.SwordParts.Length == 11
+                && catalog.BigRibbons.Length == 15
+                && catalog.SmallRibbons.Length == 30
+                && catalog.SelectionCorners.Length == 4
+                && catalog.InfoIcon != null
+                && catalog.MusicIcon != null && catalog.SettingsIcon != null,
+                "Top HUD sword, Settings banner or top-right icons are missing.");
+            ValidateSelectionCornerDepth();
             RequireSprite(catalog.PopulationIcon, Icons + "Icon_01.png", "Icon_01_0");
             RequireSprite(catalog.WoodIcon, Icons + "Icon_02.png", "Icon_02_0");
             RequireSprite(catalog.GoldIcon, Icons + "Icon_03.png", "Icon_03_0");
@@ -59,10 +79,17 @@ namespace TinyKingdom.EditorTools
                 Require(hud != null && hud.IsReady, "Runtime RTS HUD is missing or incomplete.");
                 Require(hud.ResourcePanel.Root.gameObject.activeInHierarchy,
                     "Resource panel must always remain visible during gameplay.");
+                Rect safe = Screen.safeArea;
+                Vector2 safeMin = new(safe.xMin / Mathf.Max(1f, Screen.width),
+                    safe.yMin / Mathf.Max(1f, Screen.height));
+                Vector2 safeTopLeft = new(safeMin.x,
+                    safe.yMax / Mathf.Max(1f, Screen.height));
+                Vector2 safeBottomRight = new(safe.xMax / Mathf.Max(1f, Screen.width),
+                    safeMin.y);
                 Require(Mathf.Approximately(hud.HudRoot.rect.height,
                         RtsHudController.HudHeight)
-                    && hud.HudRoot.anchorMin == Vector2.zero
-                    && hud.HudRoot.anchorMax == new Vector2(1f, 0f)
+                    && hud.HudRoot.anchorMin == safeMin
+                    && hud.HudRoot.anchorMax == safeBottomRight
                     && hud.HudRoot.pivot == Vector2.zero
                     && hud.HudRoot.anchoredPosition.y >= 8f,
                     "Bottom HUD root must stretch through the safe horizontal viewport.");
@@ -104,16 +131,50 @@ namespace TinyKingdom.EditorTools
                     && hud.CommandPanel.Root.Find("SpecialPaperSurface")
                         .GetComponent<Image>().raycastTarget,
                     "Visible HUD panel surfaces must block world clicks underneath.");
-                Require(!UnityEngine.Object.FindObjectsByType<UnitController>()
-                        .Any(unit => unit != null && unit.Faction == Faction.Goblin),
-                    "Goblin gameplay must remain disabled during the UI/UX phase.");
                 SelectionManager selection = UnityEngine.Object.FindAnyObjectByType<SelectionManager>();
                 Require(selection != null, "SelectionManager is missing.");
+                Require(hud.transform.Find("MinimapBackground") == null
+                    && hud.transform.Find("TopLeftHud/Sword/MapName")
+                        ?.GetComponent<Text>() != null
+                    && hud.transform.Find("TopLeftHud/Sword/MatchTimer")
+                        ?.GetComponent<Text>() != null
+                    && hud.transform.Find("GlobalQueue") != null
+                    && hud.transform.Find("ControlGroups") != null,
+                    "Sword, queue or control groups are missing, or minimap remains.");
+                Require(hud.transform.Find("TopLeftHud/Sword/SwordBlade")
+                        ?.GetComponent<Image>()?.type == Image.Type.Sliced
+                    && hud.transform.Find("TopLeftHud/Sword/SwordTip") != null
+                    && hud.transform.Find("GlobalQueue/QueuePaperSurface") == null
+                    && hud.transform.Find("DebugMatchControls") == null,
+                    "Sword pieces, frameless queue or Settings-only speed controls are invalid.");
+                RectTransform groups = hud.transform.Find("ControlGroups")
+                    as RectTransform;
+                Require(groups != null && groups.anchorMin == safeTopLeft
+                    && groups.Find("Group0") != null,
+                    "Control group cards must be anchored on the left edge.");
+                SettingsPanelPresenter settings = hud.GetComponent<SettingsPanelPresenter>();
+                Require(settings != null && hud.transform.Find("SettingsIcons") != null,
+                    "Settings presenter or top-right icons are missing.");
+                settings.Open();
+                try
+                {
+                    Require(settings.IsOpen && GameInputBindings.ModalOpen,
+                        "Settings did not block gameplay input when opened.");
+                    Transform panel = hud.transform.Find("SettingsModal/SettingsPanel");
+                    Require(panel != null && panel.Find("TitleRibbon") != null
+                        && panel.Find("Tab4") != null && panel.Find("Tab5") == null
+                        && panel.Find("BannerSurface")?.GetComponent<Image>()?.type
+                            == Image.Type.Simple,
+                        "Settings must use faction ribbons and exactly five tabs.");
+                }
+                finally { settings.Close(); }
+                Require(!settings.IsOpen && !GameInputBindings.ModalOpen,
+                    "Settings did not release gameplay input when closed.");
             }
 
             Debug.Log("RTS HUD validation passed: pixel imports, panel assets, resource icons, "
                 + "unit avatars and authoritative presenter configuration verified. "
-                + (Application.isPlaying ? "Runtime HUD is present and Goblins are disabled."
+                + (Application.isPlaying ? "Runtime HUD hierarchy is present."
                     : "Run again in Play Mode for live panel checks."));
         }
 
@@ -647,19 +708,19 @@ namespace TinyKingdom.EditorTools
                         && Mathf.Approximately(body.transform.localScale.y, 1.6f),
                         $"{unit.name}: gameplay root or 1.6x visual scale is invalid.");
                     UnitSelection selection = unit.GetComponent<UnitSelection>();
-                    Transform ring = unit.transform.Find("SelectionIndicator");
-                    Require(selection != null && ring != null
-                        && Mathf.Approximately(ring.localPosition.y,
+                    SelectionCursorMarker marker = unit.GetComponent<SelectionCursorMarker>();
+                    Require(selection != null && marker != null && marker.IsConfigured
+                        && Mathf.Approximately(marker.LocalY,
                             selection.MarkerYOffset),
-                        $"{unit.name}: selection ring is not aligned to scaled feet.");
+                        $"{unit.name}: Cursor_04 marker is not aligned to scaled feet.");
                 }
 
                 foreach (ResourceNode resource in ResourceNode.ActiveNodes)
                 {
-                    ResourceSelectionIndicator ring = null;
-                    bool hasRing = resource != null && resource.TryGetComponent(out ring);
-                    Require(hasRing && ring != null && ring.IsConfigured,
-                        $"{resource?.name}: resource selection ring is missing.");
+                    SelectionCursorMarker marker = null;
+                    bool hasMarker = resource != null && resource.TryGetComponent(out marker);
+                    Require(hasMarker && marker != null && marker.IsConfigured,
+                        $"{resource?.name}: resource Cursor_04 marker is missing.");
                     float expectedScale = resource.ResourceType == ResourceType.Gold
                         ? (resource.name.EndsWith("_6", System.StringComparison.Ordinal)
                             ? 1.55f : 1.4f)
@@ -670,22 +731,22 @@ namespace TinyKingdom.EditorTools
                             resource.PresentationRenderer.transform.localScale.x,
                             expectedScale),
                         $"{resource.name}: resource visual scale is not {expectedScale:0.##}x.");
-                    float expectedRingY = resource.ResourceType switch
+                    float expectedMarkerY = resource.ResourceType switch
                     {
                         ResourceType.Wood => 0f,
                         ResourceType.Gold => -0.20f,
                         _ => -0.37f
                     };
-                    Require(Mathf.Approximately(ring.LocalY, expectedRingY),
-                        $"{resource.name}: selection ring ground offset is invalid.");
+                    Require(Mathf.Approximately(marker.LocalY, expectedMarkerY),
+                        $"{resource.name}: Cursor_04 ground offset is invalid.");
                 }
 
                 foreach (GoldMineObjective mine in GoldMineObjective.Active)
                 {
-                    ResourceSelectionIndicator ring = null;
-                    bool hasRing = mine != null && mine.TryGetComponent(out ring);
-                    Require(hasRing && ring != null && ring.IsConfigured,
-                        $"{mine?.name}: Gold Mine selection ring is missing.");
+                    SelectionCursorMarker marker = null;
+                    bool hasMarker = mine != null && mine.TryGetComponent(out marker);
+                    Require(hasMarker && marker != null && marker.IsConfigured,
+                        $"{mine?.name}: Gold Mine Cursor_04 marker is missing.");
                 }
 
                 foreach (BuildingSite site in UnityEngine.Object.FindObjectsByType<BuildingSite>())
@@ -706,7 +767,7 @@ namespace TinyKingdom.EditorTools
             }
 
             Debug.Log("Selection and unit scale polish validation passed: 1.6x units/Trees/Sheep, "
-                + "1.4x Gold Stones, 1.55x Gold Stone 6, aligned selection rings and gentle vertical building click "
+                + "1.4x Gold Stones, 1.55x Gold Stone 6, aligned Cursor_04 markers and gentle vertical building click "
                 + "pulse verified."
                 + (Application.isPlaying ? " Runtime objects verified." :
                     " Run again in Play Mode for runtime object checks."));
@@ -844,6 +905,52 @@ namespace TinyKingdom.EditorTools
                 $"{target?.name}: {label} gameplay collider was replaced or changed to a trigger.");
             Require(area.Covers(visual),
                 $"{target?.name}: {label} selection hit area does not cover its visual bounds.");
+        }
+
+        private static void ValidateSelectionCornerDepth()
+        {
+            var root = new GameObject("TemporarySelectionCornerValidation");
+            try
+            {
+                SpriteRenderer body = root.AddComponent<SpriteRenderer>();
+                body.sortingOrder = 9;
+                SelectionCursorMarker marker =
+                    root.AddComponent<SelectionCursorMarker>();
+                const float expectedCenterX = 0.35f;
+                Require(marker.Configure(3f, 2f, 0f, body, 1f, true,
+                    expectedCenterX),
+                    "Building selection corners could not be configured.");
+                SpriteRenderer[] corners = root.GetComponentsInChildren<SpriteRenderer>();
+                Require(corners.Length == 5,
+                    "Building selection marker must contain four corners.");
+                for (int i = 0; i < 4; i++)
+                {
+                    SpriteRenderer corner = root.transform
+                        .Find("SelectionCursorCorner" + i)?.GetComponent<SpriteRenderer>();
+                    Require(corner != null && corner.sortingOrder ==
+                        body.sortingOrder + (i < 2 ? -1 : 1),
+                        "Rear corners must draw behind and front corners ahead of the building.");
+                }
+                Require(root.transform.Find("SelectionCursorCorner0").localPosition.y
+                    > root.transform.Find("SelectionCursorCorner2").localPosition.y,
+                    "Rear corners must span the back edge of the building footprint.");
+                SpriteRenderer left = root.transform.Find("SelectionCursorCorner0")
+                    .GetComponent<SpriteRenderer>();
+                SpriteRenderer right = root.transform.Find("SelectionCursorCorner1")
+                    .GetComponent<SpriteRenderer>();
+                float leftEdge = left.transform.localPosition.x
+                    - left.sprite.pivot.x / left.sprite.pixelsPerUnit;
+                float rightEdge = right.transform.localPosition.x
+                    + (right.sprite.rect.width - right.sprite.pivot.x)
+                        / right.sprite.pixelsPerUnit;
+                Require(Mathf.Abs((leftEdge + rightEdge) * 0.5f
+                    - expectedCenterX) < 0.001f,
+                    "Selection corners must center on the building visual, including sprite pivots.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
         }
 
         private static void Check(string path, int expectedWidth, int expectedHeight,

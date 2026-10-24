@@ -130,6 +130,7 @@ namespace TinyKingdom.Buildings
             text.color = Color.white;
             text.alignment = TextAnchor.MiddleLeft;
             text.raycastTarget = false;
+            TinyKingdom.UI.UiLanguage.Bind(text);
             return text;
         }
     }

@@ -15,8 +15,8 @@ MonoBehaviour:
   buildingType: 3
   maxHP: 300
   foodCost: 0
-  woodCost: 75
-  goldCost: 50
+  woodCost: 125
+  goldCost: 85
   footprint: {x: 2, y: 2}
   constructionSeconds: 7
   repairHPPerSecond: 20
@@ -27,7 +27,7 @@ MonoBehaviour:
   blueHouseVariants: []
   redHouseVariants: []
   visionRadius: 7
-  internalGarrisonCapacity: 2
+  internalGarrisonCapacity: 3
   mountedArcherCapacity: 1
   defensiveArrowDamage: 5
   defensiveVolleyInterval: 1.5

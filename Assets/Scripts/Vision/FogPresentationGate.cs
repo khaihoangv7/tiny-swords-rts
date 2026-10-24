@@ -21,6 +21,14 @@ namespace TinyKingdom.Vision
         public void ConfigureInitialVisibility(bool hideInitially)
             => hideUntilFirstVisibilityEvaluation = hideInitially;
 
+        // A renderer may be added to an existing child after the transform
+        // notification, as happens when a Pawn becomes a Scout.
+        public void RefreshRenderers()
+        {
+            cacheDirty = true;
+            SetPresented(IsPresented);
+        }
+
         public void SetPresented(bool value)
         {
             if (IsPresented == value && !cacheDirty) return;

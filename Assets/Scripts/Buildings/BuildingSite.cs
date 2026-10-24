@@ -22,12 +22,15 @@ namespace TinyKingdom.Buildings
     public sealed class BuildingSite : MonoBehaviour, IFriendlyCursorTarget, IProductionHost,
         IDefensiveBuildingHost
     {
+        private static readonly List<BuildingSite> RegisteredSites = new();
+        public static IReadOnlyList<BuildingSite> ActiveSites => RegisteredSites;
         public const float ConstructionStallSeconds = 3f;
         public const float RecoveryCooldownSeconds = 2f;
         private BuildingData data;
         private GridManager grid;
         private FactionPopulation population;
         private SpriteRenderer visual;
+        private Transform constructionVisualRoot;
         private static Sprite pixelSprite;
         private SpriteRenderer progressBackground;
         private SpriteRenderer progressFill;
@@ -98,7 +101,17 @@ namespace TinyKingdom.Buildings
         public event Action DefenseHostDestroyed;
         public event Action DefenseHostHealthChanged;
 
-        private void OnEnable() => GroundSorting.Ensure(gameObject);
+        private void OnEnable()
+        {
+            if (!RegisteredSites.Contains(this)) RegisteredSites.Add(this);
+            GroundSorting.Ensure(gameObject);
+        }
+
+        private void OnDisable()
+        {
+            RegisteredSites.Remove(this);
+            ResetConstructionVisual();
+        }
 
         public void Configure(BuildingData definition, Faction owner, Vector2Int gridOrigin,
             GridManager navigation, FactionPopulation ownerPopulation,
@@ -120,8 +133,11 @@ namespace TinyKingdom.Buildings
             Vector3 first = grid.GridToWorld(origin.x, origin.y);
             transform.position = first + new Vector3((data.Footprint.x - 1) * grid.NavigationData.CellSize * 0.5f,
                 (data.Footprint.y - 1) * grid.NavigationData.CellSize * 0.5f, 0f);
+            var pulseRoot = new GameObject("ConstructionVisualRoot");
+            constructionVisualRoot = pulseRoot.transform;
+            constructionVisualRoot.SetParent(transform, false);
             var child = new GameObject("VisualRoot");
-            child.transform.SetParent(transform, false);
+            child.transform.SetParent(constructionVisualRoot, false);
             visual = child.AddComponent<SpriteRenderer>();
             visual.sprite = data.GetSprite(owner, variant);
             visual.sortingOrder = 9;
@@ -182,6 +198,7 @@ namespace TinyKingdom.Buildings
             if (constructionElapsed >= data.ConstructionSeconds)
             {
                 State = BuildingState.Completed;
+                ResetConstructionVisual();
                 currentHP = data.MaxHP;
                 visual.color = Color.white;
                 if (!completionAudioPlayed)
@@ -207,6 +224,26 @@ namespace TinyKingdom.Buildings
             // Fog gating and gameplay bar activation are independent. Reapply the
             // authoritative construction/health state after all Update work.
             UpdateBar();
+            UpdateConstructionVisual();
+        }
+
+        private void UpdateConstructionVisual()
+        {
+            if (constructionVisualRoot == null) return;
+            if (State != BuildingState.UnderConstruction || !IsAlive)
+            {
+                ResetConstructionVisual();
+                return;
+            }
+            if (!MatchManager.AllowsGameplay) return;
+            float factor = 1f + Mathf.Sin(Time.time * 7f) * 0.025f;
+            constructionVisualRoot.localScale = new Vector3(1f, factor, 1f);
+        }
+
+        private void ResetConstructionVisual()
+        {
+            if (constructionVisualRoot != null)
+                constructionVisualRoot.localScale = Vector3.one;
         }
 
         private void Update()

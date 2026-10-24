@@ -22,7 +22,7 @@ namespace TinyKingdom.EditorTools
                 BuildingData tower = Resources.Load<BuildingData>("Buildings/Tower");
                 Require(house != null && house.WoodCost == 80,
                     "House authoritative cost must remain exactly 80 Wood.");
-                Require(tower != null && tower.WoodCost == 75 && tower.GoldCost == 50,
+                Require(tower != null && tower.WoodCost == 125 && tower.GoldCost == 85,
                     "Economic outposts must use the authoritative Tower cost.");
                 Require(typeof(BuildingResourceDropOff).GetInterface(
                         nameof(IResourceDropOff)) != null,

@@ -74,14 +74,16 @@ Selecting Tower shows `Internal Garrison: current / 2` and
 are represented through the host panel and are not world selectable while
 protected. Production UI remains available when Castle is selected.
 
-Selecting a currently observable Tree, Gold Stone, Sheep or Gold Mine displays
-the same green elliptical ground-selection language used for units. The ring is
-presentation-only, follows Fog presentation, hides when selection is cleared or
-invalidated, and has no collider, raycast, occupancy or gameplay authority.
+Selecting a currently observable Tree, Gold Stone or Sheep uses the same four
+`Cursor_04` corners as selected units, buildings and the Gold Mine. Resource
+corners frame each resource's ground contact rather than the whole canopy or
+sprite. All markers are presentation-only, follow Fog presentation, hide when
+selection is cleared or invalidated, and have no collider, raycast, occupancy
+or gameplay authority.
 
-Unit selection ellipses scale their width, height and authored ground offset by
-the 1.3 unit presentation factor. The ellipse remains a sibling of the animated
-visual, so animation and damage deformation cannot pull it away from the feet.
+The unit selection marker scales its width and authored ground offset with the
+unit presentation factor. Its corners remain on the logical root, so animation
+and damage deformation cannot pull them away from the feet.
 
 Selecting a friendly House, Barracks, Archery, Monastery, Tower or Castle plays
 a brief vertical squash/stretch on building artwork. It has no command,
@@ -210,7 +212,7 @@ unchanged. Fog hides the complete live enemy bar, and memory ghosts have no bar.
 Positive unit damage and successful Sheep Food harvest impacts use a shared
 presentation-only `Squash -> Stretch -> Normal` reaction. The animated body is
 wrapped by a dedicated ground-anchored presentation transform; gameplay root,
-Shadow, SelectionRing, health bar and labels are not scaled or moved. Hit flash
+Shadow, `Cursor_04` corners, health bar and labels are not scaled or moved. Hit flash
 and the currently playing Idle, Run, Attack, Guard, work or Sheep animation keep
 running. Rapid hits restart one reaction from the exact stored baseline.
 
@@ -418,3 +420,88 @@ lateral row for Line. These glyphs are presentation only and introduce no extern
 art. Each button reuses the Phase 6D.3 tooltip presenter and concise shape help.
 Clicks use the existing Phase 6E `CommandClick`/`CommandRejected` request path.
 No formation-specific sound is added.
+
+## Castle and Tower defense upgrades
+
+Selecting an unfinished-upgrade Castle shows a Cannon command with 250 Wood / 200
+Gold; selecting an unfinished-upgrade Tower shows Auto Arrow with 80 Wood / 50
+Gold. The command is disabled when the owning stockpile cannot afford it or the
+building is not ready. A valid click spends once and starts a timed upgrade.
+While pending, the disabled command shows remaining seconds and progress, and
+the selection panel shows progress; the extra attack becomes active only after
+completion. The completed command then hides. Cannon uses the existing Goblin
+dynamite icon and Tower uses the faction arrow icon at the same command-icon
+anchor as other actions. The HUD uses its existing
+command audio and tooltip patterns.
+
+## Top HUD, selection and Settings
+
+The top-left sword assembles the player's faction handle, sliced center blade
+and tip from the inspected Swords sheet without repeating blade tiles. It shows
+the active scene name above elapsed match time. The match HUD has no minimap.
+The timer uses elapsed playing simulation time, so pause and match end stop it and speed
+controls scale it. The frameless global production icons start to the right of
+the sword, group paid jobs by host and type, page through all jobs and focus the
+exact host on click without cancellation. Empty queues draw nothing.
+
+The selected host's queue row cancels one indexed production request per click.
+An active Castle/Tower upgrade has its own cancel icon. Waiting production
+requests refund their full paid cost; an active head or upgrade refunds the
+floored unused fraction of each paid resource. The authoritative queue or
+upgrade component performs the refund and clears the work exactly once.
+
+Double-click selects all living friendly units or buildings of the same type.
+Ctrl+1–4 replaces one unit control group; 1–4 selects its surviving members,
+and U clears the currently selected group. Compact left-edge vertical cards show
+only nonempty groups, with one icon and count per living unit type. Speed
+shortcuts are F5–F8 so the number keys
+do not conflict. Keyboard actions exposed in Settings read and write the same
+persistent bindings used by their gameplay controllers. Bindings may use a single
+key or Shift plus a key (for example, Shift+A); Shift alone is not a command.
+Controls uses one scrollable row and one wide shortcut button per action.
+Assign Group and Select Group are separate rows for each of the four groups.
+Both can be rebound independently, including Ctrl or Shift modifiers; an
+existing custom group key remains the default Ctrl+key assignment until its
+Assign shortcut is explicitly changed.
+
+The top-right Info, Music and Settings icons open About, Audio and the last
+Settings tab respectively, with the same click SFX as Settings command buttons;
+the existing FPS/ms counter appears below them. Fog and speed are controlled
+through Settings, with Fog still gated by Allow Cheats. Settings opens a
+textured Banner panel with colored BigRibbon tabs for Overview, Controls,
+Graphics, Audio and About. About contains a localized project overview, match
+description, creators, artwork credit, and future RL scope. The three-piece
+ribbon centers are sliced to keep
+continuous artwork and preserve the end caps. Graphics includes resolution and
+fullscreen controls with a 15-second keep-or-revert confirmation; option buttons
+use faction SmallRibbons. Its damage text, cheats, speed, input bindings,
+resolution, fullscreen, FPS,
+quality and volume controls update the underlying systems. Cheats affect only
+the human faction; Fog OFF changes presentation only. Settings keeps the current
+selection and all production/upgrade progress intact.
+
+Settings has a navigation column and a content surface. Overview offers
+English and Vietnamese for the game UI. The choice is persisted and updates
+visible HUD and menu text without changing gameplay state. Selected units,
+buildings, Tree, Gold Stone, Sheep and the Gold Mine use the four `Cursor_04` corner sprites at ground
+contact. The marker has no collider. Enemy Scout fire and resource gain popups
+follow human-view Fog rules; enemy Gold Mine income is never player feedback.
+Building markers span the footprint from its rear edge to the front contact;
+their rear pair draws behind the building sprite and the front pair ahead of it.
+Tree and Gold Stone markers keep their front pair at ground contact and place
+the raised rear pair behind the resource sprite for visible depth.
+Settings buttons briefly stretch, compress and return to normal horizontally
+before their click action runs.
+
+Human building preview evaluates live occupancy only when the whole footprint
+is currently visible. In Fog it evaluates authored terrain and affordability,
+then leaves a visible provisional blueprint while one selected Pawn approaches.
+The Pawn tries bounded reachable reveal positions around the footprint; another
+selected Pawn can take over if the first has no route. The active Pawn
+records each cell only when it becomes legally visible during that command.
+After every footprint cell has been observed, authoritative placement checks
+live occupancy and builder access before payment. An invalid or unreachable
+site cancels the provisional plan and leaves the Pawn idle without charging.
+The site visual gently pulses while under construction. Sheep alternate between
+idle/grass and bounded randomized wandering, while harvest reservations and
+occupied cells retain their gameplay authority.

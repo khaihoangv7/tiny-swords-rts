@@ -2,57 +2,136 @@ using System.Collections.Generic;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
+using TinyKingdom.Presentation;
+using TinyKingdom.Audio;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
 {
     public sealed class BuildingDefense : MonoBehaviour
     {
+        public const int CastleAutomaticArrowDamage = 12;
+        public const float VolleyShotInterval = 0.14f;
+        public const float TowerArrowSpeed = 16f;
+        public const float TowerHitTolerance = 0.30f;
+        public const float CannonInterval = 5f;
         private readonly List<HealthComponent> targets = new();
         private IDefensiveBuildingHost host;
         private BuildingGarrison garrison;
+        private BuildingDefenseUpgrade upgrade;
+        private HealthComponent volleyTarget;
+        private int shotsRemaining;
+        private int nextShotIndex;
+        private float shotRemaining;
+        private float cannonRemaining;
         private Sprite projectileSprite;
+        private Phase6C2AssetCatalog cannonAssets;
         private float projectileSpeed;
         private float projectileArcHeight;
         private float remaining;
 
         public int LastVolleyArrowCount { get; private set; }
+        public int ShotsRemaining => shotsRemaining;
+        public Sprite ArrowSprite => projectileSprite;
+
+        public static int ArrowCount(BuildingType type, int garrisonCount,
+            bool upgradePurchased)
+            => Mathf.Max(0, garrisonCount)
+                + (type == BuildingType.Castle || type == BuildingType.Tower
+                    && upgradePurchased ? 1 : 0);
+
+        public static int ArrowDamage(BuildingType type, int shotIndex,
+            int garrisonDamage)
+            => type == BuildingType.Castle && shotIndex == 0
+                ? CastleAutomaticArrowDamage : garrisonDamage;
 
         public void Configure(IDefensiveBuildingHost owner, BuildingGarrison station,
             Sprite arrowSprite, float arrowSpeed, float arcHeight)
         {
             host = owner;
             garrison = station;
+            upgrade = GetComponent<BuildingDefenseUpgrade>();
             projectileSprite = arrowSprite;
+            cannonAssets = owner.Type == BuildingType.Castle
+                ? Phase6C2AssetCatalog.Load() : null;
             projectileSpeed = arrowSpeed;
             projectileArcHeight = arcHeight;
             remaining = owner.DefenseData.DefensiveVolleyInterval;
+            cannonRemaining = CannonInterval;
+            shotsRemaining = 0;
         }
 
         private void Update()
         {
             if (!MatchManager.AllowsGameplay || host == null || !host.IsDefenseReady
-                || garrison == null
-                || garrison.InternalCount == 0) return;
+                || garrison == null)
+            {
+                shotsRemaining = 0;
+                volleyTarget = null;
+                return;
+            }
+            if (shotsRemaining > 0)
+            {
+                shotRemaining -= Time.deltaTime;
+                if (shotRemaining <= 0f) FireNextShot();
+            }
             remaining -= Time.deltaTime;
-            if (remaining > 0f) return;
-            remaining += host.DefenseData.DefensiveVolleyInterval;
-            FireVolley();
+            if (remaining <= 0f)
+            {
+                remaining = host.DefenseData.DefensiveVolleyInterval;
+                FireVolley();
+            }
+            if (host.Type != BuildingType.Castle || upgrade?.Purchased != true) return;
+            cannonRemaining -= Time.deltaTime;
+            if (cannonRemaining > 0f) return;
+            cannonRemaining = CannonInterval;
+            FindTargets();
+            if (targets.Count > 0)
+                GoblinDynamiteProjectile.Spawn(
+                    host.HostTransform.position
+                        + (Vector3)host.DefenseData.DefensiveProjectileOrigin,
+                    targets[0].transform.position, host.Faction,
+                    cannonAssets);
         }
 
         public int FireVolley()
         {
-            LastVolleyArrowCount = 0;
             if (!MatchManager.AllowsGameplay || host == null || !host.IsDefenseReady
                 || garrison == null
-                || garrison.InternalCount <= 0 || projectileSprite == null) return 0;
+                || projectileSprite == null || shotsRemaining > 0) return 0;
+            int arrows = ArrowCount(host.Type, garrison.InternalCount,
+                upgrade?.Purchased == true);
+            if (arrows == 0) return 0;
             FindTargets();
             if (targets.Count == 0) return 0;
-            int arrows = garrison.InternalCount;
-            for (int i = 0; i < arrows; i++)
-                Launch(targets[i % targets.Count]);
+            volleyTarget = targets[0];
+            shotsRemaining = arrows;
+            nextShotIndex = 0;
+            shotRemaining = 0f;
             LastVolleyArrowCount = arrows;
+            FireNextShot();
             return arrows;
+        }
+
+        private void FireNextShot()
+        {
+            if (shotsRemaining == 0) return;
+            // An occupant who leaves during the volley cannot keep contributing
+            // arrows after departure. The automatic shot remains available.
+            if (nextShotIndex >= ArrowCount(host.Type, garrison.InternalCount,
+                    upgrade?.Purchased == true)
+                || volleyTarget == null || !volleyTarget.IsTargetable
+                || !CombatVisibility.CanFactionCurrentlyObserveTarget(
+                    host.Faction, volleyTarget))
+            {
+                shotsRemaining = 0;
+                volleyTarget = null;
+                return;
+            }
+            Launch(volleyTarget, nextShotIndex++);
+            shotsRemaining--;
+            shotRemaining = VolleyShotInterval;
+            if (shotsRemaining == 0) volleyTarget = null;
         }
 
         private void FindTargets()
@@ -84,7 +163,7 @@ namespace TinyKingdom.Buildings
             });
         }
 
-        private void Launch(HealthComponent target)
+        private void Launch(HealthComponent target, int shotIndex)
         {
             var arrow = new GameObject("BuildingDefensiveArrow");
             arrow.transform.position = host.HostTransform.position
@@ -93,9 +172,18 @@ namespace TinyKingdom.Buildings
             renderer.sprite = projectileSprite;
             renderer.sortingOrder = 15;
             CombatProjectile projectile = arrow.AddComponent<CombatProjectile>();
-            projectile.Initialize(host.Faction, target,
-                host.DefenseData.DefensiveArrowDamage, UnitType.Archer,
-                projectileSpeed, projectileArcHeight, 1f, false);
+            int damage = ArrowDamage(host.Type, shotIndex,
+                host.DefenseData.DefensiveArrowDamage);
+            if (host.Type == BuildingType.Tower)
+                projectile.InitializeStraight(host.Faction, target, damage,
+                    Mathf.Max(TowerArrowSpeed, projectileSpeed), TowerHitTolerance);
+            else
+                projectile.Initialize(host.Faction, target, damage, UnitType.Archer,
+                    projectileSpeed, projectileArcHeight, 1f, false);
+            if (host.Type == BuildingType.Tower && shotIndex == 0
+                && upgrade?.Purchased == true)
+                GameplayAudioService.Request(GameplayAudioEvent.ArcherAttack,
+                    arrow.transform.position, host.Faction);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using TinyKingdom.Match;
+using TinyKingdom.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -70,10 +71,10 @@ namespace TinyKingdom.Debugging
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.digit1Key.wasPressedThisFrame) SetSpeed(1f);
-            else if (keyboard.digit2Key.wasPressedThisFrame) SetSpeed(2f);
-            else if (keyboard.digit5Key.wasPressedThisFrame) SetSpeed(5f);
-            else if (keyboard.digit0Key.wasPressedThisFrame) SetSpeed(10f);
+            if (GameInputBindings.WasPressed(GameAction.Speed1)) SetSpeed(1f);
+            else if (GameInputBindings.WasPressed(GameAction.Speed2)) SetSpeed(2f);
+            else if (GameInputBindings.WasPressed(GameAction.Speed5)) SetSpeed(5f);
+            else if (GameInputBindings.WasPressed(GameAction.Speed10)) SetSpeed(10f);
         }
 
         public bool SetSpeed(float speed)

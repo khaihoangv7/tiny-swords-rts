@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System;
+using TinyKingdom.Presentation;
 using UnityEngine;
 
 namespace TinyKingdom.Units
@@ -16,8 +17,7 @@ namespace TinyKingdom.Units
 
         private UnitController unitController;
         private UnitMovement unitMovement;
-        private LineRenderer selectionIndicator;
-        private Material indicatorMaterial;
+        private SelectionCursorMarker selectionIndicator;
 
         public static IReadOnlyList<UnitSelection> ActiveUnits => RegisteredUnits;
         public UnitController Controller => unitController != null ? unitController : unitController = GetComponent<UnitController>();
@@ -52,18 +52,15 @@ namespace TinyKingdom.Units
             BecameUnavailable?.Invoke(this);
         }
 
-        private void OnDestroy()
-        {
-            if (indicatorMaterial != null)
-                Destroy(indicatorMaterial);
-        }
-
         public void SetSelected(bool selected)
         {
             selected = selected && Controller.IsAlive && IsWorldSelectable;
             IsSelected = selected;
             if (selectionIndicator != null)
-                selectionIndicator.enabled = selected;
+            {
+                if (!selectionIndicator.IsConfigured) RefreshIndicatorGeometry();
+                selectionIndicator.SetSelected(selected);
+            }
         }
 
         public void SetWorldSelectable(bool value)
@@ -96,21 +93,8 @@ namespace TinyKingdom.Units
 
         private void CreateSelectionIndicator()
         {
-            var indicatorObject = new GameObject("SelectionIndicator");
-            indicatorObject.transform.SetParent(transform, false);
-            selectionIndicator = indicatorObject.AddComponent<LineRenderer>();
-            selectionIndicator.useWorldSpace = false;
-            selectionIndicator.loop = true;
-            selectionIndicator.positionCount = 40;
-            selectionIndicator.startWidth = 0.045f;
-            selectionIndicator.endWidth = 0.045f;
-            selectionIndicator.numCornerVertices = 2;
-            selectionIndicator.sortingLayerID = GetComponent<SpriteRenderer>().sortingLayerID;
-            selectionIndicator.sortingOrder = 9;
-            indicatorMaterial = new Material(Shader.Find("Sprites/Default"));
-            indicatorMaterial.color = new Color(0.2f, 1f, 0.25f, 0.95f);
-            selectionIndicator.sharedMaterial = indicatorMaterial;
-
+            selectionIndicator = GetComponent<SelectionCursorMarker>()
+                ?? gameObject.AddComponent<SelectionCursorMarker>();
             RefreshIndicatorGeometry();
         }
 
@@ -118,15 +102,9 @@ namespace TinyKingdom.Units
         {
             if (selectionIndicator == null) return;
             float scale = UnitVisualPresentation.Scale;
-            selectionIndicator.transform.localPosition = new Vector3(
-                0f, markerYOffset * scale, 0f);
-            for (int i = 0; i < selectionIndicator.positionCount; i++)
-            {
-                float angle = i * Mathf.PI * 2f / selectionIndicator.positionCount;
-                selectionIndicator.SetPosition(i,
-                    new Vector3(Mathf.Cos(angle) * markerWidth * scale * 0.5f,
-                        Mathf.Sin(angle) * markerHeight * scale * 0.5f, 0f));
-            }
+            selectionIndicator.Configure(markerWidth * scale,
+                Mathf.Max(0.48f, markerHeight * scale), markerYOffset * scale,
+                GetComponent<SpriteRenderer>(), 0.8f);
         }
     }
 }

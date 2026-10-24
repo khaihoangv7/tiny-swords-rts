@@ -1,5 +1,6 @@
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using TinyKingdom.Match;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -32,7 +33,7 @@ namespace TinyKingdom.Economy
         private float stateTimer;
         private float frameTimer;
         private int frame;
-        private int directionIndex;
+        private System.Random random;
         private bool configured;
         private bool evacuatingBuildingFootprint;
         private Vector2Int evacuationCell;
@@ -50,6 +51,8 @@ namespace TinyKingdom.Economy
             move = moveFrames;
             configured = node != null && renderer != null && idle?.Length > 0
                 && grass?.Length > 0 && move?.Length > 0;
+            random = new System.Random(transform.position.GetHashCode()
+                ^ name.GetHashCode());
             SetState(VisualState.Idle);
         }
 
@@ -61,7 +64,8 @@ namespace TinyKingdom.Economy
 
         private void Update()
         {
-            if (!configured || node == null || !node.IsAvailable) return;
+            if (!configured || node == null || !node.IsAvailable
+                || !MatchManager.AllowsGameplay) return;
             if (!evacuatingBuildingFootprint && slots != null && slots.ReservationCount > 0)
             {
                 StopForHarvest();
@@ -81,7 +85,7 @@ namespace TinyKingdom.Economy
                         evacuatingBuildingFootprint = false;
                         originCell = evacuationCell;
                     }
-                    SetState(directionIndex % 2 == 0 ? VisualState.Idle : VisualState.Grass);
+                    SetState(random.Next(2) == 0 ? VisualState.Idle : VisualState.Grass);
                 }
             }
             else
@@ -118,22 +122,22 @@ namespace TinyKingdom.Economy
         private bool TryBeginWander()
         {
             if (grid == null || wanderRadius < 1f) return false;
-            if (node.OccupiedCell != originCell)
-            {
-                if (ContainsLivingUnit(originCell)) return false;
-                if (!node.TryMoveOccupancy(originCell, out destination)) return false;
-                renderer.flipX = destination.x < transform.position.x;
-                SetState(VisualState.Moving);
-                return true;
-            }
+            Vector2Int current = node.OccupiedCell;
+            Vector3 origin = grid.GridToWorld(originCell.x, originCell.y);
+            float currentDistance = Vector2.Distance(origin,
+                grid.GridToWorld(current.x, current.y));
+            int first = random.Next(directions.Length);
             for (int attempt = 0; attempt < directions.Length; attempt++)
             {
-                Vector2Int offset = directions[directionIndex++ % directions.Length];
-                Vector2Int candidate = originCell + offset;
-                Vector3 origin = grid.GridToWorld(originCell.x, originCell.y);
+                Vector2Int offset = directions[(first + attempt) % directions.Length];
+                Vector2Int candidate = current + offset;
                 Vector3 candidateWorld = grid.GridToWorld(candidate.x, candidate.y);
-                if (Vector2.Distance(origin, candidateWorld) > wanderRadius
+                float distance = Vector2.Distance(origin, candidateWorld);
+                if (distance > wanderRadius
+                    || (currentDistance >= wanderRadius * 0.7f
+                        && distance > currentDistance && random.NextDouble() < 0.8)
                     || ContainsLivingUnit(candidate)
+                    || ContainsOtherSheep(candidate)
                     || !node.TryMoveOccupancy(candidate, out destination)) continue;
                 renderer.flipX = destination.x < transform.position.x;
                 SetState(VisualState.Moving);
@@ -153,10 +157,20 @@ namespace TinyKingdom.Economy
             return false;
         }
 
+        private bool ContainsOtherSheep(Vector2Int candidate)
+        {
+            foreach (ResourceNode other in ResourceNode.ActiveNodes)
+                if (other != null && other != node && other.IsAvailable
+                    && other.ResourceType == ResourceType.Food
+                    && other.OccupiedCell == candidate) return true;
+            return false;
+        }
+
         private void SetState(VisualState next)
         {
             state = next;
-            stateTimer = stationarySeconds;
+            stateTimer = next == VisualState.Moving ? 0f
+                : stationarySeconds * (0.55f + (float)random.NextDouble() * 1.1f);
             frameTimer = 0f;
             frame = 0;
             ShowFrame();

@@ -1,4 +1,5 @@
 using TinyKingdom.Units;
+using TinyKingdom.Vision;
 using UnityEngine;
 
 namespace TinyKingdom.Economy
@@ -22,7 +23,10 @@ namespace TinyKingdom.Economy
         {
             pawn.ResourceGathered += (type, amount) =>
             {
-                if (pawn != null && pawn.GetComponent<UnitController>()?.IsAlive == true)
+                UnitController unit = pawn != null
+                    ? pawn.GetComponent<UnitController>() : null;
+                if (unit != null && unit.IsAlive
+                    && unit.Faction == PlayerViewRelation.PlayerViewFaction)
                     ResourceGainPopup.Show(pawn.transform.position + Vector3.up * 0.7f,
                         Icon(type), amount);
             };
@@ -32,7 +36,8 @@ namespace TinyKingdom.Economy
         {
             castle.Deposited += (type, amount) =>
             {
-                if (castle != null)
+                if (castle != null
+                    && castle.Faction == PlayerViewRelation.PlayerViewFaction)
                     ResourceGainPopup.ShowDeposit(
                         castle.transform.position + Vector3.up * DepositPopupHeight,
                         Icon(type), amount);
@@ -43,16 +48,19 @@ namespace TinyKingdom.Economy
         {
             tower.Deposited += (type, amount) =>
             {
-                if (tower != null)
+                if (tower != null
+                    && tower.Faction == PlayerViewRelation.PlayerViewFaction)
                     ResourceGainPopup.ShowDeposit(
                         tower.transform.position + Vector3.up * DepositPopupHeight,
                         Icon(type), amount);
             };
         }
 
-        public void Show(ResourceType type, int amount, Vector3 position)
+        public void Show(ResourceType type, int amount, Vector3 position,
+            Faction owner)
         {
-            if (amount > 0) ResourceGainPopup.Show(position, Icon(type), amount);
+            if (amount > 0 && owner == PlayerViewRelation.PlayerViewFaction)
+                ResourceGainPopup.Show(position, Icon(type), amount);
         }
 
         private Sprite Icon(ResourceType type) => type switch

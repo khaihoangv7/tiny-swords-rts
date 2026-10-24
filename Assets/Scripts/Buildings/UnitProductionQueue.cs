@@ -13,7 +13,10 @@ namespace TinyKingdom.Buildings
     public sealed class UnitProductionQueue : MonoBehaviour
     {
         private const int MaximumQueue = 5;
+        private static readonly List<UnitProductionQueue> RegisteredQueues = new();
+        public static IReadOnlyList<UnitProductionQueue> ActiveQueues => RegisteredQueues;
         private readonly Queue<UnitType> requests = new();
+        private readonly List<UnitType> cancellationBuffer = new(MaximumQueue);
         private readonly Dictionary<UnitType, UnitCombatData> definitions = new();
         private IProductionHost host;
         private ResourceStockpile stockpile;
@@ -29,6 +32,13 @@ namespace TinyKingdom.Buildings
         public float Progress => Current.HasValue && definitions.TryGetValue(Current.Value,
             out UnitCombatData data) ? Mathf.Clamp01(elapsed / data.TrainingSeconds) : 0f;
         public event Action Changed;
+
+        private void OnEnable()
+        {
+            if (!RegisteredQueues.Contains(this)) RegisteredQueues.Add(this);
+        }
+
+        private void OnDisable() => RegisteredQueues.Remove(this);
 
         public void Configure(IProductionHost producer, ResourceStockpile resources,
             FactionPopulation cap, GridManager navigation, IEnumerable<UnitCombatData> units,
@@ -115,6 +125,32 @@ namespace TinyKingdom.Buildings
             if (destination == null) return;
             destination.Clear();
             foreach (UnitType type in requests) destination.Add(type);
+        }
+
+        // Only the owning player's UI can cancel a paid request. A queued item
+        // has not begun; the head receives the unused fraction of its cost.
+        public bool TryCancelAt(int index, Faction requester)
+        {
+            if (!MatchManager.AllowsGameplay || host == null
+                || requester != host.Faction || index < 0 || index >= requests.Count
+                || stockpile == null || population == null) return false;
+
+            cancellationBuffer.Clear();
+            foreach (UnitType type in requests) cancellationBuffer.Add(type);
+            UnitType cancelled = cancellationBuffer[index];
+            if (!definitions.TryGetValue(cancelled, out UnitCombatData data)) return false;
+            float refundFraction = index == 0 ? 1f - Progress : 1f;
+            requests.Clear();
+            for (int i = 0; i < cancellationBuffer.Count; i++)
+                if (i != index) requests.Enqueue(cancellationBuffer[i]);
+            cancellationBuffer.Clear();
+            if (index == 0) elapsed = 0f;
+            population.ReleaseReservation(data.PopulationCost);
+            stockpile.Add(ResourceType.Food, Mathf.FloorToInt(data.FoodCost * refundFraction));
+            stockpile.Add(ResourceType.Wood, Mathf.FloorToInt(data.WoodCost * refundFraction));
+            stockpile.Add(ResourceType.Gold, Mathf.FloorToInt(data.GoldCost * refundFraction));
+            Changed?.Invoke();
+            return true;
         }
 
         private void OnDestroy()

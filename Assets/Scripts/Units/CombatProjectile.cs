@@ -19,8 +19,27 @@ namespace TinyKingdom.Units
         private float sourceMultiplier = 1f;
         private bool applyCounterMultiplier = true;
         private UnitController damageSource;
+        private bool straightFlight;
+        private Vector3 fixedDestination;
+        private float hitTolerance;
 
         public bool IsResolved => resolved;
+
+        // Defensive Tower arrows snapshot the aim point. Archer projectiles
+        // continue to use the existing homing arc below.
+        public void InitializeStraight(Faction ownerFaction,
+            ICombatDamageReceiver assignedTarget,
+            int baseDamage, float travelSpeed, float tolerance)
+        {
+            Initialize(ownerFaction, assignedTarget, baseDamage, UnitType.Archer,
+                travelSpeed, 0f, 1f, false);
+            straightFlight = true;
+            hitTolerance = Mathf.Max(0f, tolerance);
+            fixedDestination = assignedTarget != null
+                ? assignedTarget.TargetTransform.position : transform.position;
+            fixedDestination.z = launchPosition.z;
+            FaceFlightDirection(fixedDestination - launchPosition);
+        }
 
         public void Initialize(Faction ownerFaction, UnitController assignedTarget,
             int baseDamage, UnitType sourceType, float travelSpeed, float height = 1.2f,
@@ -52,6 +71,7 @@ namespace TinyKingdom.Units
                 ? Mathf.Max(0.1f, Vector2.Distance(launchPosition, assignedTarget.TargetTransform.position) / speed)
                 : 0.1f;
             resolved = false;
+            straightFlight = false;
             if (assignedTarget != null)
                 FaceFlightDirection(assignedTarget.TargetTransform.position - launchPosition
                     + Vector3.up * (4f * arcHeight));
@@ -67,6 +87,12 @@ namespace TinyKingdom.Units
                 || target.Faction == owner || authorizedBaseDamage <= 0 || speed <= 0f)
             {
                 Resolve();
+                return;
+            }
+
+            if (straightFlight)
+            {
+                TickStraight(deltaTime);
                 return;
             }
 
@@ -93,6 +119,64 @@ namespace TinyKingdom.Units
             transform.position = straightPosition
                 + Vector3.up * (4f * arcHeight * progress * (1f - progress));
             FaceFlightDirection(transform.position - previous);
+        }
+
+        private void TickStraight(float deltaTime)
+        {
+            elapsed = Mathf.Min(travelDuration, elapsed + Mathf.Max(0f, deltaTime));
+            Vector3 previous = transform.position;
+            transform.position = Vector3.Lerp(launchPosition, fixedDestination,
+                elapsed / travelDuration);
+            Vector2 segment = (Vector2)(transform.position - previous);
+            Vector2 towardTarget = (Vector2)(target.TargetTransform.position - previous);
+            float fraction = segment.sqrMagnitude > 0.000001f
+                ? Mathf.Clamp01(Vector2.Dot(towardTarget, segment) / segment.sqrMagnitude)
+                : 0f;
+            Vector2 nearest = (Vector2)previous + segment * fraction;
+            bool willHit = Vector2.Distance(nearest,
+                target.TargetTransform.position) <= hitTolerance;
+            float maximumBlockDistance = willHit
+                ? ((Vector2)previous - nearest).sqrMagnitude : segment.sqrMagnitude;
+            RaycastHit2D[] crossings = Physics2D.LinecastAll(previous,
+                transform.position);
+            foreach (RaycastHit2D crossing in crossings)
+            {
+                Collider2D collider = crossing.collider;
+                bool targetCollider = target is HealthComponent health
+                    && collider != null
+                    && collider.GetComponentInParent<HealthComponent>() == health;
+                if (collider == null || collider.isTrigger
+                    || collider.OverlapPoint(launchPosition)
+                    || targetCollider
+                    || ((Vector2)crossing.point - (Vector2)previous).sqrMagnitude
+                        > maximumBlockDistance)
+                    continue;
+                transform.position = crossing.point;
+                ResolveMiss();
+                return;
+            }
+            if (willHit)
+            {
+                bool damaged = target.ReceiveAttack(authorizedBaseDamage, attackerType,
+                    AttackDelivery.Projectile, sourceMultiplier, applyCounterMultiplier,
+                    damageSource);
+                if (damaged)
+                    GameplayAudioService.Request(GameplayAudioEvent.ArcherArrowImpact,
+                        transform.position, owner);
+                Resolve();
+            }
+            else if (elapsed >= travelDuration)
+            {
+                // The projectile sprite is the closest available ground-arrow
+                // visual. It has no collider and is removed after a short time.
+                ResolveMiss();
+            }
+        }
+
+        private void ResolveMiss()
+        {
+            resolved = true;
+            Destroy(gameObject, 2f);
         }
 
         private void FaceFlightDirection(Vector3 direction)

@@ -12,7 +12,7 @@ namespace TinyKingdom.Economy
         [SerializeField, Min(1)] private int pawnCarryCapacity = 20;
         [SerializeField, Min(1)] private int sheepCapacity = 200;
         [SerializeField, Min(1f)] private float houseSheepRespawnSeconds = 90f;
-        [SerializeField, Min(1)] private int treeCapacity = 100;
+        [SerializeField, Min(1)] private int treeCapacity = 125;
         [SerializeField, Min(1)] private int goldCapacity = 100;
         [SerializeField] private int[] goldStoneCapacities = { 100, 150, 250, 300, 400, 500 };
 

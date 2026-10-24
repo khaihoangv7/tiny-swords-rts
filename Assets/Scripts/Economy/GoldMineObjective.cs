@@ -21,12 +21,18 @@ namespace TinyKingdom.Economy
         {
             public UnitController Unit;
             public Vector3 Position;
+            public IPathTraversalPolicy TraversalPolicy;
+        }
+        private sealed class MiningOccupant
+        {
+            public UnitController Unit;
+            public float WorkRemaining;
+            public IPathTraversalPolicy TraversalPolicy;
         }
         public const int MaximumHP = 1500;
         public const int MaximumGold = 2000;
         public const int PawnCapacity = 3;
-        public const int IncomePerPawn = 15;
-        public const float IncomeSeconds = 5f;
+        public const float MineLoadMultiplier = 2.5f;
         public const float FireThresholdRatio = 0.60f;
         public const float VisualScale = 2.60f;
         public const float VisualGroundOffsetY = 0.92f;
@@ -36,13 +42,11 @@ namespace TinyKingdom.Economy
         private static readonly ProfilerMarker ContestMarker =
             new("TinyKingdom.GoldMine.Control");
         private static readonly List<GoldMineObjective> active = new();
-        private readonly List<UnitController> occupants = new();
+        private readonly List<MiningOccupant> occupants = new();
+        private readonly List<UnitController> returningMiners = new();
         private readonly List<PendingEntry> pending = new();
         private readonly List<Vector3> spawnPoints = new();
         private GridManager grid;
-        private ResourceStockpile blue;
-        private ResourceStockpile red;
-        private EconomyFeedback feedback;
         private SpriteRenderer visual;
         private Collider2D interaction;
         private Phase6C2AssetCatalog assets;
@@ -51,11 +55,11 @@ namespace TinyKingdom.Economy
         private bool hasOwner;
         private int currentHP = MaximumHP;
         private int remainingGold = MaximumGold;
-        private float incomeRemaining = IncomeSeconds;
         private float nextContestCheckTime;
+        private float nextExitAttemptTime;
         private GoldMineState state = GoldMineState.Neutral;
         private Vector2Int origin;
-        private ResourceSelectionIndicator selectionIndicator;
+        private SelectionCursorMarker selectionIndicator;
 
         public static IReadOnlyList<GoldMineObjective> Active => active;
         public GoldMineState State => state;
@@ -86,19 +90,26 @@ namespace TinyKingdom.Economy
             ResourceStockpile blueStockpile, ResourceStockpile redStockpile,
             EconomyFeedback economyFeedback, BuildingData definition = null)
         {
-            origin = gridOrigin; grid = navigation; blue = blueStockpile; red = redStockpile;
-            feedback = economyFeedback; data = definition;
+            origin = gridOrigin; grid = navigation; data = definition;
             assets = Phase6C2AssetCatalog.Load();
             currentHP = MaximumHP; remainingGold = MaximumGold; state = GoldMineState.Neutral;
-            hasOwner = false; incomeRemaining = IncomeSeconds;
+            hasOwner = false;
+            occupants.Clear(); returningMiners.Clear(); pending.Clear();
             visual = GetComponentInChildren<SpriteRenderer>();
             GroundSorting.Ensure(gameObject, false,
                 GroundSorting.GroundOffsetFromVisual(transform, visual));
             interaction = GetComponent<Collider2D>();
             if (!TryGetComponent(out selectionIndicator))
-                selectionIndicator = gameObject.AddComponent<ResourceSelectionIndicator>();
-            selectionIndicator.Configure(3.4f, 1f, -0.65f);
+                selectionIndicator = gameObject.AddComponent<SelectionCursorMarker>();
             SetVisual(assets?.GoldMineInactive);
+            float depth = Footprint.y * (grid?.NavigationData.CellSize ?? 1f);
+            float width = Mathf.Max(3.4f, (visual?.bounds.size.x ?? 3.4f) + 0.22f);
+            float frontY = visual != null
+                ? visual.bounds.min.y - transform.position.y - 0.10f : -1.39f;
+            float centerX = visual != null
+                ? visual.bounds.center.x - transform.position.x : 0f;
+            selectionIndicator.Configure(width, depth, frontY + depth * 0.5f,
+                visual, 1.2f, true, centerX);
             WorldSelectionHitArea.Ensure(this, visual);
             for (int y = 0; y < Footprint.y; y++)
             for (int x = 0; x < Footprint.x; x++) grid?.SetOccupied(origin.x + x, origin.y + y, true);
@@ -117,7 +128,11 @@ namespace TinyKingdom.Economy
             GroundSorting.Ensure(gameObject);
             if (!active.Contains(this)) active.Add(this);
         }
-        private void OnDisable() => active.Remove(this);
+        private void OnDisable()
+        {
+            active.Remove(this);
+            CancelReturningMiners();
+        }
 
         public void SetSelected(bool selected)
             => selectionIndicator?.SetSelected(selected && IsAlive);
@@ -126,7 +141,8 @@ namespace TinyKingdom.Economy
         {
             if (!MatchManager.AllowsGameplay || state is GoldMineState.Depleted or GoldMineState.Destroyed)
                 return;
-            if (hasOwner && occupants.Count > 0 && Time.time >= nextContestCheckTime)
+            if (hasOwner && (occupants.Count > 0 || returningMiners.Count > 0)
+                && Time.time >= nextContestCheckTime)
             {
                 nextContestCheckTime = Time.time + ContestCheckSeconds;
                 if (HasUnopposedMilitaryControl(OpponentOf(owner)))
@@ -146,26 +162,71 @@ namespace TinyKingdom.Economy
                     ?? pawn.gameObject.AddComponent<UnitStationing>();
                 station.ClearPending(this);
                 if (!station.EnterInternal(this)) continue;
-                occupants.Add(pawn);
+                PawnGatherer gatherer = pawn.GetComponent<PawnGatherer>();
+                occupants.Add(new MiningOccupant
+                {
+                    Unit = pawn,
+                    WorkRemaining = MiningSeconds(gatherer),
+                    TraversalPolicy = entry.TraversalPolicy
+                });
+                returningMiners.Remove(pawn);
                 if (!hasOwner || owner != pawn.Faction)
                 {
+                    CancelReturningMiners();
                     owner = pawn.Faction; hasOwner = true; state = GoldMineState.Owned;
-                    incomeRemaining = IncomeSeconds;
                 }
                 RefreshVisual(); Changed?.Invoke();
             }
-            occupants.RemoveAll(unit => unit == null || !unit.IsAlive);
-            if (occupants.Count == 0) { incomeRemaining = IncomeSeconds; return; }
-            incomeRemaining -= Time.deltaTime;
-            if (incomeRemaining > 0f) return;
-            incomeRemaining += IncomeSeconds;
-            int payout = Mathf.Min(remainingGold, occupants.Count * IncomePerPawn);
-            ResourceStockpile stockpile = owner == Faction.Blue ? blue : red;
-            stockpile?.Add(ResourceType.Gold, payout);
-            remainingGold -= payout;
-            feedback?.Show(ResourceType.Gold, payout, transform.position + Vector3.up * 1.1f);
-            Changed?.Invoke();
+            occupants.RemoveAll(entry => entry.Unit == null || !entry.Unit.IsAlive);
+            for (int i = occupants.Count - 1; i >= 0 && remainingGold > 0; i--)
+            {
+                MiningOccupant entry = occupants[i];
+                entry.WorkRemaining -= Time.deltaTime;
+                if (entry.WorkRemaining > 0f || Time.time < nextExitAttemptTime) continue;
+                BuildingSpawnPoint.TryFindMany(this, grid, 1, spawnPoints,
+                    grid != null ? Mathf.Max(grid.Width, grid.Height) : 10);
+                if (spawnPoints.Count == 0)
+                {
+                    nextExitAttemptTime = Time.time + 1f;
+                    continue;
+                }
+                UnitController pawn = entry.Unit;
+                PawnGatherer gatherer = pawn.GetComponent<PawnGatherer>();
+                int load = Mathf.Min(remainingGold, MineGoldPerTrip(gatherer));
+                occupants.RemoveAt(i);
+                pawn.GetComponent<UnitStationing>()?.RestoreToWorld(spawnPoints[0]);
+                remainingGold -= load;
+                if (load > 0 && gatherer != null)
+                {
+                    returningMiners.Add(pawn);
+                    gatherer.BeginMineDelivery(this, load, entry.TraversalPolicy);
+                }
+                RefreshVisual(); Changed?.Invoke();
+            }
             if (remainingGold <= 0) Deplete();
+        }
+
+        public static int MineGoldPerTrip(PawnGatherer gatherer)
+            => gatherer == null ? 0
+                : MineGoldPerTrip(gatherer.CarryCapacity);
+
+        public static int MineGoldPerTrip(int ordinaryCarryCapacity)
+            => Mathf.RoundToInt(Mathf.Max(0, ordinaryCarryCapacity)
+                * MineLoadMultiplier);
+
+        public static float MiningSeconds(PawnGatherer gatherer)
+            => gatherer == null ? 0f
+                : MiningSeconds(gatherer.CarryCapacity,
+                    gatherer.AmountPerGather, gatherer.GatherIntervalSeconds);
+
+        public static float MiningSeconds(int ordinaryCarryCapacity,
+            int amountPerGather, float gatherIntervalSeconds)
+            => Mathf.CeilToInt((float)Mathf.Max(0, ordinaryCarryCapacity)
+                / Mathf.Max(1, amountPerGather)) * Mathf.Max(0f, gatherIntervalSeconds);
+
+        public void CancelReturnReservation(UnitController pawn)
+        {
+            if (pawn != null) returningMiners.Remove(pawn);
         }
 
         public bool TryEnter(UnitController pawn) => TryEnter(pawn, null);
@@ -173,19 +234,32 @@ namespace TinyKingdom.Economy
         public bool TryEnter(UnitController pawn, IPathTraversalPolicy traversalPolicy)
         {
             if (!MatchManager.AllowsGameplay || !CanEnter(pawn, true)) return false;
+            PawnGatherer gatherer = pawn.GetComponent<PawnGatherer>();
+            if (gatherer.CarriedAmount > 0)
+            {
+                if (gatherer.MineReturnTarget == this) return true;
+                if (!gatherer.QueueMineAfterCargo(this, traversalPolicy)) return false;
+                if (!returningMiners.Contains(pawn)) returningMiners.Add(pawn);
+                return true;
+            }
             if (!TryFindEntry(pawn, out Vector3 position)) return false;
             UnitMovement movement = pawn.GetComponent<UnitMovement>();
             if (movement == null || !(traversalPolicy == null
                     ? movement.TryIssueMove(position)
                     : movement.TryIssueStrategicMove(position, traversalPolicy)))
                 return false;
-            pawn.GetComponent<PawnGatherer>()?.CancelJob();
+            gatherer.CancelJob();
             pawn.GetComponent<PawnBuilder>()?.CancelJob();
             pawn.GetComponent<MonkHealer>()?.CancelExplicitOrder();
             UnitStationing station = pawn.GetComponent<UnitStationing>()
                 ?? pawn.gameObject.AddComponent<UnitStationing>();
             station.BeginPending(this);
-            pending.Add(new PendingEntry { Unit = pawn, Position = position });
+            pending.Add(new PendingEntry
+            {
+                Unit = pawn,
+                Position = position,
+                TraversalPolicy = traversalPolicy
+            });
             return true;
         }
 
@@ -193,13 +267,19 @@ namespace TinyKingdom.Economy
 
         public int EjectAll()
         {
-            if (!MatchManager.AllowsGameplay || occupants.Count == 0) return 0;
+            if (!MatchManager.AllowsGameplay) return 0;
+            if (occupants.Count == 0)
+            {
+                CancelReturningMiners();
+                return 0;
+            }
             int maximumRing = grid != null ? Mathf.Max(grid.Width, grid.Height) : 10;
             BuildingSpawnPoint.TryFindMany(this, grid, occupants.Count, spawnPoints, maximumRing);
             int count = Mathf.Min(occupants.Count, spawnPoints.Count);
             for (int i = 0; i < count; i++)
-                occupants[i]?.GetComponent<UnitStationing>()?.RestoreToWorld(spawnPoints[i]);
+                occupants[i].Unit?.GetComponent<UnitStationing>()?.RestoreToWorld(spawnPoints[i]);
             occupants.RemoveRange(0, count);
+            CancelReturningMiners();
             RefreshVisual(); Changed?.Invoke();
             return count;
         }
@@ -234,6 +314,7 @@ namespace TinyKingdom.Economy
             if (pawn == null || !pawn.IsAlive || !pawn.IsTargetable
                 || state is GoldMineState.Depleted or GoldMineState.Destroyed) return false;
             if (pawn.GetComponent<HealthComponent>()?.CombatData?.UnitType != UnitType.Pawn) return false;
+            if (pawn.GetComponent<PawnGatherer>() == null) return false;
             if (!FactionRelations.IsPlayable(pawn.Faction)) return false;
             if (hasOwner && pawn.Faction != owner)
             {
@@ -244,7 +325,11 @@ namespace TinyKingdom.Economy
                 return false;
             UnitStationing station = pawn.GetComponent<UnitStationing>();
             if (station != null && (station.IsStationed || (includeCapacity && station.IsPending))) return false;
-            return !includeCapacity || occupants.Count + pending.Count < PawnCapacity;
+            int reservedReturns = hasOwner && owner == pawn.Faction
+                ? returningMiners.Count - (returningMiners.Contains(pawn) ? 1 : 0)
+                : 0;
+            return !includeCapacity || occupants.Count + pending.Count + reservedReturns
+                < PawnCapacity;
         }
 
         // This is gameplay authority, not AI knowledge. Both playable factions
@@ -300,15 +385,19 @@ namespace TinyKingdom.Economy
         private void Deplete()
         {
             state = GoldMineState.Depleted; hasOwner = false;
-            EjectAllForced(); RefreshVisual(); DefenseHostHealthChanged?.Invoke(); Changed?.Invoke();
+            for (int i = pending.Count - 1; i >= 0; i--)
+                CancelPending(pending[i].Unit);
+            EjectAllForced(); CancelReturningMiners(); RefreshVisual();
+            DefenseHostHealthChanged?.Invoke(); Changed?.Invoke();
         }
 
         private void DestroyByCombat()
         {
             state = GoldMineState.Destroyed;
-            foreach (UnitController pawn in occupants)
-                pawn?.GetComponent<HealthComponent>()?.KillAt(transform.position);
+            foreach (MiningOccupant entry in occupants)
+                entry.Unit?.GetComponent<HealthComponent>()?.KillAt(transform.position);
             occupants.Clear();
+            CancelReturningMiners();
             foreach (PendingEntry entry in pending.ToArray()) CancelPending(entry.Unit);
             SetVisual(assets?.GoldMineDestroyed);
             DefenseHostDestroyed?.Invoke(); Changed?.Invoke();
@@ -316,12 +405,18 @@ namespace TinyKingdom.Economy
 
         private void EjectAllForced()
         {
-            bool allowed = MatchManager.AllowsGameplay;
             int maximumRing = grid != null ? Mathf.Max(grid.Width, grid.Height) : 10;
             BuildingSpawnPoint.TryFindMany(this, grid, occupants.Count, spawnPoints, maximumRing);
             for (int i = 0; i < occupants.Count && i < spawnPoints.Count; i++)
-                occupants[i]?.GetComponent<UnitStationing>()?.RestoreToWorld(spawnPoints[i]);
+                occupants[i].Unit?.GetComponent<UnitStationing>()?.RestoreToWorld(spawnPoints[i]);
             occupants.Clear();
+        }
+
+        private void CancelReturningMiners()
+        {
+            for (int i = returningMiners.Count - 1; i >= 0; i--)
+                returningMiners[i]?.GetComponent<PawnGatherer>()?.CancelMineRepeat();
+            returningMiners.Clear();
         }
 
         private void RefreshVisual()

@@ -819,6 +819,11 @@ resumes.
 
 ### Phase 7E.6 contested Gold Mine control
 
+Mine extraction now gives each Pawn a 2.5x ordinary Gold Rock load after one
+ordinary full-load work duration. The Pawn returns it to its own main Castle,
+then automatically re-enters the mine. The AI still uses legal mine observations,
+the worker safety gate and capacity; it receives no direct resource grant.
+
 `SecureGoldMine` is evaluated alongside the existing strategic intents. The
 `GoldMineStrategyModel` reads copied Gold Mine and Goblin observations from
 `FactionKnowledge`; hidden objects do not refresh their last seen position,
@@ -853,7 +858,9 @@ Pawns enter a visible, sufficiently observed and safe mine through
 `FactionCommandService.TryEnterGoldMine` and `GoldMineObjective.TryEnter` with
 the existing civilian traversal policy. The worker policy reserves a bounded
 number of eligible zero-cargo Pawns, leaves at least three Economy Pawns, and
-uses the mine's authoritative capacity and payout. Pending entries are released
+uses the mine's authoritative capacity and extraction. Returning miners keep a
+capacity reservation and the Mine role while carrying Gold to the Castle, so
+ordinary Economy assignments cannot interrupt the return trip. Pending entries are released
 when a known threat appears or the route remains unseen for 30 game seconds;
 brief vision loss alone does not discard an already accepted entry order. A
 threatened visible friendly mine ejects its occupants.

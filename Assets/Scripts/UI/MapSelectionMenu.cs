@@ -67,6 +67,7 @@ namespace TinyKingdom.UI
             text.alignment = TextAnchor.MiddleCenter;
             text.color = color;
             text.text = value;
+            UiLanguage.Bind(text);
             text.raycastTarget = false;
             return text;
         }

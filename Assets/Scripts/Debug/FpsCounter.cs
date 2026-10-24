@@ -65,6 +65,13 @@ namespace TinyKingdom.Debugging
             if (counter != null)
             {
                 counter.ResolveLabel();
+                RectTransform existing = counter.transform as RectTransform;
+                if (existing != null)
+                {
+                    existing.anchoredPosition = new Vector2(-16f, -72f);
+                    existing.sizeDelta = new Vector2(160f, 43f);
+                }
+                if (counter.label != null) counter.label.fontSize = 17;
                 return counter;
             }
 
@@ -75,12 +82,12 @@ namespace TinyKingdom.Debugging
             rect.anchorMin = Vector2.one;
             rect.anchorMax = Vector2.one;
             rect.pivot = Vector2.one;
-            rect.anchoredPosition = new Vector2(-16f, -16f);
-            rect.sizeDelta = new Vector2(160f, 40f);
+            rect.anchoredPosition = new Vector2(-16f, -72f);
+            rect.sizeDelta = new Vector2(160f, 43f);
 
             Text text = counterObject.GetComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 20;
+            text.fontSize = 17;
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.UpperRight;
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -118,6 +125,12 @@ namespace TinyKingdom.Debugging
 
         private void Update()
         {
+            Rect area = Screen.safeArea;
+            Vector2 corner = new(area.xMax / Mathf.Max(1f, Screen.width),
+                area.yMax / Mathf.Max(1f, Screen.height));
+            RectTransform rect = transform as RectTransform;
+            if (rect != null && rect.anchorMin != corner)
+                rect.anchorMin = rect.anchorMax = corner;
             float frameTime = Time.unscaledDeltaTime;
             if (frameTime <= 0f) return;
             smoothedDeltaTime = smoothedDeltaTime <= 0f

@@ -114,7 +114,6 @@ catalog event. Current values are provisional presentation tuning.
 - No Gold Mine selection clip exists in the supplied building-selection directory.
 - Sheep Hurt is intentionally not requested by the current game and its former clip
   is absent from the working asset set, matching the earlier removal request.
-- `Assets/Audio/Music/attack_theme.mp3` is present but music-state integration is
-  outside Phase 6E.2.
+- The former `attack_theme.mp3` was removed; no background music is assigned.
 - Food harvesting, generic hit/death, ambient music and an options/mixer UI remain
   future audio work.

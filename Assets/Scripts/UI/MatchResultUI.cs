@@ -271,6 +271,7 @@ namespace TinyKingdom.UI
             text.fontStyle = style;
             text.color = new Color(1f, 0.94f, 0.74f);
             text.text = value;
+            UiLanguage.Bind(text);
             text.raycastTarget = false;
             return text;
         }

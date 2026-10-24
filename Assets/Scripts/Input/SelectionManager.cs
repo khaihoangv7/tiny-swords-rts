@@ -5,6 +5,8 @@ using TinyKingdom.UI;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Audio;
+using TinyKingdom.Match;
+using TinyKingdom.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -20,6 +22,27 @@ namespace TinyKingdom.Input
         [SerializeField] private SelectionDragVisual dragVisual;
 
         private readonly List<UnitSelection> selectedUnits = new();
+        private readonly List<BuildingSite> selectedBuildings = new();
+        private readonly List<UnitSelection>[] controlGroups =
+        {
+            new(), new(), new(), new()
+        };
+        private UnityEngine.Object lastClickedTarget;
+        private float lastClickTime = -10f;
+        private Vector2 lastClickPosition;
+        private int activeControlGroup = -1;
+        private const float DoubleClickSeconds = 0.32f;
+        private const float DoubleClickPixels = 18f;
+        private static readonly GameAction[] GroupActions =
+        {
+            GameAction.Group1, GameAction.Group2,
+            GameAction.Group3, GameAction.Group4
+        };
+        private static readonly GameAction[] GroupAssignmentActions =
+        {
+            GameAction.GroupAssign1, GameAction.GroupAssign2,
+            GameAction.GroupAssign3, GameAction.GroupAssign4
+        };
         private Vector2 dragStart;
         private bool leftPointerActive;
         private bool suppressNextLeftClick;
@@ -29,6 +52,8 @@ namespace TinyKingdom.Input
         private ResourceNode selectedResourceNode;
 
         public IReadOnlyList<UnitSelection> SelectedUnits => selectedUnits;
+        public IReadOnlyList<BuildingSite> SelectedBuildings => selectedBuildings;
+        public int ActiveControlGroup => activeControlGroup;
         public BuildingSite SelectedBuilding => selectedBuilding;
         public CastleDropOff SelectedCastle => selectedCastle;
         public GoldMineObjective SelectedGoldMine => selectedGoldMine;
@@ -73,6 +98,13 @@ namespace TinyKingdom.Input
         private void Update()
         {
             RemoveInvalidResourceSelection();
+            if (GameInputBindings.ModalOpen)
+            {
+                leftPointerActive = false;
+                dragVisual?.Hide();
+                return;
+            }
+            HandleControlGroupKeys();
             Mouse mouse = Mouse.current;
             if (mouse == null)
             {
@@ -142,6 +174,15 @@ namespace TinyKingdom.Input
         {
             RemoveInvalidSelections();
             UnitSelection hit = FindFriendlyUnitAtScreenPosition(screenPosition);
+            if (hit != null && !additive)
+            {
+                if (IsDoubleClick(hit, screenPosition))
+                {
+                    SelectAllUnitsOfType(hit);
+                    return;
+                }
+                RememberClick(hit, screenPosition);
+            }
             if (hit == null && !additive && worldCamera != null)
             {
                 Vector3 world = worldCamera.ScreenToWorldPoint(new Vector3(screenPosition.x,
@@ -151,22 +192,26 @@ namespace TinyKingdom.Input
                     BuildingSite building = WorldSelectionQuery.Resolve<BuildingSite>(collider);
                     if (building != null && building.IsFriendlyCursorTarget(playerFaction))
                     {
-                        ClearSelection();
-                        selectedBuilding = building;
-                        BuildingSelectionPulse.Ensure(building.gameObject,
-                            building.PresentationRenderer)?.Trigger();
-                        SelectionChanged?.Invoke();
+                        if (IsDoubleClick(building, screenPosition))
+                            SelectAllBuildingsOfType(building);
+                        else
+                        {
+                            RememberClick(building, screenPosition);
+                            SelectBuilding(building);
+                        }
                         PlayBuildingSelection(building.Type);
                         return;
                     }
                     CastleDropOff castle = WorldSelectionQuery.Resolve<CastleDropOff>(collider);
                     if (castle != null && castle.IsFriendlyCursorTarget(playerFaction))
                     {
-                        ClearSelection();
-                        selectedCastle = castle;
-                        BuildingSelectionPulse.Ensure(castle.gameObject,
-                            castle.PresentationRenderer)?.Trigger();
-                        SelectionChanged?.Invoke();
+                        if (IsDoubleClick(castle, screenPosition))
+                            SelectAllCastles();
+                        else
+                        {
+                            RememberClick(castle, screenPosition);
+                            SelectCastle(castle);
+                        }
                         PlayBuildingSelection(BuildingType.Castle);
                         return;
                     }
@@ -190,11 +235,92 @@ namespace TinyKingdom.Input
                     }
                 }
             }
+            if (hit == null) lastClickedTarget = null;
             ApplyClickSelection(hit, additive);
+        }
+
+        public void SelectBuilding(BuildingSite building)
+        {
+            if (building == null || !building.IsFriendlyCursorTarget(playerFaction)) return;
+            ClearSelection();
+            selectedBuilding = building;
+            selectedBuildings.Add(building);
+            SetBuildingMarker(building.gameObject, building.PresentationRenderer, true);
+            BuildingSelectionPulse.Ensure(building.gameObject,
+                building.PresentationRenderer)?.Trigger();
+            SelectionChanged?.Invoke();
+        }
+
+        public void SelectCastle(CastleDropOff castle)
+        {
+            if (castle == null || !castle.IsFriendlyCursorTarget(playerFaction)) return;
+            ClearSelection();
+            selectedCastle = castle;
+            SetBuildingMarker(castle.gameObject, castle.PresentationRenderer, true);
+            BuildingSelectionPulse.Ensure(castle.gameObject,
+                castle.PresentationRenderer)?.Trigger();
+            SelectionChanged?.Invoke();
+        }
+
+        private bool IsDoubleClick(UnityEngine.Object target, Vector2 position)
+            => target != null && lastClickedTarget == target
+                && Time.unscaledTime - lastClickTime <= DoubleClickSeconds
+                && Vector2.Distance(position, lastClickPosition) <= DoubleClickPixels;
+
+        private void RememberClick(UnityEngine.Object target, Vector2 position)
+        {
+            lastClickedTarget = target;
+            lastClickTime = Time.unscaledTime;
+            lastClickPosition = position;
+        }
+
+        private void SelectAllUnitsOfType(UnitSelection target)
+        {
+            UnitType? type = target.GetComponent<HealthComponent>()?.CombatData?.UnitType;
+            if (!type.HasValue) return;
+            ClearSelection();
+            foreach (UnitSelection unit in UnitSelection.ActiveUnits)
+                if (IsFriendly(unit)
+                    && unit.GetComponent<HealthComponent>()?.CombatData?.UnitType == type)
+                    SetSelected(unit, true);
+            lastClickedTarget = null;
+        }
+
+        private void SelectAllBuildingsOfType(BuildingSite target)
+        {
+            ClearSelection();
+            foreach (BuildingSite building in BuildingSite.ActiveSites)
+            {
+                if (building == null || !building.IsFriendlyCursorTarget(playerFaction)
+                    || building.Type != target.Type) continue;
+                selectedBuildings.Add(building);
+                if (selectedBuilding == null) selectedBuilding = building;
+                SetBuildingMarker(building.gameObject, building.PresentationRenderer, true);
+                BuildingSelectionPulse.Ensure(building.gameObject,
+                    building.PresentationRenderer)?.Trigger();
+            }
+            lastClickedTarget = null;
+            SelectionChanged?.Invoke();
+        }
+
+        private void SelectAllCastles()
+        {
+            ClearSelection();
+            foreach (CastleDropOff castle in CastleDropOff.Active)
+                if (castle != null && castle.IsFriendlyCursorTarget(playerFaction))
+                {
+                    selectedCastle = castle;
+                    SetBuildingMarker(castle.gameObject, castle.PresentationRenderer, true);
+                    BuildingSelectionPulse.Ensure(castle.gameObject,
+                        castle.PresentationRenderer)?.Trigger();
+                }
+            lastClickedTarget = null;
+            SelectionChanged?.Invoke();
         }
 
         public void ApplyClickSelection(UnitSelection unit, bool additive)
         {
+            activeControlGroup = -1;
             RemoveInvalidSelections();
             if (!IsFriendly(unit))
             {
@@ -231,6 +357,7 @@ namespace TinyKingdom.Input
 
         public void ApplyBoxSelection(IEnumerable<UnitSelection> units, bool additive)
         {
+            activeControlGroup = -1;
             RemoveInvalidSelections();
             if (!additive)
                 ClearSelection();
@@ -254,6 +381,13 @@ namespace TinyKingdom.Input
                 unit.SetSelected(false);
             }
             selectedUnits.Clear();
+            foreach (BuildingSite building in selectedBuildings)
+                if (building != null)
+                    building.GetComponent<SelectionCursorMarker>()?.SetSelected(false);
+            selectedBuildings.Clear();
+            activeControlGroup = -1;
+            if (selectedCastle != null)
+                selectedCastle.GetComponent<SelectionCursorMarker>()?.SetSelected(false);
             if (selectedGoldMine != null) selectedGoldMine.SetSelected(false);
             if (selectedResourceNode != null) selectedResourceNode.SetSelected(false);
             selectedBuilding = null;
@@ -263,11 +397,97 @@ namespace TinyKingdom.Input
             if (changed) SelectionChanged?.Invoke();
         }
 
+        private static void SetBuildingMarker(GameObject root,
+            SpriteRenderer visual, bool selected)
+        {
+            if (root == null || visual == null) return;
+            SelectionCursorMarker marker = root.GetComponent<SelectionCursorMarker>()
+                ?? root.AddComponent<SelectionCursorMarker>();
+            Vector2Int footprint = root.TryGetComponent(out BuildingSite site)
+                ? site.Footprint : root.TryGetComponent(out CastleDropOff castle)
+                    ? castle.Footprint : Vector2Int.one;
+            float cellSize = GroundSorting.ResolveGrid()?.NavigationData.CellSize ?? 1f;
+            float depth = Mathf.Max(0.8f, footprint.y * cellSize);
+            float width = Mathf.Max(1.2f, visual.bounds.size.x + 0.22f);
+            float frontY = visual.bounds.min.y - root.transform.position.y
+                + (root.TryGetComponent<CastleDropOff>(out _) ? 0.14f : -0.10f);
+            float centerX = visual.bounds.center.x - root.transform.position.x;
+            if (marker.Configure(width, depth, frontY + depth * 0.5f,
+                    visual, 1.15f, true, centerX))
+                marker.SetSelected(selected);
+        }
+
         public void CopySelectedUnits(List<UnitSelection> destination)
         {
             RemoveInvalidSelections();
             destination.Clear();
             destination.AddRange(selectedUnits);
+        }
+
+        public int CopyControlGroup(int groupIndex, List<UnitSelection> destination)
+        {
+            destination.Clear();
+            if (groupIndex < 0 || groupIndex >= controlGroups.Length) return 0;
+            List<UnitSelection> group = controlGroups[groupIndex];
+            group.RemoveAll(unit => !IsFriendly(unit));
+            destination.AddRange(group);
+            return destination.Count;
+        }
+
+        public bool AssignControlGroup(int groupIndex)
+        {
+            if (groupIndex < 0 || groupIndex >= controlGroups.Length) return false;
+            RemoveInvalidSelections();
+            if (selectedUnits.Count == 0) return false;
+            List<UnitSelection> group = controlGroups[groupIndex];
+            group.Clear();
+            group.AddRange(selectedUnits);
+            activeControlGroup = groupIndex;
+            SelectionChanged?.Invoke();
+            return true;
+        }
+
+        public bool SelectControlGroup(int groupIndex)
+        {
+            if (groupIndex < 0 || groupIndex >= controlGroups.Length) return false;
+            List<UnitSelection> group = controlGroups[groupIndex];
+            group.RemoveAll(unit => !IsFriendly(unit));
+            if (group.Count == 0) return false;
+            ClearSelection();
+            foreach (UnitSelection unit in group) SetSelected(unit, true);
+            activeControlGroup = groupIndex;
+            SelectionChanged?.Invoke();
+            return true;
+        }
+
+        public bool ClearSelectedControlGroup()
+        {
+            if (activeControlGroup < 0) return false;
+            controlGroups[activeControlGroup].Clear();
+            activeControlGroup = -1;
+            SelectionChanged?.Invoke();
+            return true;
+        }
+
+        private void HandleControlGroupKeys()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (!MatchManager.AllowsGameplay || keyboard == null) return;
+            for (int index = 0; index < controlGroups.Length; index++)
+            {
+                if (GameInputBindings.WasPressed(GroupAssignmentActions[index]))
+                {
+                    AssignControlGroup(index);
+                    return;
+                }
+                if (GameInputBindings.WasPressed(GroupActions[index]))
+                {
+                    SelectControlGroup(index);
+                    return;
+                }
+            }
+            if (GameInputBindings.WasPressed(GameAction.Ungroup))
+                ClearSelectedControlGroup();
         }
 
         public UnitSelection FindFriendlyUnitAtScreenPosition(Vector2 screenPosition)
@@ -296,7 +516,8 @@ namespace TinyKingdom.Input
         private bool IsFriendly(UnitSelection unit)
         {
             return unit != null && unit.isActiveAndEnabled && unit.Controller != null
-                && unit.Controller.IsAlive && unit.Controller.Faction == playerFaction;
+                && unit.IsWorldSelectable && unit.Controller.IsAlive
+                && unit.Controller.Faction == playerFaction;
         }
 
         private void SetSelected(UnitSelection unit, bool selected)
@@ -335,6 +556,15 @@ namespace TinyKingdom.Input
                     changed = true;
                 }
             }
+            for (int i = selectedBuildings.Count - 1; i >= 0; i--)
+            {
+                BuildingSite site = selectedBuildings[i];
+                if (site != null && site.isActiveAndEnabled && site.IsAlive) continue;
+                selectedBuildings.RemoveAt(i);
+                changed = true;
+            }
+            if (selectedBuilding != null && !selectedBuildings.Contains(selectedBuilding))
+                selectedBuilding = selectedBuildings.Count > 0 ? selectedBuildings[0] : null;
             if (changed) SelectionChanged?.Invoke();
         }
 

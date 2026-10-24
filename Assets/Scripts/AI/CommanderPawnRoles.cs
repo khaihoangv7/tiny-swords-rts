@@ -49,8 +49,10 @@ namespace TinyKingdom.AI
                     roles[pawn] = CommanderPawnRole.Scout;
                 else if (builder != null && builder.HasJob)
                     roles[pawn] = CommanderPawnRole.Builder;
+                else if (pawn.GetComponent<PawnGatherer>()?.HasMineReturnTrip == true)
+                    roles[pawn] = CommanderPawnRole.Mine;
                 else if (!roles.TryGetValue(pawn, out CommanderPawnRole role)
-                    || role == CommanderPawnRole.Builder)
+                    || role is CommanderPawnRole.Builder or CommanderPawnRole.Mine)
                     roles[pawn] = CommanderPawnRole.Economy;
             }
             RefreshCounts();

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TinyKingdom.Input;
 
 [RequireComponent(typeof(Camera))]
 public sealed class MapCameraController : MonoBehaviour
@@ -18,6 +19,14 @@ public sealed class MapCameraController : MonoBehaviour
     public bool EdgeScrollEnabled => edgeScrollEnabled;
     public float EdgeScrollThicknessPixels => edgeScrollThicknessPixels;
 
+    public void FocusWorldPosition(Vector3 worldPosition)
+    {
+        transform.position = new Vector3(worldPosition.x, worldPosition.y,
+            transform.position.z);
+        if (mapCamera == null) mapCamera = GetComponent<Camera>();
+        ClampCamera();
+    }
+
     private void Awake()
     {
         mapCamera = GetComponent<Camera>();
@@ -31,16 +40,16 @@ public sealed class MapCameraController : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null)
         {
-            if (keyboard.leftArrowKey.isPressed) direction.x -= 1f;
-            if (keyboard.rightArrowKey.isPressed) direction.x += 1f;
-            if (keyboard.downArrowKey.isPressed) direction.y -= 1f;
-            if (keyboard.upArrowKey.isPressed) direction.y += 1f;
+            if (GameInputBindings.IsPressed(GameAction.PanLeft)) direction.x -= 1f;
+            if (GameInputBindings.IsPressed(GameAction.PanRight)) direction.x += 1f;
+            if (GameInputBindings.IsPressed(GameAction.PanDown)) direction.y -= 1f;
+            if (GameInputBindings.IsPressed(GameAction.PanUp)) direction.y += 1f;
         }
 
         Mouse mouse = Mouse.current;
         if (mouse != null)
         {
-            if (edgeScrollEnabled)
+            if (edgeScrollEnabled && !GameInputBindings.ModalOpen)
             {
                 Vector2 pointer = mouse.position.ReadValue();
                 bool insideWindow = pointer.x >= 0f && pointer.x <= Screen.width
@@ -55,7 +64,7 @@ public sealed class MapCameraController : MonoBehaviour
             }
 
             float wheel = mouse.scroll.ReadValue().y;
-            if (!Mathf.Approximately(wheel, 0f))
+            if (!GameInputBindings.ModalOpen && !Mathf.Approximately(wheel, 0f))
             {
                 mapCamera.orthographicSize = Mathf.Clamp(
                     mapCamera.orthographicSize - wheel / 120f * zoomSpeed,

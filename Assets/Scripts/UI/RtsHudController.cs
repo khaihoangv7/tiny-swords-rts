@@ -19,7 +19,11 @@ namespace TinyKingdom.UI
         private CommandPanelPresenter commands;
         private CommandTooltipPresenter tooltip;
         private DebugMatchControlsPresenter debugControls;
+        private TopLeftHudPresenter topLeft;
+        private ControlGroupHudPresenter controlGroups;
+        private SettingsPanelPresenter settings;
         private RectTransform hudRoot;
+        private Rect lastSafeArea;
 
         public RectTransform HudRoot => hudRoot;
         public ResourcePanelPresenter ResourcePanel => resources;
@@ -66,12 +70,21 @@ namespace TinyKingdom.UI
                 ?? gameObject.AddComponent<CommandTooltipPresenter>();
             debugControls = GetComponent<DebugMatchControlsPresenter>()
                 ?? gameObject.AddComponent<DebugMatchControlsPresenter>();
+            topLeft = GetComponent<TopLeftHudPresenter>()
+                ?? gameObject.AddComponent<TopLeftHudPresenter>();
+            controlGroups = GetComponent<ControlGroupHudPresenter>()
+                ?? gameObject.AddComponent<ControlGroupHudPresenter>();
+            settings = GetComponent<SettingsPanelPresenter>()
+                ?? gameObject.AddComponent<SettingsPanelPresenter>();
             resources.Configure(stockpile, population, catalog, hudRoot);
             selectionInfo.Configure(selection, catalog, hudRoot);
             commands.Configure(selection, commandInput, guardInput,
                 buildingSystem, placement, stockpile, catalog, tooltip, hudRoot);
             tooltip.Configure(catalog, stockpile, population, hudRoot);
             debugControls.Configure(catalog);
+            topLeft.Configure(selection, catalog);
+            controlGroups.Configure(selection, catalog);
+            settings.Configure(selection, stockpile, debugControls, catalog);
         }
 
         private void ApplyHudGeometry()
@@ -79,12 +92,21 @@ namespace TinyKingdom.UI
             // The bottom HUD owns the full safe horizontal canvas region. Individual
             // panels still size their real surfaces, so empty HUD space never blocks
             // world input.
-            hudRoot.anchorMin = new Vector2(0f, 0f);
-            hudRoot.anchorMax = new Vector2(1f, 0f);
+            Vector2 safeLeft = RtsUiFactory.SafeCorner(false, false);
+            Vector2 safeRight = RtsUiFactory.SafeCorner(true, false);
+            hudRoot.anchorMin = safeLeft;
+            hudRoot.anchorMax = new Vector2(safeRight.x, safeLeft.y);
             hudRoot.pivot = Vector2.zero;
             hudRoot.offsetMin = new Vector2(SafeScreenMargin, SafeScreenMargin);
             hudRoot.offsetMax = new Vector2(-SafeScreenMargin,
                 SafeScreenMargin + HudHeight);
+            lastSafeArea = Screen.safeArea;
+        }
+
+        private void Update()
+        {
+            if (hudRoot != null && Screen.safeArea != lastSafeArea)
+                ApplyHudGeometry();
         }
 
         private void DisableLegacyPresenters()

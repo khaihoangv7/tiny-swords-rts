@@ -8,6 +8,15 @@ namespace TinyKingdom.UI
     {
         [SerializeField] private Sprite[] woodTable = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] specialPaper = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] banner = System.Array.Empty<Sprite>();
+        [SerializeField] private Texture2D swords;
+        [SerializeField] private Sprite[] swordParts = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] bigRibbons = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] smallRibbons = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] selectionCorners = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite infoIcon;
+        [SerializeField] private Sprite musicIcon;
+        [SerializeField] private Sprite settingsIcon;
         [SerializeField] private Sprite commandSlot;
         [SerializeField] private Sprite populationIcon;
         [SerializeField] private Sprite woodIcon;
@@ -26,6 +35,15 @@ namespace TinyKingdom.UI
 
         public Sprite[] WoodTable => woodTable;
         public Sprite[] SpecialPaper => specialPaper;
+        public Sprite[] Banner => banner;
+        public Texture2D Swords => swords;
+        public Sprite[] SwordParts => swordParts;
+        public Sprite[] BigRibbons => bigRibbons;
+        public Sprite[] SmallRibbons => smallRibbons;
+        public Sprite[] SelectionCorners => selectionCorners;
+        public Sprite InfoIcon => infoIcon;
+        public Sprite MusicIcon => musicIcon;
+        public Sprite SettingsIcon => settingsIcon;
         public Sprite CommandSlot => commandSlot;
         public Sprite PopulationIcon => populationIcon;
         public Sprite WoodIcon => woodIcon;
@@ -47,7 +65,13 @@ namespace TinyKingdom.UI
                 return true;
             }
         }
-        public bool IsComplete => woodTable.Length == 9 && specialPaper.Length == 9
+        public bool IsComplete => woodTable?.Length == 9
+            && specialPaper?.Length == 9 && banner?.Length == 9
+            && swords != null && swordParts?.Length == 11
+            && bigRibbons?.Length == 15 && smallRibbons?.Length == 30
+            && selectionCorners?.Length == 4
+            && infoIcon != null && musicIcon != null
+            && settingsIcon != null
             && commandSlot != null && populationIcon != null && woodIcon != null
             && goldIcon != null && foodIcon != null && attackMoveIcon != null
             && ejectAllIcon != null
@@ -94,6 +118,24 @@ namespace TinyKingdom.UI
         {
             scoutIcon = scout;
             scoutFireFrames = scoutFire ?? System.Array.Empty<Sprite>();
+        }
+
+        public void SetSelectionCorners(Sprite[] corners)
+            => selectionCorners = corners ?? System.Array.Empty<Sprite>();
+
+        public void SetTopHud(Sprite[] bannerSprites, Texture2D swordTexture,
+            Sprite[] swordSprites, Sprite[] bigRibbonSprites,
+            Sprite[] smallRibbonSprites,
+            Sprite info, Sprite music, Sprite settings)
+        {
+            banner = bannerSprites;
+            swords = swordTexture;
+            swordParts = swordSprites;
+            bigRibbons = bigRibbonSprites;
+            smallRibbons = smallRibbonSprites;
+            infoIcon = info;
+            musicIcon = music;
+            settingsIcon = settings;
         }
 #endif
     }

@@ -58,8 +58,9 @@ namespace TinyKingdom.EditorTools
             Require(GoldMineObjective.MaximumHP == 1500
                 && GoldMineObjective.MaximumGold == 2000
                 && GoldMineObjective.PawnCapacity == 3
-                && GoldMineObjective.IncomePerPawn == 15
-                && GoldMineObjective.IncomeSeconds == 5f
+                && Mathf.Approximately(GoldMineObjective.MineLoadMultiplier, 2.5f)
+                && GoldMineObjective.MineGoldPerTrip(20) == 50
+                && Mathf.Approximately(GoldMineObjective.MiningSeconds(20, 2, 1.5f), 15f)
                 && GoldMineObjective.FireThresholdRatio == 0.60f,
                 "Gold Mine authoritative values mismatch.");
             Require(Mathf.Approximately(GoldMineObjective.VisualScale, 2.60f)

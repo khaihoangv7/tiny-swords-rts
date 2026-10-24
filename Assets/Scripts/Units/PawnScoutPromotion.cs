@@ -82,7 +82,10 @@ namespace TinyKingdom.Units
         private void Update()
         {
             if (!IsPromoted) return;
-            bool presented = controller.IsWorldParticipant;
+            bool presented = controller.IsWorldParticipant
+                && (FogWorldVisibility.Instance == null
+                    || FogWorldVisibility.Instance.ShouldPresent(
+                        controller.Faction, transform.position));
             if (firePlayer != null && firePlayer.gameObject.activeSelf != presented)
                 firePlayer.gameObject.SetActive(presented);
             if (!presented)
@@ -292,6 +295,8 @@ namespace TinyKingdom.Units
             firePlayer.Configure(fireFrames,
                 pawnRenderer != null ? pawnRenderer.sortingOrder + 20 : 20);
             root.SetActive(true);
+            GetComponent<FogPresentationGate>()?.RefreshRenderers();
+            FogWorldVisibility.Instance?.RefreshNow();
         }
 
         private void HandleDeath(HealthComponent _)

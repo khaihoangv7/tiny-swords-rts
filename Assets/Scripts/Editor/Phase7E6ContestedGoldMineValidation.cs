@@ -15,9 +15,10 @@ namespace TinyKingdom.EditorTools
         {
             Require(GoldMineObjective.PawnCapacity == 3
                 && GoldMineObjective.MaximumGold == 2000
-                && GoldMineObjective.IncomePerPawn == 15
-                && GoldMineObjective.IncomeSeconds == 5f,
-                "Existing mine payout/capacity mechanics changed.");
+                && Mathf.Approximately(GoldMineObjective.MineLoadMultiplier, 2.5f)
+                && GoldMineObjective.MineGoldPerTrip(20) == 50
+                && Mathf.Approximately(GoldMineObjective.MiningSeconds(20, 2, 1.5f), 15f),
+                "Mine extraction duration, load, or capacity is inconsistent.");
             Require(Enum.IsDefined(typeof(StrategicIntent),
                     StrategicIntent.SecureGoldMine),
                 "SecureGoldMine is not an integrated strategic intent.");

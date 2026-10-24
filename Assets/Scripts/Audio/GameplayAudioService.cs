@@ -35,6 +35,7 @@ namespace TinyKingdom.Audio
         private sealed class SourceSlot
         {
             public AudioSource Source;
+            public float BaseVolume;
             public GameplayAudioEvent EventId;
             public Faction? SourceFaction;
             public bool Spatial;
@@ -53,6 +54,9 @@ namespace TinyKingdom.Audio
         private int droppedBySafetyLimit;
         private bool resultAudioPlayed;
         [SerializeField, Range(0f, 1f)] private float sfxVolume = 1f;
+        private float masterVolume = 1f;
+        private float musicVolume = 0.55f;
+        private AudioSource musicSource;
 
         public static GameplayAudioService Instance { get; private set; }
         public static bool RuntimeBootstrapEnabled => true;
@@ -84,8 +88,35 @@ namespace TinyKingdom.Audio
         public float SfxVolume
         {
             get => sfxVolume;
-            set => sfxVolume = Mathf.Clamp01(value);
+            set
+            {
+                sfxVolume = Mathf.Clamp01(value);
+                PlayerPrefs.SetFloat("TinyKingdom.SfxVolume", sfxVolume);
+                ApplySfxVolume(oneShots);
+                ApplySfxVolume(loopSources);
+            }
         }
+        public float MasterVolume
+        {
+            get => masterVolume;
+            set
+            {
+                masterVolume = Mathf.Clamp01(value);
+                AudioListener.volume = masterVolume;
+                PlayerPrefs.SetFloat("TinyKingdom.MasterVolume", masterVolume);
+            }
+        }
+        public float MusicVolume
+        {
+            get => musicVolume;
+            set
+            {
+                musicVolume = Mathf.Clamp01(value);
+                if (musicSource != null) musicSource.volume = musicVolume;
+                PlayerPrefs.SetFloat("TinyKingdom.MusicVolume", musicVolume);
+            }
+        }
+        public bool HasMusic => musicSource != null && musicSource.clip != null;
         public GameplayAudioCatalog Catalog => catalog;
 
         public static bool IsInsideCameraViewport(Camera camera, Vector3 worldPosition)
@@ -115,6 +146,10 @@ namespace TinyKingdom.Audio
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            sfxVolume = Mathf.Clamp01(PlayerPrefs.GetFloat("TinyKingdom.SfxVolume", 1f));
+            masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat("TinyKingdom.MasterVolume", 1f));
+            musicVolume = Mathf.Clamp01(PlayerPrefs.GetFloat("TinyKingdom.MusicVolume", 0.55f));
+            AudioListener.volume = masterVolume;
             SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 
@@ -123,6 +158,8 @@ namespace TinyKingdom.Audio
             SceneManager.sceneLoaded -= HandleSceneLoaded;
             UnsubscribeMatch();
             StopAllSources();
+            if (musicSource != null) musicSource.Stop();
+            AudioListener.volume = 1f;
             if (Instance == this) Instance = null;
         }
 
@@ -136,12 +173,33 @@ namespace TinyKingdom.Audio
             }
             StopWorldSourcesThatBecameInaudible(oneShots);
             StopWorldSourcesThatBecameInaudible(loopSources);
+            if (musicSource != null && musicSource.clip != null)
+            {
+                bool playing = subscribedMatch != null
+                    && subscribedMatch.State == MatchState.Playing;
+                if (playing && !musicSource.isPlaying) musicSource.Play();
+                else if (!playing && musicSource.isPlaying) musicSource.Stop();
+            }
         }
 
         public void Configure(GameplayAudioCatalog value)
         {
             catalog = value;
             EnsureInitialPool();
+            if (musicSource != null)
+            {
+                musicSource.Stop();
+                musicSource.clip = null;
+            }
+            if (catalog != null && catalog.MusicClip != null)
+            {
+                musicSource ??= gameObject.AddComponent<AudioSource>();
+                musicSource.playOnAwake = false;
+                musicSource.loop = true;
+                musicSource.spatialBlend = 0f;
+                musicSource.clip = catalog.MusicClip;
+                musicSource.volume = musicVolume;
+            }
         }
 
         public static bool Request(GameplayAudioEvent eventId, Vector3 worldPosition,
@@ -200,7 +258,8 @@ namespace TinyKingdom.Audio
                 AudioSource source = slot.Source;
                 source.transform.position = spatial ? worldPosition : transform.position;
                 source.clip = clip;
-                source.volume = sfxVolume * cue.Volume;
+                slot.BaseVolume = cue.Volume;
+                source.volume = sfxVolume * slot.BaseVolume;
                 source.pitch = NextPitch();
                 source.time = Mathf.Min(cue.StartTimeSeconds,
                     Mathf.Max(0f, clip.length - 0.01f));
@@ -219,8 +278,11 @@ namespace TinyKingdom.Audio
             {
                 existing.Source.transform.position = worldPosition;
                 if (catalog != null && catalog.TryGetCue(eventId, out GameplayAudioCue activeCue))
-                    existing.Source.volume = sfxVolume * activeCue.Volume
+                {
+                    existing.BaseVolume = activeCue.Volume
                         * Mathf.Clamp01(volumeMultiplier);
+                    existing.Source.volume = sfxVolume * existing.BaseVolume;
+                }
                 if (existing.Source.isPlaying) return true;
                 activeLoops.Remove(key);
                 StopSlot(existing);
@@ -237,8 +299,8 @@ namespace TinyKingdom.Audio
             slot.Spatial = true;
             slot.Source.transform.position = worldPosition;
             slot.Source.clip = clip;
-            slot.Source.volume = sfxVolume * cue.Volume
-                * Mathf.Clamp01(volumeMultiplier);
+            slot.BaseVolume = cue.Volume * Mathf.Clamp01(volumeMultiplier);
+            slot.Source.volume = sfxVolume * slot.BaseVolume;
             slot.Source.pitch = 1f;
             slot.Source.Play();
             activeLoops.Add(key, slot);
@@ -328,6 +390,13 @@ namespace TinyKingdom.Audio
                 if (slot.Source.loop) RemoveLoopOwnership(slot);
                 StopSlot(slot);
             }
+        }
+
+        private void ApplySfxVolume(List<SourceSlot> slots)
+        {
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i].Source != null && slots[i].Source.isPlaying)
+                    slots[i].Source.volume = sfxVolume * slots[i].BaseVolume;
         }
 
         private void RemoveLoopOwnership(SourceSlot slot)
