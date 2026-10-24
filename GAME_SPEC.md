@@ -711,9 +711,9 @@ Only one unit should be produced per training request.
 
 Cost:
 
-75 Wood
+125 Wood
 
-50 Gold.
+85 Gold.
 
 Function:
 
@@ -731,7 +731,7 @@ Phase 5C2.
 
 Phase 5C2 Tower rules:
 
-* Internal Garrison capacity = 2 living friendly Pawn/Warrior/Archer/Lancer
+* Internal Garrison capacity = 3 living friendly Pawn/Warrior/Archer/Lancer
 * Mounted Archer capacity = 1
 * each internal occupant contributes one generic 5-damage projectile per volley
 * mounted Archers are separate and do not add generic garrison arrows
@@ -757,9 +757,13 @@ at a time; production pauses while its building is incomplete. A finished
 request waits if every nearby spawn cell is blocked or the population cap has
 since fallen. Destroying a producer discards its queue and releases reserved
 population; resources already spent are not refunded in this MVP.
+The owning player can cancel one queue entry from that building's panel. A
+waiting entry refunds its full cost; the active entry refunds the floor of each
+resource cost multiplied by its unfinished progress fraction. Its population
+reservation is released. Destruction still discards paid entries without a refund.
 
-Provisional gameplay training times: Pawn 4 seconds, Warrior 8 seconds,
-Archer 6 seconds, Lancer 6 seconds and Monk 7 seconds. Animation frames do not
+Current gameplay training times: Pawn 4 seconds, Warrior 23 seconds,
+Archer 11 seconds, Lancer 11 seconds and Monk 7 seconds. Animation frames do not
 control training.
 
 VisionRadius is stored as configurable unit/building data for later vision
@@ -782,12 +786,10 @@ by 1.20, rounded using the existing positive half-up rule. Mounted attack range
 is base Archer range multiplied by the provisional 1.25 range multiplier. The
 normal UnitCombatData asset is never rewritten.
 
-Generic defensive arrows use projectile delivery, 5 base damage and no unit
-counter multiplier. Projectile Guard mitigation still applies at impact. The
-number of arrows in one volley equals the current internal occupant count.
+Generic garrison arrows use projectile delivery, 5 base damage and no unit
+counter multiplier. Projectile Guard mitigation still applies at impact.
 Targets are sorted by distance, then world position and stable entity identity;
-arrows are distributed round-robin, so multiple arrows may hit one target when
-there are fewer targets than arrows.
+one selected target remains locked for each volley.
 
 The following defense values are provisional MVP balance values:
 
@@ -808,6 +810,31 @@ nearby, walkable and unoccupied grid positions. Host occupancy is released
 before destruction ejection. Occupants keep their HP and cargo and receive no
 collapse damage. No verified ruin sprites are currently mapped, so the destroyed
 host visual is hidden.
+
+The Castle now fires one 12-damage automatic arrow even with no internal
+occupants. Each current internal occupant adds one 5-damage arrow. An unupgraded
+Tower fires only its current occupants' 5-damage arrows; its 80 Wood / 50 Gold
+upgrade adds one automatic arrow. Each volley locks one visible hostile target
+and releases its arrows 0.14 seconds apart; remaining shots stop if that target
+becomes invalid. Tower arrows travel straight to a snapshotted aim point at at
+least 16 world units per second and can miss a moving target. Ordinary Archer
+projectiles retain their separate arcing behavior. Castle and Tower keep their
+existing 1.5-second volley interval and configured attack ranges.
+
+The Castle's 250 Wood / 200 Gold cannon upgrade adds a separate five-second
+attack using the existing Goblin dynamite projectile and explosion visuals.
+The blast applies the existing 18-damage, 1.25-radius projectile model and
+0.60-unit navigation-safe knockback to hostile units only. The cannon does not
+replace the Castle's arrow volley. Each upgrade is purchased once through the
+owning faction's stockpile. A valid purchase charges once and starts a timed
+upgrade; the additional attack stays disabled until completion. The default
+duration is 50 seconds for Castle Cannon and 35 seconds for Tower Auto Arrow,
+configurable per building. A destroyed building loses its unfinished upgrade;
+match end stops progress.
+The owning player may cancel an unfinished upgrade from the selected building's
+queue panel. Cancellation refunds the floor of the unused fraction of its Wood
+and Gold costs exactly once; it never applies the additional attack. A completed
+upgrade cannot be canceled.
 
 Living world units and defensive buildings register queryable VisionRadius
 sources. Tower and Castle vision radius remains independent from attack range.
@@ -1341,8 +1368,14 @@ the current internal Pawns are ejected. An opposing Pawn may enter only while
 its faction retains that uncontested military presence; ownership transfers
 on that Pawn's successful entry. The same rule applies to Blue and Red. An
 empty mine keeps its previous owner until such an entry. Up to three internal
-Pawns generate 15 Gold each every 5 seconds. A
-partial final payout uses only remaining Gold. Depletion safely ejects Pawns and
+Pawns work independently for the time needed to fill an ordinary Gold Rock load:
+ten 1.5-second cycles with the current 20-Gold carry capacity and two Gold per
+cycle, or 15 seconds. Each completed mine load is 2.5 times the ordinary load
+(50 Gold at the current values), limited by the remaining reserve. The Pawn
+exits carrying that Gold, deposits it at its own main Castle only, and
+automatically returns for another load if the mine remains usable. The mine
+does not credit the stockpile while Pawns are inside. Mine cargo never goes to
+a Tower; other cargo keeps the normal Castle/Tower drop-off rule. Depletion safely ejects Pawns and
 leaves the destroyed visual without an explosion. Combat destruction kills only
 Pawns currently internal, uses normal death authority and leaves the same wreck.
 Its Fire threshold is 0.60, shared with ordinary completed buildings.
@@ -1398,8 +1431,8 @@ fuse ends causes ordinary death without a blast. Gameplay timers control damage;
 the two building explosion sheets play at a smaller 0.8 presentation scale.
 
 Phase 7E.6 adds Red strategic decisions for this existing Gold Mine and its
-guards. The mine's HP, Gold reserve, capacity, ownership, payout, destruction,
-and victory rules above are unchanged. Red must observe the area and use normal
+guards. The mine's HP, Gold reserve, capacity, ownership, extraction,
+destruction, and victory rules above apply. Red must observe the area and use normal
 combat and Pawn entry commands to secure and exploit it.
 
 ---

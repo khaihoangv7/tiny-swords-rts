@@ -25,6 +25,7 @@ namespace TinyKingdom.Match
 
         public MatchState State { get; private set; } = MatchState.Preparing;
         public MatchResult Result { get; private set; } = MatchResult.None;
+        public float ElapsedGameplaySeconds { get; private set; }
         public bool IsMatchEnded => State == MatchState.Ended;
         public Faction HumanFaction => humanFaction;
         public Faction? WinningFaction => Result switch
@@ -57,6 +58,12 @@ namespace TinyKingdom.Match
             Instance = this;
         }
 
+        private void Update()
+        {
+            if (State == MatchState.Playing)
+                ElapsedGameplaySeconds += Time.deltaTime;
+        }
+
         private void OnDestroy()
         {
             Unsubscribe(blueMainCastle, HandleBlueCastleDestroyed);
@@ -67,6 +74,7 @@ namespace TinyKingdom.Match
         public void Configure(Faction playerFaction, float presentationDelay = 0.85f)
         {
             humanFaction = playerFaction;
+            ElapsedGameplaySeconds = 0f;
             resultPresentationDelay = Mathf.Max(0f, presentationDelay);
         }
 

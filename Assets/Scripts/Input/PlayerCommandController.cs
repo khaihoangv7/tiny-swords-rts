@@ -99,6 +99,7 @@ namespace TinyKingdom.Input
         private void Update()
         {
             placement ??= GetComponent<BuildingPlacementController>();
+            if (GameInputBindings.ModalOpen) return;
             if (!MatchManager.AllowsGameplay)
             {
                 attackMovePending = false;
@@ -107,7 +108,7 @@ namespace TinyKingdom.Input
                 return;
             }
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.aKey.wasPressedThisFrame
+            if (GameInputBindings.WasPressed(GameAction.AttackMove)
                 && HasSelectedCombatUnits())
             {
                 attackMovePending = true;

@@ -6,6 +6,7 @@ using TinyKingdom.Units;
 using UnityEngine;
 using UnityEngine.UI;
 using TinyKingdom.Audio;
+using TinyKingdom.Presentation;
 
 namespace TinyKingdom.UI
 {
@@ -111,6 +112,7 @@ namespace TinyKingdom.UI
         private BuildingPlacementController placement;
         private ResourceStockpile stockpile;
         private RtsHudAssetCatalog assets;
+        private Sprite cannonIcon;
         private CommandTooltipPresenter tooltip;
         private RectTransform root;
         private RectTransform content;
@@ -158,6 +160,9 @@ namespace TinyKingdom.UI
             placement = buildingPlacement;
             stockpile = resources;
             assets = catalog;
+            Sprite[] dynamite = Phase6C2AssetCatalog.Load()?.Dynamite;
+            cannonIcon = dynamite != null && dynamite.Length > 0
+                ? dynamite[0] : null;
             tooltip = tooltipPresenter;
             if (root == null) Build(hudParent);
             ApplyPanelPresentation();
@@ -339,19 +344,21 @@ namespace TinyKingdom.UI
             }
             if (combat)
             {
+                string key = GameInputBindings.Display(GameAction.AttackMove);
                 ActionView view = ConfigureClick(shown++, assets.AttackMoveIcon,
-                    "Attack Move", "A", MatchManager.AllowsGameplay,
+                    "Attack Move", key, MatchManager.AllowsGameplay,
                     () => commands != null && commands.BeginAttackMoveTargeting());
                 view.Tooltip.ConfigureSimple(tooltip, "Attack Move",
-                    "Move toward a target area and engage enemies encountered.", "A");
+                    "Move toward a target area and engage enemies encountered.", key);
             }
             if (canGuard)
             {
-                ActionView view = ConfigureView(shown++, assets.GuardIcon, "Guard", "G",
+                string key = GameInputBindings.Display(GameAction.Guard);
+                ActionView view = ConfigureView(shown++, assets.GuardIcon, "Guard", key,
                     MatchManager.AllowsGameplay, true);
                 view.GuardHold.Configure(guard);
                 view.Tooltip.ConfigureSimple(tooltip, "Guard",
-                    "Hold position and reduce incoming damage while the command is held.", "G");
+                    "Hold position and reduce incoming damage while the command is held.", key);
             }
             if (MilitaryFormationEligibility.HasFormationCommandGroup(
                     militaryFormationCount)
@@ -398,6 +405,27 @@ namespace TinyKingdom.UI
 
         private int ShowBuildingCommands(GameObject host, BuildingType type, int shown)
         {
+            BuildingDefenseUpgrade upgrade = host.GetComponent<BuildingDefenseUpgrade>();
+            if (upgrade != null && upgrade.Faction == selection.PlayerFaction
+                && !upgrade.Purchased)
+            {
+                Sprite icon = type == BuildingType.Castle
+                    ? cannonIcon : host.GetComponent<BuildingDefense>()?.ArrowSprite;
+                string title = type == BuildingType.Castle
+                    ? "Cannon" : "Auto Arrow";
+                ActionView view = ConfigureClick(shown++, icon,
+                    title + "\n" + (upgrade.IsUpgrading
+                        ? Mathf.CeilToInt(upgrade.SecondsRemaining) + "s ("
+                            + Mathf.RoundToInt(upgrade.Progress * 100f) + "%)"
+                        : Cost(upgrade.WoodCost, upgrade.GoldCost, 0)),
+                    "", upgrade.CanPurchase,
+                    () => upgrade.TryPurchase(selection.PlayerFaction));
+                view.Tooltip.ConfigureSimple(tooltip, title,
+                    upgrade.IsUpgrading ? "Upgrade in progress."
+                    : type == BuildingType.Castle
+                        ? "Adds a separate explosive cannon attack."
+                        : "Adds one automatic arrow to each Tower volley.");
+            }
             UnitProductionQueue queue = host.GetComponent<UnitProductionQueue>();
             if (queue != null)
             {
@@ -686,7 +714,8 @@ namespace TinyKingdom.UI
             int costSize = CalculateCostFontSize(buttonWidth);
             int hotkeySize = CalculateHotkeyFontSize(buttonWidth);
             RtsUiFactory.Anchor(view.Icon.rectTransform, new Vector2(0.5f, 1f),
-                new Vector2(0.5f, 1f), new Vector2(0f, -4f),
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, -4f),
                 new Vector2(iconSize, iconSize));
             view.Label.fontSize = labelSize;
             RtsUiFactory.Anchor(view.Label.rectTransform, new Vector2(0.5f, 0f),
@@ -740,6 +769,7 @@ namespace TinyKingdom.UI
             view.Background.color = available
                 ? RtsUiFactory.EnabledColor : RtsUiFactory.DisabledColor;
             view.Icon.sprite = icon;
+            view.Icon.rectTransform.anchoredPosition = new Vector2(0f, -4f);
             view.Icon.gameObject.SetActive(icon != null);
             if (view.FormationGlyph != null)
                 view.FormationGlyph.gameObject.SetActive(false);

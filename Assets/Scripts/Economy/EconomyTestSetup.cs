@@ -222,11 +222,11 @@ namespace TinyKingdom.Economy
             castle.gameObject.AddComponent<UnitProductionQueue>().Configure(
                 castle, blue, population, navigation, unitData,
                 (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
-            SetupDefense(castle, navigation);
+            SetupDefense(castle, navigation, blue);
             CastleDropOff redCastle = MakeCastle(area.transform, red,
                 battlefieldLayout != null ? (Vector3)battlefieldLayout.redCastle
                     : new Vector3(34.5f, 10.5f, 0f), castleData, Faction.Red);
-            SetupDefense(redCastle, navigation);
+            SetupDefense(redCastle, navigation, red);
             redCastle.gameObject.AddComponent<UnitProductionQueue>().Configure(
                 redCastle, red, redPopulation, navigation, unitData,
                 (type, position) => SpawnProductionUnit(Faction.Red, type, position));
@@ -250,7 +250,7 @@ namespace TinyKingdom.Economy
                 redTower.Configure(towerData, Faction.Red, redTowerOrigin,
                     navigation, null, HouseVariant.A, red, economyConfig);
                 redTower.CompleteImmediatelyForTestSetup();
-                SetupDefense(redTower, navigation);
+                SetupDefense(redTower, navigation, red);
             }
             else if (battlefieldLayout == null)
                 Debug.LogWarning("No safe Map position found for the Red Tower defense target.", this);
@@ -263,7 +263,7 @@ namespace TinyKingdom.Economy
                         (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
                 if (site.Type == BuildingType.Tower)
                 {
-                    SetupDefense(site, navigation);
+                    SetupDefense(site, navigation, blue);
                     BuildingResourceDropOff tower =
                         site.GetComponent<BuildingResourceDropOff>();
                     if (tower != null) feedback.Watch(tower);
@@ -279,7 +279,7 @@ namespace TinyKingdom.Economy
                     site.gameObject.AddComponent<UnitProductionQueue>().Configure(
                         site, red, redPopulation, navigation, unitData,
                         (type, position) => SpawnProductionUnit(Faction.Red, type, position));
-                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation);
+                if (site.Type == BuildingType.Tower) SetupDefense(site, navigation, red);
             };
             if (summary != null)
             {
@@ -325,7 +325,7 @@ namespace TinyKingdom.Economy
         {
             if (health == null || hitFlashMaterial == null) return;
             DamageTextEmitter text = health.GetComponent<DamageTextEmitter>();
-            if (text != null) text.enabled = false;
+            if (text != null) text.enabled = true;
             if (health.GetComponent<UnitHitFlash>() == null)
                 health.gameObject.AddComponent<UnitHitFlash>().Configure(hitFlashMaterial);
             SpriteRenderer body = health.GetComponent<UnitAnimator>()?.VisualRenderer
@@ -515,7 +515,8 @@ namespace TinyKingdom.Economy
             return false;
         }
 
-        private void SetupDefense(IDefensiveBuildingHost host, GridManager navigation)
+        private void SetupDefense(IDefensiveBuildingHost host, GridManager navigation,
+            ResourceStockpile stockpile)
         {
             MonoBehaviour component = host as MonoBehaviour;
             if (component == null || host.DefenseData == null) return;
@@ -528,6 +529,9 @@ namespace TinyKingdom.Economy
             GameObject archerPrefab = host.Faction == Faction.Red
                 ? redArcherPrefab : blueArcherPrefab;
             CombatController archer = archerPrefab.GetComponent<CombatController>();
+            (component.GetComponent<BuildingDefenseUpgrade>()
+                ?? component.gameObject.AddComponent<BuildingDefenseUpgrade>())
+                .Configure(host, stockpile);
             BuildingDefense defense = component.GetComponent<BuildingDefense>()
                 ?? component.gameObject.AddComponent<BuildingDefense>();
             defense.Configure(host, garrison, archer.ProjectileSprite,

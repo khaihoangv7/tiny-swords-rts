@@ -1,18 +1,31 @@
 using UnityEngine;
+using TinyKingdom.Vision;
 
 namespace TinyKingdom.Units
 {
     [RequireComponent(typeof(HealthComponent))]
     public sealed class DamageTextEmitter : MonoBehaviour
     {
-        // Phase 5A uses hit flash and a health bar. Kept for legacy scene/prefab
-        // compatibility, but no normal combat numbers are emitted by default.
-        [SerializeField] private bool showDamageNumbers = false;
+        private const string Preference = "TinyKingdom.ShowDamageNumbers";
+        private static bool? globalEnabled;
         private HealthComponent health;
+
+        public static bool GlobalEnabled
+        {
+            get => globalEnabled ??= PlayerPrefs.GetInt(Preference, 0) != 0;
+            set
+            {
+                globalEnabled = value;
+                PlayerPrefs.SetInt(Preference, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetCachedPreference() => globalEnabled = null;
 
         private void OnEnable()
         {
-            if (!showDamageNumbers) return;
             health = GetComponent<HealthComponent>();
             health.DamageReceived += HandleDamage;
         }
@@ -23,6 +36,12 @@ namespace TinyKingdom.Units
         }
 
         private void HandleDamage(HealthComponent target, int actualLoss, bool guarded)
-            => FloatingDamageText.Show(target.transform.position, actualLoss, guarded);
+        {
+            if (GlobalEnabled && (FogWorldVisibility.Instance == null
+                || FogWorldVisibility.Instance.CanObserve(
+                    target.GetComponent<UnitController>()?.Faction ?? Faction.Blue,
+                    target.transform.position)))
+                FloatingDamageText.Show(target.transform.position, actualLoss, guarded);
+        }
     }
 }

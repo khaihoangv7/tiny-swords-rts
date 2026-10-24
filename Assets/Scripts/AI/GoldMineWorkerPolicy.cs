@@ -60,6 +60,10 @@ namespace TinyKingdom.AI
             bool cancelTravel = observedDanger || recaptureControlLost || !safe
                 && (lastSafeObservationTime < 0f
                     || context.Time - lastSafeObservationTime > 30f);
+            if (observedDanger || recaptureControlLost
+                || opportunity.IsValid && opportunity.Mine.State is
+                    GoldMineState.Depleted or GoldMineState.Destroyed)
+                CancelReturningTrips(context.Knowledge);
             PrunePending(context.Knowledge, context.Faction, roles, cancelTravel,
                 opportunity.IsValid ? opportunity.Mine.RuntimeId : default,
                 opportunity.IsValid);
@@ -86,6 +90,7 @@ namespace TinyKingdom.AI
                 || roles.EconomyCount <= minimumEconomyPawns
                 || pending.Count >= maximumAssignedMiners
                 || opportunity.Mine.LastSeenOccupants + pending.Count
+                    + CountReturningTrips(context.Knowledge)
                     >= maximumAssignedMiners) return;
             UnitController worker = ChooseWorker(context.Knowledge, roles);
             if (worker == null) return;
@@ -156,6 +161,8 @@ namespace TinyKingdom.AI
                     continue;
                 PawnGatherer gatherer = unit.GetComponent<PawnGatherer>();
                 if (gatherer == null || gatherer.CarriedAmount > 0
+                    || gatherer.HasMineReturnTrip
+                    || unit.GetComponent<UnitStationing>()?.IsPending == true
                     || unit.GetComponent<PawnBuilder>()?.HasJob == true
                     || unit.GetComponent<PawnScoutPromotion>()?.IsPromoted == true)
                     continue;
@@ -167,6 +174,23 @@ namespace TinyKingdom.AI
                 bestPriority = priority;
             }
             return best;
+        }
+
+        private static int CountReturningTrips(FactionKnowledge knowledge)
+        {
+            int count = 0;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+                if (units[i]?.GetComponent<PawnGatherer>()?.HasMineReturnTrip == true)
+                    count++;
+            return count;
+        }
+
+        private static void CancelReturningTrips(FactionKnowledge knowledge)
+        {
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+                units[i]?.GetComponent<PawnGatherer>()?.CancelMineRepeat();
         }
 
         private static bool IsVisible(FactionKnowledge knowledge, EntityId id)

@@ -48,6 +48,7 @@ namespace TinyKingdom.UI
             totals.color = Color.white;
             totals.alignment = TextAnchor.MiddleLeft;
             totals.raycastTarget = false;
+            UiLanguage.Bind(totals);
         }
 
         private void Refresh()

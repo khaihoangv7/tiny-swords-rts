@@ -7,6 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using TinyKingdom.Match;
 using TinyKingdom.Audio;
+using TinyKingdom.Economy;
 using TinyKingdom.Vision;
 
 namespace TinyKingdom.Buildings
@@ -23,8 +24,22 @@ namespace TinyKingdom.Buildings
         private readonly SpriteRenderer[] outline = new SpriteRenderer[4];
         private static Sprite whitePixel;
         private readonly List<PawnBuilder> builders = new();
+        private readonly List<PawnBuilder> pendingBuilders = new();
+        private readonly HashSet<Vector2Int> triedRevealStages = new();
+        private readonly HashSet<PawnBuilder> triedPendingScouts = new();
         private BuildingType? activeType;
         private HouseVariant activeVariant;
+        private BuildingType? pendingType;
+        private HouseVariant pendingVariant;
+        private Vector2Int pendingOrigin;
+        private Vector2Int pendingStage;
+        private PawnBuilder pendingScout;
+        private float pendingStartedAt;
+        private float nextPendingCheck;
+        private int pendingPathFailures;
+        private bool[] pendingObservedCells;
+        private int pendingObservedCount;
+        private bool pendingStageIssued;
         private int consumedFrame = -1;
 
         public bool IsActive => activeType.HasValue;
@@ -48,6 +63,7 @@ namespace TinyKingdom.Buildings
                 || data.GetSprite(selection.PlayerFaction, variant) == null) return false;
             CollectBuilders();
             if (builders.Count == 0) return false;
+            if (pendingType.HasValue) CancelPending(true);
             activeType = type;
             activeVariant = variant;
             if (preview == null)
@@ -85,9 +101,17 @@ namespace TinyKingdom.Buildings
         {
             if (!MatchManager.AllowsGameplay)
             {
+                CancelPending(true);
                 Cancel();
                 return;
             }
+            if (pendingType.HasValue)
+            {
+                if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+                    CancelPending(true);
+                else ProcessPending();
+            }
+            if (GameInputBindings.ModalOpen) return;
             if (!activeType.HasValue || system == null || grid == null || worldCamera == null)
                 return;
             Mouse mouse = Mouse.current;
@@ -118,8 +142,11 @@ namespace TinyKingdom.Buildings
             SetEdge(2, new Vector2(left, 0.5f * (bottom + top)), new Vector2(0.035f, height));
             SetEdge(3, new Vector2(right, 0.5f * (bottom + top)), new Vector2(0.035f, height));
             CollectBuilders();
-            IsValidPreview = !IsOverUI() && system.CanStartConstruction(activeType.Value,
-                origin, builders);
+            bool observed = IsFootprintVisible(data, origin);
+            IsValidPreview = !IsOverUI() && (observed
+                ? system.CanStartConstruction(activeType.Value, origin, builders)
+                : system.CanAfford(activeType.Value) && builders.Count > 0
+                    && system.CanPlaceOnKnownTerrain(activeType.Value, origin));
             preview.color = IsValidPreview
                 ? new Color(0.45f, 1f, 0.45f, 0.7f)
                 : new Color(1f, 0.35f, 0.35f, 0.7f);
@@ -129,6 +156,19 @@ namespace TinyKingdom.Buildings
             consumedFrame = Time.frameCount;
             selection.SuppressNextLeftClick();
             if (!IsValidPreview) return;
+            if (!observed)
+            {
+                if (BeginPending(activeType.Value, activeVariant, origin))
+                {
+                    GameplayAudioService.RequestUi(GameplayAudioEvent.BuildingPlan);
+                    activeType = null;
+                    IsValidPreview = false;
+                    preview.color = new Color(0.9f, 0.85f, 0.52f, 0.58f);
+                    foreach (SpriteRenderer edge in outline)
+                        edge.color = new Color(1f, 0.82f, 0.3f, 0.9f);
+                }
+                return;
+            }
             if (system.TryBuild(activeType.Value, activeVariant, origin, builders,
                     out BuildingSite site))
             {
@@ -141,6 +181,228 @@ namespace TinyKingdom.Buildings
                 }
                 Cancel();
             }
+        }
+
+        private bool IsFootprintVisible(BuildingData data, Vector2Int origin)
+        {
+            TeamVisionSystem vision = TeamVisionSystem.Instance;
+            if (vision == null || !vision.IsReady) return false;
+            for (int y = 0; y < data.Footprint.y; y++)
+            for (int x = 0; x < data.Footprint.x; x++)
+                if (!vision.IsVisible(selection.PlayerFaction,
+                    grid.GridToWorld(origin.x + x, origin.y + y))) return false;
+            return true;
+        }
+
+        private bool BeginPending(BuildingType type, HouseVariant variant,
+            Vector2Int origin)
+        {
+            CancelPending(true);
+            PawnBuilder closest = null;
+            float best = float.PositiveInfinity;
+            Vector3 target = grid.GridToWorld(origin.x, origin.y);
+            foreach (PawnBuilder pawn in builders)
+            {
+                if (pawn == null || !pawn.GetComponent<UnitController>().IsAlive) continue;
+                float distance = (pawn.transform.position - target).sqrMagnitude;
+                if (distance >= best) continue;
+                best = distance;
+                closest = pawn;
+            }
+            if (closest == null) return false;
+            pendingType = type;
+            pendingVariant = variant;
+            pendingOrigin = origin;
+            pendingScout = closest;
+            // The accepted construction order replaces this Pawn's old work
+            // or move command immediately, even before the first reveal stage.
+            closest.CancelJob();
+            closest.GetComponent<PawnGatherer>()?.CancelJob();
+            closest.GetComponent<UnitMovement>()?.Stop();
+            pendingBuilders.AddRange(builders);
+            triedPendingScouts.Clear();
+            triedPendingScouts.Add(closest);
+            BuildingData data = system.GetData(type);
+            pendingObservedCells = new bool[data.Footprint.x * data.Footprint.y];
+            pendingObservedCount = 0;
+            triedRevealStages.Clear();
+            pendingStageIssued = false;
+            pendingStartedAt = Time.time;
+            nextPendingCheck = 0f;
+            pendingPathFailures = 0;
+            return true;
+        }
+
+        private void ProcessPending()
+        {
+            if (system == null || grid == null || Time.time - pendingStartedAt > 60f)
+            {
+                CancelPending(true);
+                return;
+            }
+            if (pendingScout == null
+                || !pendingScout.GetComponent<UnitController>().IsAlive)
+            {
+                if (!TryNextPendingScout()) CancelPending(true);
+                return;
+            }
+            UnitMovement movement = pendingScout.GetComponent<UnitMovement>();
+            if (movement == null) { CancelPending(false); return; }
+            if (movement.IsMoving && pendingStageIssued
+                && movement.CommandDestinationCell != pendingStage)
+            {
+                // A newer player command supersedes the pending construction.
+                CancelPending(false);
+                return;
+            }
+            if (Time.time < nextPendingCheck) return;
+            nextPendingCheck = Time.time + 0.2f;
+            BuildingData data = system.GetData(pendingType.Value);
+            if (data == null) { CancelPending(true); return; }
+            TeamVisionSystem vision = TeamVisionSystem.Instance;
+            ObservePendingFootprint(data, vision);
+            if (pendingObservedCount == pendingObservedCells.Length)
+            {
+                bool built = system.TryBuild(pendingType.Value, pendingVariant,
+                    pendingOrigin, pendingBuilders, out _);
+                CancelPending(!built);
+                return;
+            }
+            if (movement.IsMoving) return;
+            pendingStageIssued = false;
+            pendingScout.CancelJob();
+            pendingScout.GetComponent<PawnGatherer>()?.CancelJob();
+            // A route can initially move away from the plan to use a stair.
+            // Try several bounded reveal positions instead of one nearest cell.
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                if (!TryChooseRevealStage(data, vision, out Vector2Int candidate))
+                    break;
+                triedRevealStages.Add(candidate);
+                if (!movement.TryIssueMove(candidate)) continue;
+                pendingStage = candidate;
+                pendingStageIssued = true;
+                pendingPathFailures = 0;
+                return;
+            }
+            if (++pendingPathFailures >= 3 && !TryNextPendingScout())
+                CancelPending(true);
+        }
+
+        private bool TryNextPendingScout()
+        {
+            PawnBuilder next = null;
+            float best = float.PositiveInfinity;
+            Vector3 target = grid.GridToWorld(pendingOrigin.x, pendingOrigin.y);
+            foreach (PawnBuilder candidate in pendingBuilders)
+            {
+                if (candidate == null || triedPendingScouts.Contains(candidate)
+                    || !candidate.GetComponent<UnitController>().IsAlive) continue;
+                float distance = (candidate.transform.position - target).sqrMagnitude;
+                if (distance >= best) continue;
+                best = distance;
+                next = candidate;
+            }
+            if (next == null) return false;
+            pendingScout = next;
+            triedPendingScouts.Add(next);
+            triedRevealStages.Clear();
+            pendingStageIssued = false;
+            pendingPathFailures = 0;
+            nextPendingCheck = 0f;
+            next.CancelJob();
+            next.GetComponent<PawnGatherer>()?.CancelJob();
+            next.GetComponent<UnitMovement>()?.Stop();
+            return true;
+        }
+
+        private void ObservePendingFootprint(BuildingData data,
+            TeamVisionSystem vision)
+        {
+            if (vision == null || !vision.IsReady || pendingObservedCells == null)
+                return;
+            for (int y = 0; y < data.Footprint.y; y++)
+            for (int x = 0; x < data.Footprint.x; x++)
+            {
+                int index = y * data.Footprint.x + x;
+                if (pendingObservedCells[index] || !vision.IsVisible(
+                        selection.PlayerFaction,
+                        grid.GridToWorld(pendingOrigin.x + x, pendingOrigin.y + y)))
+                    continue;
+                pendingObservedCells[index] = true;
+                pendingObservedCount++;
+            }
+        }
+
+        private bool TryChooseRevealStage(BuildingData data,
+            TeamVisionSystem vision, out Vector2Int result)
+        {
+            result = default;
+            if (vision == null || !vision.IsReady) return false;
+            float radius = Mathf.Max(0.5f,
+                pendingScout.GetComponent<UnitController>().VisionRadius - 0.15f);
+            float radiusSquared = radius * radius;
+            int margin = Mathf.CeilToInt(radius / grid.NavigationData.CellSize) + 1;
+            Vector2Int current = grid.WorldToGrid(pendingScout.transform.position);
+            float bestScore = float.NegativeInfinity;
+            for (int y = Mathf.Max(0, pendingOrigin.y - margin);
+                y < Mathf.Min(grid.Height, pendingOrigin.y + data.Footprint.y + margin); y++)
+            for (int x = Mathf.Max(0, pendingOrigin.x - margin);
+                x < Mathf.Min(grid.Width, pendingOrigin.x + data.Footprint.x + margin); x++)
+            {
+                Vector2Int stage = new(x, y);
+                if (stage == current || triedRevealStages.Contains(stage)
+                    || (x >= pendingOrigin.x && x < pendingOrigin.x + data.Footprint.x
+                        && y >= pendingOrigin.y && y < pendingOrigin.y + data.Footprint.y))
+                    continue;
+                GridCell cell = grid.GetCell(x, y);
+                // Candidate ranking uses authored terrain only. Hidden live
+                // occupancy is left to the movement command's path validation.
+                if (cell == null || !cell.Walkable
+                    || TerrainRules.IsConnectorCorridor(cell)
+                    || cell.TerrainType is not (TerrainType.FlatGround
+                        or TerrainType.ElevatedGround)) continue;
+                int revealCount = 0;
+                for (int fy = 0; fy < data.Footprint.y; fy++)
+                for (int fx = 0; fx < data.Footprint.x; fx++)
+                {
+                    if (pendingObservedCells[fy * data.Footprint.x + fx]) continue;
+                    Vector3 target = grid.GridToWorld(pendingOrigin.x + fx,
+                        pendingOrigin.y + fy);
+                    if ((cell.WorldPosition - target).sqrMagnitude <= radiusSquared)
+                        revealCount++;
+                }
+                if (revealCount == 0) continue;
+                float distance = Vector2.Distance(
+                    pendingScout.transform.position, cell.WorldPosition);
+                float score = revealCount * 8f - distance;
+                if (score <= bestScore) continue;
+                bestScore = score;
+                result = stage;
+            }
+            return bestScore > float.NegativeInfinity;
+        }
+
+        private void CancelPending(bool stopScout)
+        {
+            if (stopScout && pendingScout != null)
+            {
+                UnitMovement movement = pendingScout.GetComponent<UnitMovement>();
+                if (movement != null && movement.IsMoving
+                    && movement.CommandDestinationCell == pendingStage)
+                    movement.Stop();
+            }
+            pendingType = null;
+            pendingScout = null;
+            pendingBuilders.Clear();
+            pendingStage = default;
+            pendingStageIssued = false;
+            pendingObservedCells = null;
+            pendingObservedCount = 0;
+            triedRevealStages.Clear();
+            triedPendingScouts.Clear();
+            if (!activeType.HasValue && previewRoot != null)
+                previewRoot.SetActive(false);
         }
 
         private void CollectBuilders()
@@ -167,6 +429,7 @@ namespace TinyKingdom.Buildings
 
         private void OnDestroy()
         {
+            CancelPending(false);
             if (previewRoot != null) Destroy(previewRoot);
         }
     }

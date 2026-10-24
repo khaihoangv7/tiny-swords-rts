@@ -188,7 +188,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &5764416962923469590
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -927,8 +927,19 @@ impact still determines gameplay damage.
 ## Phase 5C2 defensive presentation
 
 Tower and Castle generic defensive fire reuses the already verified faction
-Archer `Arrow_0` projectile mapping and the existing arc presentation. Arrows
+Archer `Arrow_0` projectile mapping. Castle arrows retain the existing arc;
+Tower arrows use a straight, snapshotted path. A missed Tower arrow briefly
+leaves the same arrow sprite at its landing point with no collider; no separate
+embedded-ground-arrow sprite exists in the inspected project assets. Arrows
 launch from explicit BuildingData offsets rather than from hidden occupants.
+The Castle cannon reuses `Dynamite_0` through `_5` and `Explosion_03` from the
+verified Goblin TNT effect. `Dynamite_0` is also its upgrade command icon;
+the faction Archer `Arrow_0` is the Tower upgrade icon.
+The Tower command keeps that 45x14 trimmed arrow sprite at the same UI scale;
+its card centers the shallow icon lower than full-height icons. Tower automatic
+shots reuse Archer shot and impact clips. Goblin TNT and Castle cannon impacts
+share the existing `building_destroy.mp3` explosion cue because the imported
+audio pack has no dedicated TNT blast clip.
 Mounted Archers reuse the complete existing Archer Idle/Shoot and projectile
 pipeline; no alternate mounted animation sheet was found or inferred.
 
@@ -1001,6 +1012,20 @@ because `Cursor.SetCursor` receives the texture rather than its cropped sprite.
 | Default arrow | `Assets/UI Elements/UI Elements/Cursors/Cursor_01.png` | (21, 16, 45, 48) | (22, 17), arrow tip |
 | Friendly hand | `Assets/UI Elements/UI Elements/Cursors/Cursor_02.png` | (19, 16, 48, 50) | (24, 18), pointing finger |
 | Forbidden | `Assets/UI Elements/UI Elements/Cursors/Cursor_03.png` | (15, 12, 49, 50) | (32, 31), symbol center |
+
+`Cursor_04.png` is a separate 128x128 four-piece selection marker, not a
+mouse cursor. `Cursor_04_0..3` are the upper-left, upper-right, lower-left and
+lower-right corners. Their verified slice rectangles are 23x27 each. The game
+places these point-filtered corners around the ground contact of selected
+units, buildings, the Gold Mine, Trees, Gold Stones and Sheep. Resource markers
+replace the former green ellipse, using the resource's existing ground offset
+and scaled selection width. Tree and Gold Stone markers place the raised rear
+pair behind the resource sprite while the front pair stays at ground contact.
+Building and Gold Mine markers use the
+logical footprint depth: two rear corners sit behind the building sprite and
+two front corners sit ahead of it. Corner positions account for each sprite's
+imported pivot and follow the actual visual center of the building. They have
+no collider or gameplay role.
 
 The three cursor textures retain Sprite import and existing slicing, with
 Read/Write enabled for `Cursor.SetCursor`, Point filtering, no compression,
@@ -1449,9 +1474,31 @@ Compressed In Memory with preload. The long Fire loop uses Streaming, background
 loading and no preload. All source MP3 files remain unchanged. Fire uses
 `AudioSource.loop`; it is not rescheduled as repeated one-shots.
 
-`Assets/Audio/Music/attack_theme.mp3` was also found (about 10.971s, 44.1kHz
-stereo), but Phase 6E.2 defines no attack-music state machine, so it remains
-unmapped rather than being started from an invented gameplay rule.
+The former `Assets/Audio/Music/attack_theme.mp3` was removed. The runtime
+catalog has no music clip assigned; the audio Settings retain a Music volume
+control for a future track.
+
+The inspected UI assets `Assets/UI Elements/UI Elements/Swords/Swords.png`,
+`Banners/Banner.png`, `Ribbons/BigRibbons.png`, `Ribbons/SmallRibbons.png`,
+and `Icons/Icon_10.png` through `Icon_12.png` supply the match HUD and Settings.
+`Swords.png` is 448x640 but its rows are **not** finished 448x128 swords:
+`Swords_0` is the 107x640 handle strip; Blue uses `Swords_1` blade and
+`Swords_2` tip, while Red uses `Swords_3` blade and `Swords_4` tip. The handle
+is cropped to the corresponding 128px faction row and the middle blade is
+horizontally sliced between handle and tip. The prior full-row crop exposed
+transparent gaps; tiling the center made its painted seams look like separate
+rectangles.
+`BigRibbons_0..2` and `SmallRibbons_0..2` are Blue left/center/right pieces;
+`BigRibbons_3..5` and `SmallRibbons_6..8` are Red. The remaining BigRibbon
+triples `6..8`, `9..11`, and `12..14` are gold, purple, and slate. Settings
+uses these existing rows for colored navigation tabs. The centers are sliced
+horizontally while end pieces retain their aspect. The nine-piece Banner panel
+uses one continuous center and slices its straight edges along their length;
+tiling `Banner_4` exposes its dark edge pixels as a grid. Its corners retain
+their proportions.
+`Icon_11`, `Icon_12`, `Icon_10` are Information,
+Music and Settings respectively. They open About, Audio and Settings, and use
+the existing `CommandClick` UI cue.
 
 ## Phase 6E audio expansion mappings
 

@@ -3,6 +3,7 @@ using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Input;
 using TinyKingdom.Units;
+using TinyKingdom.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -41,6 +42,7 @@ namespace TinyKingdom.UI
         private readonly Image[] summaryIcons = new Image[5];
         private readonly Text[] summaryLabels = new Text[5];
         private readonly Image[] queueIcons = new Image[5];
+        private Image upgradeIcon;
         private RectTransform queueRoot;
         private RectTransform queueFill;
         private float refreshAt;
@@ -135,6 +137,9 @@ namespace TinyKingdom.UI
                 RtsUiFactory.Anchor(queueIcons[i].rectTransform, Vector2.zero, Vector2.zero,
                     new Vector2(i * 40f, 7f), new Vector2(34f, 34f));
             }
+            upgradeIcon = RtsUiFactory.Image("UpgradeSlot", queueRoot, null);
+            RtsUiFactory.Anchor(upgradeIcon.rectTransform, Vector2.zero, Vector2.zero,
+                new Vector2(220f, 7f), new Vector2(34f, 34f));
             RectTransform bar = RtsUiFactory.Rect("QueueProgress", queueRoot);
             RtsUiFactory.Anchor(bar, Vector2.zero, Vector2.zero,
                 new Vector2(0f, 0f), new Vector2(344f, 4f));
@@ -196,6 +201,28 @@ namespace TinyKingdom.UI
                     RtsUiFactory.Anchor(queueIcons[i].rectTransform, Vector2.zero,
                         Vector2.zero, new Vector2(i * 40f, 7f), new Vector2(34f, 34f));
             }
+            upgradeIcon = queueRoot.Find("UpgradeSlot")?.GetComponent<Image>();
+            if (upgradeIcon == null)
+            {
+                upgradeIcon = RtsUiFactory.Image("UpgradeSlot", queueRoot, null);
+            }
+            RtsUiFactory.Anchor(upgradeIcon.rectTransform, Vector2.zero, Vector2.zero,
+                new Vector2(220f, 7f), new Vector2(34f, 34f));
+            for (int i = 0; i < queueIcons.Length; i++)
+            {
+                if (queueIcons[i] == null) continue;
+                int index = i;
+                queueIcons[i].raycastTarget = true;
+                Button button = queueIcons[i].GetComponent<Button>()
+                    ?? queueIcons[i].gameObject.AddComponent<Button>();
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => CancelProduction(index));
+            }
+            upgradeIcon.raycastTarget = true;
+            Button upgradeButton = upgradeIcon.GetComponent<Button>()
+                ?? upgradeIcon.gameObject.AddComponent<Button>();
+            upgradeButton.onClick.RemoveAllListeners();
+            upgradeButton.onClick.AddListener(CancelUpgrade);
             queueFill = queueRoot.Find("QueueProgress/Fill") as RectTransform;
         }
 
@@ -242,7 +269,7 @@ namespace TinyKingdom.UI
             details.text = $"{controller.Faction}\nHP  {health.CurrentHP}/{health.MaxHP}\n{state}";
             if (pawn != null)
                 details.text += pawn.CarriedAmount > 0
-                    ? $"\nCargo  {pawn.CarriedResourceType} {pawn.CarriedAmount}/{pawn.CarryCapacity}"
+                    ? $"\nCargo  {pawn.CarriedResourceType} {pawn.CarriedAmount}/{pawn.DisplayCarryCapacity}"
                     : $"\nCargo  0/{pawn.CarryCapacity}";
         }
 
@@ -312,7 +339,9 @@ namespace TinyKingdom.UI
         private void ShowBuilding(BuildingSite site)
         {
             ShowPrimary(site.PresentationRenderer != null ? site.PresentationRenderer.sprite : null,
-                site.Type == BuildingType.House ? $"House {site.Variant}" : site.Type.ToString());
+                (site.Type == BuildingType.House ? $"House {site.Variant}" : site.Type.ToString())
+                    + (selection.SelectedBuildings.Count > 1
+                        ? $" x{selection.SelectedBuildings.Count}" : ""));
             details.text = $"{site.Faction}\nHP  {Mathf.CeilToInt(site.CurrentHP)}/{site.MaxHP}";
             details.text += site.State == BuildingState.UnderConstruction
                 ? $"\nConstruction  {Mathf.RoundToInt(site.ConstructionProgress * 100f)}%"
@@ -352,9 +381,20 @@ namespace TinyKingdom.UI
             if (garrison != null)
                 details.text += $"\nGarrison  {garrison.InternalCount}/{garrison.InternalCapacity}"
                     + $"  Mounted {garrison.MountedCount}/{garrison.MountedCapacity}";
+            BuildingDefenseUpgrade upgrade = host.GetComponent<BuildingDefenseUpgrade>();
+            if (upgrade != null)
+                details.text += upgrade.Purchased
+                    ? upgrade.GetComponent<CastleDropOff>() != null
+                        ? "\nCannon upgraded" : "\nAuto arrow upgraded"
+                    : upgrade.IsUpgrading
+                        ? $"\nUpgrading  {Mathf.RoundToInt(upgrade.Progress * 100f)}%"
+                            + $" ({Mathf.CeilToInt(upgrade.SecondsRemaining)}s)"
+                        : "";
             UnitProductionQueue queue = host.GetComponent<UnitProductionQueue>();
-            if (queue == null || queue.Count == 0) return;
-            queue.CopyQueue(queueBuffer);
+            if (queue != null) queue.CopyQueue(queueBuffer);
+            else queueBuffer.Clear();
+            bool showUpgrade = upgrade != null && upgrade.IsUpgrading;
+            if (queueBuffer.Count == 0 && !showUpgrade) return;
             queueRoot.gameObject.SetActive(true);
             for (int i = 0; i < queueIcons.Length; i++)
             {
@@ -362,7 +402,40 @@ namespace TinyKingdom.UI
                 queueIcons[i].gameObject.SetActive(active);
                 if (active) queueIcons[i].sprite = assets.Avatar(queueBuffer[i]);
             }
-            queueFill.anchorMax = new Vector2(queue.Progress, 1f);
+            upgradeIcon.gameObject.SetActive(showUpgrade);
+            if (showUpgrade)
+            {
+                Sprite[] dynamite = Phase6C2AssetCatalog.Load()?.Dynamite;
+                upgradeIcon.sprite = host.GetComponent<CastleDropOff>() != null
+                    ? dynamite != null && dynamite.Length > 0 ? dynamite[0] : null
+                    : host.GetComponent<BuildingDefense>()?.ArrowSprite;
+            }
+            queueFill.anchorMax = new Vector2(queueBuffer.Count > 0 ? queue.Progress
+                : upgrade.Progress, 1f);
+        }
+
+        private GameObject SelectedProductionHost()
+            => selection?.SelectedBuilding != null
+                ? selection.SelectedBuilding.gameObject
+                : selection?.SelectedCastle != null
+                    ? selection.SelectedCastle.gameObject : null;
+
+        private void CancelProduction(int index)
+        {
+            GameObject host = SelectedProductionHost();
+            UnitProductionQueue queue = host != null
+                ? host.GetComponent<UnitProductionQueue>() : null;
+            if (queue == null || !queue.TryCancelAt(index, selection.PlayerFaction)) return;
+            Refresh();
+        }
+
+        private void CancelUpgrade()
+        {
+            GameObject host = SelectedProductionHost();
+            BuildingDefenseUpgrade upgrade = host != null
+                ? host.GetComponent<BuildingDefenseUpgrade>() : null;
+            if (upgrade == null || !upgrade.TryCancel(selection.PlayerFaction)) return;
+            Refresh();
         }
 
         private void ShowPrimary(Sprite sprite, string name)

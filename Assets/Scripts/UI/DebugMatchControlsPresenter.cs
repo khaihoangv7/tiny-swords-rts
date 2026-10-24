@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TinyKingdom.Audio;
 using TinyKingdom.Debugging;
+using TinyKingdom.Input;
 using TinyKingdom.Units;
 using TinyKingdom.Vision;
 using UnityEngine;
@@ -29,6 +30,7 @@ namespace TinyKingdom.UI
         private readonly Dictionary<float, ButtonView> speedViews = new();
         private MatchSpeedController speedController;
         private FogRenderer blueFogRenderer;
+        private Faction humanFaction = Faction.Blue;
         private RectTransform root;
         private ButtonView fogView;
         private bool hideBlueFog;
@@ -57,21 +59,30 @@ namespace TinyKingdom.UI
             if (catalog == null || !catalog.IsComplete) return;
             speedController = GetComponent<MatchSpeedController>()
                 ?? gameObject.AddComponent<MatchSpeedController>();
+            SelectionManager selection = GetComponent<SelectionManager>()
+                ?? FindAnyObjectByType<SelectionManager>();
+            if (selection != null) humanFaction = selection.PlayerFaction;
             if (root != null) Destroy(root.gameObject);
-            Build(catalog);
+            Transform oldBar = transform.Find("DebugMatchControls");
+            if (oldBar != null) Destroy(oldBar.gameObject);
+            root = null;
+            fogView = null;
+            speedViews.Clear();
             speedController.SpeedChanged -= HandleSpeedChanged;
             speedController.SpeedChanged += HandleSpeedChanged;
+            CheatAccess.Changed -= HandleCheatAccessChanged;
+            CheatAccess.Changed += HandleCheatAccessChanged;
             hideBlueFog = false;
             DebugObserverView.SetEnabled(false);
             ResolveBlueFogRenderer();
             ApplyFogVisibility();
             RefreshSpeedSelection(speedController.DesiredSpeed);
-            ApplySafeArea(true);
         }
 
         private void OnDestroy()
         {
             DebugObserverView.SetEnabled(false);
+            CheatAccess.Changed -= HandleCheatAccessChanged;
             if (speedController != null)
                 speedController.SpeedChanged -= HandleSpeedChanged;
         }
@@ -83,11 +94,11 @@ namespace TinyKingdom.UI
                 ResolveBlueFogRenderer();
                 ApplyFogVisibility();
             }
-            ApplySafeArea(false);
         }
 
         public void SetHideBlueFog(bool hide)
         {
+            if (hide && !CheatAccess.Allowed) return;
             hideBlueFog = hide;
             DebugObserverView.SetEnabled(hide);
             ApplyFogVisibility();
@@ -194,8 +205,15 @@ namespace TinyKingdom.UI
         private void RefreshFogButton()
         {
             if (fogView == null) return;
+            fogView.Button.interactable = CheatAccess.Allowed;
             fogView.Label.text = hideBlueFog ? "Fog: OFF" : "Fog: ON";
             ApplyActiveStyle(fogView, hideBlueFog);
+        }
+
+        private void HandleCheatAccessChanged(bool allowed)
+        {
+            if (!allowed) SetHideBlueFog(false);
+            RefreshFogButton();
         }
 
         private static void ApplyActiveStyle(ButtonView view, bool active)
@@ -211,7 +229,7 @@ namespace TinyKingdom.UI
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] == null
-                    || renderers[i].DisplayedFaction != Faction.Blue) continue;
+                    || renderers[i].DisplayedFaction != humanFaction) continue;
                 blueFogRenderer = renderers[i];
                 return;
             }

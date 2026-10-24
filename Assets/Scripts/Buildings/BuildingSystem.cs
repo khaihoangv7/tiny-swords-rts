@@ -117,6 +117,27 @@ namespace TinyKingdom.Buildings
             => TerrainRules.IsStableStandingCell(cell)
                 && (requiredHeight < 0 || cell.HeightLevel == requiredHeight);
 
+        // Fog preview may inspect only authored terrain. Dynamic occupancy,
+        // resources, units, paths and builder access stay unknown until observed.
+        public bool CanPlaceOnKnownTerrain(BuildingType type, Vector2Int origin)
+        {
+            BuildingData data = GetData(type);
+            if (data == null || grid == null) return false;
+            int height = -1;
+            for (int y = 0; y < data.Footprint.y; y++)
+            for (int x = 0; x < data.Footprint.x; x++)
+            {
+                GridCell cell = grid.GetCell(origin.x + x, origin.y + y);
+                if (cell == null || !cell.Walkable ||
+                    TerrainRules.IsConnectorCorridor(cell) ||
+                    cell.TerrainType is not (TerrainType.FlatGround
+                        or TerrainType.ElevatedGround) ||
+                    (height >= 0 && cell.HeightLevel != height)) return false;
+                height = cell.HeightLevel;
+            }
+            return true;
+        }
+
         public bool CanPlace(BuildingType type, Vector2Int origin)
         {
             LastPlacementFailureReason = BuildingPlacementFailureReason.None;

@@ -17,7 +17,8 @@ namespace TinyKingdom.Economy
         MovingToRememberedResource,
         Gathering,
         ReturningToDropOff,
-        WaitingForDropOff
+        WaitingForDropOff,
+        WaitingForMine
     }
 
     [RequireComponent(typeof(UnitController), typeof(UnitMovement))]
@@ -72,6 +73,9 @@ namespace TinyKingdom.Economy
         private Vector3 interactionPosition;
         private ResourceType carriedType;
         private int carriedAmount;
+        private bool mineCargo;
+        private GoldMineObjective mineReturnTarget;
+        private float mineReentryWait;
         private bool resourceJobActive;
         private ResourceType resourceJobType;
         private Predicate<ResourceNode> autoRetargetEligibility;
@@ -91,9 +95,13 @@ namespace TinyKingdom.Economy
 
         public WorkerState State { get; private set; }
         public int CarryCapacity => carryCapacity;
+        public int DisplayCarryCapacity => mineCargo
+            ? GoldMineObjective.MineGoldPerTrip(carryCapacity) : carryCapacity;
         public float GatherIntervalSeconds => gatherIntervalSeconds;
         public int AmountPerGather => amountPerGather;
         public int CarriedAmount => carriedAmount;
+        public bool HasMineReturnTrip => mineReturnTarget != null;
+        public GoldMineObjective MineReturnTarget => mineReturnTarget;
         public ResourceType CarriedResourceType => carriedType;
         public ResourceType CurrentJobResourceType => resourceJobType;
         public ResourceNode Target => target;
@@ -257,6 +265,7 @@ namespace TinyKingdom.Economy
         // Called only for a successful explicit Move command. Cargo is retained.
         public void CancelJob()
         {
+            CancelMineRepeat();
             ReleaseSlots();
             target = null;
             dropOff = null;
@@ -275,6 +284,43 @@ namespace TinyKingdom.Economy
             rejectedRememberedResources.Clear();
         }
 
+        // Mine extraction uses the Pawn's normal cargo and return path, while
+        // restricting this load to the main Castle instead of a nearby Tower.
+        public void BeginMineDelivery(GoldMineObjective mine, int amount,
+            IPathTraversalPolicy traversalPolicy)
+        {
+            if (mine == null || amount <= 0 || controller == null || !controller.IsAlive)
+                return;
+            CancelJob();
+            mineReturnTarget = mine;
+            mineCargo = true;
+            strategicTraversal = traversalPolicy;
+            carriedType = ResourceType.Gold;
+            carriedAmount = amount;
+            mineReentryWait = 0f;
+            BeginReturn();
+        }
+
+        public bool QueueMineAfterCargo(GoldMineObjective mine,
+            IPathTraversalPolicy traversalPolicy)
+        {
+            if (mine == null || carriedAmount <= 0 || controller == null
+                || !controller.IsAlive) return false;
+            CancelJob();
+            mineReturnTarget = mine;
+            strategicTraversal = traversalPolicy;
+            mineReentryWait = 0f;
+            return BeginReturn();
+        }
+
+        public void CancelMineRepeat()
+        {
+            GoldMineObjective mine = mineReturnTarget;
+            mineReturnTarget = null;
+            mine?.CancelReturnReservation(controller);
+            if (State == WorkerState.WaitingForMine) State = WorkerState.Idle;
+        }
+
         internal bool DepositCargoOnGarrisonEntry(CastleDropOff castle)
         {
             if (castle == null || !castle.IsAvailable || controller == null
@@ -282,6 +328,8 @@ namespace TinyKingdom.Economy
                 return false;
             if (!castle.Deposit(carriedType, carriedAmount)) return false;
             carriedAmount = 0;
+            mineCargo = false;
+            CancelMineRepeat();
             return true;
         }
 
@@ -351,11 +399,16 @@ namespace TinyKingdom.Economy
                     {
                         movement.Stop();
                         bool deposited = dropOff.Deposit(carriedType, carriedAmount);
-                        if (deposited) carriedAmount = 0;
+                        if (deposited)
+                        {
+                            carriedAmount = 0;
+                            mineCargo = false;
+                        }
                         IResourceDropOff completedDropOff = dropOff;
                         completedDropOff.Release(controller);
                         dropOff = null;
                         if (!deposited) BeginReturn();
+                        else if (mineReturnTarget != null) TryRepeatMineTrip();
                         else if (GetComponent<PawnScoutPromotion>()?.IsPromoted == true)
                             CancelJob();
                         else if (resourceJobActive && target != null && target.IsAvailable
@@ -375,6 +428,12 @@ namespace TinyKingdom.Economy
                 case WorkerState.WaitingForDropOff:
                     dropOffRetry -= Mathf.Max(0f, deltaTime);
                     if (dropOffRetry <= 0f) BeginReturn();
+                    break;
+                case WorkerState.WaitingForMine:
+                    mineReentryWait += Mathf.Max(0f, deltaTime);
+                    dropOffRetry -= Mathf.Max(0f, deltaTime);
+                    if (mineReentryWait >= 30f) { CancelJob(); break; }
+                    if (dropOffRetry <= 0f) TryRepeatMineTrip();
                     break;
             }
         }
@@ -421,7 +480,8 @@ namespace TinyKingdom.Economy
             dropOffCandidates.Clear();
             IReadOnlyList<IResourceDropOff> registered = ResourceDropOffRegistry.Active;
             for (int i = 0; i < registered.Count; i++)
-                if (ResourceDropOffRegistry.IsUsable(registered[i], controller.Faction))
+                if (ResourceDropOffRegistry.IsUsable(registered[i], controller.Faction)
+                    && (!mineCargo || registered[i] is CastleDropOff))
                     dropOffCandidates.Add(registered[i]);
             dropOffCandidates.Sort(dropOffComparison);
             for (int i = 0; i < dropOffCandidates.Count; i++)
@@ -452,6 +512,19 @@ namespace TinyKingdom.Economy
             dropOffPathFailureCount++;
             ScheduleDropOffRetry();
             return true;
+        }
+
+        private void TryRepeatMineTrip()
+        {
+            GoldMineObjective mine = mineReturnTarget;
+            if (mine == null || !mine.IsAlive || mine.RemainingGold <= 0)
+            {
+                CancelJob();
+                return;
+            }
+            if (mine.TryEnter(controller, strategicTraversal)) return;
+            State = WorkerState.WaitingForMine;
+            dropOffRetry = 2f;
         }
 
         private bool Arrived()

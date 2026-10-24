@@ -337,7 +337,7 @@ namespace TinyKingdom.AI
                 economyDetails.Append(unit.GetEntityId().ToString()).Append(" | ")
                     .Append(pawnRoles.GetRole(unit)).Append(" | ")
                     .Append(gatherer.CarriedResourceType).Append(' ')
-                    .Append(gatherer.CarriedAmount).Append('/').Append(gatherer.CarryCapacity)
+                    .Append(gatherer.CarriedAmount).Append('/').Append(gatherer.DisplayCarryCapacity)
                     .Append(" | resource=")
                     .Append(gatherer.Target != null
                         ? gatherer.Target.GetEntityId().ToString() : "None")

@@ -112,6 +112,7 @@ namespace TinyKingdom.EditorTools
             }
 
             catalog.EnsureDefaultCues();
+            catalog.SetMusicClip(null);
             var report = new StringBuilder("Gameplay Audio prepared:\n");
             for (int i = 0; i < Clips.Length; i++)
             {

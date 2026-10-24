@@ -168495,7 +168495,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2203000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168714,7 +168713,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2204000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168933,7 +168931,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2205000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169185,7 +169182,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2207000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169424,7 +169420,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2301000009
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169630,7 +169625,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f05f586e81984fedb8e3ed916a3e7dfa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyKingdom.Units.DamageTextEmitter
-  showDamageNumbers: 0
 --- !u!114 &2302000009
 MonoBehaviour:
   m_ObjectHideFlags: 0

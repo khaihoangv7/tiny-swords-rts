@@ -1900,3 +1900,55 @@ Status: **IMPLEMENTED, UNITY VALIDATION PENDING**
 - [ ] Manually verify completion/release/impact/hit sounds, Fog gating and lethal impacts
 - [ ] Manually verify command probabilities, thresholds, independent cooldowns and no AI voice
 - [ ] Confirm Unity Console remains clean during the manual matrix
+
+## Castle/Tower defense upgrades and Gold Mine rate
+
+- [x] Branch from the integrated Phase 7E.6 baseline, preserving unrelated changes
+- [x] Add Castle base arrow and target-locked sequential garrison volleys
+- [x] Expand Tower internal capacity to three so its three-occupant volley is reachable
+- [x] Add one-time Castle cannon and Tower automatic-arrow purchases
+- [x] Delay their effect until the configured 50-second Castle / 35-second Tower upgrade finishes; display progress and prevent repeated charges
+- [x] Center the shallow Tower arrow command sprite lower without changing other command icons
+- [x] Play Archer shot audio for the Tower's automatic arrow and one shared explosion cue at TNT/Castle cannon impact
+- [x] Reuse Goblin dynamite impact authority for hostile-only explosion and knockback
+- [x] Give Tower arrows straight snapshotted flight and short-lived miss visuals
+- [x] Halve Gold Mine long-run payout by doubling its interval to ten seconds
+- [x] Add a structural and optional Play Mode purchase validator
+- [x] Run the defense validator in Play Mode on an isolated project copy; Castle/Tower purchases and straight-arrow hit, miss and blocker fixtures passed
+- [x] Run Phase 5C2 and 7E.1–7E.6, Gameplay Audio and RTS HUD validators in the same Play Mode session
+- [x] Measure the actual Gold Mine income tick with three fixture occupants per faction: Blue and Red each received 90 Gold over two ten-second payouts, with 1,910/2,000 reserve remaining
+- [ ] Run Map 3 Play Mode route/combat validation and visually inspect the Castle cannon impact and Tower miss sprite
+- [ ] Verify projectile, cannon, upgrade UI, Fog and audio in Game View
+- [ ] Verify full-match x1/x5/x10 economy and combat balance after the rate change
+
+## Gold Mine carried extraction and battlefield title
+
+- [x] Show the first battlefield as TWO KINGDOMS in the match HUD instead of its internal Map scene name
+- [x] Replace direct mine stockpile ticks with 15-second Pawn extraction and 50-Gold cargo at the current economy settings
+- [x] Route mine cargo to the main Castle only, then repeat the mining trip while the mine remains usable
+- [x] Preserve returning miner slots and cancel repeat orders when control is lost or the mine is depleted/destroyed
+- [ ] Verify in Play Mode that Blue and Red Pawns deliver mine cargo to the Castle, skip nearby Towers and complete a second trip
+- [ ] Verify partial final cargo, contested control, Castle loss and blocked return routes in Play Mode
+
+## RTS balance, top HUD, control groups and Settings pass
+
+- [x] Set Castle/Tower upgrade times to 50/35 game seconds; adjust Warrior,
+  Lancer, Archer, tree capacity and Tower construction cost to the requested values
+- [x] Restore the Tower upgrade arrow to the shared command-icon anchor
+- [x] Add a faction sword, Fog-aware minimap, match timer and paged global job strip
+- [x] Cancel indexed production and in-progress upgrades through the selected
+  building's panel, with one authoritative unused-cost refund
+- [x] Add same-type double-click selection and four unit control groups
+- [x] Add functional Settings tabs, persisted bindings, display/graphics/audio
+  controls, damage text and player-only cheat controls with presentation-only Fog OFF
+- [x] Delay hidden building placement until a Pawn reveals the footprint; preserve
+  authoritative placement/payment and stop a failed order
+- [x] Add construction-only visual pulse and bounded random Sheep wandering
+- [x] Run isolated Unity Play Mode regression/queue/gold-payout suite: 3/3 passed
+- [x] Run one isolated x10 full match after balance changes: RedVictory at 746
+  simulation seconds, zero test failures
+- [ ] Inspect Tower icon, HUD, minimap, Settings and sheep/construction animation
+  in an interactive Unity Game View at more than one resolution
+- [ ] Exercise visible/hidden blocked and empty building placement with the mouse
+- [ ] Listen to Master/SFX/Music levels and verify saved settings after relaunch
+- [ ] Run natural x1 and x5 full matches with the new production balance

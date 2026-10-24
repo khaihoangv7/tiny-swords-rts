@@ -19,9 +19,9 @@ MonoBehaviour:
   attackRange: 1.5
   attackInterval: 1
   moveSpeed: 2.8
-  foodCost: 60
-  woodCost: 0
-  goldCost: 40
+  foodCost: 90
+  woodCost: 90
+  goldCost: 0
   projectileSpeed: 8
   acquisitionRadius: 4
   acquisitionInterval: 0.25
@@ -29,5 +29,5 @@ MonoBehaviour:
   canRetaliateWhenDamaged: 1
   retaliationLeash: 10
   populationCost: 1
-  trainingSeconds: 6
+  trainingSeconds: 11
   visionRadius: 3.5

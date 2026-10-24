@@ -82,7 +82,7 @@ namespace TinyKingdom.UI
             if (cargoLabel != null && inspectedPawn != null)
                 cargoLabel.text = inspectedPawn.CarriedAmount > 0
                     ? $"Cargo: {inspectedPawn.CarriedResourceType} "
-                        + $"{inspectedPawn.CarriedAmount}/{inspectedPawn.CarryCapacity}"
+                        + $"{inspectedPawn.CarriedAmount}/{inspectedPawn.DisplayCarryCapacity}"
                     : $"Cargo: 0/{inspectedPawn.CarryCapacity}";
             if (guardButton == null || !guardButton.activeSelf) return;
             bool active = false;
@@ -233,6 +233,7 @@ namespace TinyKingdom.UI
             label.color = Color.white;
             label.alignment = TextAnchor.MiddleLeft;
             label.text = value;
+            UiLanguage.Bind(label);
             return label;
         }
     }

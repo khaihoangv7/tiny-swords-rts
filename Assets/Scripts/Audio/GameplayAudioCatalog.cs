@@ -72,6 +72,7 @@ namespace TinyKingdom.Audio
         public const string ResourcePath = "Audio/GameplayAudioCatalog";
 
         [SerializeField] private GameplayAudioCue[] cues = Array.Empty<GameplayAudioCue>();
+        [SerializeField] private AudioClip musicClip;
         [SerializeField, Min(1)] private int poolSize = 12;
         [SerializeField, Min(1)] private int poolGrowthSize = 4;
         [SerializeField, Min(32)] private int catastrophicSourceLimit = 256;
@@ -83,6 +84,7 @@ namespace TinyKingdom.Audio
         [SerializeField, Range(0.5f, 1.5f)] private float maximumPitch = 1.04f;
 
         public GameplayAudioCue[] Cues => cues;
+        public AudioClip MusicClip => musicClip;
         public int PoolSize => Mathf.Max(1, poolSize);
         public int PoolGrowthSize => Mathf.Max(1, poolGrowthSize);
         public int CatastrophicSourceLimit => Mathf.Max(32, catastrophicSourceLimit);
@@ -114,6 +116,7 @@ namespace TinyKingdom.Audio
         }
 
 #if UNITY_EDITOR
+        public void SetMusicClip(AudioClip clip) => musicClip = clip;
         public void EnsureDefaultCues()
         {
             var existing = new Dictionary<GameplayAudioEvent, GameplayAudioCue>();

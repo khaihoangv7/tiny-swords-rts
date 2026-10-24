@@ -213,10 +213,8 @@ namespace TinyKingdom.EditorTools
             Require(typeof(MatchSpeedController).GetMethod("SetSpeed",
                     new[] { typeof(float) }) != null,
                 "Match speed buttons must use the centralized controller.");
-            Require(DebugMatchControlsPresenter.RequiredButtonRowWidth
-                    <= DebugMatchControlsPresenter.PanelWidth
-                        - 2f * DebugMatchControlsPresenter.HorizontalPadding,
-                "Top-right controls do not fit inside their content width.");
+            Require(typeof(SettingsPanelPresenter).GetMethod("Open") != null,
+                "Settings must expose the existing speed and Fog controls.");
             Require(!DebugObserverView.IsEnabled,
                 "Observer presentation must default to OFF.");
 
@@ -250,16 +248,11 @@ namespace TinyKingdom.EditorTools
                 "Exactly one active MatchSpeedController is required.");
             DebugMatchControlsPresenter presenter = UnityEngine.Object
                 .FindAnyObjectByType<DebugMatchControlsPresenter>();
-            Require(presenter != null && presenter.Root != null
+            Require(presenter != null && presenter.Root == null
                 && presenter.SpeedController == controllers[0],
-                "Top-right debug controls are missing or use another speed authority.");
-            Require(presenter.SpeedButtonCount == 4
-                && presenter.Root.anchorMin == Vector2.one
-                && presenter.Root.anchorMax == Vector2.one
-                && presenter.Root.pivot == Vector2.one,
-                "Debug controls must contain four speed buttons anchored top-right.");
-            Require(presenter.BlocksWorldInput,
-                "Debug controls must block pointer raycasts from reaching the world.");
+                "Settings-only controls must retain the centralized speed authority.");
+            Require(presenter.GetComponent<SettingsPanelPresenter>() != null,
+                "Fog and speed controls must be available in Settings.");
             Require(presenter.BlueFogRenderer != null
                 && presenter.BlueFogRenderer.DisplayedFaction == Faction.Blue,
                 "Fog debug toggle must target only the Blue FogRenderer.");
@@ -276,18 +269,32 @@ namespace TinyKingdom.EditorTools
             }
             Require(controller.SetSpeed(1f), "Validator could not restore x1 speed.");
 
-            presenter.SetHideBlueFog(true);
-            Require(presenter.IsBlueFogHidden && DebugObserverView.IsEnabled
-                && !presenter.BlueFogRenderer.IsFogVisible,
-                "Hide Fog did not enable observer presentation and disable the mask.");
-            ValidateHiddenEntityObserverOverride();
-            presenter.SetHideBlueFog(false);
-            Require(!presenter.IsBlueFogHidden && !DebugObserverView.IsEnabled
-                && presenter.BlueFogRenderer.IsFogVisible,
-                "Fog ON did not restore authoritative presentation and the Fog mask.");
+            bool originalCheats = CheatAccess.Allowed;
+            try
+            {
+                CheatAccess.Allowed = false;
+                presenter.SetHideBlueFog(true);
+                Require(!presenter.IsBlueFogHidden && !DebugObserverView.IsEnabled,
+                    "Fog cheat remained usable while Allow Cheats was disabled.");
+                CheatAccess.Allowed = true;
+                presenter.SetHideBlueFog(true);
+                Require(presenter.IsBlueFogHidden && DebugObserverView.IsEnabled
+                    && !presenter.BlueFogRenderer.IsFogVisible,
+                    "Allowed Hide Fog did not enable observer presentation and disable the mask.");
+                ValidateHiddenEntityObserverOverride();
+                presenter.SetHideBlueFog(false);
+                Require(!presenter.IsBlueFogHidden && !DebugObserverView.IsEnabled
+                    && presenter.BlueFogRenderer.IsFogVisible,
+                    "Fog ON did not restore authoritative presentation and the Fog mask.");
+            }
+            finally
+            {
+                presenter.SetHideBlueFog(false);
+                CheatAccess.Allowed = originalCheats;
+            }
 
             Debug.Log("Phase 7E.1 debug aid runtime validation PASS: one centralized "
-                + "x1/x2/x5/x10 controller, top-right raycast-blocking controls and "
+                + "x1/x2/x5/x10 controller, Settings-only controls and "
                 + "presentation-only observer Fog toggle restore correctly.");
         }
 

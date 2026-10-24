@@ -23,7 +23,7 @@ namespace TinyKingdom.Input
 
         private void Update()
         {
-            if (!MatchManager.AllowsGameplay)
+            if (!MatchManager.AllowsGameplay || GameInputBindings.ModalOpen)
             {
                 End(keyboardGuards, mouseGuards);
                 EndMouseGuard();
@@ -32,8 +32,10 @@ namespace TinyKingdom.Input
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
             {
-                if (keyboard.gKey.wasPressedThisFrame) Begin(keyboardGuards, mouseGuards);
-                if (keyboard.gKey.wasReleasedThisFrame) End(keyboardGuards, mouseGuards);
+                if (GameInputBindings.WasPressed(GameAction.Guard))
+                    Begin(keyboardGuards, mouseGuards);
+                if (GameInputBindings.WasReleased(GameAction.Guard))
+                    End(keyboardGuards, mouseGuards);
             }
             // Pointer-up outside the button still ends the hold.
             if (mouseHeld && Mouse.current != null && !Mouse.current.leftButton.isPressed)

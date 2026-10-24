@@ -48,6 +48,7 @@ namespace TinyKingdom.UI
         private RtsHudAssetCatalog assets;
         private CommandTooltipTrigger currentOwner;
         private CommandTooltipData currentData;
+        private GameUiLanguage shownLanguage;
 
         public RectTransform Root => root;
         public RectTransform ContentRoot => content;
@@ -98,13 +99,15 @@ namespace TinyKingdom.UI
             if (root == null || owner == null || data == null) return;
             currentOwner = owner;
             currentData = data;
-            title.text = data.Title;
-            stats.text = data.Stats ?? "";
+            shownLanguage = UiLanguage.Current;
+            UiLanguage.Set(title, data.Title);
+            UiLanguage.Set(stats, data.Stats ?? "");
             stats.gameObject.SetActive(!string.IsNullOrEmpty(data.Stats));
-            details.text = data.Details ?? "";
+            string detailSource = data.Details ?? "";
             if (!string.IsNullOrEmpty(data.Hotkey))
-                details.text += "\nHotkey: " + data.Hotkey;
-            details.gameObject.SetActive(!string.IsNullOrEmpty(details.text));
+                detailSource += "\nHotkey: " + data.Hotkey;
+            UiLanguage.Set(details, detailSource);
+            details.gameObject.SetActive(!string.IsNullOrEmpty(detailSource));
 
             RefreshAffordability();
             root.gameObject.SetActive(true);
@@ -361,6 +364,12 @@ namespace TinyKingdom.UI
             if (!root.parent.gameObject.activeInHierarchy)
             {
                 Hide();
+                return;
+            }
+            if (shownLanguage != UiLanguage.Current && currentData != null)
+            {
+                if (currentOwner == null) { Hide(); return; }
+                Show(currentOwner, currentData);
                 return;
             }
             UpdatePointerPosition();

@@ -163,6 +163,7 @@ namespace TinyKingdom.Buildings
             label.color = Color.white;
             label.alignment = TextAnchor.MiddleLeft;
             label.text = value;
+            TinyKingdom.UI.UiLanguage.Bind(label);
             label.raycastTarget = false;
             return label;
         }

@@ -23,9 +23,9 @@ MonoBehaviour:
   committedMeleeHitDelay: 0.2
   committedMeleeDuration: 0.4
   moveSpeed: 3
-  foodCost: 100
+  foodCost: 200
   woodCost: 0
-  goldCost: 80
+  goldCost: 150
   projectileSpeed: 8
   acquisitionRadius: 4
   acquisitionInterval: 0.25
@@ -33,5 +33,5 @@ MonoBehaviour:
   canRetaliateWhenDamaged: 1
   retaliationLeash: 10
   populationCost: 1
-  trainingSeconds: 8
+  trainingSeconds: 23
   visionRadius: 3.5

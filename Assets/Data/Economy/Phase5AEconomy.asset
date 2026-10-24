@@ -18,7 +18,7 @@ MonoBehaviour:
   pawnCarryCapacity: 20
   sheepCapacity: 200
   houseSheepRespawnSeconds: 90
-  treeCapacity: 100
+  treeCapacity: 125
   goldCapacity: 100
   goldStoneCapacities:
   - 100
