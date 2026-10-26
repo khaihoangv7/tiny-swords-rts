@@ -22,6 +22,7 @@ namespace TinyKingdom.Economy
             public UnitController Unit;
             public Vector3 Position;
             public IPathTraversalPolicy TraversalPolicy;
+            public readonly List<Vector3> TriedPositions = new();
         }
         private sealed class MiningOccupant
         {
@@ -38,6 +39,8 @@ namespace TinyKingdom.Economy
         public const float VisualGroundOffsetY = 0.92f;
         public const float GuardVisualClearance = 2f;
         public const float ContestRadius = 7f;
+        private const float EntryStallSeconds = 2f;
+        private const float EntryArrivalRadius = 0.35f;
         private const float ContestCheckSeconds = 0.5f;
         private static readonly ProfilerMarker ContestMarker =
             new("TinyKingdom.GoldMine.Control");
@@ -66,6 +69,7 @@ namespace TinyKingdom.Economy
         public bool HasOwner => hasOwner;
         public int RemainingGold => remainingGold;
         public int OccupantCount => occupants.Count;
+        public int PendingEntryCount => pending.Count;
         public BuildingType Type => BuildingType.GoldMine;
         public Faction Faction => hasOwner ? owner : TinyKingdom.Units.Faction.Goblin;
         public Vector2Int FootprintOrigin => origin;
@@ -154,9 +158,26 @@ namespace TinyKingdom.Economy
                 UnitController pawn = entry.Unit;
                 if (!CanEnter(pawn, false)) { CancelPending(pawn); continue; }
                 UnitMovement movement = pawn.GetComponent<UnitMovement>();
-                if (movement != null && movement.IsMoving) continue;
-                if (Vector2.Distance(pawn.transform.position, entry.Position) > 0.12f)
-                { CancelPending(pawn); continue; }
+                if (movement == null) { CancelPending(pawn); continue; }
+                if (movement.IsMoving)
+                {
+                    if (Time.time - movement.LastMovementProgressTime
+                        < EntryStallSeconds) continue;
+                    RetryPendingEntry(i, entry, movement);
+                    continue;
+                }
+                // The last movement frame can apply soft unit separation after
+                // consuming the final waypoint. Accept only a Pawn that remains
+                // inside its reserved standing cell and interaction radius.
+                if (grid == null
+                    || grid.WorldToGrid(pawn.transform.position)
+                        != grid.WorldToGrid(entry.Position)
+                    || Vector2.Distance(pawn.transform.position, entry.Position)
+                        > EntryArrivalRadius)
+                {
+                    RetryPendingEntry(i, entry, movement);
+                    continue;
+                }
                 pending.RemoveAt(i);
                 UnitStationing station = pawn.GetComponent<UnitStationing>()
                     ?? pawn.gameObject.AddComponent<UnitStationing>();
@@ -242,11 +263,14 @@ namespace TinyKingdom.Economy
                 if (!returningMiners.Contains(pawn)) returningMiners.Add(pawn);
                 return true;
             }
-            if (!TryFindEntry(pawn, out Vector3 position)) return false;
             UnitMovement movement = pawn.GetComponent<UnitMovement>();
-            if (movement == null || !(traversalPolicy == null
-                    ? movement.TryIssueMove(position)
-                    : movement.TryIssueStrategicMove(position, traversalPolicy)))
+            var entry = new PendingEntry
+            {
+                Unit = pawn,
+                TraversalPolicy = traversalPolicy
+            };
+            if (movement == null || !TryIssueEntryMove(pawn, movement,
+                    traversalPolicy, entry.TriedPositions, out entry.Position))
                 return false;
             gatherer.CancelJob();
             pawn.GetComponent<PawnBuilder>()?.CancelJob();
@@ -254,13 +278,23 @@ namespace TinyKingdom.Economy
             UnitStationing station = pawn.GetComponent<UnitStationing>()
                 ?? pawn.gameObject.AddComponent<UnitStationing>();
             station.BeginPending(this);
-            pending.Add(new PendingEntry
-            {
-                Unit = pawn,
-                Position = position,
-                TraversalPolicy = traversalPolicy
-            });
+            pending.Add(entry);
             return true;
+        }
+
+        public bool TryGetPendingEntry(UnitController pawn, out Vector3 position,
+            out int attemptedPositions)
+        {
+            for (int i = 0; i < pending.Count; i++)
+                if (pending[i].Unit == pawn)
+                {
+                    position = pending[i].Position;
+                    attemptedPositions = pending[i].TriedPositions.Count;
+                    return true;
+                }
+            position = default;
+            attemptedPositions = 0;
+            return false;
         }
 
         public bool CanAccept(UnitController pawn) => CanEnter(pawn, true);
@@ -366,20 +400,60 @@ namespace TinyKingdom.Economy
         private static Faction OpponentOf(Faction faction)
             => faction == Faction.Blue ? Faction.Red : Faction.Blue;
 
-        private bool TryFindEntry(UnitController pawn, out Vector3 position)
+        private void RetryPendingEntry(int index, PendingEntry entry,
+            UnitMovement movement)
+        {
+            pending.RemoveAt(index);
+            UnitStationing station = entry.Unit.GetComponent<UnitStationing>();
+            station?.ClearPending(this);
+            movement.Stop();
+            if (entry.TriedPositions.Count >= 12
+                || !TryIssueEntryMove(entry.Unit, movement, entry.TraversalPolicy,
+                    entry.TriedPositions, out Vector3 position))
+                return;
+            entry.Position = position;
+            station?.BeginPending(this);
+            pending.Add(entry);
+        }
+
+        private bool TryIssueEntryMove(UnitController pawn, UnitMovement movement,
+            IPathTraversalPolicy traversalPolicy, List<Vector3> triedPositions,
+            out Vector3 position)
         {
             position = default;
             BuildingSpawnPoint.TryFindMany(this, grid, 12, spawnPoints, 3);
-            float best = float.PositiveInfinity;
-            foreach (Vector3 candidate in spawnPoints)
+            // A blocked nearest edge must not strand a miner when another mine
+            // entrance is reachable. Keep the number of path probes bounded.
+            uint tried = 0;
+            for (int attempt = 0; attempt < Mathf.Min(4, spawnPoints.Count)
+                && triedPositions.Count < 12; attempt++)
             {
-                if (pending.Exists(item => Vector2.Distance(item.Position, candidate) < 0.1f))
-                    continue;
-                float distance = ((Vector2)(candidate - pawn.transform.position)).sqrMagnitude;
-                if (distance >= best) continue;
-                best = distance; position = candidate;
+                int bestIndex = -1;
+                float bestDistance = float.PositiveInfinity;
+                for (int i = 0; i < spawnPoints.Count; i++)
+                {
+                    if ((tried & (1u << i)) != 0) continue;
+                    Vector3 candidate = spawnPoints[i];
+                    if (triedPositions.Exists(item => Vector2.Distance(item,
+                            candidate) < 0.1f)) continue;
+                    if (pending.Exists(item => Vector2.Distance(item.Position,
+                            candidate) < 0.1f)) continue;
+                    float distance = ((Vector2)(candidate
+                        - pawn.transform.position)).sqrMagnitude;
+                    if (distance >= bestDistance) continue;
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+                if (bestIndex < 0) return false;
+                tried |= 1u << bestIndex;
+                position = spawnPoints[bestIndex];
+                triedPositions.Add(position);
+                if (traversalPolicy == null
+                    ? movement.TryIssueMove(position)
+                    : movement.TryIssueStrategicMove(position, traversalPolicy))
+                    return true;
             }
-            return best < float.PositiveInfinity;
+            return false;
         }
 
         private void Deplete()

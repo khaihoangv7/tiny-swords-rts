@@ -458,7 +458,8 @@ namespace TinyKingdom.AI
             float now)
         {
             float resourceDeficit = demand == null ? 0f : Mathf.Clamp01(
-                (demand.FoodDeficit + demand.WoodDeficit + demand.GoldDeficit) / 300f);
+                (demand.FoodDeficit + demand.WoodDeficit
+                    + demand.GoldPlanningDeficit) / 300f);
             float workerGap = Mathf.Clamp01((production.TargetPawnCount - s.WorkerCount)
                 / (float)Mathf.Max(1, production.TargetPawnCount));
             float populationPressure = s.PopulationCap > 0

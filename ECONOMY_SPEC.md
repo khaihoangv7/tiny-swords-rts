@@ -192,3 +192,16 @@ An already accepted Pawn entry order survives brief loss of mine vision while
 traveling, but is canceled on legally observed danger or after 30 game seconds
 without a fresh safe observation. The army covers a newly cleared mine long
 enough for Pawns to occupy it, with a 90-game-second limit.
+
+Phase 7E.7 keeps the same extraction, cargo amount, Castle-only deposit, reserve
+and ownership rules. When one mine entrance is blocked, the same authoritative
+entry action probes at most four perimeter slots at once and remembers at most
+twelve attempted slots while recovering a stalled approach. A Pawn claims only
+after reaching its reserved standing cell. Pending miners retain their assigned
+role until claim or cancellation.
+Banked Gold alone is spendable. Carried Gold and a conservative next-load
+forecast only inform ordinary Gold-worker allocation; a hidden or depleted
+mine contributes no expected load. A canceled repeat trip still delivers any
+Gold already in cargo to the main Castle. Dead Pawns lose their carried cargo,
+consistent with the existing worker death behavior; no new resource drop is
+created.

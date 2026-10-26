@@ -300,7 +300,8 @@ namespace TinyKingdom.AI
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety, strategicIntent);
                 goldMineWorkers.Tick(context, pawnRoles,
-                    strategicIntent.GoldMine.Current, strategicSafety);
+                    strategicIntent.GoldMine.Current, strategicSafety,
+                    strategicIntent.GoldMine);
                 using (EconomyPolicyMarker.Auto())
                     economyPolicy.Tick(context, pawnRoles, strategicSafety, economicDemand);
                 progressDiagnostics.Observe(context.Time, context.Knowledge,
@@ -368,6 +369,8 @@ namespace TinyKingdom.AI
             debugGoldAssignments = economyPolicy.GoldAssignments;
             debugEconomicDemand = $"Stock F{economicDemand.Food}/W{economicDemand.Wood}/G{economicDemand.Gold} "
                 + $"Deficit F{economicDemand.FoodDeficit}/W{economicDemand.WoodDeficit}/G{economicDemand.GoldDeficit} "
+                + $"Gold cargo {economicDemand.CarriedGold}, en route {economicDemand.GoldInTransit}, "
+                + $"expected {economicDemand.ExpectedGold}, planning gap {economicDemand.GoldPlanningDeficit}; "
                 + economicDemand.Reason;
             debugEconomicReassignment = economyPolicy.LastReassignmentReason
                 + $" at {economyPolicy.LastReassignmentTime:0.0}";

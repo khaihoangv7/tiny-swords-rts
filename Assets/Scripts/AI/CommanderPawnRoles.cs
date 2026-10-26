@@ -49,7 +49,10 @@ namespace TinyKingdom.AI
                     roles[pawn] = CommanderPawnRole.Scout;
                 else if (builder != null && builder.HasJob)
                     roles[pawn] = CommanderPawnRole.Builder;
-                else if (pawn.GetComponent<PawnGatherer>()?.HasMineReturnTrip == true)
+                else if (pawn.GetComponent<PawnGatherer>()?.HasMineReturnTrip == true
+                    || (roles.TryGetValue(pawn, out CommanderPawnRole assignedRole)
+                        && assignedRole == CommanderPawnRole.Mine
+                        && pawn.GetComponent<UnitStationing>()?.IsPending == true))
                     roles[pawn] = CommanderPawnRole.Mine;
                 else if (!roles.TryGetValue(pawn, out CommanderPawnRole role)
                     || role is CommanderPawnRole.Builder or CommanderPawnRole.Mine)

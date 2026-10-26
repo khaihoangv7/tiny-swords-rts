@@ -1927,8 +1927,23 @@ Status: **IMPLEMENTED, UNITY VALIDATION PENDING**
 - [x] Replace direct mine stockpile ticks with 15-second Pawn extraction and 50-Gold cargo at the current economy settings
 - [x] Route mine cargo to the main Castle only, then repeat the mining trip while the mine remains usable
 - [x] Preserve returning miner slots and cancel repeat orders when control is lost or the mine is depleted/destroyed
-- [ ] Verify in Play Mode that Blue and Red Pawns deliver mine cargo to the Castle, skip nearby Towers and complete a second trip
+- [x] Verify in Play Mode that a Red Pawn claims the mine, deposits one 50-Gold load at the main Castle and reenters for a second load; verify Blue claim, first load and Blue Castle return target
+- [ ] Verify a full Blue Castle deposit and second trip, and test Tower-near-Castle routing in Play Mode
 - [ ] Verify partial final cargo, contested control, Castle loss and blocked return routes in Play Mode
+
+## Phase 7E.7 Gold logistics and AI economy adaptation
+
+- [x] Audit the shared Blue/Red mine extraction, Pawn cargo, Castle-only deposit, ownership, worker capacity and AI assignment flow
+- [x] Keep deposited Gold as the only spendable inventory; expose carried, active-route and visible occupied-mine forecasts for worker planning only
+- [x] Scope unsafe-trip cancellation and safe-observation age to the affected mine; preserve cargo and existing role arbitration
+- [x] Try a bounded set of alternative mine entry cells when the nearest perimeter route fails
+- [x] Add a focused Red AI Play Mode logistics validator, plus existing economy/mine structural regression gate
+- [x] Run the focused Red AI mine-to-Castle-to-mine Play Mode validator in a fully initialized Editor scene: claim, 50 Gold, one Castle deposit, same Pawn reentry and second load observed
+- [x] Run a separate Blue Pawn claim and first-load Play Mode scenario; Blue Castle return destination verified
+- [x] Rerun the blocked-nearest-entry Play Mode scenario through claim, Castle deposit and second load with the corrected deposit-event assertion
+- [x] Run the fully unreachable-entry Play Mode scenario; three rejected routes activate strategic cooldown without leaving a Pawn pending or claiming the mine
+- [ ] Run Tower-near-Castle, mine depletion, control-loss and Castle-loss Play Mode scenarios
+- [ ] Run x1 and accelerated full matches to check strategic stability and path/command rates
 
 ## RTS balance, top HUD, control groups and Settings pass
 

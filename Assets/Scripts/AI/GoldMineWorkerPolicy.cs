@@ -19,14 +19,20 @@ namespace TinyKingdom.AI
         [SerializeField, Range(1, GoldMineObjective.PawnCapacity)]
         private int maximumAssignedMiners = GoldMineObjective.PawnCapacity;
         [SerializeField, Min(1f)] private float assignmentRetrySeconds = 5f;
+        [SerializeField, Min(1)] private int failedRouteAttemptsBeforeReconsider = 3;
         private readonly Dictionary<UnitController, EntityId> pending = new();
         private readonly List<UnitController> removals = new();
         private float nextAttemptTime;
         private float lastSafeObservationTime = -1f;
+        private EntityId lastSafeMineId;
+        private EntityId failedRouteMineId;
+        private int consecutiveFailedRoutes;
         public int PendingCount => pending.Count;
         public uint AssignmentSerial { get; private set; }
         public uint EjectionSerial { get; private set; }
         public uint FailedAttemptCount { get; private set; }
+        public CommanderCommandResult LastAttemptResult { get; private set; }
+        public UnitController LastAttemptWorker { get; private set; }
 
         public void Reset(CommanderPawnRoles roles)
         {
@@ -36,16 +42,26 @@ namespace TinyKingdom.AI
             removals.Clear();
             nextAttemptTime = 0f;
             lastSafeObservationTime = -1f;
+            lastSafeMineId = default;
+            failedRouteMineId = default;
+            consecutiveFailedRoutes = 0;
             AssignmentSerial = EjectionSerial = FailedAttemptCount = 0;
+            LastAttemptResult = default;
+            LastAttemptWorker = null;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
-            GoldMineOpportunity opportunity, StrategicSafetyMap safety)
+            GoldMineOpportunity opportunity, StrategicSafetyMap safety,
+            GoldMineStrategyModel strategy)
         {
             using var marker = AssignmentMarker.Auto();
             if (context.Knowledge == null || roles == null) return;
             bool safe = opportunity.IsValid && opportunity.SafeForMiners;
-            if (safe) lastSafeObservationTime = context.Time;
+            if (safe)
+            {
+                lastSafeObservationTime = context.Time;
+                lastSafeMineId = opportunity.Mine.RuntimeId;
+            }
             bool observedDanger = opportunity.IsValid
                 && (opportunity.KnownGuardStrength > 0f
                     || safety != null && safety.RiskAt(
@@ -59,14 +75,17 @@ namespace TinyKingdom.AI
             // threat cancels at once; stale travel expires after a bounded wait.
             bool cancelTravel = observedDanger || recaptureControlLost || !safe
                 && (lastSafeObservationTime < 0f
+                    || !opportunity.IsValid
+                    || opportunity.Mine.RuntimeId.CompareTo(lastSafeMineId) != 0
                     || context.Time - lastSafeObservationTime > 30f);
             if (observedDanger || recaptureControlLost
                 || opportunity.IsValid && opportunity.Mine.State is
                     GoldMineState.Depleted or GoldMineState.Destroyed)
-                CancelReturningTrips(context.Knowledge);
+                CancelReturningTrips(context.Knowledge,
+                    opportunity.Mine.RuntimeId);
             PrunePending(context.Knowledge, context.Faction, roles, cancelTravel,
                 opportunity.IsValid ? opportunity.Mine.RuntimeId : default,
-                opportunity.IsValid);
+                opportunity.IsValid, strategy, context.Time);
             if (!safe)
             {
                 // An observed threat invalidates travel orders. Occupants of a
@@ -90,18 +109,25 @@ namespace TinyKingdom.AI
                 || roles.EconomyCount <= minimumEconomyPawns
                 || pending.Count >= maximumAssignedMiners
                 || opportunity.Mine.LastSeenOccupants + pending.Count
-                    + CountReturningTrips(context.Knowledge)
+                    + CountReturningTrips(context.Knowledge,
+                        opportunity.Mine.RuntimeId)
                     >= maximumAssignedMiners) return;
             UnitController worker = ChooseWorker(context.Knowledge, roles);
             if (worker == null) return;
             CommanderCommandResult result = context.Commands.TryEnterGoldMine(worker,
                 opportunity.Mine.RuntimeId, safety);
+            LastAttemptResult = result;
+            LastAttemptWorker = worker;
             nextAttemptTime = context.Time + assignmentRetrySeconds;
             if (result != CommanderCommandResult.Accepted)
             {
                 FailedAttemptCount++;
+                if (result == CommanderCommandResult.RejectedUnreachable)
+                    RecordFailedRoute(opportunity.Mine.RuntimeId, context.Time,
+                        strategy);
                 return;
             }
+            consecutiveFailedRoutes = 0;
             if (!roles.TryAssign(worker, CommanderPawnRole.Mine))
             {
                 worker.GetComponent<UnitStationing>()?.CancelPending();
@@ -113,7 +139,7 @@ namespace TinyKingdom.AI
 
         private void PrunePending(FactionKnowledge knowledge, Faction faction,
             CommanderPawnRoles roles, bool cancelTravel, EntityId activeMine,
-            bool hasActiveMine)
+            bool hasActiveMine, GoldMineStrategyModel strategy, float now)
         {
             removals.Clear();
             foreach (KeyValuePair<UnitController, EntityId> item in pending)
@@ -137,7 +163,15 @@ namespace TinyKingdom.AI
                     && station != null && station.IsPending)
                     station.CancelPending();
                 if (station == null || !station.IsPending)
+                {
+                    bool enteredMine = station?.Host is GoldMineObjective hosted
+                        && hosted.GetEntityId().CompareTo(item.Value) == 0;
+                    if (enteredMine) consecutiveFailedRoutes = 0;
+                    else if (!cancelTravel && !unavailable && hasActiveMine
+                        && item.Value.CompareTo(activeMine) == 0)
+                        RecordFailedRoute(item.Value, now, strategy);
                     removals.Add(worker);
+                }
             }
             for (int i = 0; i < removals.Count; i++)
             {
@@ -145,6 +179,20 @@ namespace TinyKingdom.AI
                 pending.Remove(worker);
                 roles.Release(worker, CommanderPawnRole.Mine);
             }
+        }
+
+        private void RecordFailedRoute(EntityId mineId, float now,
+            GoldMineStrategyModel strategy)
+        {
+            if (mineId.CompareTo(failedRouteMineId) != 0)
+            {
+                failedRouteMineId = mineId;
+                consecutiveFailedRoutes = 0;
+            }
+            if (++consecutiveFailedRoutes
+                < Mathf.Max(1, failedRouteAttemptsBeforeReconsider)) return;
+            consecutiveFailedRoutes = 0;
+            strategy?.RecordFailure(mineId, now);
         }
 
         private static UnitController ChooseWorker(FactionKnowledge knowledge,
@@ -176,21 +224,30 @@ namespace TinyKingdom.AI
             return best;
         }
 
-        private static int CountReturningTrips(FactionKnowledge knowledge)
+        private static int CountReturningTrips(FactionKnowledge knowledge,
+            EntityId mineId)
         {
             int count = 0;
             IReadOnlyList<UnitController> units = knowledge.OwnUnits;
             for (int i = 0; i < units.Count; i++)
-                if (units[i]?.GetComponent<PawnGatherer>()?.HasMineReturnTrip == true)
+                if (units[i]?.GetComponent<PawnGatherer>()?.MineReturnTarget
+                    is GoldMineObjective mine
+                    && mine.GetEntityId().CompareTo(mineId) == 0)
                     count++;
             return count;
         }
 
-        private static void CancelReturningTrips(FactionKnowledge knowledge)
+        private static void CancelReturningTrips(FactionKnowledge knowledge,
+            EntityId mineId)
         {
             IReadOnlyList<UnitController> units = knowledge.OwnUnits;
             for (int i = 0; i < units.Count; i++)
-                units[i]?.GetComponent<PawnGatherer>()?.CancelMineRepeat();
+            {
+                PawnGatherer gatherer = units[i]?.GetComponent<PawnGatherer>();
+                GoldMineObjective mine = gatherer?.MineReturnTarget;
+                if (mine != null && mine.GetEntityId().CompareTo(mineId) == 0)
+                    gatherer.CancelMineRepeat();
+            }
         }
 
         private static bool IsVisible(FactionKnowledge knowledge, EntityId id)

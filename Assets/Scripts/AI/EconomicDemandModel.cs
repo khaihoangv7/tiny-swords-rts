@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Units;
@@ -23,6 +24,10 @@ namespace TinyKingdom.AI
         public int Food { get; private set; }
         public int Wood { get; private set; }
         public int Gold { get; private set; }
+        public int CarriedGold { get; private set; }
+        public int GoldInTransit { get; private set; }
+        public int ExpectedGold { get; private set; }
+        public int GoldPlanningDeficit { get; private set; }
         public int ReservedFood { get; private set; }
         public int ReservedWood { get; private set; }
         public int ReservedGold { get; private set; }
@@ -36,6 +41,7 @@ namespace TinyKingdom.AI
         public void Reset()
         {
             Food = Wood = Gold = 0;
+            CarriedGold = GoldInTransit = ExpectedGold = GoldPlanningDeficit = 0;
             ReservedFood = ReservedWood = ReservedGold = 0;
             FoodDeficit = WoodDeficit = GoldDeficit = 0;
             PopulationForecast = PopulationHeadroom = 0;
@@ -47,10 +53,12 @@ namespace TinyKingdom.AI
             ScoutingCommanderPolicy scouting)
         {
             using var marker = RefreshMarker.Auto();
-            ResourceStockpile stockpile = context.Knowledge?.Stockpile;
+            FactionKnowledge knowledge = context.Knowledge;
+            ResourceStockpile stockpile = knowledge?.Stockpile;
             Food = stockpile != null ? stockpile.GetAmount(ResourceType.Food) : 0;
             Wood = stockpile != null ? stockpile.GetAmount(ResourceType.Wood) : 0;
             Gold = stockpile != null ? stockpile.GetAmount(ResourceType.Gold) : 0;
+            RefreshGoldPipeline(knowledge, context.Faction);
             ReservedFood = ReservedWood = ReservedGold = 0;
 
             BuildingSystem system = context.Commands?.BuildingSystem;
@@ -74,12 +82,16 @@ namespace TinyKingdom.AI
             FoodDeficit = Mathf.Max(0, foodBuffer + ReservedFood - Food);
             WoodDeficit = Mathf.Max(0, woodBuffer + ReservedWood - Wood);
             GoldDeficit = Mathf.Max(0, goldBuffer + ReservedGold - Gold);
+            // The pipeline influences worker demand only. Building, training and
+            // upgrade affordability continue to use deposited stockpile Gold.
+            GoldPlanningDeficit = Mathf.Max(0, GoldDeficit - GoldInTransit
+                - ExpectedGold / 2);
 
             FactionPopulation cap = context.Knowledge?.Population;
             PopulationForecast = cap != null ? cap.Used + cap.Reserved + population : population;
             PopulationHeadroom = cap != null ? cap.Cap - PopulationForecast : 0;
             ResourceType highest = HighestDemandType;
-            Reason = $"{highest} deficit {Deficit(highest)}; unpaid plan "
+            Reason = $"{highest} planning deficit {PlanningDeficit(highest)}; unpaid plan "
                 + $"F{ReservedFood}/W{ReservedWood}/G{ReservedGold}";
         }
 
@@ -87,9 +99,10 @@ namespace TinyKingdom.AI
         {
             get
             {
-                if (FoodDeficit >= WoodDeficit && FoodDeficit >= GoldDeficit)
+                if (FoodDeficit >= WoodDeficit && FoodDeficit >= GoldPlanningDeficit)
                     return ResourceType.Food;
-                return WoodDeficit >= GoldDeficit ? ResourceType.Wood : ResourceType.Gold;
+                return WoodDeficit >= GoldPlanningDeficit
+                    ? ResourceType.Wood : ResourceType.Gold;
             }
         }
 
@@ -101,7 +114,11 @@ namespace TinyKingdom.AI
             _ => 0
         };
 
-        public bool IsCritical(ResourceType type) => Deficit(type) >= criticalDeficit;
+        public int PlanningDeficit(ResourceType type)
+            => type == ResourceType.Gold ? GoldPlanningDeficit : Deficit(type);
+
+        public bool IsCritical(ResourceType type)
+            => PlanningDeficit(type) >= criticalDeficit;
 
         public float DemandWeight(ResourceType type)
         {
@@ -112,7 +129,49 @@ namespace TinyKingdom.AI
                 ResourceType.Gold => 0.8f,
                 _ => 0f
             };
-            return baseline + Deficit(type) / 60f;
+            return baseline + PlanningDeficit(type) / 60f;
+        }
+
+        private void RefreshGoldPipeline(FactionKnowledge knowledge, Faction faction)
+        {
+            CarriedGold = GoldInTransit = ExpectedGold = 0;
+            if (knowledge == null) return;
+            int mineLoad = 0;
+            IReadOnlyList<UnitController> units = knowledge.OwnUnits;
+            for (int i = 0; i < units.Count; i++)
+            {
+                PawnGatherer gatherer = units[i]?.GetComponent<PawnGatherer>();
+                if (gatherer == null) continue;
+                if (mineLoad == 0)
+                    mineLoad = GoldMineObjective.MineGoldPerTrip(gatherer);
+                if (gatherer.CarriedResourceType != ResourceType.Gold
+                    || gatherer.CarriedAmount <= 0) continue;
+                CarriedGold += gatherer.CarriedAmount;
+                if (gatherer.State == WorkerState.ReturningToDropOff
+                    && gatherer.HasDropOffTarget)
+                    GoldInTransit += gatherer.CarriedAmount;
+            }
+
+            // Only a currently visible, friendly occupied mine contributes a
+            // speculative next load. Hidden memory never refreshes the forecast.
+            bool hasCastle = false;
+            IReadOnlyList<CastleDropOff> castles = CastleDropOff.Active;
+            for (int i = 0; i < castles.Count; i++)
+                if (castles[i] != null && castles[i].Faction == faction
+                    && castles[i].IsAvailable)
+                { hasCastle = true; break; }
+            if (!hasCastle || mineLoad <= 0) return;
+            IReadOnlyList<GoldMineKnowledgeSnapshot> mines = knowledge.VisibleGoldMines;
+            for (int i = 0; i < mines.Count; i++)
+            {
+                GoldMineKnowledgeSnapshot mine = mines[i];
+                if (!mine.HasOwner || mine.Owner != faction
+                    || mine.State != GoldMineState.Owned
+                    || mine.LastSeenRemainingGold <= 0) continue;
+                ExpectedGold += Mathf.Min(mine.LastSeenRemainingGold,
+                    Mathf.Clamp(mine.LastSeenOccupants, 0,
+                        GoldMineObjective.PawnCapacity) * mineLoad);
+            }
         }
 
         public void DesiredCounts(int workers, out int food, out int wood, out int gold)

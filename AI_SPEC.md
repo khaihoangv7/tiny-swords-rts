@@ -888,3 +888,31 @@ failed-target recovery time without per-frame log strings.
 Later RL work could observe legally known mine reserve, guard risk, army readiness
 and current objective state, then choose a high-level contest or postpone action.
 It would still use ordinary military, movement and mining authority.
+
+### Phase 7E.7 Gold logistics adaptation
+
+`EconomicDemandModel.Gold` remains deposited, spendable stockpile Gold. Its
+`CarriedGold` diagnostic counts Gold on live friendly Pawns once; `GoldInTransit`
+counts only those with an active drop-off route. `ExpectedGold` counts at most one
+load per occupant of a currently visible, friendly, non-depleted Gold Mine,
+capped by its observed reserve and omitted when no friendly Castle is available.
+These forecasts reduce ordinary Gold-worker demand and non-emergency economy
+intent pressure conservatively; they never increase build, production or
+upgrade affordability or the actual stockpile.
+Food and Wood demand retain their existing rules.
+
+The mine worker policy retains existing `SecureGoldMine` evaluation, civilian
+safety, command validation, role arbitration and capacity reservations. It now
+scopes a canceled repeat trip and the last safe observation to the affected mine.
+An assigned Pawn keeps its Mine role while its entry reservation is pending, so
+ordinary economy orders cannot replace its route. Three failed entry routes
+make the existing Gold Mine strategy reconsider that target for its configured
+failure cooldown instead of issuing the same failed command indefinitely.
+The shared mine entry command tries a bounded number of alternative perimeter
+slots when the nearest one cannot be reached. A returning miner still uses
+ordinary Pawn cargo movement and its own main Castle, then re-enters if legal;
+the mine itself never grants resources to the Commander. Hidden mine memories
+do not feed the expected-income forecast. The focused Play Mode validator is
+`Tools > Tiny Kingdom > Validate Phase 7E.7 Gold Logistics Play Mode`.
+In its prepared logistics fixture, a Red Scout reveals a navigation-valid
+corridor through normal faction vision before miner travel is judged.
