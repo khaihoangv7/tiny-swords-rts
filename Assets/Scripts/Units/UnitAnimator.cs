@@ -23,6 +23,7 @@ namespace TinyKingdom.Units
     [RequireComponent(typeof(UnitController), typeof(SpriteRenderer))]
     public sealed class UnitAnimator : MonoBehaviour
     {
+        private static int nextAttackSeed;
         [SerializeField] private UnitAnimationSet animationSet;
 
         private UnitController controller;
@@ -36,6 +37,7 @@ namespace TinyKingdom.Units
         private bool attackPlaying;
         private bool flipAttack;
         private bool facingLeft;
+        private System.Random attackVariationRandom;
         private const float FacingEpsilon = 0.01f;
         public SpriteRenderer VisualRenderer => visual;
         public UnitAnimationSet AnimationSet => animationSet;
@@ -45,6 +47,8 @@ namespace TinyKingdom.Units
         private void Awake()
         {
             controller = GetComponent<UnitController>();
+            attackVariationRandom = new System.Random(System.Environment.TickCount
+                ^ System.Threading.Interlocked.Increment(ref nextAttackSeed));
             combat = GetComponent<CombatController>();
             movement = GetComponent<UnitMovement>();
             original = GetComponent<SpriteRenderer>();
@@ -101,6 +105,9 @@ namespace TinyKingdom.Units
         {
             if (animationSet == null || controller.CurrentState == UnitState.Dead) return;
             Sprite[] chosen = animationSet.AttackFor(direction);
+            if (animationSet.AttackAlternate is { Length: > 0 }
+                && attackVariationRandom.Next(2) == 1)
+                chosen = animationSet.AttackAlternate;
             if (chosen == null || chosen.Length == 0) return;
             attackPlaying = true;
             flipAttack = direction.x < 0f;

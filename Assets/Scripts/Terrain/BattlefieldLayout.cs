@@ -7,16 +7,18 @@ namespace TinyKingdom.Terrain
     [CreateAssetMenu(menuName = "Tiny Kingdom/Battlefield Layout")]
     public sealed class BattlefieldLayout : ScriptableObject
     {
-        public const int Width = 60;
+        public const int OriginalWidth = 60;
+        public const int HorizontalExpansion = 8;
+        public const int Width = OriginalWidth + HorizontalExpansion;
         public const int Height = 44;
         public static readonly Vector2 BlueCastleStart = new(13f, 19.5f);
-        public static readonly Vector2 RedCastleStart = new(47f, 35.5f);
+        public static readonly Vector2 RedCastleStart = new(47f + HorizontalExpansion, 35.5f);
         public Vector2 blueCastle = BlueCastleStart;
         public Vector2 redCastle = RedCastleStart;
         public Vector2[] bluePawns;
         public Vector2[] redPawns;
         public PawnAnimationSet redPawnAnimations;
-        public Vector2Int mineOrigin = new(29, 21);
+        public Vector2Int mineOrigin = new(30 + HorizontalExpansion / 2, 21);
         public BattlefieldResource[] resources;
 
         // Hand-authored shoreline, shared by the editor painter and navigation baker.
@@ -31,7 +33,8 @@ namespace TinyKingdom.Terrain
         }
 
         public static bool IsPond(int x,int y)
-            => x>=27 && x<=32 && ((y>=36 && y<=38) || (y>=5 && y<=7));
+            => x>=27 + HorizontalExpansion / 2 && x<=32 + HorizontalExpansion / 2
+                && ((y>=36 && y<=38) || (y>=5 && y<=7));
 
         public static bool IsShoreline(int x, int y) => IsLand(x, y)
             && (!IsLand(x - 1, y) || !IsLand(x + 1, y)

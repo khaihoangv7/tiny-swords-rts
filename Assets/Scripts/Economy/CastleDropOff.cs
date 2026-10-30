@@ -53,6 +53,7 @@ namespace TinyKingdom.Economy
         public float CurrentHP => currentHP;
         public int MaxHP => defenseData != null ? defenseData.MaxHP : 0;
         public bool IsAlive => defenseData != null && currentHP > 0f;
+        public bool NeedsRepair => IsAlive && currentHP < MaxHP;
         public SpriteRenderer PresentationRenderer
             => transform.Find("VisualRoot")?.GetComponent<SpriteRenderer>()
                 ?? GetComponentInChildren<SpriteRenderer>();
@@ -189,6 +190,17 @@ namespace TinyKingdom.Economy
             if (hit != null) hit.enabled = false;
             Destroy(gameObject);
             return true;
+        }
+
+        public float Repair(float seconds)
+        {
+            if (!TinyKingdom.Match.MatchManager.AllowsGameplay || !NeedsRepair)
+                return 0f;
+            float before = currentHP;
+            currentHP = Mathf.Min(MaxHP, currentHP
+                + defenseData.RepairHPPerSecond * Mathf.Max(0f, seconds));
+            if (currentHP > before) DefenseHostHealthChanged?.Invoke();
+            return currentHP - before;
         }
 
         public void ReleaseOccupancy()

@@ -3,6 +3,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
 using TinyKingdom.Audio;
+using TinyKingdom.Navigation;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -21,6 +22,7 @@ namespace TinyKingdom.Buildings
         private UnitController controller;
         private UnitMovement movement;
         private BuildingSite target;
+        private CastleDropOff repairCastle;
         private Vector3 interaction;
         private bool repairing;
         private bool working;
@@ -32,11 +34,12 @@ namespace TinyKingdom.Buildings
         private float nextRecoveryTime;
         private int pathFailureCount;
 
-        public bool HasJob => target != null;
+        public bool HasJob => target != null || repairCastle != null;
         public bool IsWorking => working;
         public BuildingSite Target => target;
+        public CastleDropOff RepairCastle => repairCastle;
         public Vector3 InteractionPosition => interaction;
-        public float DistanceToInteraction => target != null
+        public float DistanceToInteraction => HasJob
             ? Vector2.Distance(transform.position, interaction) : float.PositiveInfinity;
         public bool IsAtInteraction => HasJob
             && DistanceToInteraction <= InteractionArrivalTolerance;
@@ -103,10 +106,62 @@ namespace TinyKingdom.Buildings
             return true;
         }
 
+        public bool AssignCastleRepair(CastleDropOff castle)
+        {
+            if (!MatchManager.AllowsGameplay || castle == null || !castle.NeedsRepair
+                || !controller.IsAlive || castle.Faction != controller.Faction)
+                return false;
+            if (repairCastle == castle)
+            {
+                LastBuildCommandTime = Time.time;
+                return true;
+            }
+            GridManager grid = movement.GridManager;
+            PathfindingSystem paths = grid != null
+                ? grid.GetComponent<PathfindingSystem>() : null;
+            if (grid == null || paths == null
+                || !castle.TryReserve(controller, grid, paths, out Vector3 position))
+                return false;
+            if (!movement.TryIssueMove(position))
+            {
+                castle.Release(controller);
+                return false;
+            }
+            CancelJob();
+            GetComponent<PawnGatherer>()?.CancelJob();
+            GetComponent<UnitStationing>()?.CancelPending();
+            // A returning gatherer may have held this same Castle slot. Its
+            // cancellation releases that reservation, so claim it again for
+            // repair before other workers can use it.
+            castle.Release(controller);
+            if (!castle.TryReserve(controller, grid, paths, out position)
+                || !movement.TryIssueMove(position))
+            {
+                castle.Release(controller);
+                movement.Stop();
+                return false;
+            }
+            repairCastle = castle;
+            interaction = position;
+            repairing = true;
+            working = false;
+            visualCycle = 0f;
+            workImpactApplied = false;
+            lastApproachDistance = DistanceToInteraction;
+            lastApproachProgressTime = Time.time;
+            nextRecoveryTime = Time.time + RecoveryRetrySeconds;
+            pathFailureCount = 0;
+            LastBuildCommandTime = Time.time;
+            LastRecoveryReason = "Castle repair slot approach";
+            return true;
+        }
+
         public void CancelJob()
         {
             if (target != null) target.Release(this);
+            if (repairCastle != null) repairCastle.Release(controller);
             target = null;
+            repairCastle = null;
             working = false;
             visualCycle = 0f;
             workImpactApplied = false;
@@ -122,12 +177,14 @@ namespace TinyKingdom.Buildings
         {
             if (!MatchManager.AllowsGameplay)
             {
-                if (target != null) CancelJob();
+                if (HasJob) CancelJob();
                 return;
             }
-            if (target == null || !controller.IsAlive) { CancelJob(); return; }
-            if (!target.IsAlive || (repairing ? !target.NeedsRepair
-                : target.State != BuildingState.UnderConstruction))
+            if (!HasJob || !controller.IsAlive) { CancelJob(); return; }
+            if (target != null
+                    ? !target.IsAlive || (repairing ? !target.NeedsRepair
+                        : target.State != BuildingState.UnderConstruction)
+                    : repairCastle == null || !repairCastle.NeedsRepair)
             {
                 CancelJob();
                 return;
@@ -168,9 +225,13 @@ namespace TinyKingdom.Buildings
                 if (!workImpactApplied && visualCycle >= RepairImpactDelay)
                 {
                     workImpactApplied = true;
-                    if (target.Repair(WorkCycleSeconds) > 0f)
+                    float restored = target != null
+                        ? target.Repair(WorkCycleSeconds)
+                        : repairCastle.Repair(WorkCycleSeconds);
+                    if (restored > 0f)
                     {
-                        RepairImpact?.Invoke(target);
+                        if (target != null) RepairImpact?.Invoke(target);
+                        else repairCastle.GetComponent<BuildingSelectionPulse>()?.Trigger();
                         PlayHammerImpact();
                     }
                 }
@@ -188,7 +249,8 @@ namespace TinyKingdom.Buildings
                     PlayHammerImpact();
                 }
             }
-            if (repairing ? !target.NeedsRepair
+            if (repairing ? (target != null ? !target.NeedsRepair
+                    : repairCastle == null || !repairCastle.NeedsRepair)
                 : target.State != BuildingState.UnderConstruction)
             {
                 CancelJob();
@@ -213,6 +275,22 @@ namespace TinyKingdom.Buildings
                 return false;
             nextRecoveryTime = Time.time + RecoveryRetrySeconds;
             lastApproachProgressTime = Time.time;
+            if (repairCastle != null)
+            {
+                if (pathFailureCount++ < SameSlotRecoveryAttempts)
+                {
+                    movement.Stop();
+                    if (movement.TryIssueMove(interaction))
+                    {
+                        LastRecoveryReason = reason + ": returning to Castle repair slot";
+                        return true;
+                    }
+                }
+                CancelJob();
+                movement.Stop();
+                LastRecoveryReason = reason + ": Castle repair slot unreachable";
+                return false;
+            }
             if (pathFailureCount < SameSlotRecoveryAttempts)
             {
                 target.RecordBuilderPathRequest();

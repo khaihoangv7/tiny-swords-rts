@@ -28,6 +28,7 @@ namespace TinyKingdom.Vision
 
         private TeamVisionSystem vision;
         private GridManager grid;
+        private VisionElevationMap elevation;
         private Texture2D texture;
         private Sprite sprite;
         private SpriteRenderer fogVisual;
@@ -54,6 +55,12 @@ namespace TinyKingdom.Vision
             if (vision != null) vision.VisionChanged -= RequestRefresh;
             vision = source;
             grid = navigation;
+            if (grid != null && grid.NavigationData != null)
+            {
+                NavigationGridData data = grid.NavigationData;
+                elevation = new VisionElevationMap(data.Width, data.Height,
+                    data.WorldOrigin, data.CellSize, data);
+            }
             displayedFaction = faction;
             CreateVisual();
             if (vision != null) vision.VisionChanged += RequestRefresh;
@@ -143,11 +150,13 @@ namespace TinyKingdom.Vision
                 IVisionSource source = sources[i];
                 if (!IsUsable(source)) continue;
                 RasterizeCircle(TeamIndex(source.Faction), source.VisionPosition,
-                    source.VisionRadius);
+                    source.VisionRadius, elevation?.HeightAt(source.VisionPosition) ?? 0,
+                    source.VisibleHeightAboveSource);
             }
         }
 
-        private void RasterizeCircle(int team, Vector3 worldPosition, float radius)
+        private void RasterizeCircle(int team, Vector3 worldPosition, float radius,
+            int sourceHeight, int visibleHeightAboveSource)
         {
             NavigationGridData data = grid.NavigationData;
             float sampleSize = data.CellSize / samplesPerCell;
@@ -170,12 +179,21 @@ namespace TinyKingdom.Vision
                     (x + 0.5f) * sampleSize, (y + 0.5f) * sampleSize);
                 float distanceSquared = (sampleCenter - (Vector2)worldPosition).sqrMagnitude;
                 if (distanceSquared > outerSquared) continue;
+                float heightCoverage = 1f;
+                bool insideGlimpse = true;
+                if (elevation != null)
+                {
+                    heightCoverage = elevation.VisualCoverage(sourceHeight,
+                        visibleHeightAboveSource, x / samplesPerCell,
+                        y / samplesPerCell, sampleCenter, out insideGlimpse);
+                    if (heightCoverage <= 0f) continue;
+                }
                 int index = y * maskWidth + x;
                 byte coverage;
                 if (distanceSquared <= radiusSquared)
                 {
                     coverage = byte.MaxValue;
-                    exploredSamples[team][index] = true;
+                    if (insideGlimpse) exploredSamples[team][index] = true;
                 }
                 else if (featherWorld > 0f)
                 {
@@ -184,6 +202,8 @@ namespace TinyKingdom.Vision
                         (outerRadius - distance) / featherWorld * byte.MaxValue), 0, 255);
                 }
                 else coverage = 0;
+
+                coverage = (byte)Mathf.RoundToInt(coverage * heightCoverage);
 
                 if (coverage > revealCoverage[team][index])
                     revealCoverage[team][index] = coverage;
@@ -251,6 +271,8 @@ namespace TinyKingdom.Vision
                 Mix(ref hash, Mathf.RoundToInt((position.y - data.WorldOrigin.y)
                     * samplesPerWorldUnit));
                 Mix(ref hash, Mathf.RoundToInt(source.VisionRadius * 1024f));
+                Mix(ref hash, source.VisibleHeightAboveSource);
+                Mix(ref hash, elevation?.HeightAt(position) ?? 0);
             }
             Mix(ref hash, activeCount);
             return hash;

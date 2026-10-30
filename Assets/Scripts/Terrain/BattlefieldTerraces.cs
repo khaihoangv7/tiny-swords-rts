@@ -20,9 +20,9 @@ namespace TinyKingdom.Terrain
         public static readonly TerraceDefinition[] Platforms =
         {
             new(5,8,16,13,1,3),   // Original Blue lower landing and construction terrace.
-            new(39,24,16,13,1,3), // Red equivalent lower terrace.
+            new(39 + BattlefieldLayout.HorizontalExpansion,24,16,13,1,3), // Red equivalent lower terrace.
             new(8,14,10,7,2,1),   // Brighter upper courts distinguish height two from the lower landing.
-            new(42,30,10,7,2,1)
+            new(42 + BattlefieldLayout.HorizontalExpansion,30,10,7,2,1)
         };
 
         public const int MaxHeight = 2;
@@ -33,10 +33,10 @@ namespace TinyKingdom.Terrain
             1 => Stair(18,16,1,1,false),
             2 => Stair(4,12,0,3,true),   // Blue west, independent second route.
             3 => Stair(7,13,1,1,true),
-            4 => Stair(38,29,0,3,true), // Red west: inward-facing main route.
-            5 => Stair(41,30,1,1,true),
-            6 => Stair(55,28,0,3,false),// Red east, independent second route.
-            7 => Stair(52,29,1,1,false),
+            4 => Stair(38 + BattlefieldLayout.HorizontalExpansion,29,0,3,true), // Red west: inward-facing main route.
+            5 => Stair(41 + BattlefieldLayout.HorizontalExpansion,30,1,1,true),
+            6 => Stair(55 + BattlefieldLayout.HorizontalExpansion,28,0,3,false),// Red east, independent second route.
+            7 => Stair(52 + BattlefieldLayout.HorizontalExpansion,29,1,1,false),
             _ => throw new System.ArgumentOutOfRangeException(nameof(i))
         };
 

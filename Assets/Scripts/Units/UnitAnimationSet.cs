@@ -13,6 +13,7 @@ namespace TinyKingdom.Units
         [SerializeField] private Sprite[] idle = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] run = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] attack = System.Array.Empty<Sprite>();
+        [SerializeField] private Sprite[] attackAlternate = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] guard = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] attackDown = System.Array.Empty<Sprite>();
         [SerializeField] private Sprite[] attackDownRight = System.Array.Empty<Sprite>();
@@ -27,6 +28,7 @@ namespace TinyKingdom.Units
         public Sprite[] Idle => idle;
         public Sprite[] Run => run;
         public Sprite[] Attack => attack;
+        public Sprite[] AttackAlternate => attackAlternate;
         public Sprite[] Guard => guard;
         public Sprite[] AttackDown => attackDown;
         public Sprite[] AttackDownRight => attackDownRight;

@@ -7,7 +7,7 @@ namespace TinyKingdom.Terrain
     public static class GoblinIslandLayout
     {
         public const int WestExpansion = 6;
-        public const int Width = BattlefieldLayout.Width + WestExpansion;
+        public const int Width = BattlefieldLayout.OriginalWidth + WestExpansion;
         public const int Height = BattlefieldLayout.Height;
         public const int MaxHeight = 2;
         public static Vector2 Shift(Vector2 p) => p + Vector2.right * WestExpansion;

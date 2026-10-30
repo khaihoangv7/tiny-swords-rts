@@ -25,6 +25,8 @@ namespace TinyKingdom.Buildings
         private static Sprite whitePixel;
         private readonly List<PawnBuilder> builders = new();
         private readonly List<PawnBuilder> pendingBuilders = new();
+        private readonly Dictionary<PawnBuilder, Vector2Int> pendingDestinations = new();
+        private readonly Dictionary<PawnBuilder, float> pendingCommandTimes = new();
         private readonly HashSet<Vector2Int> triedRevealStages = new();
         private readonly HashSet<PawnBuilder> triedPendingScouts = new();
         private BuildingType? activeType;
@@ -43,6 +45,7 @@ namespace TinyKingdom.Buildings
         private int consumedFrame = -1;
 
         public bool IsActive => activeType.HasValue;
+        public BuildingSystem System => system;
         public bool ConsumedInputThisFrame => consumedFrame == Time.frameCount;
         public bool IsValidPreview { get; private set; }
 
@@ -214,12 +217,19 @@ namespace TinyKingdom.Buildings
             pendingVariant = variant;
             pendingOrigin = origin;
             pendingScout = closest;
-            // The accepted construction order replaces this Pawn's old work
-            // or move command immediately, even before the first reveal stage.
-            closest.CancelJob();
-            closest.GetComponent<PawnGatherer>()?.CancelJob();
-            closest.GetComponent<UnitMovement>()?.Stop();
             pendingBuilders.AddRange(builders);
+            pendingDestinations.Clear();
+            pendingCommandTimes.Clear();
+            // Every selected builder accepts the plan now. One leads the reveal;
+            // the others approach separate nearby cells and join construction
+            // when the footprint has actually been observed and validated.
+            foreach (PawnBuilder pawn in pendingBuilders)
+            {
+                if (pawn == null) continue;
+                pawn.CancelJob();
+                pawn.GetComponent<PawnGatherer>()?.CancelJob();
+                pawn.GetComponent<UnitMovement>()?.Stop();
+            }
             triedPendingScouts.Clear();
             triedPendingScouts.Add(closest);
             BuildingData data = system.GetData(type);
@@ -252,9 +262,10 @@ namespace TinyKingdom.Buildings
                 && movement.CommandDestinationCell != pendingStage)
             {
                 // A newer player command supersedes the pending construction.
-                CancelPending(false);
+                CancelPending(true);
                 return;
             }
+            PruneRedirectedBuilders();
             if (Time.time < nextPendingCheck) return;
             nextPendingCheck = Time.time + 0.2f;
             BuildingData data = system.GetData(pendingType.Value);
@@ -283,6 +294,8 @@ namespace TinyKingdom.Buildings
                 pendingStage = candidate;
                 pendingStageIssued = true;
                 pendingPathFailures = 0;
+                RememberPendingMove(pendingScout, candidate);
+                MovePendingBuildersNear(candidate, data);
                 return;
             }
             if (++pendingPathFailures >= 3 && !TryNextPendingScout())
@@ -314,6 +327,64 @@ namespace TinyKingdom.Buildings
             next.GetComponent<PawnGatherer>()?.CancelJob();
             next.GetComponent<UnitMovement>()?.Stop();
             return true;
+        }
+
+        private void MovePendingBuildersNear(Vector2Int stage, BuildingData data)
+        {
+            List<GridCell> candidates = DestinationDistributor.FindNearbyDestinations(
+                grid, stage, Mathf.Min(64, pendingBuilders.Count * 8), 6, true);
+            var reserved = new HashSet<Vector2Int> { stage };
+            foreach (PawnBuilder pawn in pendingBuilders)
+            {
+                if (pawn == null || pawn == pendingScout) continue;
+                UnitMovement movement = pawn.GetComponent<UnitMovement>();
+                if (movement == null || !pawn.GetComponent<UnitController>().IsAlive)
+                    continue;
+                foreach (GridCell cell in candidates)
+                {
+                    Vector2Int destination = new(cell.GridX, cell.GridY);
+                    if (reserved.Contains(destination)
+                        || destination.x >= pendingOrigin.x
+                            && destination.x < pendingOrigin.x + data.Footprint.x
+                            && destination.y >= pendingOrigin.y
+                            && destination.y < pendingOrigin.y + data.Footprint.y
+                        || !movement.TryIssueMove(destination)) continue;
+                    reserved.Add(destination);
+                    RememberPendingMove(pawn, destination);
+                    break;
+                }
+            }
+        }
+
+        private void RememberPendingMove(PawnBuilder pawn, Vector2Int destination)
+        {
+            pendingDestinations[pawn] = destination;
+            pendingCommandTimes[pawn] = pawn.GetComponent<UnitMovement>()
+                .LastAcceptedCommandTime;
+        }
+
+        private void PruneRedirectedBuilders()
+        {
+            for (int i = pendingBuilders.Count - 1; i >= 0; i--)
+            {
+                PawnBuilder pawn = pendingBuilders[i];
+                if (pawn == null || pawn == pendingScout) continue;
+                UnitMovement movement = pawn.GetComponent<UnitMovement>();
+                if (movement == null || !pawn.GetComponent<UnitController>().IsAlive)
+                {
+                    pendingBuilders.RemoveAt(i);
+                    continue;
+                }
+                if (!pendingDestinations.TryGetValue(pawn, out Vector2Int destination)
+                    || !pendingCommandTimes.TryGetValue(pawn, out float issuedAt))
+                    continue;
+                if (movement.LastAcceptedCommandTime <= issuedAt + 0.0001f
+                    && (!movement.IsMoving
+                        || movement.CommandDestinationCell == destination)) continue;
+                pendingBuilders.RemoveAt(i);
+                pendingDestinations.Remove(pawn);
+                pendingCommandTimes.Remove(pawn);
+            }
         }
 
         private void ObservePendingFootprint(BuildingData data,
@@ -385,16 +456,24 @@ namespace TinyKingdom.Buildings
 
         private void CancelPending(bool stopScout)
         {
-            if (stopScout && pendingScout != null)
+            if (stopScout)
             {
-                UnitMovement movement = pendingScout.GetComponent<UnitMovement>();
-                if (movement != null && movement.IsMoving
-                    && movement.CommandDestinationCell == pendingStage)
-                    movement.Stop();
+                foreach (KeyValuePair<PawnBuilder, Vector2Int> order in pendingDestinations)
+                {
+                    if (order.Key == null) continue;
+                    UnitMovement movement = order.Key.GetComponent<UnitMovement>();
+                    if (movement != null && movement.IsMoving
+                        && movement.CommandDestinationCell == order.Value
+                        && pendingCommandTimes.TryGetValue(order.Key, out float issuedAt)
+                        && movement.LastAcceptedCommandTime <= issuedAt + 0.0001f)
+                        movement.Stop();
+                }
             }
             pendingType = null;
             pendingScout = null;
             pendingBuilders.Clear();
+            pendingDestinations.Clear();
+            pendingCommandTimes.Clear();
             pendingStage = default;
             pendingStageIssued = false;
             pendingObservedCells = null;

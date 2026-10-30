@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TinyKingdom.Audio;
 using TinyKingdom.Debugging;
 using TinyKingdom.Economy;
@@ -22,7 +23,17 @@ namespace TinyKingdom.UI
         private static readonly int[] FrameRates = { 30, 60, 120, -1 };
         private static readonly GameAction[] ControlActions =
         {
-            GameAction.AttackMove, GameAction.Guard,
+            GameAction.AttackMove, GameAction.Guard, GameAction.EnterBuilding,
+            GameAction.PromoteScout,
+            GameAction.BuildHouseA, GameAction.BuildHouseB, GameAction.BuildHouseC,
+            GameAction.BuildBarracks, GameAction.BuildTower,
+            GameAction.BuildArchery, GameAction.BuildMonastery,
+            GameAction.TrainPawn, GameAction.TrainWarrior,
+            GameAction.TrainLancer, GameAction.TrainArcher, GameAction.TrainMonk,
+            GameAction.FormationCompact, GameAction.FormationWedge,
+            GameAction.FormationLoose, GameAction.FormationLine,
+            GameAction.UpgradeCastleCannon, GameAction.UpgradeTowerArrow,
+            GameAction.EjectAll,
             GameAction.GroupAssign1, GameAction.Group1,
             GameAction.GroupAssign2, GameAction.Group2,
             GameAction.GroupAssign3, GameAction.Group3,
@@ -43,6 +54,9 @@ namespace TinyKingdom.UI
         private RectTransform panel;
         private RectTransform iconsRoot;
         private RectTransform content;
+        private RectTransform optionPopup;
+        private RectTransform optionTrigger;
+        private string openOptionId;
         private Text status;
         private readonly Button[] tabButtons = new Button[5];
         private GameAction? awaiting;
@@ -169,6 +183,7 @@ namespace TinyKingdom.UI
 
         public void Close()
         {
+            CloseOptionPopup();
             if (displayChangePending) RevertDisplayChange();
             awaiting = null;
             GameInputBindings.Capturing = false;
@@ -199,6 +214,14 @@ namespace TinyKingdom.UI
                         + Mathf.CeilToInt(displayRevertAt - Time.unscaledTime) + "s.";
             }
             if (!IsOpen || Keyboard.current == null) return;
+            if (optionPopup != null && Mouse.current?.leftButton.wasPressedThisFrame == true)
+            {
+                Vector2 pointer = Mouse.current.position.ReadValue();
+                if (!RectTransformUtility.RectangleContainsScreenPoint(optionPopup, pointer)
+                    && (optionTrigger == null || !RectTransformUtility
+                        .RectangleContainsScreenPoint(optionTrigger, pointer)))
+                    CloseOptionPopup();
+            }
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 if (awaiting.HasValue)
@@ -208,6 +231,7 @@ namespace TinyKingdom.UI
                     status.text = "Binding cancelled.";
                     ShowTab(1);
                 }
+                else if (optionPopup != null) CloseOptionPopup();
                 else Close();
                 return;
             }
@@ -237,6 +261,7 @@ namespace TinyKingdom.UI
         private void ShowTab(int tab)
         {
             if (content == null) return;
+            CloseOptionPopup();
             currentTab = Mathf.Clamp(tab, 0, TabNames.Length - 1);
             for (int i = 0; i < tabButtons.Length; i++)
                 if (tabButtons[i] != null)
@@ -265,21 +290,15 @@ namespace TinyKingdom.UI
         {
             Label(content, "Language", 24,
                 new Vector2(12f, -54f), new Vector2(340f, 34f));
-            Button english = CreateButton(content, "English",
-                new Vector2(12f, -96f), new Vector2(170f, 52f), () =>
+            CreateOptionButton("Language", "Language: "
+                + (UiLanguage.Current == GameUiLanguage.English ? "English" : "Vietnamese"),
+                new Vector2(12f, -96f), new Vector2(354f, 52f),
+                new[] { "English", "Vietnamese" },
+                (int)UiLanguage.Current, choice =>
                 {
-                    UiLanguage.Set(GameUiLanguage.English);
+                    UiLanguage.Set((GameUiLanguage)choice);
                     ShowTab(0);
                 });
-            Button vietnamese = CreateButton(content, "Vietnamese",
-                new Vector2(196f, -96f), new Vector2(170f, 52f), () =>
-                {
-                    UiLanguage.Set(GameUiLanguage.Vietnamese);
-                    ShowTab(0);
-                });
-            if (UiLanguage.Current == GameUiLanguage.English)
-                TintRibbon(vietnamese, new Color(0.68f, 0.68f, 0.68f));
-            else TintRibbon(english, new Color(0.68f, 0.68f, 0.68f));
             Label(content, "Gameplay", 24,
                 new Vector2(12f, -177f), new Vector2(340f, 34f));
             CreateButton(content, "Damage text: "
@@ -303,22 +322,21 @@ namespace TinyKingdom.UI
             Label(content, "Match speed", 23,
                 new Vector2(12f, -330f), new Vector2(340f, 32f));
             var speeds = Debugging.MatchSpeedController.SupportedSpeeds;
+            string[] speedOptions = new string[speeds.Count];
+            int selectedSpeed = 0;
             for (int i = 0; i < speeds.Count; i++)
             {
-                float speed = speeds[i];
-                string title = "x" + speed.ToString("0");
-                if (Mathf.Approximately(debugControls.SpeedController.DesiredSpeed, speed))
-                    title += " ✓";
-                Button speedButton = CreateButton(content, title,
-                    new Vector2(12f + 100f * i, -370f),
-                    new Vector2(96f, 54f), () =>
-                    {
-                        debugControls.SpeedController.SetSpeed(speed);
-                        ShowTab(0);
-                    });
-                if (!Mathf.Approximately(debugControls.SpeedController.DesiredSpeed, speed))
-                    TintRibbon(speedButton, new Color(0.72f, 0.72f, 0.72f));
+                speedOptions[i] = "x" + speeds[i].ToString("0");
+                if (Mathf.Approximately(debugControls.SpeedController.DesiredSpeed,
+                    speeds[i])) selectedSpeed = i;
             }
+            CreateOptionButton("MatchSpeed", "Match speed: "
+                + speedOptions[selectedSpeed], new Vector2(12f, -370f),
+                new Vector2(354f, 54f), speedOptions, selectedSpeed, choice =>
+                {
+                    debugControls.SpeedController.SetSpeed(speeds[choice]);
+                    ShowTab(0);
+                });
             Label(content, "Fog display is available when cheats are enabled", 16,
                 new Vector2(430f, -154f), new Vector2(390f, 28f));
             Button fogButton = CreateButton(content, debugControls.IsBlueFogHidden
@@ -371,7 +389,7 @@ namespace TinyKingdom.UI
         private void BuildControls()
         {
             float restorePosition = controlsScrollPosition;
-            Label(content, "Right Click: move / attack / gather. Esc: cancel command.",
+            Label(content, "Right Click: move / attack / gather. Build: hold Q/W/E, then press A/S/D. Esc: cancel.",
                 15, new Vector2(8f, -51f), new Vector2(790f, 28f));
 
             RectTransform viewport = RtsUiFactory.Rect("ControlsViewport", content);
@@ -474,10 +492,12 @@ namespace TinyKingdom.UI
                 ? requestedFullscreen : Screen.fullScreen;
             int shownWidth = displayChangePending ? requestedWidth : Screen.width;
             int shownHeight = displayChangePending ? requestedHeight : Screen.height;
-            CreateButton(content, "Fullscreen: " + (fullscreen ? "ON" : "OFF"),
-                new Vector2(12f, -82f), new Vector2(290f, 44f), () =>
+            CreateOptionButton("Fullscreen", "Fullscreen: "
+                + (fullscreen ? "ON" : "OFF"), new Vector2(12f, -82f),
+                new Vector2(290f, 44f), new[] { "OFF", "ON" },
+                fullscreen ? 1 : 0, choice =>
                 {
-                    BeginDisplayChange(shownWidth, shownHeight, !fullscreen);
+                    BeginDisplayChange(shownWidth, shownHeight, choice == 1);
                     ShowTab(2);
                 });
             Resolution[] options = Screen.resolutions;
@@ -486,14 +506,32 @@ namespace TinyKingdom.UI
                 Label(content, "No display resolutions reported by this device.",
                     16, new Vector2(330f, -82f), new Vector2(500f, 44f));
             }
-            else CreateButton(content, $"Resolution: {shownWidth} x {shownHeight}  >",
-                new Vector2(330f, -82f), new Vector2(410f, 44f), () =>
+            else
+            {
+                var sizes = new List<Vector2Int>();
+                foreach (Resolution option in options)
                 {
-                    if (TryNextResolution(options, shownWidth, shownHeight,
-                        out Resolution next))
-                        BeginDisplayChange(next.width, next.height, fullscreen);
-                    ShowTab(2);
-                });
+                    Vector2Int size = new(option.width, option.height);
+                    if (!sizes.Contains(size)) sizes.Add(size);
+                }
+                string[] labels = new string[sizes.Count];
+                int selected = -1;
+                for (int i = 0; i < sizes.Count; i++)
+                {
+                    labels[i] = $"{sizes[i].x} x {sizes[i].y}";
+                    if (sizes[i].x == shownWidth && sizes[i].y == shownHeight)
+                        selected = i;
+                }
+                CreateOptionButton("Resolution",
+                    $"Resolution: {shownWidth} x {shownHeight}",
+                    new Vector2(330f, -82f), new Vector2(410f, 44f),
+                    labels, selected, choice =>
+                    {
+                        Vector2Int size = sizes[choice];
+                        BeginDisplayChange(size.x, size.y, fullscreen);
+                        ShowTab(2);
+                    });
+            }
             if (!displayChangePending) return;
             CreateButton(content, "Keep display settings",
                 new Vector2(12f, -147f), new Vector2(325f, 44f), () =>
@@ -515,49 +553,32 @@ namespace TinyKingdom.UI
             Label(content, "Performance", 19, new Vector2(12f, -218f),
                 new Vector2(500f, 30f));
             int fps = Application.targetFrameRate;
-            CreateButton(content, "FPS limit: " + (fps < 0 ? "Unlimited" : fps.ToString()),
-                new Vector2(12f, -252f), new Vector2(310f, 44f), () =>
+            string[] frameRateLabels = new string[FrameRates.Length];
+            for (int i = 0; i < FrameRates.Length; i++)
+                frameRateLabels[i] = FrameRates[i] < 0
+                    ? "Unlimited" : FrameRates[i].ToString();
+            CreateOptionButton("FrameRate", "FPS limit: "
+                + (fps < 0 ? "Unlimited" : fps.ToString()),
+                new Vector2(12f, -252f), new Vector2(310f, 44f),
+                frameRateLabels, Array.IndexOf(FrameRates, fps), choice =>
                 {
-                    int index = Array.IndexOf(FrameRates, Application.targetFrameRate);
-                    int next = FrameRates[(index + 1 + FrameRates.Length) % FrameRates.Length];
-                    ApplyFrameRate(next);
-                    PlayerPrefs.SetInt("TinyKingdom.FpsLimit", next);
+                    ApplyFrameRate(FrameRates[choice]);
+                    PlayerPrefs.SetInt("TinyKingdom.FpsLimit", FrameRates[choice]);
                     PlayerPrefs.Save();
                     ShowTab(2);
                 });
             string[] names = QualitySettings.names;
             if (names.Length == 0) return;
-            CreateButton(content, "Quality: " + names[QualitySettings.GetQualityLevel()],
-                new Vector2(340f, -252f), new Vector2(400f, 44f), () =>
+            CreateOptionButton("Quality", "Quality: "
+                + names[QualitySettings.GetQualityLevel()],
+                new Vector2(340f, -252f), new Vector2(400f, 44f),
+                names, QualitySettings.GetQualityLevel(), choice =>
                 {
-                    int next = (QualitySettings.GetQualityLevel() + 1) % names.Length;
-                    QualitySettings.SetQualityLevel(next, true);
-                    PlayerPrefs.SetInt("TinyKingdom.Quality", next);
+                    QualitySettings.SetQualityLevel(choice, true);
+                    PlayerPrefs.SetInt("TinyKingdom.Quality", choice);
                     PlayerPrefs.Save();
                     ShowTab(2);
                 });
-        }
-
-        private static bool TryNextResolution(Resolution[] options, int width,
-            int height, out Resolution next)
-        {
-            int current = -1;
-            for (int i = 0; i < options.Length; i++)
-                if (options[i].width == width && options[i].height == height)
-                {
-                    current = i;
-                    break;
-                }
-            for (int step = 1; step <= options.Length; step++)
-            {
-                int index = (current + step + options.Length) % options.Length;
-                if (options[index].width == width && options[index].height == height)
-                    continue;
-                next = options[index];
-                return true;
-            }
-            next = default;
-            return false;
         }
 
         private void BeginDisplayChange(int width, int height, bool fullscreen)
@@ -799,6 +820,116 @@ namespace TinyKingdom.UI
         private Button CreateButton(Transform parent, string title,
             Vector2 position, Vector2 dimensions, UnityEngine.Events.UnityAction action)
             => CreateRibbonButton(parent, title, position, dimensions, action, false);
+
+        private void CreateOptionButton(string id, string title, Vector2 position,
+            Vector2 dimensions, IReadOnlyList<string> options, int selected,
+            Action<int> choose)
+        {
+            Button button = null;
+            button = CreateButton(content, title + "  \u25be", position, dimensions,
+                () => ToggleOptionPopup(id, position, dimensions, options,
+                    selected, choose, button.transform as RectTransform));
+        }
+
+        private void ToggleOptionPopup(string id, Vector2 position,
+            Vector2 dimensions, IReadOnlyList<string> options, int selected,
+            Action<int> choose, RectTransform trigger)
+        {
+            if (openOptionId == id)
+            {
+                CloseOptionPopup();
+                return;
+            }
+            CloseOptionPopup();
+            if (options == null || options.Count == 0) return;
+
+            const float rowHeight = 44f;
+            float below = content.rect.height + position.y - dimensions.y - 8f;
+            float above = -position.y - 48f;
+            bool openAbove = above > below && below < options.Count * rowHeight + 8f;
+            int visibleRows = Mathf.Min(options.Count, Mathf.Clamp(
+                Mathf.FloorToInt(Mathf.Max(openAbove ? above : below, rowHeight)
+                    / rowHeight), 1, 6));
+            float height = visibleRows * rowHeight + 8f;
+            float top = openAbove ? position.y + height + 4f
+                : position.y - dimensions.y - 4f;
+            bool scrollable = options.Count > visibleRows;
+            float width = dimensions.x;
+
+            optionPopup = RtsUiFactory.Rect("OptionPopup_" + id, content);
+            optionTrigger = trigger;
+            openOptionId = id;
+            RtsUiFactory.Anchor(optionPopup, new Vector2(0f, 1f),
+                new Vector2(0f, 1f), new Vector2(position.x, top),
+                new Vector2(width, height));
+            Image background = optionPopup.gameObject.AddComponent<Image>();
+            background.color = new Color(0.16f, 0.36f, 0.43f, 0.98f);
+            background.raycastTarget = true;
+            Outline outline = optionPopup.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.07f, 0.15f, 0.18f, 0.9f);
+            outline.effectDistance = new Vector2(2f, -2f);
+
+            float listWidth = width - (scrollable ? 24f : 8f);
+            RectTransform viewport = RtsUiFactory.Rect("OptionsViewport", optionPopup);
+            RtsUiFactory.Anchor(viewport, new Vector2(0f, 1f),
+                new Vector2(0f, 1f), new Vector2(4f, -4f),
+                new Vector2(listWidth, height - 8f));
+            viewport.gameObject.AddComponent<RectMask2D>();
+            RectTransform list = RtsUiFactory.Rect("OptionsList", viewport);
+            RtsUiFactory.Anchor(list, new Vector2(0f, 1f),
+                new Vector2(0f, 1f), Vector2.zero,
+                new Vector2(listWidth, options.Count * rowHeight));
+            for (int i = 0; i < options.Count; i++)
+            {
+                int choice = i;
+                Button item = CreateButton(list, options[i],
+                    new Vector2(0f, -i * rowHeight),
+                    new Vector2(listWidth, rowHeight - 2f), () => choose(choice));
+                if (i == selected) TintRibbon(item, new Color(0.92f, 0.98f, 0.66f));
+            }
+            ScrollRect scroll = optionPopup.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = list;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.scrollSensitivity = 35f;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            if (scrollable)
+            {
+                RectTransform track = RtsUiFactory.Rect("OptionScrollbar", optionPopup);
+                RtsUiFactory.Anchor(track, new Vector2(0f, 1f),
+                    new Vector2(0f, 1f), new Vector2(width - 18f, -5f),
+                    new Vector2(12f, height - 10f));
+                Image trackImage = track.gameObject.AddComponent<Image>();
+                trackImage.color = new Color(0.08f, 0.20f, 0.25f, 0.8f);
+                RectTransform handle = RtsUiFactory.Rect("Handle", track);
+                RtsUiFactory.Stretch(handle, 1f, 0f, 1f, 0f);
+                Image handleImage = handle.gameObject.AddComponent<Image>();
+                handleImage.color = new Color(0.70f, 0.88f, 0.91f, 1f);
+                Scrollbar bar = track.gameObject.AddComponent<Scrollbar>();
+                bar.targetGraphic = handleImage;
+                bar.handleRect = handle;
+                bar.direction = Scrollbar.Direction.BottomToTop;
+                scroll.verticalScrollbar = bar;
+                scroll.verticalScrollbarVisibility =
+                    ScrollRect.ScrollbarVisibility.Permanent;
+            }
+            Canvas.ForceUpdateCanvases();
+            scroll.verticalNormalizedPosition = selected <= 0 || !scrollable
+                ? 1f : 1f - Mathf.Clamp01((float)selected
+                    / (options.Count - visibleRows));
+            optionPopup.SetAsLastSibling();
+        }
+
+        private void CloseOptionPopup()
+        {
+            openOptionId = null;
+            optionTrigger = null;
+            if (optionPopup == null) return;
+            optionPopup.gameObject.SetActive(false);
+            Destroy(optionPopup.gameObject);
+            optionPopup = null;
+        }
 
         private Button CreateRibbonButton(Transform parent, string title,
             Vector2 position, Vector2 dimensions,

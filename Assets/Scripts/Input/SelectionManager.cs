@@ -7,6 +7,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Audio;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
+using TinyKingdom.Vision;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -50,6 +51,9 @@ namespace TinyKingdom.Input
         private CastleDropOff selectedCastle;
         private GoldMineObjective selectedGoldMine;
         private ResourceNode selectedResourceNode;
+        private UnitSelection inspectedEnemyUnit;
+        private BuildingSite inspectedEnemyBuilding;
+        private CastleDropOff inspectedEnemyCastle;
 
         public IReadOnlyList<UnitSelection> SelectedUnits => selectedUnits;
         public IReadOnlyList<BuildingSite> SelectedBuildings => selectedBuildings;
@@ -58,6 +62,9 @@ namespace TinyKingdom.Input
         public CastleDropOff SelectedCastle => selectedCastle;
         public GoldMineObjective SelectedGoldMine => selectedGoldMine;
         public ResourceNode SelectedResourceNode => selectedResourceNode;
+        public UnitSelection InspectedEnemyUnit => inspectedEnemyUnit;
+        public BuildingSite InspectedEnemyBuilding => inspectedEnemyBuilding;
+        public CastleDropOff InspectedEnemyCastle => inspectedEnemyCastle;
         public Faction PlayerFaction => playerFaction;
         public event Action SelectionChanged;
 
@@ -98,6 +105,7 @@ namespace TinyKingdom.Input
         private void Update()
         {
             RemoveInvalidResourceSelection();
+            RemoveInvalidEnemyInspection();
             if (GameInputBindings.ModalOpen)
             {
                 leftPointerActive = false;
@@ -185,6 +193,13 @@ namespace TinyKingdom.Input
             }
             if (hit == null && !additive && worldCamera != null)
             {
+                UnitSelection enemyUnit = FindInspectableEnemyUnitAtScreenPosition(
+                    screenPosition);
+                if (enemyUnit != null)
+                {
+                    InspectEnemyUnit(enemyUnit);
+                    return;
+                }
                 Vector3 world = worldCamera.ScreenToWorldPoint(new Vector3(screenPosition.x,
                     screenPosition.y, -worldCamera.transform.position.z));
                 foreach (Collider2D collider in Physics2D.OverlapPointAll(world))
@@ -202,6 +217,11 @@ namespace TinyKingdom.Input
                         PlayBuildingSelection(building.Type);
                         return;
                     }
+                    if (CanInspectEnemyBuilding(building))
+                    {
+                        InspectEnemyBuilding(building);
+                        return;
+                    }
                     CastleDropOff castle = WorldSelectionQuery.Resolve<CastleDropOff>(collider);
                     if (castle != null && castle.IsFriendlyCursorTarget(playerFaction))
                     {
@@ -213,6 +233,11 @@ namespace TinyKingdom.Input
                             SelectCastle(castle);
                         }
                         PlayBuildingSelection(BuildingType.Castle);
+                        return;
+                    }
+                    if (CanInspectEnemyCastle(castle))
+                    {
+                        InspectEnemyCastle(castle);
                         return;
                     }
                     GoldMineObjective mine = WorldSelectionQuery.Resolve<GoldMineObjective>(collider);
@@ -259,6 +284,32 @@ namespace TinyKingdom.Input
             SetBuildingMarker(castle.gameObject, castle.PresentationRenderer, true);
             BuildingSelectionPulse.Ensure(castle.gameObject,
                 castle.PresentationRenderer)?.Trigger();
+            SelectionChanged?.Invoke();
+        }
+
+        public void InspectEnemyUnit(UnitSelection unit)
+        {
+            if (!IsInspectableEnemyUnit(unit)) return;
+            ClearSelection();
+            inspectedEnemyUnit = unit;
+            unit.BecameUnavailable += HandleInspectedEnemyUnavailable;
+            unit.SetSelected(true);
+            SelectionChanged?.Invoke();
+        }
+
+        private void InspectEnemyBuilding(BuildingSite building)
+        {
+            ClearSelection();
+            inspectedEnemyBuilding = building;
+            SetBuildingMarker(building.gameObject, building.PresentationRenderer, true);
+            SelectionChanged?.Invoke();
+        }
+
+        private void InspectEnemyCastle(CastleDropOff castle)
+        {
+            ClearSelection();
+            inspectedEnemyCastle = castle;
+            SetBuildingMarker(castle.gameObject, castle.PresentationRenderer, true);
             SelectionChanged?.Invoke();
         }
 
@@ -329,6 +380,9 @@ namespace TinyKingdom.Input
                 return;
             }
 
+            if (inspectedEnemyUnit != null || inspectedEnemyBuilding != null
+                || inspectedEnemyCastle != null) ClearSelection();
+
             if (additive)
                 SetSelected(unit, !unit.IsSelected);
             else
@@ -359,7 +413,8 @@ namespace TinyKingdom.Input
         {
             activeControlGroup = -1;
             RemoveInvalidSelections();
-            if (!additive)
+            if (!additive || inspectedEnemyUnit != null
+                || inspectedEnemyBuilding != null || inspectedEnemyCastle != null)
                 ClearSelection();
 
             if (units == null)
@@ -373,7 +428,10 @@ namespace TinyKingdom.Input
         {
             bool changed = selectedUnits.Count > 0 || selectedBuilding != null
                 || selectedCastle != null || selectedGoldMine != null
-                || selectedResourceNode != null;
+                || selectedResourceNode != null
+                || !ReferenceEquals(inspectedEnemyUnit, null)
+                || !ReferenceEquals(inspectedEnemyBuilding, null)
+                || !ReferenceEquals(inspectedEnemyCastle, null);
             foreach (UnitSelection unit in selectedUnits)
             {
                 if (unit == null) continue;
@@ -390,10 +448,22 @@ namespace TinyKingdom.Input
                 selectedCastle.GetComponent<SelectionCursorMarker>()?.SetSelected(false);
             if (selectedGoldMine != null) selectedGoldMine.SetSelected(false);
             if (selectedResourceNode != null) selectedResourceNode.SetSelected(false);
+            if (inspectedEnemyUnit != null)
+            {
+                inspectedEnemyUnit.BecameUnavailable -= HandleInspectedEnemyUnavailable;
+                inspectedEnemyUnit.SetSelected(false);
+            }
+            if (inspectedEnemyBuilding != null)
+                inspectedEnemyBuilding.GetComponent<SelectionCursorMarker>()?.SetSelected(false);
+            if (inspectedEnemyCastle != null)
+                inspectedEnemyCastle.GetComponent<SelectionCursorMarker>()?.SetSelected(false);
             selectedBuilding = null;
             selectedCastle = null;
             selectedGoldMine = null;
             selectedResourceNode = null;
+            inspectedEnemyUnit = null;
+            inspectedEnemyBuilding = null;
+            inspectedEnemyCastle = null;
             if (changed) SelectionChanged?.Invoke();
         }
 
@@ -511,6 +581,66 @@ namespace TinyKingdom.Input
                 }
             }
             return closest;
+        }
+
+        public UnitSelection FindInspectableEnemyUnitAtScreenPosition(Vector2 screenPosition)
+        {
+            if (worldCamera == null) return null;
+            UnitSelection closest = null;
+            float closestDistance = float.MaxValue;
+            foreach (UnitSelection unit in UnitSelection.ActiveUnits)
+            {
+                if (!IsInspectableEnemyUnit(unit)) continue;
+                Vector3 point = worldCamera.WorldToScreenPoint(unit.transform.position);
+                if (point.z < 0f) continue;
+                float distance = Vector2.Distance(screenPosition, point);
+                if (distance > unit.ClickRadiusPixels || distance >= closestDistance) continue;
+                closest = unit;
+                closestDistance = distance;
+            }
+            return closest;
+        }
+
+        private bool IsInspectableEnemyUnit(UnitSelection unit)
+            => unit != null && unit.isActiveAndEnabled && unit.IsWorldSelectable
+                && unit.Controller != null && unit.Controller.IsAlive
+                && CanInspectEnemy(unit.Controller.Faction, unit.transform.position);
+
+        public bool CanInspectEnemyBuilding(BuildingSite building)
+            => building != null && building.isActiveAndEnabled && building.IsAlive
+                && CanInspectEnemy(building.Faction,
+                    building.GetComponent<BuildingVisionSource>()?.VisionPosition
+                        ?? building.transform.position);
+
+        public bool CanInspectEnemyCastle(CastleDropOff castle)
+            => castle != null && castle.isActiveAndEnabled && castle.IsAlive
+                && CanInspectEnemy(castle.Faction,
+                    castle.GetComponent<BuildingVisionSource>()?.VisionPosition
+                        ?? castle.transform.position);
+
+        private bool CanInspectEnemy(Faction faction, Vector3 position)
+        {
+            TeamVisionSystem vision = TeamVisionSystem.Instance;
+            if (faction == playerFaction || vision == null || !vision.IsReady) return false;
+            return FogWorldVisibility.Instance != null
+                ? FogWorldVisibility.Instance.CanObserve(faction, position)
+                : vision.IsVisible(playerFaction, position);
+        }
+
+        private void RemoveInvalidEnemyInspection()
+        {
+            if (!ReferenceEquals(inspectedEnemyUnit, null)
+                && !IsInspectableEnemyUnit(inspectedEnemyUnit)
+                || !ReferenceEquals(inspectedEnemyBuilding, null)
+                    && !CanInspectEnemyBuilding(inspectedEnemyBuilding)
+                || !ReferenceEquals(inspectedEnemyCastle, null)
+                    && !CanInspectEnemyCastle(inspectedEnemyCastle))
+                ClearSelection();
+        }
+
+        private void HandleInspectedEnemyUnavailable(UnitSelection unit)
+        {
+            if (unit == inspectedEnemyUnit) ClearSelection();
         }
 
         private bool IsFriendly(UnitSelection unit)

@@ -75,11 +75,12 @@ namespace TinyKingdom.Vision
         }
 
         public bool CanObserve(Faction faction, Vector3 position)
-            => faction == playerViewFaction || vision == null
+            => DebugObserverView.IsEnabled || faction == playerViewFaction || vision == null
                 || vision.IsVisible(playerViewFaction, position);
 
         public bool CanObserveResource(Vector3 position)
-            => vision == null || vision.IsVisible(playerViewFaction, position);
+            => DebugObserverView.IsEnabled || vision == null
+                || vision.IsVisible(playerViewFaction, position);
 
         public bool ShouldPresent(Faction faction, Vector3 position)
             => DebugObserverView.IsEnabled || CanObserve(faction, position);

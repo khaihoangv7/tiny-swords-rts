@@ -24,25 +24,31 @@ namespace TinyKingdom.UI
 
         public bool HasTooltipData => data != null;
 
-        internal void ConfigureUnit(CommandTooltipPresenter owner, UnitCombatData definition)
+        internal void ConfigureUnit(CommandTooltipPresenter owner, UnitCombatData definition,
+            string hotkey)
         {
             presenter = owner;
-            if (source == definition && kind == TooltipKind.Unit) return;
+            if (source == definition && kind == TooltipKind.Unit
+                && cachedHotkey == hotkey) return;
             source = definition;
             kind = TooltipKind.Unit;
+            cachedHotkey = hotkey;
             data = CommandTooltipDataBuilder.ForUnit(definition);
+            if (data != null) data.Hotkey = hotkey;
         }
 
         internal void ConfigureBuilding(CommandTooltipPresenter owner,
-            BuildingData definition, string displayName)
+            BuildingData definition, string displayName, string hotkey)
         {
             presenter = owner;
             if (source == definition && kind == TooltipKind.Building
-                && cachedTitle == displayName) return;
+                && cachedTitle == displayName && cachedHotkey == hotkey) return;
             source = definition;
             kind = TooltipKind.Building;
             cachedTitle = displayName;
+            cachedHotkey = hotkey;
             data = CommandTooltipDataBuilder.ForBuilding(definition, displayName);
+            if (data != null) data.Hotkey = hotkey;
         }
 
         internal void ConfigureSimple(CommandTooltipPresenter owner,
@@ -60,18 +66,20 @@ namespace TinyKingdom.UI
             data = CommandTooltipDataBuilder.Simple(title, details, hotkey);
         }
 
-        internal void ConfigureScout(CommandTooltipPresenter owner, string details)
+        internal void ConfigureScout(CommandTooltipPresenter owner, string details,
+            string hotkey)
         {
             presenter = owner;
             if (source == null && kind == TooltipKind.Simple
                 && cachedTitle == "Scout" && cachedDetails == details
-                && cachedHotkey == "") return;
+                && cachedHotkey == hotkey) return;
             source = null;
             kind = TooltipKind.Simple;
             cachedTitle = "Scout";
             cachedDetails = details;
-            cachedHotkey = "";
+            cachedHotkey = hotkey;
             data = CommandTooltipDataBuilder.Scout(details);
+            data.Hotkey = hotkey;
         }
 
         internal void ConfigureCommandAudio(bool available, bool playAcceptedHere)

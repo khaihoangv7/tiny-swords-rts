@@ -29,14 +29,30 @@ namespace TinyKingdom.EditorTools
             MatchManager[] managers = UnityEngine.Object.FindObjectsByType<MatchManager>();
             Require(managers.Length == 1, "Exactly one active MatchManager is required.");
             MatchManager manager = managers[0];
-            Require(manager.HasBothMainCastles, "Blue and Red Main Castles must be registered.");
             Require(manager.State == MatchState.Playing || manager.State == MatchState.Ended,
                 "MatchManager must leave Preparing after both Main Castles register.");
-            Require(manager.BlueMainCastle.Faction == Faction.Blue
-                && manager.RedMainCastle.Faction == Faction.Red
-                && manager.BlueMainCastle.Type == BuildingType.Castle
-                && manager.RedMainCastle.Type == BuildingType.Castle,
-                "Main Castle registration is invalid.");
+            if (manager.State == MatchState.Playing)
+            {
+                Require(manager.HasBothMainCastles
+                    && manager.BlueMainCastle.Faction == Faction.Blue
+                    && manager.RedMainCastle.Faction == Faction.Red
+                    && manager.BlueMainCastle.Type == BuildingType.Castle
+                    && manager.RedMainCastle.Type == BuildingType.Castle,
+                    "Main Castle registration is invalid during play.");
+            }
+            else
+            {
+                Require(manager.Result != MatchResult.None,
+                    "Ended match has no authoritative result.");
+                bool loserDestroyed = manager.Result == MatchResult.RedVictory
+                    ? manager.BlueMainCastle == null || !manager.BlueMainCastle.IsAlive
+                    : manager.RedMainCastle == null || !manager.RedMainCastle.IsAlive;
+                bool winnerAlive = manager.Result == MatchResult.RedVictory
+                    ? manager.RedMainCastle != null && manager.RedMainCastle.IsAlive
+                    : manager.BlueMainCastle != null && manager.BlueMainCastle.IsAlive;
+                Require(loserDestroyed && winnerAlive,
+                    "Match result does not match the surviving Main Castle.");
+            }
             Require(manager.ResultPresentationDelay >= 0.75f
                 && manager.ResultPresentationDelay <= 1f,
                 "Result presentation delay must remain between 0.75 and 1.0 seconds.");
@@ -48,8 +64,8 @@ namespace TinyKingdom.EditorTools
                 && resultUis[0].HasRestartButtonReference,
                 "Result Ribbon or Restart button references are invalid.");
 
-            Debug.Log("Phase 6C automated validation passed: one MatchManager, explicit "
-                + "Blue/Red Main Castles, deterministic result mapping, 0.85-second "
+            Debug.Log("Phase 6C automated validation passed: one MatchManager, "
+                + "valid Castle state for " + manager.State + ", deterministic result mapping, 0.85-second "
                 + "presentation delay and complete Tiny Swords result UI references. "
                 + "Manual Castle destruction, post-match blocking, UI and Restart tests remain required.");
         }

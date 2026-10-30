@@ -213,6 +213,13 @@ namespace TinyKingdom.EditorTools
             Require(bushes.Length > 0, "No animated bushes were configured in the active map.");
             Require(bushes.All(bush => bush.FrameCount == 8 && bush.Visual != null),
                 "A bush is missing its full verified animation.");
+            Require(bushes.All(bush => bush.transform.parent == null
+                    || bush.transform.parent.GetComponentInParent<BushPresentation>() == null),
+                "A bush visual was configured again as a nested bush.");
+            Require(bushes.All(bush => Mathf.Approximately(
+                    bush.Visual.transform.lossyScale.x,
+                    bush.transform.lossyScale.x * bush.AppliedScale)),
+                "A bush has accumulated visual scale beyond its authored size.");
             Require(bushes.All(bush => bush.Visual.sortingOrder == GroundSorting.CalculateOrder(
                     grid, GroundSorting.ElevationAt(grid, bush.transform.position),
                     bush.transform.position.y)),

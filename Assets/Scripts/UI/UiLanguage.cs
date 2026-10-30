@@ -37,6 +37,8 @@ namespace TinyKingdom.UI
             ["Add 100 resources to your faction"] = "Thêm 100 tài nguyên cho phe của bạn",
             ["Right Click: move / attack / gather. Esc: cancel command."] =
                 "Chuột phải: di chuyển / tấn công / thu thập. Esc: hủy lệnh.",
+            ["Right Click: move / attack / gather. Build: hold Q/W/E, then press A/S/D. Esc: cancel."] =
+                "Chuột phải: ra lệnh. Xây: giữ Q/W/E rồi bấm A/S/D. Esc: hủy.",
             ["Restore defaults"] = "Khôi phục mặc định",
             ["Display"] = "Màn hình",
             ["Performance"] = "Hiệu năng",
@@ -85,6 +87,9 @@ namespace TinyKingdom.UI
             ["Map"] = "Bản đồ",
             ["Castle"] = "Lâu đài",
             ["Scout"] = "Trinh sát",
+            ["Promote Scout"] = "Phong Trinh sát",
+            ["Upgrade Castle Cannon"] = "Nâng cấp pháo lâu đài",
+            ["Upgrade Tower Arrow"] = "Nâng cấp tên tháp",
             ["SCOUT"] = "TRINH SÁT",
             ["PAWN"] = "DÂN",
             ["WARRIOR"] = "CHIẾN BINH",
@@ -204,6 +209,7 @@ namespace TinyKingdom.UI
             ,["Assign"] = "Gán"
             ,["Select"] = "Chọn"
             ,["Clear Selected Group"] = "Xóa nhóm đang chọn"
+            ,["Enter Building (hold key + right click)"] = "Vào công trình (giữ phím + chuột phải)"
             ,["Speed 1x"] = "Tốc độ 1x"
             ,["Speed 2x"] = "Tốc độ 2x"
             ,["Speed 5x"] = "Tốc độ 5x"
@@ -269,6 +275,8 @@ namespace TinyKingdom.UI
             value = value.Replace("Damage text: ", "Số sát thương: ")
                 .Replace("Allow Cheats: ", "Cho phép cheat: ")
                 .Replace("Fog: ", "Sương mù: ")
+                .Replace("Language: ", "Ngôn ngữ: ")
+                .Replace("Match speed: ", "Tốc độ trận đấu: ")
                 .Replace("Fullscreen: ", "Toàn màn hình: ")
                 .Replace("Resolution: ", "Độ phân giải: ")
                 .Replace("FPS limit: ", "Giới hạn FPS: ")

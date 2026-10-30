@@ -41,6 +41,7 @@ MonoBehaviour:
   - {fileID: 2725092365876084024, guid: a1b92af431c1ce9418d71ba6b3ee9267, type: 3}
   - {fileID: 992378399082110112, guid: a1b92af431c1ce9418d71ba6b3ee9267, type: 3}
   - {fileID: 2421232261252437877, guid: a1b92af431c1ce9418d71ba6b3ee9267, type: 3}
+  attackAlternate: []
   guard: []
   attackDown: []
   attackDownRight: []

@@ -231,7 +231,10 @@ namespace TinyKingdom.UI
             if (root == null || selection == null) return;
             bool hasSelection = selection.SelectedUnits.Count > 0
                 || selection.SelectedBuilding != null || selection.SelectedCastle != null
-                || selection.SelectedGoldMine != null || selection.SelectedResourceNode != null;
+                || selection.SelectedGoldMine != null || selection.SelectedResourceNode != null
+                || selection.InspectedEnemyUnit != null
+                || selection.InspectedEnemyBuilding != null
+                || selection.InspectedEnemyCastle != null;
             root.gameObject.SetActive(hasSelection);
             if (!hasSelection) return;
             HideDynamicRows();
@@ -245,6 +248,12 @@ namespace TinyKingdom.UI
                 ShowCastle(selection.SelectedCastle);
             else if (selection.SelectedGoldMine != null)
                 ShowGoldMine(selection.SelectedGoldMine);
+            else if (selection.InspectedEnemyUnit != null)
+                ShowUnit(selection.InspectedEnemyUnit);
+            else if (selection.InspectedEnemyBuilding != null)
+                ShowBuilding(selection.InspectedEnemyBuilding);
+            else if (selection.InspectedEnemyCastle != null)
+                ShowCastle(selection.InspectedEnemyCastle);
             else ShowResource(selection.SelectedResourceNode);
         }
 

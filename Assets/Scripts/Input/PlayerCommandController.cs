@@ -7,6 +7,7 @@ using TinyKingdom.Units;
 using TinyKingdom.Vision;
 using TinyKingdom.Match;
 using TinyKingdom.Audio;
+using TinyKingdom.Debugging;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -161,6 +162,7 @@ namespace TinyKingdom.Input
             Vector2 pointer = mouse.position.ReadValue();
             Vector3 world = worldCamera.ScreenToWorldPoint(new Vector3(pointer.x, pointer.y,
                 -worldCamera.transform.position.z));
+            bool enterBuilding = GameInputBindings.IsPressed(GameAction.EnterBuilding);
             if (selectionManager != null && selectionManager.SelectedUnits.Count == 0
                 && SelectedRallyPoint() is BuildingRallyPoint rally)
             {
@@ -181,13 +183,8 @@ namespace TinyKingdom.Input
             else if (FindEnemyBuilding(world) is BuildingCombatTarget enemyBuilding)
                 IssuePointerCommand(() => IssueAttackCommand(enemyBuilding));
             else if (FindFriendlyGarrison(world) is BuildingGarrison garrison)
-            {
-                BuildingSite site = garrison.GetComponent<BuildingSite>();
-                if (site != null && (site.State == BuildingState.UnderConstruction
-                    || site.NeedsRepair))
-                    IssuePointerCommand(() => IssueBuildingCommand(site));
-                else IssuePointerCommand(() => IssueGarrisonCommand(garrison));
-            }
+                IssuePointerCommand(() => IssueFriendlyBuildingCommand(garrison,
+                    enterBuilding));
             else if (FindFriendlyBuilding(world) is BuildingSite building)
                 IssuePointerCommand(() => IssueBuildingCommand(building));
             else if (FindGoldMine(world) is GoldMineObjective mine)
@@ -730,6 +727,7 @@ namespace TinyKingdom.Input
 
         private bool CanPlayerObserveResource(Vector3 position)
         {
+            if (DebugObserverView.IsEnabled) return true;
             TeamVisionSystem vision = TeamVisionSystem.Instance;
             return vision == null || selectionManager == null
                 || vision.IsVisible(selectionManager.PlayerFaction, position);
@@ -762,11 +760,30 @@ namespace TinyKingdom.Input
             return FinishAcceptedCommand(issued);
         }
 
+        public int IssueFriendlyBuildingCommand(BuildingGarrison target,
+            bool enterBuilding)
+        {
+            if (!MatchManager.AllowsGameplay || target == null || !target.IsReady
+                || selectionManager == null
+                || target.Faction != selectionManager.PlayerFaction) return 0;
+            if (enterBuilding || !HasSelectedPawn())
+                return IssueGarrisonCommand(target);
+            BuildingSite site = target.GetComponent<BuildingSite>();
+            if (site != null && (site.State == BuildingState.UnderConstruction
+                || site.NeedsRepair)) return IssueBuildingCommand(site);
+            CastleDropOff castle = target.GetComponent<CastleDropOff>();
+            return castle != null && castle.NeedsRepair
+                ? IssueCastleRepairCommand(castle)
+                : IssueGarrisonCommand(target);
+        }
+
         public int IssueBuildingCommand(BuildingSite site)
         {
             if (!MatchManager.AllowsGameplay) return 0;
-            BuildingSystem system = FindAnyObjectByType<BuildingSystem>();
+            placement ??= GetComponent<BuildingPlacementController>();
+            BuildingSystem system = placement != null ? placement.System : null;
             if (system == null || selectionManager == null || site == null
+                || system.Owner != selectionManager.PlayerFaction
                 || site.Faction != selectionManager.PlayerFaction) return 0;
             BeginAcceptedCommand();
             selectionManager.CopySelectedUnits(commandUnits);
@@ -782,6 +799,34 @@ namespace TinyKingdom.Input
                     AcceptCommand(pawn.GetComponent<UnitController>());
             FinishAcceptedCommand(acceptedCommandUnits.Count);
             return 1;
+        }
+
+        public int IssueCastleRepairCommand(CastleDropOff castle)
+        {
+            if (!MatchManager.AllowsGameplay || selectionManager == null
+                || castle == null || castle.Faction != selectionManager.PlayerFaction
+                || !castle.NeedsRepair) return 0;
+            BeginAcceptedCommand();
+            selectionManager.CopySelectedUnits(commandUnits);
+            int issued = 0;
+            foreach (UnitSelection selected in commandUnits)
+            {
+                PawnBuilder pawn = selected != null ? selected.GetComponent<PawnBuilder>() : null;
+                if (pawn == null || !pawn.AssignCastleRepair(castle)) continue;
+                AcceptCommand(selected.Controller);
+                issued++;
+            }
+            return FinishAcceptedCommand(issued);
+        }
+
+        private bool HasSelectedPawn()
+        {
+            if (selectionManager == null) return false;
+            foreach (UnitSelection selected in selectionManager.SelectedUnits)
+                if (selected != null && selected.Controller.IsAlive
+                    && selected.Controller.Faction == selectionManager.PlayerFaction
+                    && selected.GetComponent<PawnBuilder>() != null) return true;
+            return false;
         }
 
         private int IssuePointerCommand(Func<int> issue)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using UnityEngine;
 
@@ -13,6 +14,7 @@ namespace TinyKingdom.Vision
         private readonly int height;
         private readonly Vector2 worldOrigin;
         private readonly float cellSize;
+        private readonly VisionElevationMap elevation;
         private bool[][] visible;
         private bool[][] nextVisible;
         private readonly bool[][] explored;
@@ -20,7 +22,8 @@ namespace TinyKingdom.Vision
         public int Width => width;
         public int Height => height;
 
-        public TeamVisionGrid(int gridWidth, int gridHeight, Vector2 origin, float size)
+        public TeamVisionGrid(int gridWidth, int gridHeight, Vector2 origin, float size,
+            NavigationGridData navigationData = null)
         {
             if (gridWidth <= 0 || gridHeight <= 0 || size <= 0f)
                 throw new ArgumentOutOfRangeException(nameof(gridWidth));
@@ -28,6 +31,8 @@ namespace TinyKingdom.Vision
             height = gridHeight;
             worldOrigin = origin;
             cellSize = size;
+            elevation = new VisionElevationMap(gridWidth, gridHeight, origin, size,
+                navigationData);
             int count = width * height;
             visible = NewFactionArrays(count);
             nextVisible = NewFactionArrays(count);
@@ -44,7 +49,8 @@ namespace TinyKingdom.Vision
                 {
                     IVisionSource source = sources[i];
                     if (!IsUsable(source)) continue;
-                    Reveal(source.Faction, source.VisionPosition, source.VisionRadius);
+                    Reveal(source.Faction, source.VisionPosition, source.VisionRadius,
+                        source.VisibleHeightAboveSource);
                 }
 
             bool changed = false;
@@ -89,9 +95,11 @@ namespace TinyKingdom.Vision
                 Mathf.FloorToInt(offset.y / cellSize));
         }
 
-        private void Reveal(Faction faction, Vector3 position, float radius)
+        private void Reveal(Faction faction, Vector3 position, float radius,
+            int visibleHeightAboveSource)
         {
             int team = TeamIndex(faction);
+            int sourceHeight = elevation.HeightAt(position);
             float radiusSquared = radius * radius + 0.0001f;
             Vector2Int minimum = WorldToCell(position - new Vector3(radius, radius));
             Vector2Int maximum = WorldToCell(position + new Vector3(radius, radius));
@@ -102,6 +110,8 @@ namespace TinyKingdom.Vision
             for (int y = minY; y <= maxY; y++)
             for (int x = minX; x <= maxX; x++)
             {
+                if (!elevation.CanReveal(sourceHeight, visibleHeightAboveSource, x, y))
+                    continue;
                 Vector2 center = worldOrigin + new Vector2((x + 0.5f) * cellSize,
                     (y + 0.5f) * cellSize);
                 if ((center - (Vector2)position).sqrMagnitude <= radiusSquared)
@@ -123,5 +133,126 @@ namespace TinyKingdom.Vision
 
         private static bool[][] NewFactionArrays(int count)
             => new[] { new bool[count], new bool[count] };
+    }
+
+    // Shared by authoritative cell vision and the higher-resolution fog mask.
+    public sealed class VisionElevationMap
+    {
+        // A short, rounded view onto the upper landing, not the full plateau.
+        public const float StairGlimpseRadiusCells = 1.75f;
+        public const float StairGlimpseFeatherCells = 0.5f;
+        private readonly int width;
+        private readonly int height;
+        private readonly Vector2 origin;
+        private readonly float cellSize;
+        private readonly int[] levels;
+        private readonly bool[] upperStairEndpoints;
+        private readonly Vector2[] nearestUpperStair;
+        private readonly bool[] hasUpperStair;
+
+        public VisionElevationMap(int width, int height, Vector2 origin, float cellSize,
+            NavigationGridData navigationData)
+        {
+            this.width = width;
+            this.height = height;
+            this.origin = origin;
+            this.cellSize = cellSize;
+            levels = new int[width * height];
+            upperStairEndpoints = new bool[levels.Length];
+            nearestUpperStair = new Vector2[levels.Length];
+            hasUpperStair = new bool[levels.Length];
+            if (navigationData == null) return;
+
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                if (!navigationData.TryGetCellData(x, y, out NavigationCellData cell))
+                    continue;
+                int index = y * width + x;
+                levels[index] = cell.heightLevel;
+                if (cell.terrainType != TerrainType.Stairs || !cell.hasHeightConnection
+                    || !navigationData.TryGetCellData(cell.heightConnection.x,
+                        cell.heightConnection.y, out NavigationCellData partner))
+                    continue;
+                upperStairEndpoints[index] = partner.hasHeightConnection
+                    && partner.heightConnection == new Vector2Int(x, y)
+                    && cell.heightLevel == partner.heightLevel + 1;
+            }
+
+            var stairEntries = new List<(int Height, Vector2 Center)>();
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                if (upperStairEndpoints[y * width + x])
+                    stairEntries.Add((levels[y * width + x], origin
+                        + new Vector2((x + 0.5f) * cellSize,
+                            (y + 0.5f) * cellSize)));
+
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int index = y * width + x;
+                Vector2 center = origin + new Vector2((x + 0.5f) * cellSize,
+                    (y + 0.5f) * cellSize);
+                float bestDistance = float.PositiveInfinity;
+                foreach ((int stairHeight, Vector2 stairCenter) in stairEntries)
+                {
+                    if (stairHeight != levels[index]) continue;
+                    float distance = (center - stairCenter).sqrMagnitude;
+                    if (distance >= bestDistance) continue;
+                    bestDistance = distance;
+                    nearestUpperStair[index] = stairCenter;
+                    hasUpperStair[index] = true;
+                }
+            }
+        }
+
+        public int HeightAt(Vector3 worldPosition)
+        {
+            int x = Mathf.FloorToInt((worldPosition.x - origin.x) / cellSize);
+            int y = Mathf.FloorToInt((worldPosition.y - origin.y) / cellSize);
+            return x >= 0 && x < width && y >= 0 && y < height
+                ? levels[y * width + x] : 0;
+        }
+
+        public bool CanReveal(int sourceHeight, int allowedRise, int x, int y)
+        {
+            int index = y * width + x;
+            int targetHeight = levels[index];
+            if (targetHeight <= sourceHeight + allowedRise) return true;
+            if (allowedRise != 0 || targetHeight != sourceHeight + 1
+                || !hasUpperStair[index]) return false;
+            Vector2 center = origin + new Vector2((x + 0.5f) * cellSize,
+                (y + 0.5f) * cellSize);
+            float radius = StairGlimpseRadiusCells * cellSize;
+            return (center - nearestUpperStair[index]).sqrMagnitude
+                <= radius * radius + 0.0001f;
+        }
+
+        public float VisualCoverage(int sourceHeight, int allowedRise, int x, int y,
+            Vector2 samplePosition, out bool insideGlimpse)
+        {
+            int index = y * width + x;
+            int targetHeight = levels[index];
+            if (targetHeight <= sourceHeight + allowedRise)
+            {
+                insideGlimpse = true;
+                return 1f;
+            }
+            if (allowedRise != 0 || targetHeight != sourceHeight + 1
+                || !hasUpperStair[index])
+            {
+                insideGlimpse = false;
+                return 0f;
+            }
+
+            float radius = StairGlimpseRadiusCells * cellSize;
+            float distanceSquared = (samplePosition - nearestUpperStair[index]).sqrMagnitude;
+            insideGlimpse = distanceSquared <= radius * radius;
+            if (insideGlimpse) return 1f;
+            float feather = StairGlimpseFeatherCells * cellSize;
+            float outerRadius = radius + feather;
+            if (distanceSquared >= outerRadius * outerRadius) return 0f;
+            return (outerRadius - Mathf.Sqrt(distanceSquared)) / feather;
+        }
     }
 }

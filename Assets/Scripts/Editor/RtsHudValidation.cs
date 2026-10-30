@@ -370,6 +370,9 @@ namespace TinyKingdom.EditorTools
                         && cost != null && hotkey != null && trigger != null,
                         $"{actionName} is missing an adaptive command-card element.");
                     if (action.gameObject.activeSelf) activeActions++;
+                    if (action.gameObject.activeSelf)
+                        Require(!string.IsNullOrWhiteSpace(hotkey.text),
+                            $"{actionName} has no displayed command hotkey.");
                 }
 
                 Require(activeActions == hud.CommandPanel.VisibleActionCount,

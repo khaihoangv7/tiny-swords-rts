@@ -9,6 +9,7 @@ namespace TinyKingdom.Units
         bool IsVisionActive { get; }
         float VisionRadius { get; }
         Vector3 VisionPosition { get; }
+        int VisibleHeightAboveSource { get; }
     }
 
     public interface IUnitVisionModifier

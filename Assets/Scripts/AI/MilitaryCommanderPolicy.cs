@@ -1381,7 +1381,8 @@ namespace TinyKingdom.AI
         private static void EndRetreatDirectives(IReadOnlyList<UnitController> members)
         {
             for (int i = 0; i < members.Count; i++)
-                members[i]?.GetComponent<CombatController>()?.EndRetreat();
+                if (members[i] != null)
+                    members[i].GetComponent<CombatController>()?.EndRetreat();
         }
 
         private void RemoveStaleRetreatDestinations()

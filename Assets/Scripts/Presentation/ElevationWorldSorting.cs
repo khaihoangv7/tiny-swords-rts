@@ -189,6 +189,13 @@ namespace TinyKingdom.Presentation
                         SpriteRenderer renderer = renderers[i];
                         if (renderer == null || renderer.name.StartsWith("Cloud_")
                             || renderer.name.StartsWith("Bridge_")) continue;
+                        // A configured bush has a source renderer on its root and an
+                        // animated renderer on its visual child. Only the root may
+                        // create/configure BushPresentation; reprocessing the child
+                        // nests another scaled visual and makes the bush grow.
+                        if (renderer.transform.parent != null
+                            && renderer.transform.parent.GetComponentInParent<BushPresentation>()
+                                != null) continue;
                         Vector3 groundPosition = renderer.transform.position;
                         if (TryBushVariant(renderer.sprite, out int variant)
                             && catalog != null && catalog.BushFrames(variant).Length == 8)

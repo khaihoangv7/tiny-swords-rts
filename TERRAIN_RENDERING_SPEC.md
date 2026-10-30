@@ -1,6 +1,6 @@
 # Tiny Swords expanded battlefield
 
-The map is 60x44 cells on a native 64x64 pixel tile grid. Each Castle has a
+The Two Kingdoms map is 68x44 cells on a native 64x64 pixel tile grid. Each Castle has a
 16x13 lower terrace and a 10x7 upper court. The central Gold Mine stays at height 0.
 Visual Tilemaps and baked navigation are separate.
 

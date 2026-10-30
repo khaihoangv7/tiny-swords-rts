@@ -11,6 +11,7 @@ namespace TinyKingdom.Buildings
         public Faction Faction => host.Faction;
         public bool IsVisionActive => host != null && host.IsAlive && host.IsDefenseReady;
         public float VisionRadius => host?.DefenseData?.VisionRadius ?? 0f;
+        public int VisibleHeightAboveSource => host?.Type == BuildingType.Tower ? 1 : 0;
         public Vector3 VisionPosition
         {
             get

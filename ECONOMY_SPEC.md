@@ -1,7 +1,7 @@
 # Phase 5A economy rules
 
 The MVP has Food, Wood, and Gold. Blue begins with 200 Food, 200 Wood, and 100
-Gold; Red has a separate stockpile. Pawn costs 50 Food, carries 20 units, and
+Gold; Red has a separate stockpile. Pawn costs 70 Food, carries 20 units, and
 uses existing 8-direction navigation and separation. Tree, Sheep, and Gold
 nodes use one generic `ResourceNode` and per-node interaction reservations.
 Resource sprites are positioned using their imported runtime pivots. The Tree
@@ -119,7 +119,7 @@ Red grows toward six living-or-queued Pawns. Newly produced Pawns enter the
 existing 40/35/25 Food/Wood/Gold assignment policy. Economy assignments exclude
 the active Scout and Builder roles. Construction preserves at least two Economy
 Pawns when possible and non-emergency infrastructure waits while the Red Food
-stockpile is below the 50 Food cost of one Pawn.
+stockpile is below the 70 Food cost of one Pawn.
 
 Population pressure uses `Cap - Used - Reserved`. At two or fewer free slots the
 Commander prioritizes one House project and waits for its normal completion

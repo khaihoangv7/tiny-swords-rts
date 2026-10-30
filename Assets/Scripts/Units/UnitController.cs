@@ -29,6 +29,7 @@ namespace TinyKingdom.Units
         public float VisionRadius => BaseVisionRadius
             * Mathf.Max(0f, visionModifier?.VisionMultiplier ?? 1f);
         public Vector3 VisionPosition => transform.position;
+        public int VisibleHeightAboveSource => 0;
 
         private void OnEnable()
         {

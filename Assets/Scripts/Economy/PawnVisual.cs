@@ -209,7 +209,10 @@ namespace TinyKingdom.Economy
             buildSwingRemaining = BuildSwingDuration;
             buildRecoveryRemaining = 0f;
             FaceTowards(builder?.Target != null
-                ? builder.Target.transform.position - transform.position : Vector2.zero);
+                ? builder.Target.transform.position - transform.position
+                : builder?.RepairCastle != null
+                    ? builder.RepairCastle.transform.position - transform.position
+                    : Vector2.zero);
             Begin(animationSet.Hammer, false);
         }
 

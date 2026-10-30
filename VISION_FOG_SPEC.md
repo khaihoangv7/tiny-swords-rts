@@ -149,8 +149,12 @@ receive persistent ghosts: they disappear completely after leaving current
 vision. The query API exposes current visibility, exploration history and
 snapshot values rather than hidden live component references.
 
-Player hover, cursor, selection and attack checks require current observability.
-Last-seen ghosts cannot be targeted. Player-facing Move and Rally validation use
+Player hover, cursor, selection and attack checks require current observability
+in normal play. The debug Fog OFF switch exposes live world presentation and
+lets the human inspect and issue resource or Gold Mine interactions outside Blue
+vision. It does not reveal cells to `TeamVisionSystem`, refresh faction memory,
+give Red Commander new observations, or authorize attacks beyond normal combat
+vision. Last-seen ghosts cannot be targeted. Player-facing Move and Rally validation use
 faction knowledge, so an unobserved physical building cannot cause a Forbidden
 cursor or rejected command. Authoritative A* still uses real world occupancy and
 routes around the blocker. Rally remains allowed on `Visible` and `Explored`

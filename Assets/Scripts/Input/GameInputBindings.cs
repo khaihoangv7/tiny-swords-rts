@@ -9,7 +9,14 @@ namespace TinyKingdom.Input
         AttackMove, Guard, Group1, Group2, Group3, Group4, Ungroup,
         Speed1, Speed2, Speed5, Speed10,
         PanLeft, PanRight, PanUp, PanDown,
-        GroupAssign1, GroupAssign2, GroupAssign3, GroupAssign4
+        GroupAssign1, GroupAssign2, GroupAssign3, GroupAssign4,
+        EnterBuilding,
+        PromoteScout,
+        BuildHouseA, BuildHouseB, BuildHouseC, BuildBarracks, BuildTower,
+        BuildArchery, BuildMonastery,
+        TrainPawn, TrainWarrior, TrainLancer, TrainArcher, TrainMonk,
+        FormationCompact, FormationWedge, FormationLoose, FormationLine,
+        UpgradeCastleCannon, UpgradeTowerArrow, EjectAll
     }
 
     // One source of truth for keyboard shortcuts used by the existing input
@@ -27,6 +34,7 @@ namespace TinyKingdom.Input
         {
             GameAction.AttackMove => "Attack Move",
             GameAction.Guard => "Guard",
+            GameAction.EnterBuilding => "Enter Building (hold key + right click)",
             GameAction.Group1 => "Select Group 1",
             GameAction.Group2 => "Select Group 2",
             GameAction.Group3 => "Select Group 3",
@@ -44,6 +52,26 @@ namespace TinyKingdom.Input
             GameAction.PanRight => "Camera Right",
             GameAction.PanUp => "Camera Up",
             GameAction.PanDown => "Camera Down",
+            GameAction.PromoteScout => "Promote Scout",
+            GameAction.BuildHouseA => "Build House A",
+            GameAction.BuildHouseB => "Build House B",
+            GameAction.BuildHouseC => "Build House C",
+            GameAction.BuildBarracks => "Build Barracks",
+            GameAction.BuildTower => "Build Tower",
+            GameAction.BuildArchery => "Build Archery",
+            GameAction.BuildMonastery => "Build Monastery",
+            GameAction.TrainPawn => "Train Pawn",
+            GameAction.TrainWarrior => "Train Warrior",
+            GameAction.TrainLancer => "Train Lancer",
+            GameAction.TrainArcher => "Train Archer",
+            GameAction.TrainMonk => "Train Monk",
+            GameAction.FormationCompact => "Compact Formation",
+            GameAction.FormationWedge => "Wedge Formation",
+            GameAction.FormationLoose => "Loose Formation",
+            GameAction.FormationLine => "Line Formation",
+            GameAction.UpgradeCastleCannon => "Upgrade Castle Cannon",
+            GameAction.UpgradeTowerArrow => "Upgrade Tower Arrow",
+            GameAction.EjectAll => "Eject All",
             _ => action.ToString()
         };
 
@@ -51,6 +79,7 @@ namespace TinyKingdom.Input
         {
             GameAction.AttackMove => Key.A,
             GameAction.Guard => Key.G,
+            GameAction.EnterBuilding => Key.H,
             GameAction.Group1 => Key.Digit1,
             GameAction.Group2 => Key.Digit2,
             GameAction.Group3 => Key.Digit3,
@@ -68,6 +97,26 @@ namespace TinyKingdom.Input
             GameAction.PanRight => Key.RightArrow,
             GameAction.PanUp => Key.UpArrow,
             GameAction.PanDown => Key.DownArrow,
+            GameAction.PromoteScout => Key.S,
+            GameAction.BuildHouseA => Key.A,
+            GameAction.BuildHouseB => Key.S,
+            GameAction.BuildHouseC => Key.D,
+            GameAction.BuildBarracks => Key.A,
+            GameAction.BuildTower => Key.D,
+            GameAction.BuildArchery => Key.S,
+            GameAction.BuildMonastery => Key.A,
+            GameAction.TrainPawn => Key.P,
+            GameAction.TrainWarrior => Key.Z,
+            GameAction.TrainLancer => Key.X,
+            GameAction.TrainArcher => Key.C,
+            GameAction.TrainMonk => Key.V,
+            GameAction.FormationCompact => Key.F,
+            GameAction.FormationWedge => Key.J,
+            GameAction.FormationLoose => Key.L,
+            GameAction.FormationLine => Key.K,
+            GameAction.UpgradeCastleCannon => Key.N,
+            GameAction.UpgradeTowerArrow => Key.O,
+            GameAction.EjectAll => Key.B,
             _ => Key.None
         };
 
@@ -98,6 +147,21 @@ namespace TinyKingdom.Input
         private static GameAction SelectionActionFor(GameAction assignment)
             => GameAction.Group1 + (assignment - GameAction.GroupAssign1);
 
+        // Building shortcuts use a held category key and a pressed action key.
+        // The category remains fixed while the second key can be rebound.
+        public static Key BuildingPrefix(GameAction action) => action switch
+        {
+            GameAction.BuildHouseA or GameAction.BuildHouseB or GameAction.BuildHouseC
+                => Key.Q,
+            GameAction.BuildBarracks or GameAction.BuildArchery or GameAction.BuildTower
+                => Key.W,
+            GameAction.BuildMonastery => Key.E,
+            _ => Key.None
+        };
+
+        private static bool IsBuildingPrefix(Key key)
+            => key is Key.Q or Key.W or Key.E;
+
         public static string Display(GameAction action)
         {
             Key key = Get(action);
@@ -110,24 +174,48 @@ namespace TinyKingdom.Input
                 _ => key.ToString().StartsWith("Digit", StringComparison.Ordinal)
                     ? key.ToString().Substring(5) : key.ToString()
             };
-            return (RequiresControl(action) ? "Ctrl+" : "")
-                + (RequiresShift(action) ? "Shift+" : "") + label;
+            string modifiers = (RequiresControl(action) ? "Ctrl+" : "")
+                + (RequiresShift(action) ? "Shift+" : "");
+            Key prefix = BuildingPrefix(action);
+            return prefix == Key.None ? modifiers + label
+                : prefix + "+" + modifiers + label;
         }
 
         public static bool WasPressed(GameAction action)
         {
             Keyboard keyboard = Keyboard.current;
-            return !ModalOpen && !Capturing && keyboard != null
-                && keyboard[Get(action)].wasPressedThisFrame
-                && ModifiersMatch(action, keyboard);
+            if (ModalOpen || Capturing || keyboard == null
+                || !keyboard[Get(action)].wasPressedThisFrame
+                || !ModifiersMatch(action, keyboard)) return false;
+            Key prefix = BuildingPrefix(action);
+            return prefix != Key.None
+                ? keyboard[prefix].isPressed
+                : !BuildingChordUsesKey(keyboard, Get(action));
         }
 
         public static bool IsPressed(GameAction action)
         {
             Keyboard keyboard = Keyboard.current;
-            return !ModalOpen && !Capturing && keyboard != null
-                && keyboard[Get(action)].isPressed
-                && ModifiersMatch(action, keyboard);
+            if (ModalOpen || Capturing || keyboard == null
+                || !keyboard[Get(action)].isPressed
+                || !ModifiersMatch(action, keyboard)) return false;
+            Key prefix = BuildingPrefix(action);
+            return prefix != Key.None
+                ? keyboard[prefix].isPressed
+                : !BuildingChordUsesKey(keyboard, Get(action));
+        }
+
+        private static bool BuildingChordUsesKey(Keyboard keyboard, Key key)
+        {
+            for (int i = 0; i < ActionCount; i++)
+            {
+                GameAction action = (GameAction)i;
+                Key prefix = BuildingPrefix(action);
+                if (prefix != Key.None && keyboard[prefix].isPressed
+                    && Get(action) == key && ModifiersMatch(action, keyboard))
+                    return true;
+            }
+            return false;
         }
 
         public static bool WasReleased(GameAction action)
@@ -163,12 +251,19 @@ namespace TinyKingdom.Input
                 reason = "This key is reserved for system controls.";
                 return false;
             }
+            if (IsBuildingPrefix(key))
+            {
+                reason = "Q, W, and E are reserved for building categories.";
+                return false;
+            }
+            Key prefix = BuildingPrefix(action);
             for (int i = 0; i < ActionCount; i++)
             {
                 GameAction other = (GameAction)i;
                 if (other == action || Get(other) != key
                     || RequiresShift(other) != shift
-                    || RequiresControl(other) != control) continue;
+                    || RequiresControl(other) != control
+                    || BuildingPrefix(other) != prefix) continue;
                 reason = $"{(control ? "Ctrl+" : "")}{(shift ? "Shift+" : "")}{key} is already assigned to {Label(other)}.";
                 return false;
             }

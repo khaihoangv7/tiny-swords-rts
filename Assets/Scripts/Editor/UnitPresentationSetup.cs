@@ -109,6 +109,7 @@ namespace TinyKingdom.EditorTools
             if (type == "Warrior")
             {
                 SetFrames(serialized, "attack", faction, type, "Attack1", 4);
+                SetFrames(serialized, "attackAlternate", faction, type, "Attack2", 4);
                 SetFrames(serialized, "guard", faction, type, "Guard", 6);
             }
             if (type == "Archer") SetFrames(serialized, "attack", faction, type, "Shoot", 8);

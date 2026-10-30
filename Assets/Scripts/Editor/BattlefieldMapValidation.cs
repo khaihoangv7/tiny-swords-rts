@@ -97,7 +97,7 @@ namespace TinyKingdom.EditorTools
                     grid.SetOccupied(p.x+x,p.y+y,true);
                 }
             }
-            int mineX=StrategicObjectiveMapLayout.MineOriginX, mineY=StrategicObjectiveMapLayout.MineOriginY;
+            int mineX=layout.mineOrigin.x, mineY=layout.mineOrigin.y;
             for(int y=mineY;y<mineY+2;y++) for(int x=mineX;x<mineX+2;x++) grid.SetOccupied(x,y,true);
             ValidateTerraces();
             ValidatePastures(layout,grid);
@@ -152,7 +152,7 @@ namespace TinyKingdom.EditorTools
                 Vector2Int cell=grid.WorldToGrid(p);
                 Require(!grid.GetCell(cell.x,cell.y).Occupied && grid.GetCell(cell.x,cell.y).HeightLevel==2,"Runtime Pawn must start on the upper Castle court.");
             }
-            int mineX=StrategicObjectiveMapLayout.MineOriginX, mineY=StrategicObjectiveMapLayout.MineOriginY;
+            int mineX=layout.mineOrigin.x, mineY=layout.mineOrigin.y;
             PathCost(grid,grid.WorldToGrid(layout.blueCastle)+Vector2Int.down,new(mineX-1,mineY));
             PathCost(grid,grid.WorldToGrid(layout.redCastle)+Vector2Int.down,new(mineX+2,mineY));
             ValidateTerraces();
@@ -244,9 +244,10 @@ namespace TinyKingdom.EditorTools
                 Require(grid.GetCell(p.x,p.y).HeightLevel==2,"Castles must stand on the second tier.");
             }
             ValidateIndependentBaseRoutes(grid);
-            Require(grid.GetCell(StrategicObjectiveMapLayout.MineOriginX,StrategicObjectiveMapLayout.MineOriginY).HeightLevel==0,
+            int mineX=30+BattlefieldLayout.HorizontalExpansion/2;
+            Require(grid.GetCell(mineX,StrategicObjectiveMapLayout.MineOriginY).HeightLevel==0,
                 "Mine must stand on flat ground.");
-            for(int y=18;y<=28;y++) for(int x=24;x<=35;x++)
+            for(int y=18;y<=28;y++) for(int x=24+BattlefieldLayout.HorizontalExpansion/2;x<=35+BattlefieldLayout.HorizontalExpansion/2;x++)
                 Require(grid.GetCell(x,y).HeightLevel==0 && grid.GetCell(x,y).TerrainType==TerrainType.FlatGround,
                     "An old mine terrace or offset ramp remains in the central clearing.");
         }
@@ -316,8 +317,8 @@ namespace TinyKingdom.EditorTools
                     && grid.GetCell((int)r.position.x,(int)r.position.y).HeightLevel==0),
                     "The mirrored outer woodland must have 27 harvestable Trees per side.");
                 int aisleY=side==0?5:38;
-                int aisleMinX=side==0?5:43;
-                int aisleMaxX=side==0?16:54;
+                int aisleMinX=side==0?5:43+BattlefieldLayout.HorizontalExpansion;
+                int aisleMaxX=side==0?16:54+BattlefieldLayout.HorizontalExpansion;
                 for(int x=aisleMinX;x<=aisleMaxX;x++)
                     Require(!grid.GetCell(x,aisleY).Occupied,
                         "A woodland cross aisle is blocked at "+x+","+aisleY);

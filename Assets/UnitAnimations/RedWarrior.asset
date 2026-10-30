@@ -37,6 +37,11 @@ MonoBehaviour:
   - {fileID: 8738852634765236386, guid: d334b6c6dca47c0429d1479d19846a69, type: 3}
   - {fileID: 1435813858662126931, guid: d334b6c6dca47c0429d1479d19846a69, type: 3}
   - {fileID: 2647078634671427691, guid: d334b6c6dca47c0429d1479d19846a69, type: 3}
+  attackAlternate:
+  - {fileID: -3424596684861233237, guid: ee8ba3df399ce9d4294ec8e73160d306, type: 3}
+  - {fileID: 2678504405838677843, guid: ee8ba3df399ce9d4294ec8e73160d306, type: 3}
+  - {fileID: 3934996648058365938, guid: ee8ba3df399ce9d4294ec8e73160d306, type: 3}
+  - {fileID: 747109334637763536, guid: ee8ba3df399ce9d4294ec8e73160d306, type: 3}
   guard:
   - {fileID: -3014082438352978858, guid: c8e799a39704a1244aea955fdac3ba3e, type: 3}
   - {fileID: -8379219403140719787, guid: c8e799a39704a1244aea955fdac3ba3e, type: 3}

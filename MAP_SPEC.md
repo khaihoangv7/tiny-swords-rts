@@ -131,10 +131,10 @@ across either connection. These visual replacements align with the existing
 reciprocal lower and upper logical cells; they do not create another nav edge.
 
 The central objective is a flat clearing at height 0. The 2x2 mine starts
-at (29,21), with open approaches from both factions and no mine-side ramps.
-Blue's lower terrace occupies x=5..20, y=8..20 and Red's x=39..54, y=24..36
+at (34,21), with open approaches from both factions and no mine-side ramps.
+Blue's lower terrace occupies x=5..20, y=8..20 and Red's x=47..62, y=24..36
 at height 1. The height-2 Castle courts are inset: Blue x=8..17, y=14..20;
-Red x=42..51, y=30..36. Each 10 x 7 court is one cell narrower on both
+Red x=50..59, y=30..36. Each 10 x 7 court is one cell narrower on both
 sides than the previous court, begins two cells farther north, and extends to
 the rear edge of its lower terrace. Single cliff rows sit immediately south of each tier;
 the lower landings retain native Color3 terrain and the upper courts use brighter
@@ -181,7 +181,7 @@ a route to an adjacent work cell at the building's height.
 
 Current expanded size:
 
-60 x 44 cells (previously 40 x 28). `BattlefieldLayout.Width/Height` are the
+68 x 44 cells (previously 60 x 44). `BattlefieldLayout.Width/Height` are the
 shared authored dimensions. Terrain, navigation, camera bounds, zoom and fog
 must cover the full map. Each Castle base has a 16 x 13 lower terrace and an
 inset 10 x 7 upper court, with at least 171 unobstructed cells at Blue and 180 at Red across both tiers.
@@ -190,7 +190,7 @@ The current Two Kingdoms composition has an irregular, approximately mirrored
 island shoreline. Its exact authored row insets are shared by
 `BattlefieldLayout.IsLand` and baked separately into Tilemaps and navigation.
 The central mine stands on flat ground; only the Castle bases are elevated.
-Blue Castle is at (13, 19.5), Red Castle at (47, 35.5); each Castle is centered
+Blue Castle is at (13, 19.5), Red Castle at (55, 35.5); each Castle is centered
 left-to-right on its 10 x 7 upper court, with its 3 x 2 footprint occupying the
 two northernmost rows.
 Both start with three Pawns and open construction space. Blue retains twelve
@@ -253,7 +253,7 @@ Avoid unfair resource placement.
 
 ## Second Map: Straight Lane
 
-Map two is a simple linear battlefield on the shared 60 x 44 logical grid.
+Map two is a simple linear battlefield on its original 60 x 44 logical grid.
 Blue occupies the left clearing and Red the right, at (6.5,23.5) and
 (53.5,23.5). Each starts with one main Castle and three Pawns on height 2.
 Following the user's revised reference, each base has a 15x16 height-1

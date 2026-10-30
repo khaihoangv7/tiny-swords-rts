@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Buildings;
+using TinyKingdom.Economy;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -285,6 +286,9 @@ namespace TinyKingdom.Input
         {
             if (selectionManager.FindFriendlyUnitAtScreenPosition(pointer) != null)
                 return true;
+            bool inspecting = selectionManager.SelectedUnits.Count == 0;
+            if (inspecting && selectionManager.FindInspectableEnemyUnitAtScreenPosition(pointer)
+                    != null) return true;
 
             int hitCount = Physics2D.OverlapPoint(world, hoverFilter, hoverHits);
             for (int i = 0; i < hitCount; i++)
@@ -293,6 +297,10 @@ namespace TinyKingdom.Input
                 IFriendlyCursorTarget friendly = WorldSelectionQuery.ResolveFriendly(hit);
                 if (friendly?.IsFriendlyCursorTarget(selectionManager.PlayerFaction) == true)
                     return true;
+                if (inspecting && (selectionManager.CanInspectEnemyBuilding(
+                        WorldSelectionQuery.Resolve<BuildingSite>(hit))
+                    || selectionManager.CanInspectEnemyCastle(
+                        WorldSelectionQuery.Resolve<CastleDropOff>(hit)))) return true;
                 Economy.ResourceNode resource = WorldSelectionQuery.Resolve<Economy.ResourceNode>(hit);
                 if (resource != null && resource.IsAvailable
                     && (Vision.FogWorldVisibility.Instance == null

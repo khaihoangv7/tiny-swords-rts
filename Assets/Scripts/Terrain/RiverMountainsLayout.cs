@@ -7,7 +7,7 @@ namespace TinyKingdom.Terrain
     // authored shapes separately; resource placement never determines terrain.
     public static class RiverMountainsLayout
     {
-        public const int Width = BattlefieldLayout.Width;
+        public const int Width = BattlefieldLayout.OriginalWidth;
         public const int Height = BattlefieldLayout.Height;
         public const int LaneBottom = 17;
         public const int LaneTop = 27;

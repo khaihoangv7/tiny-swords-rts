@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using TinyKingdom.Buildings;
 using TinyKingdom.Navigation;
@@ -17,6 +18,7 @@ namespace TinyKingdom.EditorTools
             public bool IsVisionActive { get; set; } = true;
             public float VisionRadius { get; set; }
             public Vector3 VisionPosition { get; set; }
+            public int VisibleHeightAboveSource { get; set; }
         }
 
         [MenuItem("Tools/Tiny Kingdom/Validate Phase 6A Vision")]
@@ -27,6 +29,7 @@ namespace TinyKingdom.EditorTools
                     "Run Phase 6A Vision validation in Play Mode so runtime sources and fog presentation are active.");
 
             ValidateGridModel();
+            ValidateElevationGridModel();
             ValidateRuntime();
             Debug.Log("Phase 6A automated vision validation passed: faction isolation, "
                 + "Visible->Explored memory, overlapping sources, Tower/Castle radii, "
@@ -129,6 +132,92 @@ namespace TinyKingdom.EditorTools
                 "Top-right edge source failed.");
             _ = model.GetState(Faction.Red, new Vector2Int(-1, -1));
             _ = model.GetState(Faction.Red, new Vector2Int(40, 28));
+        }
+
+        [MenuItem("Tools/Tiny Kingdom/Validate Elevation Vision Rules")]
+        public static void ValidateElevationGridModel()
+        {
+            NavigationGridData navigation = ScriptableObject.CreateInstance<NavigationGridData>();
+            try
+            {
+                var cells = new List<NavigationCellData>(8 * 5);
+                for (int y = 0; y < 5; y++)
+                for (int x = 0; x < 8; x++)
+                {
+                    int level = x >= 5 && y >= 3 ? 2 : x >= 3 && y >= 2 ? 1 : 0;
+                    var cell = new NavigationCellData(x, y,
+                        level == 0 ? TerrainType.FlatGround : TerrainType.ElevatedGround,
+                        level);
+                    if (x == 2 && y == 1) cell.heightConnection = new Vector2Int(3, 2);
+                    else if (x == 3 && y == 2) cell.heightConnection = new Vector2Int(2, 1);
+                    else if (x == 4 && y == 2) cell.heightConnection = new Vector2Int(5, 3);
+                    else if (x == 5 && y == 3) cell.heightConnection = new Vector2Int(4, 2);
+                    if (cell.heightConnection != default)
+                    {
+                        cell.terrainType = TerrainType.Stairs;
+                        cell.hasHeightConnection = true;
+                    }
+                    cells.Add(cell);
+                }
+                navigation.Configure(8, 5, Vector2.zero, 1f, cells);
+                var model = new TeamVisionGrid(8, 5, Vector2.zero, 1f, navigation);
+                var source = new TestSource
+                {
+                    Faction = Faction.Blue,
+                    VisionRadius = 7f,
+                    VisionPosition = new Vector3(2.5f, 1.5f)
+                };
+                model.Recompute(new IVisionSource[] { source });
+                Require(model.GetState(Faction.Blue, new Vector2Int(3, 2))
+                    == VisionState.Visible, "Lower observer cannot see the upper stair entrance.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(3, 3))
+                    == VisionState.Visible, "Stair glimpse did not reach the adjacent landing.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(4, 4))
+                    == VisionState.Unexplored, "Stair glimpse revealed too much upper ground.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(7, 4))
+                    == VisionState.Unexplored, "Lower observer revealed the remote top tier.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(5, 3))
+                    == VisionState.Unexplored, "Lower observer revealed a stair two levels above.");
+                Require(model.GetState(Faction.Red, new Vector2Int(3, 2))
+                    == VisionState.Unexplored, "Elevation vision leaked across factions.");
+
+                source.VisibleHeightAboveSource = 1; // Tower rule.
+                model.Recompute(new IVisionSource[] { source });
+                Require(model.GetState(Faction.Blue, new Vector2Int(4, 4))
+                    == VisionState.Visible, "Tower did not reveal one higher level.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(5, 3))
+                    == VisionState.Unexplored, "Tower revealed two higher levels.");
+
+                source.VisibleHeightAboveSource = 0;
+                source.VisionPosition = new Vector3(3.5f, 3.5f);
+                model.Recompute(new IVisionSource[] { source });
+                Require(model.GetState(Faction.Blue, new Vector2Int(5, 3))
+                    == VisionState.Visible, "Level-one observer cannot see the next stair.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(7, 4))
+                    == VisionState.Unexplored, "Level-one observer revealed level-two ground.");
+                var elevation = new VisionElevationMap(8, 5, Vector2.zero, 1f,
+                    navigation);
+                float edgeCoverage = elevation.VisualCoverage(0, 0, 4, 4,
+                    new Vector2(4.5f, 4.5f), out bool insideGlimpse);
+                Require(edgeCoverage > 0f && edgeCoverage < 1f && !insideGlimpse,
+                    "Upper stair fog edge is square instead of feathered.");
+                Require(elevation.VisualCoverage(0, 0, 7, 4,
+                        new Vector2(7.5f, 4.5f), out _) == 0f,
+                    "Fog mask revealed the remote top tier.");
+                Require(model.GetState(Faction.Blue, new Vector2Int(2, 1))
+                    == VisionState.Visible, "Higher observer lost downward vision.");
+
+                source.IsVisionActive = false;
+                model.Recompute(new IVisionSource[] { source });
+                Require(model.GetState(Faction.Blue, new Vector2Int(5, 3))
+                    == VisionState.Explored, "Upper stair visibility did not become memory.");
+                Debug.Log("Elevation vision grid validation passed: lower-level occlusion, "
+                    + "stair glimpse, Tower +1, downward vision, faction isolation and memory.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(navigation);
+            }
         }
 
         private static void ValidateRuntime()

@@ -19,6 +19,7 @@ namespace TinyKingdom.EditorTools
         public static void RunStairsNavigation() => Run();
 
         [MenuItem("Tools/Tiny Kingdom/Validate Phase 6H.2 Navigation & Sheep")]
+        [MenuItem("Tools/Validate Phase 6H.2 Navigation & Sheep")]
         public static void Run()
         {
             ValidateVerifiedStairAssets();
@@ -378,9 +379,13 @@ namespace TinyKingdom.EditorTools
                 site.Configure(house, Faction.Blue, origin, grid, population);
                 Require(grid.GetCell(origin.x, origin.y).Occupied,
                     "Placed building footprint does not block navigation.");
-                UnityEngine.Object.DestroyImmediate(siteObject);
+                // Edit Mode does not dispatch this runtime component's OnDestroy.
+                // Verify the same explicit release path used on building death;
+                // destruction itself still needs a Play Mode regression check.
+                site.ReleaseOccupancy();
                 Require(!grid.GetCell(origin.x, origin.y).Occupied,
-                    "Destroyed validation building did not release occupancy.");
+                    "Building death did not release occupied cells.");
+                UnityEngine.Object.DestroyImmediate(siteObject);
 
                 Require(BuildingSystem.SheepEscapeMaximumRing > 0
                     && BuildingSystem.SheepEscapeMaximumRing <= 8

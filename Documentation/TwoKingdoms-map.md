@@ -8,15 +8,15 @@ Mở lại `Assets/Scenes/Map.unity` và nhấn Play.
 
 ## Bố cục hiện tại
 
-- Map 60 × 44 ô, rộng khoảng 2,36 lần bản 40 × 28. Tile Tiny Swords vẫn giữ
+- Map 68 × 44 ô, rộng hơn 8 ô theo chiều ngang so với bản 60 × 44. Tile Tiny Swords vẫn giữ
   nguyên kích thước 64 × 64 pixel.
-- Nền Castle mỗi phe có tầng dưới 16 × 13 ô và tầng trên 12 × 8 ô. Castle Blue ở
-  `(12.5, 16.5)`, Castle Red ở `(47.5, 32.5)`. Mỗi bên vẫn bắt đầu với 3 Pawn.
+- Nền Castle mỗi phe có tầng dưới 16 × 13 ô và tầng trên 10 × 7 ô. Castle Blue ở
+  `(13, 19.5)`, Castle Red ở `(55, 35.5)`. Mỗi bên vẫn bắt đầu với 3 Pawn.
 - Hai Castle đứng ở độ cao 2. Mỗi tầng có một hàng vách riêng, cách nhau bằng
   khoảng sân tầng dưới. Mỗi căn cứ có hai lối lên ở hai phía; mỗi lối gồm hai
   đoạn dốc nối từ mặt đất qua tầng dưới đến sân Castle. Cả hai lối đều dùng được
   độc lập, vẫn còn ít nhất 171 ô trống ở Blue và 180 ô ở Red để đi lại và xây dựng.
-- Mỏ vàng 2 × 2 tại `(29,21)` nằm trên đất phẳng ở giữa đảo. Các tầng đồi,
+- Mỏ vàng 2 × 2 tại `(34,21)` nằm trên đất phẳng ở giữa đảo. Các tầng đồi,
   bóng đổ và dốc cũ quanh mỏ đã được gỡ bỏ; quân tiếp cận từ hai phía.
 - Có 51 cừu: Blue giữ 12 con ở phía bắc đồi và 1 con ở phía nam; Red giữ
   12 con ở phía nam và 1 con ở phía bắc. Mỗi bãi ngoài thay 11 con bằng cây.

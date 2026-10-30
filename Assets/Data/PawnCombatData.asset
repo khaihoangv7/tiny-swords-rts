@@ -20,7 +20,7 @@ MonoBehaviour:
   attackInterval: 1.4
   rangedReleaseDelay: 0
   moveSpeed: 3
-  foodCost: 50
+  foodCost: 70
   woodCost: 0
   goldCost: 0
   projectileSpeed: 8
@@ -31,5 +31,5 @@ MonoBehaviour:
   canRetaliateWhenDamaged: 0
   retaliationLeash: 10
   populationCost: 1
-  trainingSeconds: 4
+  trainingSeconds: 12
   visionRadius: 3

@@ -102,6 +102,7 @@ namespace TinyKingdom.UI
             internal RectTransform FormationGlyph;
             internal Image[] FormationDots;
             internal FormationType? Formation;
+            internal GameAction? Binding;
         }
 
         private readonly ActionView[] views = new ActionView[ActionViewCount];
@@ -178,9 +179,25 @@ namespace TinyKingdom.UI
 
         private void Update()
         {
+            HandleCommandHotkeys();
             if (Time.unscaledTime < refreshAt) return;
             refreshAt = Time.unscaledTime + 0.10f;
             Refresh();
+        }
+
+        private void HandleCommandHotkeys()
+        {
+            if (!MatchManager.AllowsGameplay || root == null
+                || !root.gameObject.activeInHierarchy) return;
+            foreach (ActionView view in views)
+            {
+                if (view?.Binding is not GameAction action || view.Button == null
+                    || !view.Button.gameObject.activeInHierarchy
+                    || !GameInputBindings.WasPressed(action)) continue;
+                if (view.Button.interactable) view.Button.onClick.Invoke();
+                else GameplayAudioService.RequestUi(GameplayAudioEvent.CommandRejected);
+                return;
+            }
         }
 
         private void HandleSelectionChanged()
@@ -275,7 +292,10 @@ namespace TinyKingdom.UI
             Text hotkey = RtsUiFactory.Label("Hotkey", rect, "", HotkeyFontSize,
                 TextAnchor.UpperRight, FontStyle.Bold);
             RtsUiFactory.Anchor(hotkey.rectTransform, Vector2.one, Vector2.one,
-                new Vector2(-4f, -4f), new Vector2(22f, 20f));
+                new Vector2(-4f, -4f), new Vector2(62f, 20f));
+            hotkey.resizeTextForBestFit = true;
+            hotkey.resizeTextMinSize = 8;
+            hotkey.resizeTextMaxSize = LargeHotkeyFontSize;
             var view = new ActionView
             {
                 Button = button,
@@ -375,20 +395,25 @@ namespace TinyKingdom.UI
             }
             if (scoutCandidate != null)
             {
+                GameAction binding = GameAction.PromoteScout;
+                string key = GameInputBindings.Display(binding);
                 PawnScoutEligibility eligibility = PawnScoutPromotion.Evaluate(
                     scoutCandidate, selection.PlayerFaction, stockpile,
                     assets.ScoutFireFrames);
                 bool available = eligibility == PawnScoutEligibility.Eligible;
                 ActionView view = ConfigureClick(shown++, assets.ScoutIcon,
-                    "Scout\n50W", "", available,
+                    "Scout\n50W", key, available,
                     () => PawnScoutPromotion.TryPromote(scoutCandidate,
-                        selection.PlayerFaction, stockpile, assets.ScoutFireFrames));
+                        selection.PlayerFaction, stockpile, assets.ScoutFireFrames),
+                    binding);
                 view.Tooltip.ConfigureScout(tooltip,
-                    PawnScoutPromotion.TooltipDetails(eligibility));
+                    PawnScoutPromotion.TooltipDetails(eligibility), key);
             }
             if (!hasPawn || buildingSystem == null || placement == null) return shown;
             foreach ((BuildingType type, HouseVariant variant, string name) in BuildActions)
             {
+                GameAction binding = BuildBinding(type, variant);
+                string key = GameInputBindings.Display(binding);
                 BuildingData data = buildingSystem.GetData(type);
                 bool available = data != null && buildingSystem.CanAfford(type)
                     && MatchManager.AllowsGameplay;
@@ -397,8 +422,8 @@ namespace TinyKingdom.UI
                 string cost = data != null
                     ? Cost(data.WoodCost, data.GoldCost, data.FoodCost) : "";
                 ActionView view = ConfigureClick(index, icon, name + "\n" + cost,
-                    "", available, () => placement.Begin(type, variant));
-                view.Tooltip.ConfigureBuilding(tooltip, data, name);
+                    key, available, () => placement.Begin(type, variant), binding);
+                view.Tooltip.ConfigureBuilding(tooltip, data, name, key);
             }
             return shown;
         }
@@ -409,6 +434,9 @@ namespace TinyKingdom.UI
             if (upgrade != null && upgrade.Faction == selection.PlayerFaction
                 && !upgrade.Purchased)
             {
+                GameAction binding = type == BuildingType.Castle
+                    ? GameAction.UpgradeCastleCannon : GameAction.UpgradeTowerArrow;
+                string key = GameInputBindings.Display(binding);
                 Sprite icon = type == BuildingType.Castle
                     ? cannonIcon : host.GetComponent<BuildingDefense>()?.ArrowSprite;
                 string title = type == BuildingType.Castle
@@ -418,13 +446,13 @@ namespace TinyKingdom.UI
                         ? Mathf.CeilToInt(upgrade.SecondsRemaining) + "s ("
                             + Mathf.RoundToInt(upgrade.Progress * 100f) + "%)"
                         : Cost(upgrade.WoodCost, upgrade.GoldCost, 0)),
-                    "", upgrade.CanPurchase,
-                    () => upgrade.TryPurchase(selection.PlayerFaction));
+                    key, upgrade.CanPurchase,
+                    () => upgrade.TryPurchase(selection.PlayerFaction), binding);
                 view.Tooltip.ConfigureSimple(tooltip, title,
                     upgrade.IsUpgrading ? "Upgrade in progress."
                     : type == BuildingType.Castle
                         ? "Adds a separate explosive cannon attack."
-                        : "Adds one automatic arrow to each Tower volley.");
+                        : "Adds one automatic arrow to each Tower volley.", key);
             }
             UnitProductionQueue queue = host.GetComponent<UnitProductionQueue>();
             if (queue != null)
@@ -432,26 +460,29 @@ namespace TinyKingdom.UI
                 foreach (UnitType unit in TrainActions)
                 {
                     if (!UnitProductionQueue.CanProduce(type, unit)) continue;
+                    GameAction binding = TrainBinding(unit);
+                    string key = GameInputBindings.Display(binding);
                     UnitCombatData data = queue.GetData(unit);
                     bool available = queue.CanTrain(unit);
                     int index = shown++;
                     string cost = data != null
                         ? Cost(data.WoodCost, data.GoldCost, data.FoodCost) : "";
                     ActionView view = ConfigureClick(index, assets.Avatar(unit),
-                        "Train " + unit + "\n" + cost, "", available,
-                        () => queue.TryTrain(unit));
-                    view.Tooltip.ConfigureUnit(tooltip, data);
+                        "Train " + unit + "\n" + cost, key, available,
+                        () => queue.TryTrain(unit), binding);
+                    view.Tooltip.ConfigureUnit(tooltip, data, key);
                 }
             }
             BuildingGarrison garrison = host.GetComponent<BuildingGarrison>();
             if (garrison != null)
             {
-                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
+                string key = GameInputBindings.Display(GameAction.EjectAll);
+                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", key,
                     MatchManager.AllowsGameplay
                         && garrison.InternalCount + garrison.MountedCount > 0,
-                    () => garrison.EjectAll() > 0);
+                    () => garrison.EjectAll() > 0, GameAction.EjectAll);
                 view.Tooltip.ConfigureSimple(tooltip, "Eject All",
-                    "Release every internal occupant and mounted Archer from this building.");
+                    "Release every internal occupant and mounted Archer from this building.", key);
             }
             return shown;
         }
@@ -461,11 +492,12 @@ namespace TinyKingdom.UI
             bool friendly = mine.HasOwner && mine.Faction == selection.PlayerFaction;
             if (friendly)
             {
-                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", "",
+                string key = GameInputBindings.Display(GameAction.EjectAll);
+                ActionView view = ConfigureClick(shown++, assets.EjectAllIcon, "Eject All", key,
                     MatchManager.AllowsGameplay && mine.OccupantCount > 0,
-                    () => mine.EjectAll() > 0);
+                    () => mine.EjectAll() > 0, GameAction.EjectAll);
                 view.Tooltip.ConfigureSimple(tooltip, "Eject All",
-                    "Release every Pawn currently inside the Gold Mine.");
+                    "Release every Pawn currently inside the Gold Mine.", key);
             }
             return shown;
         }
@@ -727,8 +759,11 @@ namespace TinyKingdom.UI
                 new Vector2(0.5f, 0f), new Vector2(0f, 2f),
                 new Vector2(buttonWidth - 6f, costSize + 3f));
             view.Hotkey.fontSize = hotkeySize;
+            view.Hotkey.resizeTextForBestFit = true;
+            view.Hotkey.resizeTextMinSize = 8;
+            view.Hotkey.resizeTextMaxSize = LargeHotkeyFontSize;
             RtsUiFactory.Anchor(view.Hotkey.rectTransform, Vector2.one, Vector2.one,
-                new Vector2(-3f, -3f), new Vector2(hotkeySize + 9f,
+                new Vector2(-3f, -3f), new Vector2(buttonWidth * 0.65f,
                     hotkeySize + 7f));
             RtsUiFactory.Anchor(view.FormationGlyph, new Vector2(0.5f, 1f),
                 new Vector2(0.5f, 1f), new Vector2(0f, -5f),
@@ -752,13 +787,15 @@ namespace TinyKingdom.UI
             {
                 ActionView view = views[i];
                 if (view.GuardHold.enabled) view.GuardHold.enabled = false;
+                view.Binding = null;
                 view.Tooltip.Clear();
                 view.Button.gameObject.SetActive(false);
             }
         }
 
         private ActionView ConfigureView(int index, Sprite icon, string label,
-            string hotkey, bool available, bool guardAction = false)
+            string hotkey, bool available, bool guardAction = false,
+            GameAction? binding = null)
         {
             ActionView view = views[index];
             view.Button.gameObject.SetActive(true);
@@ -774,6 +811,7 @@ namespace TinyKingdom.UI
             if (view.FormationGlyph != null)
                 view.FormationGlyph.gameObject.SetActive(false);
             view.Formation = null;
+            view.Binding = binding;
             int lineBreak = label.IndexOf('\n');
             view.Label.text = lineBreak >= 0 ? label[..lineBreak] : label;
             view.Cost.text = lineBreak >= 0 ? label[(lineBreak + 1)..] : "";
@@ -785,8 +823,9 @@ namespace TinyKingdom.UI
         private ActionView ConfigureFormation(int index, FormationType type,
             bool available, bool active, System.Func<bool> action)
         {
-            ActionView view = ConfigureClick(index, null, FormationLabel(type), "",
-                available, action);
+            GameAction binding = FormationBinding(type);
+            ActionView view = ConfigureClick(index, null, FormationLabel(type),
+                GameInputBindings.Display(binding), available, action, binding);
             view.Formation = type;
             ConfigureFormationGlyph(view, type);
             view.Background.color = available
@@ -807,7 +846,8 @@ namespace TinyKingdom.UI
                     "One wide rank perpendicular to movement. Frontline roles prefer the center.",
                 _ => "Tight rectangular formation. Melee units lead."
             };
-            view.Tooltip.ConfigureSimple(tooltip, FormationTitle(type), details);
+            view.Tooltip.ConfigureSimple(tooltip, FormationTitle(type), details,
+                GameInputBindings.Display(FormationBinding(type)));
         }
 
         private static string FormationLabel(FormationType type)
@@ -889,9 +929,10 @@ namespace TinyKingdom.UI
         }
 
         private ActionView ConfigureClick(int index, Sprite icon, string label, string hotkey,
-            bool available, System.Func<bool> action)
+            bool available, System.Func<bool> action, GameAction? binding = null)
         {
-            ActionView view = ConfigureView(index, icon, label, hotkey, available);
+            ActionView view = ConfigureView(index, icon, label, hotkey, available,
+                binding: binding);
             if (action != null)
                 view.Button.onClick.AddListener(() =>
                     GameplayAudioService.RequestUi(action()
@@ -899,6 +940,38 @@ namespace TinyKingdom.UI
                         : GameplayAudioEvent.CommandRejected));
             return view;
         }
+
+        private static GameAction BuildBinding(BuildingType type, HouseVariant variant)
+            => (type, variant) switch
+            {
+                (BuildingType.House, HouseVariant.A) => GameAction.BuildHouseA,
+                (BuildingType.House, HouseVariant.B) => GameAction.BuildHouseB,
+                (BuildingType.House, HouseVariant.C) => GameAction.BuildHouseC,
+                (BuildingType.Barracks, _) => GameAction.BuildBarracks,
+                (BuildingType.Tower, _) => GameAction.BuildTower,
+                (BuildingType.Archery, _) => GameAction.BuildArchery,
+                (BuildingType.Monastery, _) => GameAction.BuildMonastery,
+                _ => throw new System.ArgumentOutOfRangeException(nameof(type))
+            };
+
+        private static GameAction TrainBinding(UnitType type) => type switch
+        {
+            UnitType.Pawn => GameAction.TrainPawn,
+            UnitType.Warrior => GameAction.TrainWarrior,
+            UnitType.Lancer => GameAction.TrainLancer,
+            UnitType.Archer => GameAction.TrainArcher,
+            UnitType.Monk => GameAction.TrainMonk,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(type))
+        };
+
+        private static GameAction FormationBinding(FormationType type) => type switch
+        {
+            FormationType.Compact => GameAction.FormationCompact,
+            FormationType.Wedge => GameAction.FormationWedge,
+            FormationType.Loose => GameAction.FormationLoose,
+            FormationType.Line => GameAction.FormationLine,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(type))
+        };
 
         private static string Cost(int wood, int gold, int food)
         {

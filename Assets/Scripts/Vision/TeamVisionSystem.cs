@@ -79,7 +79,8 @@ namespace TinyKingdom.Vision
         {
             if (gridManager == null || gridManager.NavigationData == null) return;
             NavigationGridData data = gridManager.NavigationData;
-            model = new TeamVisionGrid(data.Width, data.Height, data.WorldOrigin, data.CellSize);
+            model = new TeamVisionGrid(data.Width, data.Height, data.WorldOrigin,
+                data.CellSize, data);
             nextUpdate = 0f;
         }
     }

@@ -159,11 +159,11 @@ military units may target, damage, and kill Pawns through the normal combat syst
 
 Phase 5C1 Pawn combat data: 50 HP, 2 base melee damage, 1 world-unit attack
 range, 1.4-second attack interval, 3 world-units/second movement, and
-1 population. These are MVP values; the existing 50 Food cost remains.
+1 population. These are MVP values; Pawn training costs 70 Food.
 
 Cost:
 
-50 Food.
+70 Food.
 
 Carry capacity:
 
@@ -762,7 +762,7 @@ waiting entry refunds its full cost; the active entry refunds the floor of each
 resource cost multiplied by its unfinished progress fraction. Its population
 reservation is released. Destruction still discards paid entries without a refund.
 
-Current gameplay training times: Pawn 4 seconds, Warrior 23 seconds,
+Current gameplay training times: Pawn 12 seconds, Warrior 23 seconds,
 Archer 11 seconds, Lancer 11 seconds and Monk 7 seconds. Animation frames do not
 control training.
 
@@ -800,9 +800,12 @@ The following defense values are provisional MVP balance values:
 * Castle MaxHP: 2000 (raised by Phase 6C.2)
 
 Tower and Castle use explicit projectile-origin and rooftop-anchor offsets from
-BuildingData. Right-clicking a friendly completed defensive building orders
-selected units by nearest distance. Archers reserve rooftop slots first and
-then internal slots; other supported units reserve internal slots. Units walk
+BuildingData. Right-clicking a damaged friendly defensive building with a Pawn
+selected orders repair first. Holding the configurable Enter Building key
+(default H) while right-clicking explicitly orders supported selected units
+to garrison. Right-clicking an undamaged friendly completed defensive building
+also orders garrison. Archers reserve rooftop slots first and then internal
+slots; other supported units reserve internal slots. Units walk
 to distinct cardinal interaction positions before entering.
 
 On voluntary Eject All or host destruction, occupants are restored at distinct,
@@ -872,12 +875,20 @@ Buildings cannot overlap:
 * another building
 
 Building placement must respect the logical map grid.
+When a player places a plan outside current vision, every selected Pawn accepts
+the order and approaches a separate reachable staging cell. The plan becomes a
+building only after its footprint is observed and the normal placement and
+construction checks pass. A later explicit order to one Pawn releases that Pawn
+from the pending group without redirecting the others.
 
 ---
 
 # 21. Building Repair
 
 A damaged friendly building can be repaired by a Pawn.
+This includes the starting Castle. A right-click on an unfinished friendly
+building reassigns a selected Pawn to construction even after the Pawn has
+received another order; it uses the building's owning faction system.
 
 Repair sequence:
 

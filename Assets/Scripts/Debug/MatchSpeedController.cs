@@ -6,7 +6,8 @@ using UnityEngine.InputSystem;
 
 namespace TinyKingdom.Debugging
 {
-    // Presentation-only observer state. Gameplay visibility must never query this flag.
+    // Human observer display and input only. Faction vision and AI knowledge
+    // must never query this flag.
     public static class DebugObserverView
     {
         public static bool IsEnabled { get; private set; }

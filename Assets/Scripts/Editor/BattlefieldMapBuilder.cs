@@ -65,7 +65,9 @@ namespace TinyKingdom.EditorTools
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), ScenePath);
             AssetDatabase.SaveAssets();
             BattlefieldMapValidation.ValidateEditMode();
-            RenderOverview();
+            // Batch mode has no graphics device for Camera.Render; the scene and
+            // navigation are already saved and validated above.
+            if (!Application.isBatchMode) RenderOverview();
             Debug.Log("Two Kingdoms battlefield saved: two-tier Castle bases, two routes per faction, flat central mine and drifting Tiny Swords clouds.");
         }
 
@@ -79,8 +81,10 @@ namespace TinyKingdom.EditorTools
             }
             layout.blueCastle = BattlefieldLayout.BlueCastleStart;
             layout.redCastle = BattlefieldLayout.RedCastleStart;
+            layout.mineOrigin = new Vector2Int(30 + BattlefieldLayout.HorizontalExpansion / 2, 21);
             layout.bluePawns = new[] { new Vector2(12f,18.5f), new Vector2(13f,18.5f), new Vector2(14f,18.5f) };
-            layout.redPawns = new[] { new Vector2(46f,34.5f), new Vector2(47f,34.5f), new Vector2(48f,34.5f) };
+            layout.redPawns = new[] { new Vector2(46f,34.5f), new Vector2(47f,34.5f), new Vector2(48f,34.5f) }
+                .Select(p => p + Vector2.right * BattlefieldLayout.HorizontalExpansion).ToArray();
             layout.redPawnAnimations = MakeRedPawnSet();
             var resources = new List<BattlefieldResource>();
             void Add(string name, ResourceType type, Vector2 p, int variant)
@@ -130,20 +134,24 @@ namespace TinyKingdom.EditorTools
             }
             Vector2[] centralGold = { new(24.5f,24.5f),new(25.5f,26.5f),new(34.5f,21.5f),
                 new(35.5f,20.5f),new(27.5f,26.5f),new(32.5f,26.5f) };
-            for(int i=0;i<centralGold.Length;i++) Add("Central_Gold_"+(i+1),ResourceType.Gold,centralGold[i],3+i%3);
+            for(int i=0;i<centralGold.Length;i++) Add("Central_Gold_"+(i+1),ResourceType.Gold,
+                centralGold[i] + Vector2.right * (BattlefieldLayout.HorizontalExpansion / 2),3+i%3);
             Vector2[] groves = { new(5.5f,29.5f),new(7.5f,30.5f),new(9.5f,29.5f),new(6.5f,33.5f),new(8.5f,34.5f),
                 new(11.5f,32.5f),new(13.5f,34.5f),new(15.5f,32.5f),new(12.5f,37.5f),new(16.5f,37.5f),
                 new(19.5f,35.5f),new(21.5f,37.5f),new(23.5f,34.5f),new(25.5f,38.5f),new(27.5f,40.5f),
                 new(32.5f,40.5f),new(34.5f,38.5f),new(35.5f,34.5f),new(36.5f,37.5f),new(24.5f,31.5f) };
             for(int i=0;i<groves.Length;i++)
             {
-                Add("North_Grove_"+i,ResourceType.Wood,groves[i],i%4);
-                Add("South_Grove_"+i,ResourceType.Wood,Mirror(groves[i]),(i+2)%4);
+                Vector2 position=groves[i] + Vector2.right
+                    * (groves[i].x>=24f ? BattlefieldLayout.HorizontalExpansion/2f : 0f);
+                Add("North_Grove_"+i,ResourceType.Wood,position,i%4);
+                Add("South_Grove_"+i,ResourceType.Wood,Mirror(position),(i+2)%4);
             }
             Vector2[] wildSheep = { new(12.5f,28.5f),new(15.5f,30.5f),new(47.5f,15.5f),new(44.5f,13.5f),
                 new(8.5f,27.5f),new(10.5f,28.5f),new(13.5f,30.5f),new(16.5f,29.5f),
                 new(51.5f,16.5f),new(49.5f,15.5f),new(46.5f,13.5f),new(43.5f,14.5f) };
-            for(int i=0;i<wildSheep.Length;i++) Add("Meadow_Sheep_"+i,ResourceType.Food,wildSheep[i],i);
+            for(int i=0;i<wildSheep.Length;i++) Add("Meadow_Sheep_"+i,ResourceType.Food,
+                wildSheep[i] + Vector2.right * (i<2 || i>=4 && i<8 ? 0 : BattlefieldLayout.HorizontalExpansion),i);
             // Dense, mirrored woodland uses real gatherable Trees. Leave the
             // Castle skirts, Sheep pastures and the central battle lane open.
             var forestRandom=new System.Random(270926);
@@ -189,7 +197,7 @@ namespace TinyKingdom.EditorTools
             for(int side=0;side<2;side++)
             {
                 string name=side==0?"Blue_Rim_":"Red_Rim_";
-                Vector2 offset=side==0?Vector2.zero:new Vector2(34,16);
+                Vector2 offset=side==0?Vector2.zero:new Vector2(34 + BattlefieldLayout.HorizontalExpansion,16);
                 for(int i=0;i<rimTrees.Length;i++)
                     Add(name+"Wood_"+i,ResourceType.Wood,rimTrees[i]+offset,i);
                 for(int i=0;i<rimSheep.Length;i++)
@@ -219,9 +227,11 @@ namespace TinyKingdom.EditorTools
                 float t=Mathf.Clamp01(Vector2.Dot(p-a,delta)/delta.sqrMagnitude);
                 return Vector2.Distance(p,a+t*delta);
             }
-            return (p.x>24 && p.x<36 && p.y>18 && p.y<29)
+            int centerShift = BattlefieldLayout.HorizontalExpansion / 2;
+            int redShift = BattlefieldLayout.HorizontalExpansion;
+            return (p.x>24 + centerShift && p.x<36 + centerShift && p.y>18 && p.y<29)
                 || Segment(new(21.5f,15.5f),new(28,21))<2.4f
-                || Segment(new(38.5f,29.5f),new(32,23))<2.4f;
+                || Segment(new(38.5f + redShift,29.5f),new(32 + centerShift,23))<2.4f;
         }
 
         private static bool IsBlueSouthGrove(Vector2 p)
@@ -269,21 +279,24 @@ namespace TinyKingdom.EditorTools
                 for (int i = 0; i <= steps; i++)
                 { Vector2 p = Vector2.Lerp(a,b,(float)i/steps); Ellipse(p.x,p.y,1.65f,1.4f); }
             }
-            Ellipse(30,22,5.5f,4f);
-            Road(new(21.5f,15.5f),new(28,21));
-            Road(new(38.5f,29.5f),new(32,23));
-            Road(new(21.5f,15.5f),new(22,9)); Road(new(38.5f,29.5f),new(38,35));
+            int centerShift = BattlefieldLayout.HorizontalExpansion / 2;
+            int redShift = BattlefieldLayout.HorizontalExpansion;
+            Ellipse(30 + centerShift,22,5.5f,4f);
+            Road(new(21.5f,15.5f),new(28 + centerShift,21));
+            Road(new(38.5f + redShift,29.5f),new(32 + centerShift,23));
+            Road(new(21.5f,15.5f),new(22,9));
+            Road(new(38.5f + redShift,29.5f),new(38 + redShift,35));
             PaintMask(layer, ochre, 4);
             var meadow = new HashSet<Vector2Int>();
-            foreach (Vector2 center in new[] {new Vector2(11,24),new Vector2(13,5),new Vector2(49,20),new Vector2(47,39),
-                new Vector2(10,32),new Vector2(50,12),new Vector2(20,30),new Vector2(40,14)})
+            foreach (Vector2 center in new[] {new Vector2(11,24),new Vector2(13,5),new Vector2(49 + redShift,20),new Vector2(47 + redShift,39),
+                new Vector2(10,32),new Vector2(50 + redShift,12),new Vector2(20,30),new Vector2(40 + redShift,14)})
                 for (int y = 3; y < BattlefieldLayout.Height-3; y++)
                 for (int x = 3; x < BattlefieldLayout.Width-3; x++)
                     if (Mathf.Pow((x-center.x)/6f,2)+Mathf.Pow((y-center.y)/2.7f,2)<1
                         && !ochre.Contains(new(x,y))) meadow.Add(new(x,y));
             PaintMask(layer, meadow, 3);
             var coastalGrass = new HashSet<Vector2Int>();
-            foreach (Vector2 center in new[] {new Vector2(5,32),new Vector2(55,12),new Vector2(29,38),new Vector2(31,6)})
+            foreach (Vector2 center in new[] {new Vector2(5,32),new Vector2(55 + redShift,12),new Vector2(29 + centerShift,38),new Vector2(31 + centerShift,6)})
                 for (int y = 3; y < BattlefieldLayout.Height-3; y++)
                 for (int x = 3; x < BattlefieldLayout.Width-3; x++)
                     if (Mathf.Pow((x-center.x)/4.8f,2)+Mathf.Pow((y-center.y)/2.7f,2)<1
@@ -332,11 +345,15 @@ namespace TinyKingdom.EditorTools
                 $"Assets/Terrain/Decorations/Rocks in the Water/Water Rocks_0{i}.png",64,16)).ToArray();
             Sprite[] rockSprites=Enumerable.Range(1,4).Select(i=>First($"Assets/Terrain/Decorations/Rocks/Rock{i}.png")).ToArray();
             var coast=new List<Vector2>();
-            for(int x=4;x<57;x+=5) { coast.Add(new(x,1.15f)); coast.Add(new(60-x,42.8f)); }
-            for(int y=6;y<40;y+=5) { coast.Add(new(1.05f,y)); coast.Add(new(58.9f,44-y)); }
-            coast.AddRange(new Vector2[]{new(3,3),new(5,41),new(57,3),new(55,41),
-                new(27.7f,36.6f),new(32.3f,38.3f),new(27.7f,5.6f),new(32.3f,7.3f),
-                new(20,.6f),new(43,43.3f),new(.7f,18),new(59.3f,26)});
+            for(int x=4;x<BattlefieldLayout.OriginalWidth-3;x+=5)
+            { coast.Add(new(x,1.15f)); coast.Add(new(BattlefieldLayout.Width-x,42.8f)); }
+            for(int y=6;y<40;y+=5)
+            { coast.Add(new(1.05f,y)); coast.Add(new(BattlefieldLayout.Width-1.1f,44-y)); }
+            coast.AddRange(new Vector2[]{new(3,3),new(5,41),new(57 + BattlefieldLayout.HorizontalExpansion,3),new(55 + BattlefieldLayout.HorizontalExpansion,41),
+                new(27.7f + BattlefieldLayout.HorizontalExpansion/2f,36.6f),new(32.3f + BattlefieldLayout.HorizontalExpansion/2f,38.3f),
+                new(27.7f + BattlefieldLayout.HorizontalExpansion/2f,5.6f),new(32.3f + BattlefieldLayout.HorizontalExpansion/2f,7.3f),
+                new(20,.6f),new(43 + BattlefieldLayout.HorizontalExpansion,43.3f),new(.7f,18),
+                new(59.3f + BattlefieldLayout.HorizontalExpansion,26)});
             for(int i=0;i<coast.Count;i++)
             {
                 PlaceAnimated(root,"WaterRock_"+i,waterFrames[i%4],coast[i],2,1.1f+i%3*.15f,i*.13f);
@@ -355,19 +372,19 @@ namespace TinyKingdom.EditorTools
             }
 
             Sprite[] ducks=BattlefieldAmbientAssets.Frames("Assets/Terrain/Decorations/Rubber Duck/Rubber duck.png",32,3);
-            Vector2[] duckPositions={new(28.4f,37.8f),new(29.5f,36.8f),new(30.7f,38),new(31.5f,36.4f),
-                new(28.4f,6.9f),new(29.5f,5.8f),new(30.7f,7),new(31.5f,5.5f),
-                new(4.5f,41),new(5.7f,41.6f),new(54.8f,2.5f),new(56,3.1f),
-                new(1.3f,14.5f),new(1.4f,16),new(58.7f,30),new(58.8f,32)};
+            Vector2[] duckPositions={new(32.4f,37.8f),new(33.5f,36.8f),new(34.7f,38),new(35.5f,36.4f),
+                new(32.4f,6.9f),new(33.5f,5.8f),new(34.7f,7),new(35.5f,5.5f),
+                new(4.5f,41),new(5.7f,41.6f),new(62.8f,2.5f),new(64,3.1f),
+                new(1.3f,14.5f),new(1.4f,16),new(66.7f,30),new(66.8f,32)};
             for(int i=0;i<duckPositions.Length;i++)
                 PlaceAnimated(root,"Duck_"+i,ducks,duckPositions[i],3,1.6f,i*.071f)
                     .GetComponent<SpriteRenderer>().flipX=i%2==1;
 
             Sprite[] clouds=Enumerable.Range(1,8).Select(i=>First($"Assets/Terrain/Decorations/Clouds/Clouds_0{i}.png")).ToArray();
-            Vector2[] cloudPositions={new(8,3),new(20,3.3f),new(40,3),new(52,3.4f),
-                new(9,41),new(21,41),new(39,41),new(51,41),
-                new(10,30),new(20,34),new(40,10),new(50,14),new(27,30),new(33,14),
-                new(30,37.4f),new(30,6.4f)};
+            Vector2[] cloudPositions={new(8,3),new(20,3.3f),new(48,3),new(60,3.4f),
+                new(9,41),new(21,41),new(47,41),new(59,41),
+                new(10,30),new(20,34),new(48,10),new(58,14),new(31,30),new(37,14),
+                new(34,37.4f),new(34,6.4f)};
             for(int i=0;i<cloudPositions.Length;i++)
             {
                 bool pond=i>=14;
@@ -402,7 +419,7 @@ namespace TinyKingdom.EditorTools
                 Place(root,item.name,sprite,position,10,scale);
             }
             Place(root,"Central_Gold_Mine",Phase6C2AssetCatalog.Load().GoldMineInactive,
-                new(StrategicObjectiveMapLayout.MineOriginX+1,StrategicObjectiveMapLayout.MineOriginY+1+GoldMineObjective.VisualGroundOffsetY),10,GoldMineObjective.VisualScale);
+                new(layout.mineOrigin.x+1,layout.mineOrigin.y+1+GoldMineObjective.VisualGroundOffsetY),10,GoldMineObjective.VisualScale);
             PawnAnimationSet blue = AssetDatabase.LoadAssetAtPath<PawnAnimationSet>("Assets/UnitAnimations/BluePawn.asset");
             foreach(Vector2 p in layout.bluePawns)
                 Place(root,"Blue_Pawn",blue.Idle[0],p,10,UnitVisualPresentation.Scale);
@@ -489,6 +506,8 @@ namespace TinyKingdom.EditorTools
         [MenuItem("Tools/Tiny Kingdom/Export Battlefield Overview")]
         public static void RenderOverview()
         {
+            if (Camera.main == null)
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             Camera camera=Camera.main;
             Vector3 position=camera.transform.position; float zoom=camera.orthographicSize;
             RenderTexture oldTarget=camera.targetTexture; RenderTexture oldActive=RenderTexture.active;

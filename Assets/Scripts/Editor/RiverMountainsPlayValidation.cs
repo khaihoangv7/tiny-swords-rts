@@ -74,7 +74,7 @@ namespace TinyKingdom.EditorTools
             }
             if (playStarted == 0) playStarted = EditorApplication.timeSinceStartup;
             // Validate the authored opening before the Commander can finish
-            // its first four-second Pawn training request.
+            // its first twelve-second Pawn training request.
             if (EditorApplication.timeSinceStartup - playStarted < 1.5) return;
             try
             {

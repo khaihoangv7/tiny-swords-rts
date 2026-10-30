@@ -886,6 +886,7 @@ Death sheets are absent for these three units.
 | Warrior | Idle | `Warrior/Warrior_Idle.png` | 8 | 192x192 | Yes |
 | Warrior | Moving, Chasing | `Warrior/Warrior_Run.png` | 6 | 192x192 | Yes |
 | Warrior | Attack event | `Warrior/Warrior_Attack1.png` | 4 | 192x192 | No; once per authorized attack |
+| Warrior | Alternate attack event | `Warrior/Warrior_Attack2.png` | 4 | 192x192 | No; randomly chosen once per authorized attack |
 | Warrior | Guarding | `Warrior/Warrior_Guard.png` | 6 | 192x192 | Yes |
 | Archer | Idle | `Archer/Archer_Idle.png` | 6 | 192x192 | Yes |
 | Archer | Moving, Chasing | `Archer/Archer_Run.png` | 4 | 192x192 | Yes |
@@ -902,9 +903,12 @@ The original automatic slicing split VFX or bodies in Warrior_Attack1,
 Archer_Shoot, Lancer_Idle and Lancer_Right_Attack for both factions. Those eight
 importers now use full cells with a center pivot. All other used sheets retain
 their existing imported sprite rectangles; presentation aligns their pixels to
-the same per-unit reference anchor. `Warrior_Attack2.png` is a verified four-cell
-alternative but is not used yet; its current automatic imported fragments must
-not be played as frames. No Lancer Defence gameplay is mapped.
+the same per-unit reference anchor. Blue and Red `Warrior_Attack2.png` were
+visually checked: each has four 192x192 cells showing a second sword swing.
+Their former automatic imports split the swing effects into extra fragments;
+both now use four full cells with the existing Warrior reference anchor.
+The two attacks are presentation-only variants chosen once at attack start.
+No Lancer Defence gameplay is mapped.
 `Lancer_Idle.png` is 3840 pixels wide, so its Blue and Red importer maximum
 texture size is 4096; a 2048 limit silently reduced the imported frames.
 
@@ -1399,9 +1403,9 @@ their current GUID references.
 
 ## Phase 6H.4 Warrior Committed Attack Presentation
 
-Phase 6H.4 continues to use the verified four-frame
-`Assets/Units/{Blue|Red} Units/Warrior/Warrior_Attack1.png` mapping at 10 FPS.
-No sprite sheet, slice or frame order changes. The 0.2-second hit point and
+Warrior uses the verified four-frame Attack1 and Attack2 sheets for both Blue
+and Red at 10 FPS, selecting either variant when an authorized strike begins.
+The 0.2-second hit point and
 0.4-second committed duration are explicit gameplay data on
 `WarriorCombatData`; animation frames remain presentation-only and cannot apply
 damage. Holding `UnitState.Attacking` for that configured duration prevents the
