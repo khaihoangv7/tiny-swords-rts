@@ -89,6 +89,14 @@ namespace TinyKingdom.UI
             Close();
         }
 
+        public void ConfigureForMainMenu(RtsHudAssetCatalog catalog)
+        {
+            assets = catalog;
+            ApplySavedDisplayAndGraphics();
+            BuildModal();
+            Close();
+        }
+
         private void BuildIcons()
         {
             RectTransform icons = RtsUiFactory.Rect("SettingsIcons", transform);
@@ -310,6 +318,12 @@ namespace TinyKingdom.UI
                 });
             Label(content, "Show damage numbers during combat", 16,
                 new Vector2(12f, -277f), new Vector2(380f, 28f));
+            if (debugControls == null)
+            {
+                Label(content, "Match controls are available during a game.", 18,
+                    new Vector2(430f, -96f), new Vector2(390f, 100f));
+                return;
+            }
             Label(content, "Debug tools", 24,
                 new Vector2(430f, -50f), new Vector2(355f, 34f));
             CreateButton(content, "Allow Cheats: "

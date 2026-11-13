@@ -1,7 +1,68 @@
 # Tiny Kingdom RL — Unit Presentation UI
 
-This specification covers the current combat test scene only. Gameplay remains
+This specification covers the front-end menu and gameplay UI. Gameplay remains
 authoritative; UI and animation only observe gameplay.
+
+## Main menu and match setup
+
+The Home title is the transparent TINYSWORD / KINGDOM sword-and-shield logo,
+displayed with its original proportions in a 948x312 viewport centered at
+(-430, 282) on the reference canvas, shifted left to uncover the main Castle.
+This is 20% larger than the original 790x260 viewport. Two gold/cream
+alpha-based UI outlines (8px outer at 0.26 alpha, 3px inner at 0.78) highlight its
+silhouette against the live backdrop without receiving pointer events.
+The live backdrop adds eleven Blue village
+buildings across seven building types, grass groves on the correct terrain
+tiers, animated trees/bushes, a winding river, two bridges, ducks and ripples.
+Village placement is presentation-only and applies to the instantiated menu
+copy. The central Castle courtyard and the right-side buttons stay readable.
+
+`MapSelection.unity` remains build scene zero. Its runtime `MapSelectionMenu`
+builds Home -> Difficulty -> Battlefield. Home has a live presentation-only kingdom,
+large title, parchment panel and framed Play Game, Settings and Exit Game buttons.
+Difficulty offers Easy/Normal/Hard with a visible selected state; Battlefield
+offers the three authored scenes with captured previews and a separate Start Game.
+Selection persists through Back and Close, and is saved on match launch.
+Back and Escape return one setup step. The red setup X closes to Home; Home's
+X and Exit Game quit (stop Play Mode in the Editor). Loading disables Start.
+
+The Tiny Swords Default arrow is active immediately on menu startup and remains
+active across Home, Difficulty, Battlefield and Settings. It reuses
+`GameCursorController`, the existing 1.5 scale and scaled (22,17) hotspot rather
+than resetting to the operating-system cursor. The gameplay scene takes over
+normal Hand/Forbidden context handling when a match starts.
+
+The live background instantiates `MainMenuBackdrop.prefab`, a render-only copy of
+the authored Map's visual hierarchy. It shows the existing main Castle, eight
+stationary Blue guards using their verified Idle animation sets, animated water,
+and drifting whole clouds. A subtle camera drift keeps the view alive.
+The upper-right forest/resource band has ten additional large/small whole clouds
+in two staggered rows, targeting about 70% coverage to hint at the kingdom beyond.
+Their slow, short drift and translucent edges leave gaps; the overlay logo and
+buttons remain unobstructed. Cloud sizes and initial positions follow the menu
+camera viewport rather than gameplay grid cells.
+Three additional faint clouds of different sizes drift along the village's
+left and right edges at 0.26-0.32 opacity, keeping the central Castle clear.
+Navigation data is read only for projected-depth presentation; no GridManager, UnitController,
+AI, economy, combat, input or MatchManager runs behind the menu. Leaving the menu
+unloads its world, actors and 2D light together. Gameplay maps stay unchanged.
+
+Headings use embedded Grenze Bold and menu labels use Grenze Semibold, including
+Vietnamese glyphs. The home page keeps only the game title, menu heading and three
+actions. Difficulty cards keep their name and one/two/three diamond emblems; map
+cards keep a larger picture and map name. Repeated step lines, slogans, card
+paragraphs, footer text and SELECT/SELECTED captions are removed. A pressed frame
+and gold underline identify each selected card. The smallest menu text is 32.
+
+The menu uses a 1600x900 reference canvas and an aspect-preserving layout fitted
+inside the screen safe area. Large teal/red nine-piece button frames surround
+the text; hover and pressed states use the verified native art. The original
+Settings presenter is reused in menu mode with persistent language, bindings,
+graphics and audio; match-only controls show an explanatory label until in-game.
+MainMenuSetup captures illustrations without saving or changing gameplay scenes.
+After cloning without local Tiny Swords preview images, regenerate through
+`Tools/Tiny Kingdom/Prepare Main Menu`. `MainMenuValidation.RunBatch` validates
+the front-end and actual difficulty transfer into all three gameplay scenes.
 
 ## Selection summary
 

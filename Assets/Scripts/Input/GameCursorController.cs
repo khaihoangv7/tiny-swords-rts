@@ -165,6 +165,16 @@ namespace TinyKingdom.Input
         private ContactFilter2D hoverFilter;
         private bool hoverFilterConfigured;
 
+        // The front end uses the same arrow/scaling without gameplay selection systems.
+        public void ConfigureDefaultCursor(Texture2D texture)
+        {
+            DestroyScaledCursor(scaledDefaultCursor);
+            defaultCursor = texture;
+            scaledDefaultCursor = CreateScaledCursor(defaultCursor);
+            currentVisual = null;
+            Apply(CursorVisual.Default);
+        }
+
         public bool HoverQueryUsesTriggers
         {
             get { EnsureHoverFilter(); return hoverFilter.useTriggers; }

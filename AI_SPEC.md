@@ -1,5 +1,14 @@
 # Tiny Kingdom RL - Rule-Based Commander Specification
 
+## Main menu difficulty presets
+
+`MatchDifficultyCatalog` is a ScriptableObject loaded once at Commander Start.
+For Red, Easy/Normal/Hard set think intervals to 1.5/0.5/0.25 seconds and baseline
+Pawn/military targets to 4/6, 6/8 and 8/12 respectively. Normal is the default.
+Adaptive military targets still operate above those baselines. Difficulty grants
+no extra resources, combat stats, production speed or hidden observations.
+All policies and command authority retain the existing implementation.
+
 ## Phase 7A scope
 
 Phase 7A enables one `RuleBasedCommander` for Red. Blue remains human-controlled.

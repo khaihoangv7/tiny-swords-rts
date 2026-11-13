@@ -249,6 +249,16 @@ namespace TinyKingdom.AI
             nextThinkTime = Time.time;
         }
 
+        private void Start()
+        {
+            if (faction != Faction.Red) return;
+            MatchDifficultyCatalog catalog = MatchDifficultyCatalog.Load();
+            if (catalog == null) return;
+            CommanderDifficultyProfile profile = catalog.Profile(MatchDifficultyCatalog.Selected);
+            thinkInterval = Mathf.Max(0.1f, profile.thinkInterval);
+            productionPolicy.ConfigureDifficultyTargets(profile.targetPawns, profile.targetMilitary);
+        }
+
         private void OnEnable()
         {
             militaryPolicy ??= new MilitaryCommanderPolicy();

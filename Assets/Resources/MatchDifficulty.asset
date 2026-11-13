@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d61e8f1b4aa4e37a0d8cf97af81faac, type: 3}
+  m_Name: MatchDifficulty
+  m_EditorClassIdentifier: 
+  easy:
+    thinkInterval: 1.5
+    targetPawns: 4
+    targetMilitary: 6
+  normal:
+    thinkInterval: 0.5
+    targetPawns: 6
+    targetMilitary: 8
+  hard:
+    thinkInterval: 0.25
+    targetPawns: 8
+    targetMilitary: 12
