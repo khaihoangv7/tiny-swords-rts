@@ -632,6 +632,10 @@ namespace TinyKingdom.Economy
             commands.Configure(Faction.Red, knowledge, redBuildingSystem);
             RuleBasedCommander commander = root.AddComponent<RuleBasedCommander>();
             commander.Configure(Faction.Red, knowledge, commands, 0.50f);
+            // Opt-in Phase 8.1 adapter; RuleBased is the serialized default.
+            RlCommanderBridge bridge = root.AddComponent<RlCommanderBridge>();
+            bridge.Configure(commander);
+            RlMlBootstrap.AttachIfRequested(root, commander, bridge);
         }
 
         private static SpriteRenderer MakeVisual(Transform parent, Sprite sprite, bool centerY)

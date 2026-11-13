@@ -198,6 +198,7 @@ namespace TinyKingdom.AI
         [SerializeField] private uint debugMineFailures;
 
         private float nextThinkTime;
+        private bool externallyDriven;
 
         public Faction Faction => faction;
         public bool CommanderEnabled => commanderEnabled;
@@ -221,6 +222,22 @@ namespace TinyKingdom.AI
         public bool IsConfigured => FactionRelations.IsPlayable(faction) && knowledge != null
             && commandService != null && knowledge.Faction == faction
             && commandService.Faction == faction;
+
+        // The RL adapter owns the decision clock while enabled. The ordinary
+        // Update path remains unchanged when no adapter is active.
+        public void SetExternalDrive(bool value) => externallyDriven = value;
+
+        public bool ThinkExternal(CommanderDecisionContext context,
+            StrategicIntent? requestedIntent)
+        {
+            externalIntent = requestedIntent;
+            externalIntentAccepted = !requestedIntent.HasValue;
+            try { Think(context); return externalIntentAccepted; }
+            finally { externalIntent = null; }
+        }
+
+        private StrategicIntent? externalIntent;
+        private bool externalIntentAccepted;
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge,
             FactionCommandService commands, float interval = 0.50f)
@@ -261,7 +278,8 @@ namespace TinyKingdom.AI
 
         private void Update()
         {
-            if (!commanderEnabled || !IsConfigured || Time.time < nextThinkTime) return;
+            if (externallyDriven || !commanderEnabled || !IsConfigured
+                || Time.time < nextThinkTime) return;
             MatchManager match = MatchManager.Instance;
             if (match == null || match.State != MatchState.Playing) return;
             nextThinkTime = Time.time + thinkInterval;
@@ -295,7 +313,9 @@ namespace TinyKingdom.AI
                 using (StrategicIntentMarker.Auto())
                     strategicIntent.Tick(context, pawnRoles, economicDemand,
                         economyPolicy, buildingPolicy, productionPolicy,
-                        scoutingPolicy, militaryPolicy, strategicSafety);
+                        scoutingPolicy, militaryPolicy, strategicSafety,
+                        externalIntent);
+                externalIntentAccepted = strategicIntent.LastExternalIntentAccepted;
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
                         strategicSafety, strategicIntent);

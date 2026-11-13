@@ -210,6 +210,7 @@ namespace TinyKingdom.AI
         public StrategicSituationSnapshot Situation { get; private set; }
         public float AttackReadiness { get; private set; }
         public string DecisionReason { get; private set; } = "Initial economy";
+        public bool LastExternalIntentAccepted { get; private set; }
         public string TransitionReason => DecisionReason;
         public float TransitionTime => transitionTime;
         public float TransitionGameTime => transitionTime;
@@ -242,6 +243,7 @@ namespace TinyKingdom.AI
             failedLaunchSerial = 0;
             hasScores = false;
             LastEvaluationTime = -1f;
+            LastExternalIntentAccepted = false;
             goldMine?.Reset();
         }
 
@@ -254,15 +256,17 @@ namespace TinyKingdom.AI
             EconomicDemandModel demand, EconomyCommanderPolicy economy,
             BuildingCommanderPolicy buildings, ProductionCommanderPolicy production,
             ScoutingCommanderPolicy scouting, MilitaryCommanderPolicy military,
-            StrategicSafetyMap safety)
+            StrategicSafetyMap safety, StrategicIntent? externalIntent = null)
         {
             if (context.Knowledge == null || production == null || military == null) return;
+            LastExternalIntentAccepted = !externalIntent.HasValue;
             ObserveOperationOutcome(context.Time, military);
 
             bool emergency = HasBaseThreat(context.Knowledge, military);
             bool withdrawal = military.Army.State is ArmyGroupState.Retreating
                 or ArmyGroupState.Recovering;
-            if (context.Time < nextEvaluationTime && !emergency && !withdrawal) return;
+            if (context.Time < nextEvaluationTime && !emergency && !withdrawal
+                && !externalIntent.HasValue) return;
             nextEvaluationTime = context.Time + EvaluationInterval;
 
             using var evaluation = EvaluationMarker.Auto();
@@ -297,6 +301,22 @@ namespace TinyKingdom.AI
                 desired = StrategicIntent.Recover;
                 reason = withdrawal ? "StrategicRetreat" : "AttackFailed";
                 majorOverride = true;
+            }
+            else if (externalIntent.HasValue)
+            {
+                desired = externalIntent.Value;
+                reason = "ExternalPolicy";
+                majorOverride = true;
+                LastExternalIntentAccepted = Enum.IsDefined(typeof(StrategicIntent), desired)
+                    && (desired != StrategicIntent.SecureGoldMine
+                        || goldMine.Current.CanCommit)
+                    && (desired != StrategicIntent.Attack || target.IsValid);
+                if (!LastExternalIntentAccepted)
+                {
+                    desired = BestIntent(Scores);
+                    reason = "ExternalPolicyRejected";
+                    majorOverride = false;
+                }
             }
             else if (CurrentIntent == StrategicIntent.SecureGoldMine
                 && military.HasOffensiveTarget
@@ -338,6 +358,9 @@ namespace TinyKingdom.AI
                 reason = "ArmyNearlyReady";
             }
 
+            if (externalIntent.HasValue && reason is ("BaseThreat"
+                or "StrategicRetreat" or "AttackFailed"))
+                LastExternalIntentAccepted = desired == externalIntent.Value;
             ApplyTransition(desired, reason, context.Time, majorOverride);
         }
 

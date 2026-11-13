@@ -50,6 +50,8 @@ namespace TinyKingdom.AI
         private BuildingType? productionInfrastructureNeed;
         private float productionInfrastructureNeedUntil;
         private float lastProductionNeedRequestTime = -999f;
+        private BuildingType? externalBuildingNeed;
+        private float externalBuildingNeedUntil;
 
         public int FreePopulationThreshold => freePopulationThreshold;
         public int MinimumEconomyWorkers => minimumEconomyWorkers;
@@ -74,10 +76,24 @@ namespace TinyKingdom.AI
 
         public static void ResetPerformanceCounters() => CandidateEvaluationCount = 0;
 
+        public bool RequestExternalBuilding(BuildingType type, float now)
+        {
+            if (type is not (BuildingType.House or BuildingType.Barracks
+                or BuildingType.Archery or BuildingType.Tower
+                or BuildingType.Monastery) || activeSite != null) return false;
+            externalBuildingNeed = type;
+            externalBuildingNeedUntil = now + 20f;
+            return true;
+        }
+
+        public void ClearExternalBuilding() => externalBuildingNeed = null;
+
         public void Reset(CommanderPawnRoles roles = null)
         {
             if (builder != null) roles?.Release(builder, CommanderPawnRole.Builder);
             activeSite = null;
+            externalBuildingNeed = null;
+            externalBuildingNeedUntil = 0f;
             builder = null;
             plannedBuilding = null;
             candidates.Clear();
@@ -193,6 +209,8 @@ namespace TinyKingdom.AI
                         pawnBuilder, need.Value, origin, out BuildingSite site);
                     if (result == CommanderCommandResult.Accepted)
                     {
+                        if (externalBuildingNeed == need.Value)
+                            externalBuildingNeed = null;
                         activeSite = site;
                         builder = chosen;
                         currentBuildCell = origin;
@@ -225,6 +243,8 @@ namespace TinyKingdom.AI
             if (activeSite == null) activeSite = FindExistingProject(context.Knowledge);
             if (activeSite == null) return false;
             plannedBuilding = activeSite.Type;
+            if (externalBuildingNeed == activeSite.Type)
+                externalBuildingNeed = null;
             currentBuildCell = activeSite.Origin;
 
             if (safety != null && IsActiveProjectUnsafe(activeSite, safety))
@@ -435,6 +455,11 @@ namespace TinyKingdom.AI
                 ? population.Cap - population.Used - population.Reserved : 0;
             if (free <= freePopulationThreshold && !HasUnderConstruction(
                 knowledge, BuildingType.House)) return BuildingType.House;
+
+            if (externalBuildingNeed.HasValue
+                && Time.time <= externalBuildingNeedUntil
+                && !HasUnderConstruction(knowledge, externalBuildingNeed.Value))
+                return externalBuildingNeed.Value;
 
             int pawns = CountLivingPawns(knowledge);
             if (pawns >= barracksPawnThreshold && !HasBuilding(knowledge, BuildingType.Barracks))

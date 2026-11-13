@@ -20,6 +20,16 @@ namespace TinyKingdom.AI
         [SerializeField, Min(0)] private int woodBuffer = 100;
         [SerializeField, Min(0)] private int goldBuffer = 50;
         [SerializeField, Min(0)] private int criticalDeficit = 100;
+        private ResourceType? externalPriority;
+        private float externalPriorityUntil;
+
+        public void SetExternalPriority(ResourceType type, float now)
+        {
+            externalPriority = type;
+            externalPriorityUntil = now + 12f;
+        }
+
+        public void ClearExternalPriority() => externalPriority = null;
 
         public int Food { get; private set; }
         public int Wood { get; private set; }
@@ -46,6 +56,8 @@ namespace TinyKingdom.AI
             FoodDeficit = WoodDeficit = GoldDeficit = 0;
             PopulationForecast = PopulationHeadroom = 0;
             Reason = "Reset";
+            externalPriority = null;
+            externalPriorityUntil = 0f;
         }
 
         public void Refresh(CommanderDecisionContext context,
@@ -129,7 +141,9 @@ namespace TinyKingdom.AI
                 ResourceType.Gold => 0.8f,
                 _ => 0f
             };
-            return baseline + PlanningDeficit(type) / 60f;
+            return baseline + PlanningDeficit(type) / 60f
+                + (externalPriority == type && Time.time <= externalPriorityUntil
+                    ? 1.5f : 0f);
         }
 
         private void RefreshGoldPipeline(FactionKnowledge knowledge, Faction faction)

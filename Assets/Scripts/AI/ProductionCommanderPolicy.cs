@@ -72,6 +72,16 @@ namespace TinyKingdom.AI
         private int strategicMilitaryPopulation;
         private float strategicMilitaryTargetUntil;
         private UnitType? lastPreferredMilitary;
+        private UnitType? externalUnitRequest;
+        private float externalUnitRequestUntil;
+
+        public void RequestExternalUnit(UnitType type, float now)
+        {
+            externalUnitRequest = type;
+            externalUnitRequestUntil = now + 6f;
+        }
+
+        public void ClearExternalUnit() => externalUnitRequest = null;
 
         public int TargetPawnCount => targetPawnCount;
         public int TargetMilitaryPopulation => Mathf.Max(targetMilitaryPopulation,
@@ -157,6 +167,8 @@ namespace TinyKingdom.AI
 
         public void Reset()
         {
+            externalUnitRequest = null;
+            externalUnitRequestUntil = 0f;
             producers.Clear();
             queueBuffer.Clear();
             Array.Clear(livingCounts, 0, livingCounts.Length);
@@ -221,6 +233,17 @@ namespace TinyKingdom.AI
             ActiveProductionDecision = null;
             PopulationBlocked = false;
             if (context.Time < nextProductionAttemptTime) return;
+            if (externalUnitRequest.HasValue)
+            {
+                UnitType requested = externalUnitRequest.Value;
+                externalUnitRequest = null;
+                if (context.Time <= externalUnitRequestUntil)
+                {
+                    DecisionReason = "ExternalPolicy:" + requested;
+                    TryRequest(context, requested, true);
+                    return;
+                }
+            }
             if (LivingPawnCount + QueuedPawnCount < targetPawnCount)
             {
                 DecisionReason = "BaselineNeed:Pawn";
@@ -531,9 +554,10 @@ namespace TinyKingdom.AI
                 ? Mathf.Max(0f, now - enemyComposition.LastSeenTime) : -1f;
         }
 
-        private void TryRequest(CommanderDecisionContext context, UnitType type)
+        private void TryRequest(CommanderDecisionContext context, UnitType type,
+            bool external = false)
         {
-            UnitProductionQueue producer = FindProducer(type);
+            UnitProductionQueue producer = FindProducer(type, external);
             UnitCombatData data = producer != null ? producer.GetData(type) : FindData(type);
             PendingEconomicDemand = type;
             if (producer == null || data == null)
@@ -543,7 +567,7 @@ namespace TinyKingdom.AI
                 nextProductionAttemptTime = context.Time + rejectedCommandRetrySeconds;
                 return;
             }
-            if (producer.Count >= desiredQueueDepth)
+            if (producer.Count >= (external ? producer.MaxCount : desiredQueueDepth))
             {
                 DecisionReason += ";QueueFullOrDeduped";
                 RejectedOrDedupedCount++;
@@ -591,12 +615,14 @@ namespace TinyKingdom.AI
             return true;
         }
 
-        private UnitProductionQueue FindProducer(UnitType type)
+        private UnitProductionQueue FindProducer(UnitType type,
+            bool requireQueueRoom = false)
         {
             for (int i = 0; i < producers.Count; i++)
             {
                 IProductionHost host = producers[i].ProductionHost;
-                if (host != null && UnitProductionQueue.CanProduce(host.Type, type))
+                if (host != null && UnitProductionQueue.CanProduce(host.Type, type)
+                    && (!requireQueueRoom || producers[i].CanTrain(type)))
                     return producers[i];
             }
             return null;
