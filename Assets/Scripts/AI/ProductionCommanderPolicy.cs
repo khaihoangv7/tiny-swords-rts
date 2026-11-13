@@ -74,6 +74,11 @@ namespace TinyKingdom.AI
         private UnitType? lastPreferredMilitary;
 
         public int TargetPawnCount => targetPawnCount;
+        public void ConfigureDifficultyTargets(int pawns, int military)
+        {
+            targetPawnCount = Mathf.Max(3, pawns);
+            targetMilitaryPopulation = Mathf.Max(6, military);
+        }
         public int TargetMilitaryPopulation => Mathf.Max(targetMilitaryPopulation,
             strategicMilitaryPopulation);
         public int DesiredQueueDepth => desiredQueueDepth;

@@ -1,5 +1,97 @@
 # Tiny Kingdom RL — Asset Manifest
 
+## Main menu (October 2026)
+
+### Riverside village and Tiny Swords logo
+
+The menu-only village uses the inspected Blue `House1/2/3.png`, `Barracks.png`,
+`Archery.png`, `Monastery.png` and `Tower.png` single completed-building sprites
+from `Assets/Buildings/Blue Buildings/`. Eleven ground-anchored instances use
+the existing 1.7 presentation scale. Their clearing pass hides overlapping props
+only in the instantiated menu hierarchy; gameplay scenes and prefabs are unchanged.
+Four verified Tree1..4 eight-frame loops (192px frame cells) and Bushe1..4
+eight-frame loops (128px cells) use their existing 10 FPS bottom-anchor mapping.
+The trees use scale 1.6; bushes use 1.50/1.25. Native Color3 flat 3x3 grass tile
+pieces mark the groves separately on their correct terrain tier.
+
+The decorative northern/eastern river removes only the menu copy's ground tiles.
+Native Color1 flat 3x3 shore pieces and the existing AnimatedFoam tile finish its
+banks. GoblinIsland `Bridge_Horizontal` and `Bridge_Vertical` are the inspected
+160x64/64x160 native bridge slices, scaled 1.65. Five Ducks reuse the verified
+three 32px frames and four Water Rocks_02 reuse sixteen 64px frames at 10 FPS.
+All water props remain cosmetic and have no navigation/collision/gameplay state.
+
+`Assets/Art/Menu/TinySwordsLogo.png` is an original generated transparent title
+graphic with red TINYSWORD lettering on a broad cream sword, gold KINGDOM
+lettering on a teal ribbon, and a steel-rimmed shield. Its Home UI Image is 20%
+larger than the original title viewport, lowered slightly to keep clear of the
+top safe-area edge and shifted left to uncover the main Castle. A brighter
+cream inner rim and wider translucent gold outer UI Outline layer follow the
+sprite alpha to highlight the silhouette. It keeps the source aspect ratio and
+does not receive pointer events. Import uses Point,
+uncompressed RGBA, Clamp, no mipmaps and no generated physics shape.
+`Refresh Menu Village Art` refreshes the catalog references without opening or
+saving any gameplay scene; `Prepare Main Menu` also retains these references.
+
+### Live backdrop and typography
+
+The menu background is now a presentation-only copy of the current Map's Grid,
+BattlefieldScenery and Battlefield_EditorPreview, saved in
+`Assets/Prefabs/UI/MainMenuBackdrop.prefab`. Terrain tiles, shoreline Foam, one-tile
+Shadow offsets, main Castles, resources and decorations preserve their authored
+placement. EditorOnly tags, static Pawn previews, navigation, match, AI, combat,
+economy, input and colliders are excluded. Animated Foam/water ripples and whole
+native clouds retain their verified cosmetic behavior; two additional whole-cloud
+copies drift through the menu camera. No gameplay scene is loaded for the backdrop.
+Ten additional whole Clouds_02 sprites form a staggered canopy over the upper-right
+menu backdrop, targeting roughly 70% visual coverage of that band. The actual
+576x256 illustration, its detached wisps and painted shadow were inspected; its
+visible width is approximately 54% of the full texture. Five large and five small
+copies retain their aspect ratio, use 0.88/0.78 opacity and sorting order 20,
+and translate slowly through AmbientCloudDrift (65-146 second cycles).
+They remain behind the overlay Canvas, so the logo and menu controls stay clear.
+Three faint Clouds_02 copies flank the village: a large upper-left cloud, a
+small right cloud and a medium lower-left cloud. They use scales 1.45/0.85/1.1,
+alpha 0.26-0.32 and short slow drift (78-104 seconds) at order 19, leaving the
+central Castle and courtyard visible. These reuse the same inspected whole sprite.
+Castle artwork uses the established 1.7 building presentation scale, preserving
+its existing bottom contact and authored ground-depth order.
+
+The actual Blue Warrior, Archer and Lancer Idle sheets were inspected again.
+Eight Warrior, six Archer and twelve Lancer Idle frames at 10 FPS map only to
+stationary menu guards (Idle). They use their existing `UnitAnimationSet` frame
+cells, visual anchors and 1.6 presentation scale. No Run or Attack is played on a
+stationary actor. Menu guards have no `UnitController` or gameplay registration.
+
+Menu headings and buttons use Grenze Bold/Semibold, an old-style serif by
+Omnibus-Type with Vietnamese coverage. The official Google Fonts variable source
+is instantiated at weights 700/600 without dropping glyphs. Embedded static TTFs
+and the original SIL OFL 1.1 license live under `Assets/Resources/Fonts/`.
+Source: `https://github.com/google/fonts/tree/main/ofl/grenze`.
+Repeated step captions, slogans, descriptive paragraphs and small SELECT labels
+are removed. Selected cards use their pressed frame and one gold accent.
+
+The actual imported PNGs were inspected for this menu. No numbered reference
+images were attached to this request, so reference 2/13 cannot be identified.
+`Buttons/BigBlueButton_Regular.png` and `_Pressed.png` are nine-piece teal and
+depressed slate frames; they frame Play, Settings, difficulty/map choices and
+Start. The matching BigRedButton pair frames Exit. All button paths are under
+`Assets/UI Elements/UI Elements/`. Preserve the nine imported slices, use one
+continuous center and native-proportion corners, with Point/uncompressed imports.
+`Banners/Banner.png` supplies the parchment menu surface; `BigRibbons_0..2`
+supplies its blue headings. `SmallBlueSquareButton_Regular_0` and `_Pressed_0`
+frame Back; the matching red pair frames Close. Back and Close use two UI strokes
+inside these verified frames, independent of font symbol coverage. `Icons/Icon_10.png`
+is the inspected gear used by Settings. Static battlefield previews initially
+reuse the existing `Documentation/*-overview.png` captures, copied to
+`Assets/UI Elements/MainMenu/Previews/Map.png`, `LinearLane.png` and
+`GoblinIsland.png`. Their local artwork remains excluded by the existing PNG
+ignore rule; their import metadata and catalog references are tracked.
+`MainMenuSetup` can refresh them from the three authored scenes without saving
+those scenes. The illustrations preserve aspect and crop to their UI viewport;
+they are not navigation data or live simulations. The three preview PNGs were
+refreshed in Unity using `Prepare Main Menu` after the live-backdrop update.
+
 ## Map 3: Goblin Island (October 2026)
 
 The local PNGs and Barrel Aseprite tags were inspected before implementation.
@@ -943,6 +1035,13 @@ audio pack has no dedicated TNT blast clip.
 Mounted Archers reuse the complete existing Archer Idle/Shoot and projectile
 pipeline; no alternate mounted animation sheet was found or inferred.
 
+While mounted, Archer sprite renderers join the host building's SortingGroup
+at local order 15 or above, ahead of its normal building sprite. The Archer's
+own SortingGroup is temporarily disabled so its negative world-depth order
+cannot place it behind the roof. Ejection restores its original group state
+and sprite orders. Existing rooftop anchors, sprites and animation mappings
+remain unchanged.
+
 Tower uses one explicit rooftop anchor. Castle uses three explicit rooftop
 anchors. These positions are gameplay configuration and are not calculated from
 transparent sprite bounds. No verified Tower or Castle destroyed/ruin sprite
@@ -1035,6 +1134,11 @@ symbol represents an unavailable Move destination. UI and enemy hover use
 the default arrow. Runtime presentation enlarges all three full cursor textures
 to 1.5 with nearest-neighbor sampling and scales their verified hotspots by the
 same amount. Source PNGs and import metadata remain unchanged.
+
+The main menu also maps its default pointer to this inspected `Cursor_01.png`
+texture. `MainMenuAssets.defaultCursor` stores the full readable texture, and
+`GameCursorController.ConfigureDefaultCursor` reuses the same 1.5 nearest-neighbor
+scale and (22,17) source hotspot. No cursor is inferred from the backdrop sprites.
 
 # 11. Phase 5A inspected economy visuals
 

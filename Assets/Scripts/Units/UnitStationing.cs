@@ -25,6 +25,7 @@ namespace TinyKingdom.Units
         private ElevationSortingGroup elevationSorting;
         private int originalAdditionalOrder;
         private int originalGroupOrder = GroundSorting.WorldOrder;
+        private bool originalGroupEnabled;
 
         public UnitStationingMode Mode { get; private set; } = UnitStationingMode.World;
         public IUnitStationHost Host { get; private set; }
@@ -70,6 +71,11 @@ namespace TinyKingdom.Units
             transform.localPosition = Vector3.zero;
             foreach ((SpriteRenderer renderer, _) in spriteOrders)
                 if (renderer != null) renderer.sortingOrder = Mathf.Max(renderer.sortingOrder, 15);
+            // Rooftop sprites must sort inside the host's world-depth group.
+            // A nested unit group uses a negative world order against the host's
+            // positive local sprite orders, which puts the Archer behind the roof.
+            if (sortingGroup != null && host.GetComponent<SortingGroup>() is { enabled: true })
+                sortingGroup.enabled = false;
             if (elevationSorting != null)
                 elevationSorting.SetAdditionalOrder(GroundSorting.MountedPresentationAdditionalOrder);
             else if (sortingGroup != null)
@@ -93,6 +99,7 @@ namespace TinyKingdom.Units
                 if (renderer != null) renderer.sortingOrder = order;
             if (elevationSorting != null) elevationSorting.SetAdditionalOrder(originalAdditionalOrder);
             else if (sortingGroup != null) sortingGroup.sortingOrder = originalGroupOrder;
+            if (sortingGroup != null) sortingGroup.enabled = originalGroupEnabled;
             renderers.Clear();
             colliders.Clear();
             spriteOrders.Clear();
@@ -119,7 +126,11 @@ namespace TinyKingdom.Units
             spriteOrders.Clear();
             TryGetComponent(out sortingGroup);
             TryGetComponent(out elevationSorting);
-            if (sortingGroup != null) originalGroupOrder = sortingGroup.sortingOrder;
+            if (sortingGroup != null)
+            {
+                originalGroupOrder = sortingGroup.sortingOrder;
+                originalGroupEnabled = sortingGroup.enabled;
+            }
             if (elevationSorting != null) originalAdditionalOrder = elevationSorting.AdditionalOrder;
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
                 renderers.Add((renderer, renderer.enabled));

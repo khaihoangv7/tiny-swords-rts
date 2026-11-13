@@ -15,6 +15,47 @@ namespace TinyKingdom.UI
         private static readonly Dictionary<string, string> EnglishToVietnamese = new(
             StringComparer.Ordinal)
         {
+            ["MAIN MENU"] = "MENU CHÍNH",
+            ["CHOOSE MAP"] = "CHỌN BẢN ĐỒ",
+            ["START GAME"] = "VÀO TRẬN",
+            ["PLAY GAME"] = "CHƠI GAME",
+            ["EXIT GAME"] = "THOÁT GAME",
+            ["YOUR KINGDOM AWAITS"] = "VƯƠNG QUỐC ĐANG CHỜ",
+            ["Choose your next adventure"] = "Bắt đầu hành trình của bạn",
+            ["A TINY WORLD. A GREAT KINGDOM."] = "THẾ GIỚI NHỎ. VƯƠNG QUỐC LỚN.",
+            ["Gather. Build. Command. Conquer."] = "Thu thập. Xây dựng. Chỉ huy. Chinh phục.",
+            ["Lead the Blue kingdom to victory."] = "Dẫn dắt vương quốc Xanh đến chiến thắng.",
+            ["CHOOSE DIFFICULTY"] = "CHỌN ĐỘ KHÓ",
+            ["EASY"] = "DỄ",
+            ["NORMAL"] = "THƯỜNG",
+            ["HARD"] = "KHÓ",
+            ["Learn the art of command"] = "Làm quen cách chỉ huy",
+            ["A balanced challenge"] = "Thử thách cân bằng",
+            ["Prove your strategy"] = "Thể hiện tài chiến thuật",
+            ["A smaller enemy economy and army.\nMore time to plan your next move."] =
+                "Đối thủ phát triển lực lượng nhỏ hơn.\nBạn có thêm thời gian lên kế hoạch.",
+            ["The original Commander experience.\nBuild wisely and lead a balanced army."] =
+                "Trải nghiệm Commander ban đầu.\nXây dựng và chỉ huy đội quân cân bằng.",
+            ["A larger enemy economy and army.\nA faster Commander keeps you alert."] =
+                "Đối thủ phát triển lực lượng lớn hơn.\nCommander phản ứng nhanh hơn.",
+            ["Same unit stats. Same starting resources. Different enemy strategy."] =
+                "Cùng chỉ số lính và tài nguyên khởi đầu. Đối thủ phát triển khác nhau.",
+            ["CHOOSE MAP  ›"] = "CHỌN BẢN ĐỒ  ›",
+            ["SELECT"] = "CHỌN",
+            ["SELECTED"] = "ĐÃ CHỌN",
+            ["SELECT MAP"] = "CHỌN BẢN ĐỒ",
+            ["START GAME  ›"] = "VÀO TRẬN  ›",
+            ["LOADING..."] = "ĐANG TẢI...",
+            ["01  /  DIFFICULTY                         02  /  BATTLEFIELD"] =
+                "01  /  ĐỘ KHÓ                         02  /  BẢN ĐỒ",
+            ["Match controls are available during a game."] =
+                "Các tùy chọn trận đấu sẽ xuất hiện khi vào game.",
+            ["Two elevated kingdoms.\nAn open island and a contested gold mine."] =
+                "Hai vương quốc trên đồi.\nHòn đảo rộng với mỏ vàng tranh chấp.",
+            ["One road. Two kingdoms.\nBuild your army and break the enemy line."] =
+                "Một con đường. Hai vương quốc.\nXây dựng quân đội, phá vỡ phòng tuyến.",
+            ["Three bridges. One guarded island.\nSecure the mine and face the Goblins."] =
+                "Ba cây cầu. Đảo có lính canh.\nChiếm mỏ vàng, đối đầu Goblin.",
             ["SETTINGS"] = "CÀI ĐẶT",
             ["RESOURCES"] = "TÀI NGUYÊN",
             ["COMMANDS"] = "LỆNH",

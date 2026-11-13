@@ -1247,6 +1247,22 @@ WASD is not used for camera movement; `A` is reserved for AttackMove.
 
 # 38. UI
 
+The first build scene is `MapSelection`, presenting a Main Menu with Play Game,
+Settings and Exit Game. Play opens Difficulty, followed by Battlefield selection
+and an explicit Start Game button. Back returns one step; Close dismisses setup
+to the Main Menu. Exit Game and the Main Menu's red X quit the application
+(stop Play Mode in the Editor). The three existing battlefields remain available.
+
+Difficulty is configurable in `Assets/Resources/MatchDifficulty.asset` and applies
+only to the Red rule-based Commander: Easy uses a 1.5-second decision interval,
+4 target Pawns and 6 baseline military population; Normal retains 0.5 seconds,
+6 Pawns and 8 military; Hard uses 0.25 seconds, 8 Pawns and 12 military.
+These are provisional difficulty presets, not a new combat balance. Existing
+adaptive strategic population targets may grow beyond the baseline. All costs,
+starting resources, unit stats, Fog knowledge, training and command validation
+remain shared. The last difficulty/map choice persists for the next new match;
+Restart keeps the difficulty. Changing a menu selection does not start a match.
+
 Minimum UI must display:
 
 Food
