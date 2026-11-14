@@ -50,6 +50,8 @@ namespace TinyKingdom.Economy
         private bool setupReady;
         private EconomyFeedback feedback;
         private Transform areaTransform;
+        private UnitCombatData qlWarriorTrainingData;
+        private bool qlGoblinIsland;
         private int producedCount;
         private PresentationAssetCatalog presentation;
 
@@ -70,6 +72,8 @@ namespace TinyKingdom.Economy
                 return;
             }
 
+            bool ruleBasedDemo = !QlExperiment.Requested && RuleBasedDemo.Selected;
+            qlGoblinIsland = QlExperiment.Requested && gameObject.scene.name == "GoblinIsland";
             var area = new GameObject("BlueEconomyTest");
             area.transform.SetParent(transform, false);
             areaTransform = area.transform;
@@ -94,6 +98,7 @@ namespace TinyKingdom.Economy
             {
                 foreach (BattlefieldResource resource in battlefieldLayout.resources)
                 {
+                    if (ruleBasedDemo && !RuleBasedDemo.UsesResource(battlefieldLayout, resource)) continue;
                     int variant = resource.variant;
                     bool wood = resource.type == ResourceType.Wood;
                     bool gold = resource.type == ResourceType.Gold;
@@ -217,8 +222,11 @@ namespace TinyKingdom.Economy
                 setupReady = true;
                 return;
             }
+            if (qlGoblinIsland)
+                qlWarriorTrainingData = warriorCombatData.CopyWithTrainingCosts(150, 90);
             UnitCombatData[] unitData =
-                { pawnCombatData, warriorCombatData, lancerCombatData, archerCombatData, monkCombatData };
+                { pawnCombatData, qlWarriorTrainingData ?? warriorCombatData,
+                    lancerCombatData, archerCombatData, monkCombatData };
             castle.gameObject.AddComponent<UnitProductionQueue>().Configure(
                 castle, blue, population, navigation, unitData,
                 (type, position) => SpawnProductionUnit(Faction.Blue, type, position));
@@ -272,6 +280,17 @@ namespace TinyKingdom.Economy
             BuildingSystem redBuildingSystem = area.AddComponent<BuildingSystem>();
             redBuildingSystem.Configure(navigation, red, redPopulation, buildings,
                 economyConfig);
+            if (ruleBasedDemo || (QlExperiment.Requested
+                && gameObject.scene.name == RuleBasedDemo.SceneName))
+            {
+                buildingSystem.ProtectStraightLaneStairAccess = true;
+                redBuildingSystem.ProtectStraightLaneStairAccess = true;
+            }
+            if (qlGoblinIsland)
+            {
+                buildingSystem.ProtectGoblinIslandCrossings = true;
+                redBuildingSystem.ProtectGoblinIslandCrossings = true;
+            }
             redBuildingSystem.BuildingPlaced += site =>
             {
                 if (site.Type == BuildingType.Barracks || site.Type == BuildingType.Archery
@@ -297,8 +316,32 @@ namespace TinyKingdom.Economy
             match.Configure(selection.PlayerFaction, 0.85f);
             if (!match.RegisterMainCastle(castle) || !match.RegisterMainCastle(redCastle))
                 Debug.LogError("Phase 6C could not register both Main Castles.", this);
-            SetupRedCommander(area.transform, red, redPopulation, teamVision,
-                redBuildingSystem);
+            RuleBasedCommander redCommander = SetupCommander(area.transform, Faction.Red,
+                red, redPopulation, teamVision, redBuildingSystem);
+            if (QlExperiment.Requested || ruleBasedDemo)
+            {
+                RuleBasedCommander blueCommander = SetupCommander(area.transform, Faction.Blue,
+                    blue, population, teamVision, buildingSystem);
+                if (ruleBasedDemo)
+                {
+                    area.AddComponent<RuleBasedDemo>().Configure(match, blueCommander, redCommander);
+                    placement.enabled = false;
+                }
+                else area.AddComponent<QlExperiment>().Configure(match, blueCommander, redCommander);
+                selection.ClearSelection();
+                selection.enabled = false;
+                commands.enabled = false;
+                GuardInputController guard = selection.GetComponent<GuardInputController>();
+                if (guard != null) guard.enabled = false;
+                if (summary != null)
+                {
+                    RtsHudController spectatorHud = summary.GetComponent<RtsHudController>();
+                    if (spectatorHud != null) spectatorHud.HideForSpectator();
+                }
+            }
+            else if (redCommander != null)
+                RlMlBootstrap.AttachIfRequested(redCommander.gameObject, redCommander,
+                    redCommander.GetComponent<RlCommanderBridge>());
             MatchResultAssetCatalog resultAssets = MatchResultAssetCatalog.Load();
             if (summary != null)
             {
@@ -350,6 +393,7 @@ namespace TinyKingdom.Economy
                     faction, faction == Faction.Red ? redPawnAnimations : pawnAnimations);
                 if (faction == Faction.Blue) feedback.Watch(pawn);
                 DecorateHealth(pawn.GetComponent<HealthComponent>());
+                QlExperiment.Active?.RecordPawnSpawn(faction);
                 return pawn.GetComponent<UnitController>();
             }
             GameObject prefab = (faction, type) switch
@@ -369,12 +413,15 @@ namespace TinyKingdom.Economy
             instance.name = faction + type.ToString() + "_Produced_" + ++producedCount;
             UnitController unit = instance.GetComponent<UnitController>();
             if (unit == null) { Destroy(instance); return null; }
-            DecorateHealth(instance.GetComponent<HealthComponent>());
+            HealthComponent health = instance.GetComponent<HealthComponent>();
+            DecorateHealth(health);
+            QlExperiment.Active?.RecordMilitarySpawn(faction, type, health);
             return unit;
         }
 
         private void OnDestroy()
         {
+            if (qlWarriorTrainingData != null) Destroy(qlWarriorTrainingData);
             if (hitFlashMaterial != null) Destroy(hitFlashMaterial);
         }
 
@@ -605,8 +652,9 @@ namespace TinyKingdom.Economy
             obj.AddComponent<UnitMovement>();
             obj.AddComponent<UnitSelection>().ConfigureMarkerYOffset(-0.35f);
             PawnGatherer gatherer = obj.AddComponent<PawnGatherer>();
-            gatherer.ConfigureGathering(economyConfig.GatherSecondsPerUnit,
-                economyConfig.GatherImpactDelay, economyConfig.AmountPerStep,
+            float harvestSpeed = qlGoblinIsland ? 1.5f : 1f;
+            gatherer.ConfigureGathering(economyConfig.GatherSecondsPerUnit / harvestSpeed,
+                economyConfig.GatherImpactDelay / harvestSpeed, economyConfig.AmountPerStep,
                 economyConfig.PawnCarryCapacity);
             obj.AddComponent<CombatController>().Configure(pawnCombatData);
             obj.AddComponent<PawnBuilder>();
@@ -614,28 +662,27 @@ namespace TinyKingdom.Economy
             return gatherer;
         }
 
-        private static void SetupRedCommander(Transform parent, ResourceStockpile redStockpile,
-            FactionPopulation redPopulation, TeamVisionSystem vision,
-            BuildingSystem redBuildingSystem)
+        private static RuleBasedCommander SetupCommander(Transform parent, Faction faction,
+            ResourceStockpile stockpile, FactionPopulation population, TeamVisionSystem vision,
+            BuildingSystem buildingSystem)
         {
             if (vision == null || FogMemorySystem.Instance == null)
             {
                 Debug.LogError("Phase 7A requires TeamVisionSystem and FogMemorySystem.");
-                return;
+                return null;
             }
-            var root = new GameObject("RedRuleBasedCommander");
+            var root = new GameObject(faction + "RuleBasedCommander");
             root.transform.SetParent(parent, false);
             FactionKnowledge knowledge = root.AddComponent<FactionKnowledge>();
-            knowledge.Configure(Faction.Red, vision, FogMemorySystem.Instance,
-                redStockpile, redPopulation);
+            knowledge.Configure(faction, vision, FogMemorySystem.Instance, stockpile, population);
             FactionCommandService commands = root.AddComponent<FactionCommandService>();
-            commands.Configure(Faction.Red, knowledge, redBuildingSystem);
+            commands.Configure(faction, knowledge, buildingSystem);
             RuleBasedCommander commander = root.AddComponent<RuleBasedCommander>();
-            commander.Configure(Faction.Red, knowledge, commands, 0.50f);
+            commander.Configure(faction, knowledge, commands, 0.50f);
             // Opt-in Phase 8.1 adapter; RuleBased is the serialized default.
             RlCommanderBridge bridge = root.AddComponent<RlCommanderBridge>();
             bridge.Configure(commander);
-            RlMlBootstrap.AttachIfRequested(root, commander, bridge);
+            return commander;
         }
 
         private static SpriteRenderer MakeVisual(Transform parent, Sprite sprite, bool centerY)

@@ -59,6 +59,7 @@ namespace TinyKingdom.AI
         private readonly List<UnitController> retreatRequests = new();
         private readonly Dictionary<UnitController, Vector2Int> retreats = new();
         private float nextStrategicReplanTime;
+        private System.Predicate<Vector3> extendedFoodArea;
         private int nextAssignmentWorkerIndex;
         private float nextMemoryProbeTime;
         private int nextMemoryProbeTypeIndex;
@@ -80,6 +81,9 @@ namespace TinyKingdom.AI
         public uint ReassignmentSerial { get; private set; }
         public float LastReassignmentTime { get; private set; } = -1f;
         public string LastReassignmentReason { get; private set; } = "None";
+
+        internal void SetExtendedFoodArea(System.Predicate<Vector3> area)
+            => extendedFoodArea = area;
 
         public void Reset()
         {
@@ -296,10 +300,11 @@ namespace TinyKingdom.AI
                         out ResourceNode visible))
                     {
                         CommanderCommandResult result = context.Commands.TryGather(
-                            worker, visible, safety);
+                            worker, visible, safety, extendedFoodArea);
                         if (result == CommanderCommandResult.Accepted)
                         {
                             assignment.Mode = AssignmentMode.Gathering;
+                            LogExtendedFood(context, visible, safety);
                             continue;
                         }
                         Block(assignment.TargetId, context.Time);
@@ -372,7 +377,7 @@ namespace TinyKingdom.AI
                 {
                     EntityId id = best.GetEntityId();
                     CommanderCommandResult result = context.Commands.TryGather(
-                        worker, best, safety);
+                        worker, best, safety, extendedFoodArea);
                     if (result == CommanderCommandResult.Accepted)
                     {
                         assignments[worker] = new WorkerAssignment
@@ -385,6 +390,7 @@ namespace TinyKingdom.AI
                         };
                         SuccessfulAssignmentSerial++;
                         LastSuccessfulAssignmentTime = context.Time;
+                        LogExtendedFood(context, best, safety);
                         return true;
                     }
                     Block(id, context.Time);
@@ -439,7 +445,7 @@ namespace TinyKingdom.AI
                     GridCell candidate = grid.GetCell(cell.x, cell.y);
                     if (candidate == null || !candidate.Walkable
                         || !context.Knowledge.IsCellExplored(cell)) continue;
-                    if (!IsEligibleEconomicTarget(context,
+                    if (!IsEligibleEconomicTarget(context, remembered.ResourceType,
                         candidate.WorldPosition, safety)) continue;
                     float distance = ((Vector2)(candidate.WorldPosition
                         - worker.transform.position)).sqrMagnitude;
@@ -472,7 +478,7 @@ namespace TinyKingdom.AI
             {
                 ResourceNode node = resources[i];
                 if (node == null || !node.IsAvailable || node.ResourceType != type) continue;
-                if (!IsEligibleEconomicTarget(context, node.transform.position, safety)) continue;
+                if (!IsEligibleEconomicTarget(context, type, node.transform.position, safety)) continue;
                 EntityId id = node.GetEntityId();
                 if (IsBlocked(id, context.Time)) continue;
                 ResourceInteractionSlots slots = node.GetComponent<ResourceInteractionSlots>();
@@ -519,7 +525,7 @@ namespace TinyKingdom.AI
                 ResourceKnowledgeSnapshot item = resources[(start + offset) % resourceCount];
                 if (item.ResourceType != type || item.LastSeenRemainingAmount <= 0
                     || IsBlocked(item.RuntimeId, context.Time)) continue;
-                if (!IsEligibleEconomicTarget(context, item.LastSeenPosition, safety)) continue;
+                if (!IsEligibleEconomicTarget(context, type, item.LastSeenPosition, safety)) continue;
                 if (context.Knowledge.TryGetVisibleResource(item.RuntimeId, out _)) continue;
                 float distance = TargetScore(context, worker, item.LastSeenPosition,
                     item.RuntimeId, item.LastSeenRemainingAmount, 0, safety);
@@ -535,7 +541,7 @@ namespace TinyKingdom.AI
             return found;
         }
 
-        private static bool IsUnsafeAssignment(CommanderDecisionContext context,
+        private bool IsUnsafeAssignment(CommanderDecisionContext context,
             UnitController worker, WorkerAssignment assignment, PawnGatherer gatherer,
             UnitMovement movement, StrategicSafetyMap safety)
         {
@@ -543,7 +549,8 @@ namespace TinyKingdom.AI
                 >= StrategicRisk.Dangerous) return true;
             Vector3 targetPosition = gatherer != null && gatherer.Target != null
                 ? gatherer.Target.transform.position : assignment.LastKnownPosition;
-            if (!safety.IsEligibleEconomicPosition(context.Knowledge, targetPosition))
+            if (!safety.IsEligibleEconomicPosition(context.Knowledge, targetPosition)
+                && !IsExtendedFoodTarget(context, assignment.Type, targetPosition, safety))
                 return true;
             return movement != null && movement.IsMoving
                 && !safety.IsPathSafe(movement.CurrentPath, StrategicPathKind.Civilian,
@@ -715,15 +722,32 @@ namespace TinyKingdom.AI
                 + riskPenalty + depletionPenalty;
         }
 
-        private static bool IsEligibleEconomicTarget(CommanderDecisionContext context,
-            Vector3 position, StrategicSafetyMap safety)
+        private bool IsEligibleEconomicTarget(CommanderDecisionContext context,
+            ResourceType type, Vector3 position, StrategicSafetyMap safety)
         {
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null || !context.Knowledge.IsCellExplored(
                 grid.WorldToGrid(position))) return false;
             if (safety != null && safety.RiskAt(position,
                 StrategicPathKind.Civilian) >= StrategicRisk.Dangerous) return false;
-            return NearestDropOffDistance(context.Faction, position) <= 12f;
+            return NearestDropOffDistance(context.Faction, position) <= 12f
+                || IsExtendedFoodTarget(context, type, position, safety);
+        }
+
+        private bool IsExtendedFoodTarget(CommanderDecisionContext context,
+            ResourceType type, Vector3 position, StrategicSafetyMap safety)
+            => type == ResourceType.Food && extendedFoodArea?.Invoke(position) == true
+                && safety != null && safety.IsExploredSafeEconomicPosition(context.Knowledge, position);
+
+        private void LogExtendedFood(CommanderDecisionContext context, ResourceNode node,
+            StrategicSafetyMap safety)
+        {
+            if (!IsExtendedFoodTarget(context, node.ResourceType, node.transform.position, safety))
+                return;
+            float distance = NearestDropOffDistance(context.Faction, node.transform.position);
+            if (distance > 12f)
+                Debug.Log($"QL_DISTANT_SHEEP_ASSIGNED faction={context.Faction}"
+                    + $" position={node.transform.position} dropOffDistance={distance:F1}");
         }
 
         private static float NearestDropOffDistance(Faction faction, Vector3 position)

@@ -192,7 +192,7 @@ namespace TinyKingdom.AI
             if (match.State == MatchState.Ended)
             {
                 if (episode.EndMatch(commander.Faction, match.Result))
-                    CompleteAsyncEpisode(false);
+                    CompleteAsyncEpisode(match.Result == MatchResult.Timeout);
                 commander.SetExternalDrive(false);
                 return;
             }
@@ -209,7 +209,7 @@ namespace TinyKingdom.AI
                 HandlePolicyFailure("Trainer or inference model unavailable");
                 return;
             }
-            if (match.ElapsedGameplaySeconds >= episodeLimitSeconds)
+            if (!QlExperiment.IsActive && match.ElapsedGameplaySeconds >= episodeLimitSeconds)
             {
                 episode.Truncate();
                 if (asyncPolicy != null)
@@ -290,10 +290,14 @@ namespace TinyKingdom.AI
         private void ApplyAction(int id, MatchManager match)
         {
             if (RlMlBootstrap.IsTrainingInterrupted) return;
+            uint before = commander.ProductionPolicy.SuccessfulTrainSerial;
             LastActionResult = actions.TryPrepare(id, commander, match,
                 out StrategicIntent? intent);
             if (LastActionResult != RlActionResult.Accepted)
             {
+                QlExperiment.Active?.RecordAction(commander, id, LastActionResult, false);
+                if (QlExperiment.IsActive && id >= 0 && id < RlActionRouter.ActionCount)
+                    return;
                 HandlePolicyFailure("Invalid action: " + LastActionResult);
                 return;
             }
@@ -302,10 +306,14 @@ namespace TinyKingdom.AI
             if (!commander.ThinkExternal(context, intent))
             {
                 LastActionResult = RlActionResult.PolicyRejected;
+                QlExperiment.Active?.RecordAction(commander, id, LastActionResult, false);
+                if (QlExperiment.IsActive) return;
                 HandlePolicyFailure("Strategic intent rejected");
                 return;
             }
             episode.RecordDecision(id);
+            QlExperiment.Active?.RecordAction(commander, id, LastActionResult,
+                commander.ProductionPolicy.SuccessfulTrainSerial != before);
         }
 
         private IRlPolicy ResolvePolicy() => injectedPolicy ?? policySource as IRlPolicy;
@@ -371,7 +379,7 @@ namespace TinyKingdom.AI
         {
             if (RlMlBootstrap.IsTrainingInterrupted) return;
             if (commander != null && episode.EndMatch(commander.Faction, result))
-                CompleteAsyncEpisode(false);
+                CompleteAsyncEpisode(result == MatchResult.Timeout);
         }
 
         private void OnDisable()

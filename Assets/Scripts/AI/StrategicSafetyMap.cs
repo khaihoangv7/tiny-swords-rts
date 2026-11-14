@@ -197,12 +197,15 @@ namespace TinyKingdom.AI
 
         public bool IsEligibleEconomicPosition(FactionKnowledge knowledge,
             Vector3 worldPosition)
+            => HasHomeAnchor && Vector2.Distance(worldPosition, HomeAnchor) <= homeEconomicRadius
+                && IsExploredSafeEconomicPosition(knowledge, worldPosition);
+
+        internal bool IsExploredSafeEconomicPosition(FactionKnowledge knowledge,
+            Vector3 worldPosition)
         {
-            if (!HasHomeAnchor || grid == null
-                || Vector2.Distance(worldPosition, HomeAnchor) > homeEconomicRadius)
-                return false;
+            if (knowledge == null || grid == null) return false;
             Vector2Int cell = grid.WorldToGrid(worldPosition);
-            return knowledge != null && knowledge.IsCellExplored(cell)
+            return knowledge.IsCellExplored(cell)
                 && RiskAt(cell, StrategicPathKind.Civilian) <= StrategicRisk.Risky;
         }
 

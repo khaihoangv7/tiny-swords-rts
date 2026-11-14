@@ -440,7 +440,7 @@ namespace TinyKingdom.Audio
         private void HandleMatchEnded(MatchResult result)
         {
             StopAllLoops();
-            if (resultAudioPlayed) return;
+            if (resultAudioPlayed || result == MatchResult.Timeout) return;
             resultAudioPlayed = true;
             RequestUi(result == MatchResult.BlueVictory
                 ? GameplayAudioEvent.Victory : GameplayAudioEvent.Defeat);

@@ -88,6 +88,24 @@ namespace TinyKingdom.Terrain
             || x>=14 && x<=24 && y>=20 && y<=24
             || x>=38 && x<=51 && y>=20 && y<=25;
 
+        internal static bool OverlapsCrossingAccess(Vector2Int origin, Vector2Int size)
+        {
+            RectInt footprint = new(origin, size);
+            foreach (RectInt bridge in Bridges)
+                if (footprint.Overlaps(bridge)) return true;
+            for (int y = footprint.yMin; y < footprint.yMax; y++)
+            for (int x = footprint.xMin; x < footprint.xMax; x++)
+                if (IsApproach(x, y)) return true;
+            for (int i = 0; i < ConnectorCount; i++)
+            {
+                TerrainHeightConnectorDefinition stair = Connector(i);
+                int minX = Mathf.Min(stair.LowerX, stair.UpperX) - 1;
+                RectInt landing = new(minX, stair.LowerY - 1, 4, 4);
+                if (footprint.Overlaps(landing)) return true;
+            }
+            return false;
+        }
+
         public static readonly Vector2Int[] HillClearings={new(4,8),new(10,13),new(11,24),new(5,28),new(10,38)};
 
         // Native palette islands and meandering paths. Placement follows this biome map.

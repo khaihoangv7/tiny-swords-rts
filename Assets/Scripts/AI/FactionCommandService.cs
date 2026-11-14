@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
@@ -145,6 +146,10 @@ namespace TinyKingdom.AI
 
         public CommanderCommandResult TryGather(UnitController actor, ResourceNode target,
             StrategicSafetyMap safety)
+            => TryGather(actor, target, safety, null);
+
+        internal CommanderCommandResult TryGather(UnitController actor, ResourceNode target,
+            StrategicSafetyMap safety, Predicate<Vector3> extendedFoodArea)
         {
             Count(CommanderCommandCategory.Gather);
             using var marker = CommandDispatchMarker.Auto();
@@ -158,8 +163,15 @@ namespace TinyKingdom.AI
             if (knowledge == null || !knowledge.IsResourceVisible(target))
                 return CommanderCommandResult.RejectedNotObserved;
             if (!target.IsAvailable) return CommanderCommandResult.RejectedInvalidTarget;
-            if (safety != null
-                && !safety.IsEligibleEconomicPosition(knowledge, target.transform.position))
+            Predicate<Vector3> eligible = null;
+            if (safety != null)
+            {
+                bool extendFood = target.ResourceType == ResourceType.Food && extendedFoodArea != null;
+                eligible = position => safety.IsEligibleEconomicPosition(knowledge, position)
+                    || (extendFood && extendedFoodArea(position)
+                        && safety.IsExploredSafeEconomicPosition(knowledge, position));
+            }
+            if (eligible != null && !eligible(target.transform.position))
                 return CommanderCommandResult.RejectedUnsafe;
             // The Commander already searches alternate known nodes and applies a
             // retry cooldown. A nested gatherer search can issue many A* probes
@@ -167,9 +179,8 @@ namespace TinyKingdom.AI
             return (safety == null
                 ? gatherer.Gather(target, null, null, null, false)
                 : gatherer.Gather(target,
-                    candidate => candidate != null && safety.IsEligibleEconomicPosition(
-                        knowledge, candidate.transform.position),
-                    position => safety.IsEligibleEconomicPosition(knowledge, position),
+                    candidate => candidate != null && eligible(candidate.transform.position),
+                    eligible,
                     safety.CivilianTraversal, false))
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedUnreachable;
@@ -281,7 +292,7 @@ namespace TinyKingdom.AI
         }
 
         public CommanderCommandResult TryAttackBuilding(UnitController actor,
-            EntityId targetId)
+            EntityId targetId, bool searchFullPerimeter = false)
         {
             Count(CommanderCommandCategory.Attack);
             using var marker = CommandDispatchMarker.Auto();
@@ -294,9 +305,22 @@ namespace TinyKingdom.AI
                 observed.Faction);
             if (target == null) return CommanderCommandResult.RejectedInvalidTarget;
             CombatController combat = actor.GetComponent<CombatController>();
-            return combat != null && combat.Attack(target)
+            return combat != null && combat.Attack(target, searchFullPerimeter)
                 ? CommanderCommandResult.Accepted
                 : CommanderCommandResult.RejectedCommandFailed;
+        }
+
+        internal bool CanReachVisibleBuildingToAttack(UnitController actor,
+            BuildingKnowledgeSnapshot observed)
+        {
+            BuildingCombatTarget target = ResolveCurrentlyVisibleBuilding(observed.RuntimeId,
+                observed.Faction);
+            GridManager grid = knowledge?.TeamVision?.GridManager;
+            CombatController combat = actor.GetComponent<CombatController>();
+            return target != null && combat != null && grid != null
+                && (target.DistanceFrom(actor.transform.position) <= combat.EffectiveAttackRange
+                    || target.TryFindAttackPosition(actor, combat.EffectiveAttackRange,
+                        grid, out _, searchFullPerimeter: true));
         }
 
         public CommanderCommandResult TryAttackMove(UnitController actor,
@@ -495,8 +519,7 @@ namespace TinyKingdom.AI
                     || source.Host.Faction != observedFaction
                     || !FactionRelations.AreHostile(faction, observedFaction)
                     || component.GetEntityId().CompareTo(targetId) != 0) continue;
-                if (knowledge.TeamVision == null || !knowledge.TeamVision.IsVisible(
-                    faction, source.Host.HostTransform.position)) return null;
+                if (!knowledge.CanObserveBuilding(source.Host)) return null;
                 BuildingCombatTarget target = component.GetComponent<BuildingCombatTarget>();
                 return target != null && target.IsTargetable ? target : null;
             }

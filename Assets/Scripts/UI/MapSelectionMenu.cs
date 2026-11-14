@@ -1,4 +1,5 @@
 using TinyKingdom.Audio;
+using TinyKingdom.AI;
 using TinyKingdom.Match;
 using TinyKingdom.Input;
 using UnityEngine;
@@ -33,6 +34,9 @@ namespace TinyKingdom.UI
         private int selectedMap;
         private int page;
         private bool loading;
+        private Text demoButtonLabel;
+        private int demoMode;
+        private const int RuleBasedDemoMode = 3;
 
         public int CurrentPage => page;
         public MatchDifficulty SelectedDifficulty => selectedDifficulty;
@@ -40,6 +44,7 @@ namespace TinyKingdom.UI
 
         private void Start()
         {
+            RuleBasedDemo.Selected = false;
             Time.timeScale = 1f;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
@@ -168,7 +173,35 @@ namespace TinyKingdom.UI
                 new Vector2(380f, 66f), Ink, false);
             startButton = MakeButton("Start Game", panel, "START GAME", new Vector2(444f, -254f),
                 new Vector2(350f, 88f), StartGame);
+            Button demoButton = MakeButton("AI Demo Mode", panel, "AI DEMO: OFF",
+                new Vector2(0f, -254f), new Vector2(360f, 88f), CycleDemoMode);
+            demoButtonLabel = demoButton.GetComponentInChildren<Text>();
         }
+
+        private void CycleDemoMode()
+        {
+            demoMode = (demoMode + 1) % (RuleBasedDemoMode + 1);
+            demoButtonLabel.text = demoMode switch
+            {
+                1 => "Q-LEARNING VS PPO",
+                2 => "PPO VS Q-LEARNING",
+                RuleBasedDemoMode => RuleBasedDemo.Label,
+                _ => "AI DEMO: OFF"
+            };
+            UpdateSummary();
+        }
+
+#if UNITY_EDITOR
+        public bool TryStartRuleBasedDemoValidation()
+        {
+            if (home == null || demoButtonLabel == null || loading) return false;
+            ShowPage(2);
+            SelectMap(1);
+            for (int i = 0; i < RuleBasedDemoMode; i++) CycleDemoMode();
+            StartGame();
+            return loading;
+        }
+#endif
 
         public void SelectDifficulty(MatchDifficulty value)
         {
@@ -189,7 +222,9 @@ namespace TinyKingdom.UI
         private void UpdateSummary()
         {
             if (matchSummary != null)
-                matchSummary.text = UiLanguage.Translate(selectedDifficulty.ToString().ToUpperInvariant());
+                matchSummary.text = demoMode == RuleBasedDemoMode
+                    ? "STRAIGHT LANE · NORMAL"
+                    : UiLanguage.Translate(selectedDifficulty.ToString().ToUpperInvariant());
         }
 
         public void ShowPage(int value)
@@ -208,18 +243,29 @@ namespace TinyKingdom.UI
         public void StartGame()
         {
             if (loading || page != 2) return;
-            if (!Application.CanStreamedLevelBeLoaded(Scenes[selectedMap]))
+            string scene = demoMode == RuleBasedDemoMode ? RuleBasedDemo.SceneName : Scenes[selectedMap];
+            if (!Application.CanStreamedLevelBeLoaded(scene))
             {
                 matchSummary.text = "Battlefield unavailable. Check Build Settings.";
                 return;
             }
-            MatchDifficultyCatalog.Selected = selectedDifficulty;
-            PlayerPrefs.SetInt("TinyKingdom.SelectedMap", selectedMap);
-            PlayerPrefs.Save();
+            if (demoMode is 1 or 2 && !QlExperiment.TrySelectDemo(demoMode == 2, out string error))
+            {
+                matchSummary.text = error;
+                return;
+            }
+            RuleBasedDemo.Selected = demoMode == RuleBasedDemoMode;
+            if (demoMode is 0 or RuleBasedDemoMode) QlExperiment.ClearDemo();
+            if (!RuleBasedDemo.Selected)
+            {
+                MatchDifficultyCatalog.Selected = selectedDifficulty;
+                PlayerPrefs.SetInt("TinyKingdom.SelectedMap", selectedMap);
+                PlayerPrefs.Save();
+            }
             loading = true;
             startButton.interactable = false;
             startButton.GetComponentInChildren<Text>().text = UiLanguage.Text("LOADING...", "ĐANG TẢI...");
-            SceneManager.LoadSceneAsync(Scenes[selectedMap]);
+            SceneManager.LoadSceneAsync(scene);
         }
 
         private static void QuitGame()

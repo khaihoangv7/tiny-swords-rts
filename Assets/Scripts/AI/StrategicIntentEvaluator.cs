@@ -256,13 +256,16 @@ namespace TinyKingdom.AI
             EconomicDemandModel demand, EconomyCommanderPolicy economy,
             BuildingCommanderPolicy buildings, ProductionCommanderPolicy production,
             ScoutingCommanderPolicy scouting, MilitaryCommanderPolicy military,
-            StrategicSafetyMap safety, StrategicIntent? externalIntent = null)
+            StrategicSafetyMap safety, StrategicIntent? externalIntent = null,
+            bool demoAssaultApproved = false, bool prioritizeCastle = false,
+            bool commanderHandlesAssembly = false)
         {
             if (context.Knowledge == null || production == null || military == null) return;
             LastExternalIntentAccepted = !externalIntent.HasValue;
             ObserveOperationOutcome(context.Time, military);
 
-            bool emergency = HasBaseThreat(context.Knowledge, military);
+            bool emergency = HasBaseThreat(context.Knowledge, military,
+                requireCombatThreat: commanderHandlesAssembly && externalIntent == StrategicIntent.Attack);
             bool withdrawal = military.Army.State is ArmyGroupState.Retreating
                 or ArmyGroupState.Recovering;
             if (context.Time < nextEvaluationTime && !emergency && !withdrawal
@@ -273,7 +276,7 @@ namespace TinyKingdom.AI
             LastEvaluationTime = context.Time;
 
             using (TargetScoreMarker.Auto())
-                target = SelectTarget(context, military, safety);
+                target = SelectTarget(context, military, safety, prioritizeCastle);
             goldMine ??= new GoldMineStrategyModel();
             goldMine.Evaluate(context, military, production, safety);
             using (SnapshotMarker.Auto())
@@ -343,7 +346,8 @@ namespace TinyKingdom.AI
             }
 
             if (desired == StrategicIntent.Attack
-                && (!target.IsValid || AttackReadiness < AttackReadinessThreshold))
+                && (!target.IsValid || (!demoAssaultApproved
+                    && AttackReadiness < AttackReadinessThreshold)))
             {
                 desired = target.IsValid ? StrategicIntent.PrepareAttack
                     : StrategicIntent.Scout;
@@ -351,6 +355,7 @@ namespace TinyKingdom.AI
                 if (!target.IsValid) majorOverride = true;
             }
             else if (desired == StrategicIntent.Attack
+                && !commanderHandlesAssembly
                 && CurrentIntent != StrategicIntent.PrepareAttack
                 && CurrentIntent != StrategicIntent.Attack)
             {
@@ -554,12 +559,13 @@ namespace TinyKingdom.AI
         }
 
         private StrategicTargetSnapshot SelectTarget(CommanderDecisionContext context,
-            MilitaryCommanderPolicy military, StrategicSafetyMap safety)
+            MilitaryCommanderPolicy military, StrategicSafetyMap safety, bool prioritizeCastle)
         {
             StrategicTargetSnapshot best = default;
+            StrategicTargetSnapshot barracksApproach = default;
             IReadOnlyList<BuildingKnowledgeSnapshot> known =
                 context.Knowledge.KnownEnemyBuildings;
-            int count = Mathf.Min(known.Count, MaximumTargetCandidates);
+            int count = prioritizeCastle ? known.Count : Mathf.Min(known.Count, MaximumTargetCandidates);
             for (int i = 0; i < count; i++)
             {
                 BuildingKnowledgeSnapshot item = known[i];
@@ -568,6 +574,10 @@ namespace TinyKingdom.AI
                     || item.BuildingType == BuildingType.GoldMine) continue;
                 bool visible = context.Knowledge.TryGetVisibleEnemyBuilding(
                     item.RuntimeId, out _);
+                if (prioritizeCastle && item.BuildingType == BuildingType.Castle
+                    && FactionRelations.IsPlayable(item.Faction))
+                    return new StrategicTargetSnapshot(item.RuntimeId, item.BuildingType,
+                        item.Faction, item.LastSeenPosition, 1f, item.LastSeenTime, visible);
                 float age = Mathf.Max(0f, context.Time - item.LastSeenTime);
                 float confidence = visible ? 1f : Mathf.Clamp01(1f - age / 120f);
                 float value = item.BuildingType switch
@@ -589,6 +599,12 @@ namespace TinyKingdom.AI
                     && target.RuntimeId.CompareTo(item.RuntimeId) == 0 ? 0.10f : 0f;
                 float score = Mathf.Clamp01(value * 0.50f + confidence * 0.24f
                     + proximity * 0.18f + continuity - Mathf.Clamp01(risk) * 0.14f);
+                if (prioritizeCastle && item.BuildingType == BuildingType.Barracks
+                    && FactionRelations.IsPlayable(item.Faction)
+                    && (!barracksApproach.IsValid || score > barracksApproach.Score))
+                    barracksApproach = new StrategicTargetSnapshot(item.RuntimeId,
+                        item.BuildingType, item.Faction, item.LastSeenPosition,
+                        score, item.LastSeenTime, visible);
                 if (!best.IsValid || score > best.Score + 0.0001f
                     || Mathf.Abs(score - best.Score) <= 0.0001f
                     && item.RuntimeId.CompareTo(best.RuntimeId) < 0)
@@ -596,19 +612,20 @@ namespace TinyKingdom.AI
                         item.BuildingType, item.Faction, item.LastSeenPosition,
                         score, item.LastSeenTime, visible);
             }
-            return best;
+            return barracksApproach.IsValid ? barracksApproach : best;
         }
 
         private static bool HasBaseThreat(FactionKnowledge knowledge,
-            MilitaryCommanderPolicy military)
+            MilitaryCommanderPolicy military, bool requireCombatThreat)
         {
-            if (military.HasCurrentThreat) return true;
+            if (military.HasCurrentThreat && !requireCombatThreat) return true;
             if (!military.HasBaseAnchor) return false;
             float radius = military.BaseDefenseRadius;
             float radiusSquared = radius * radius;
             IReadOnlyList<VisibleUnitObservation> visible = knowledge.VisibleEnemyUnits;
             for (int i = 0; i < visible.Count; i++)
                 if (FactionRelations.IsPlayable(visible[i].Faction)
+                    && (!requireCombatThreat || MilitaryCommanderPolicy.IsDefenseEmergency(visible[i]))
                     && ((Vector2)(visible[i].Position - military.BaseAnchor)).sqrMagnitude
                         <= radiusSquared)
                     return true;

@@ -167,29 +167,31 @@ namespace TinyKingdom.AI
             return ++seed;
         }
 
-        public static void AttachIfRequested(GameObject root,
-            RuleBasedCommander commander, RlCommanderBridge bridge)
+        public static bool AttachIfRequested(GameObject root,
+            RuleBasedCommander commander, RlCommanderBridge bridge, bool demo = false)
         {
             RlCommunicatorCallbackProbe.RegisterIfTrainingRequested();
             ParseArgs();
-            if (!training && !inference) return;
-            if (training && IsTrainingInterrupted)
+            if (!demo && !training && !inference) return false;
+            bool useModel = demo || inference;
+            bool useTrainer = training && !demo;
+            if (useTrainer && IsTrainingInterrupted)
             {
                 // An interrupted scene must not register a fresh Trainer Agent
                 // or allow the ordinary Commander to take over silently.
                 bridge.SetMode(RlCommanderMode.TrainingAborted);
                 commander.SetExternalDrive(true);
-                return;
+                return false;
             }
             ModelAsset model = null;
-            if (inference)
+            if (useModel)
             {
                 model = Resources.Load<ModelAsset>("RL/TinyKingdomStrategicRed");
                 if (model == null)
                 {
                     Debug.LogError("RL inference requested but Resources/RL/"
                         + "TinyKingdomStrategicRed model is missing.");
-                    return;
+                    return false;
                 }
             }
             BehaviorParameters behavior = root.AddComponent<BehaviorParameters>();
@@ -198,13 +200,15 @@ namespace TinyKingdom.AI
             behavior.BrainParameters.ActionSpec = ActionSpec.MakeDiscrete(
                 RlActionRouter.ActionCount);
             behavior.BehaviorName = "TinyKingdomStrategicRed";
-            if (inference) behavior.Model = model;
-            behavior.BehaviorType = inference
+            if (useModel) behavior.Model = model;
+            behavior.BehaviorType = useModel
                 ? BehaviorType.InferenceOnly : BehaviorType.Default;
             RlMlAgent agent = root.AddComponent<RlMlAgent>();
-            agent.Configure(bridge, training);
+            agent.Configure(bridge, useTrainer);
+            agent.StopAfterTerminal = demo;
             bridge.ConfigureAsync(commander, agent);
-            bridge.SetMode(training ? RlCommanderMode.Training : RlCommanderMode.RL);
+            bridge.SetMode(useTrainer ? RlCommanderMode.Training : RlCommanderMode.RL);
+            return true;
         }
 
         private static void ParseArgs()

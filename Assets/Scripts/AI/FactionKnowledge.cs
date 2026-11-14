@@ -192,6 +192,7 @@ namespace TinyKingdom.AI
         private readonly List<VisibleUnitObservation> visibleEnemyUnits = new();
         private readonly List<BuildingKnowledgeSnapshot> visibleEnemyBuildings = new();
         private readonly List<BuildingKnowledgeSnapshot> knownEnemyBuildings = new();
+        private readonly Dictionary<EntityId, BuildingKnowledgeSnapshot> edgeBuildingMemory = new();
         private readonly List<ResourceNode> visibleResources = new();
         private readonly List<ResourceKnowledgeSnapshot> knownResources = new();
         private readonly List<GoldMineKnowledgeSnapshot> visibleGoldMines = new();
@@ -203,6 +204,7 @@ namespace TinyKingdom.AI
 
         public Faction Faction => faction;
         public TeamVisionSystem TeamVision => teamVision;
+        internal bool ObserveBuildingEdges { get; set; }
         public FogMemorySystem FogMemory => fogMemory;
         public ResourceStockpile Stockpile => stockpile;
         public FactionPopulation Population => population;
@@ -241,6 +243,7 @@ namespace TinyKingdom.AI
             stockpile = resources;
             population = factionPopulation;
             lastMilitaryObservation = default;
+            edgeBuildingMemory.Clear();
             mineMemory.Clear();
             goblinMemory.Clear();
             Refresh();
@@ -293,7 +296,7 @@ namespace TinyKingdom.AI
                     || source.Host is not Component component || !host.IsAlive)
                     continue;
                 if (host.Faction == faction) ownBuildings.Add(host);
-                else if (teamVision.IsVisible(faction, host.HostTransform.position))
+                else if (CanObserveBuilding(host))
                     visibleEnemyBuildings.Add(CopyVisibleBuilding(host, component));
             }
 
@@ -312,6 +315,7 @@ namespace TinyKingdom.AI
                 foreach (ResourceMemorySnapshot item in fogMemory.GetLastSeenResources(faction))
                     knownResources.Add(CopyResource(item));
             }
+            if (ObserveBuildingEdges) RefreshEdgeBuildingMemory();
 
             GridManager grid = teamVision.GridManager;
             if (grid == null) return;
@@ -472,6 +476,8 @@ namespace TinyKingdom.AI
         public bool TryGetKnownEnemyBuilding(EntityId id,
             out BuildingKnowledgeSnapshot observation)
         {
+            if (ObserveBuildingEdges && TryGetVisibleEnemyBuilding(id, out observation))
+                return true;
             for (int i = 0; i < knownEnemyBuildings.Count; i++)
             {
                 BuildingKnowledgeSnapshot candidate = knownEnemyBuildings[i];
@@ -481,6 +487,35 @@ namespace TinyKingdom.AI
             }
             observation = default;
             return false;
+        }
+
+        internal bool CanObserveBuilding(IDefensiveBuildingHost host)
+            => teamVision != null && (teamVision.IsVisible(faction, host.HostTransform.position)
+                || ObserveBuildingEdges && CombatVisibility.IsBuildingFootprintVisible(faction,
+                    teamVision, host.FootprintOrigin, host.Footprint));
+
+        private void RefreshEdgeBuildingMemory()
+        {
+            forgotten.Clear();
+            foreach (BuildingKnowledgeSnapshot building in edgeBuildingMemory.Values)
+                if (!TryGetVisibleEnemyBuilding(building.RuntimeId, out _)
+                    && CombatVisibility.IsBuildingFootprintVisible(faction, teamVision,
+                        building.FootprintOrigin, building.Footprint))
+                    forgotten.Add(building.RuntimeId);
+            foreach (EntityId id in forgotten)
+            {
+                edgeBuildingMemory.Remove(id);
+                knownEnemyBuildings.RemoveAll(building => building.RuntimeId.CompareTo(id) == 0);
+            }
+            foreach (BuildingKnowledgeSnapshot building in visibleEnemyBuildings)
+                edgeBuildingMemory[building.RuntimeId] = building;
+            foreach (BuildingKnowledgeSnapshot building in edgeBuildingMemory.Values)
+            {
+                int index = knownEnemyBuildings.FindIndex(item => item.RuntimeId.CompareTo(building.RuntimeId) == 0);
+                if (index < 0) knownEnemyBuildings.Add(building);
+                else if (building.LastSeenTime >= knownEnemyBuildings[index].LastSeenTime)
+                    knownEnemyBuildings[index] = building;
+            }
         }
 
         private ObservedThreatActivity ObserveThreatActivity(UnitController unit)

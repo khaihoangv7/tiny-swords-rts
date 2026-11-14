@@ -4,6 +4,7 @@ using TinyKingdom.Economy;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
 using TinyKingdom.Match;
+using TinyKingdom.Terrain;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -16,7 +17,9 @@ namespace TinyKingdom.Buildings
         OccupiedByUnit,
         WouldTrapFriendlyUnits,
         WouldSealWalkablePocket,
-        NoConstructionAccess
+        NoConstructionAccess,
+        BlocksStairAccess,
+        BlocksCrossingAccess
     }
 
     // Shared gameplay authority for player input and future computer commanders.
@@ -47,6 +50,8 @@ namespace TinyKingdom.Buildings
         private FactionPopulation population;
         private EconomyConfig economyConfig;
         private Faction owner;
+        internal bool ProtectStraightLaneStairAccess { get; set; }
+        internal bool ProtectGoblinIslandCrossings { get; set; }
         public event Action<BuildingSite> BuildingPlaced;
 
         public Faction Owner => owner;
@@ -61,6 +66,10 @@ namespace TinyKingdom.Buildings
                 $"Placement rejected: would trap {LastPlacementTrappedUnitCount} friendly units",
             BuildingPlacementFailureReason.WouldSealWalkablePocket =>
                 $"Placement rejected: would seal {LastPlacementSealedCellCount} walkable cells",
+            BuildingPlacementFailureReason.BlocksStairAccess =>
+                "Placement rejected: keep the route to the stairs clear",
+            BuildingPlacementFailureReason.BlocksCrossingAccess =>
+                "Placement rejected: keep bridge and stair approaches clear",
             _ => LastPlacementFailureReason.ToString()
         };
 
@@ -123,6 +132,8 @@ namespace TinyKingdom.Buildings
         {
             BuildingData data = GetData(type);
             if (data == null || grid == null) return false;
+            if (BlocksStairAccess(data, origin)) return false;
+            if (BlocksCrossingAccess(data, origin)) return false;
             int height = -1;
             for (int y = 0; y < data.Footprint.y; y++)
             for (int x = 0; x < data.Footprint.x; x++)
@@ -148,6 +159,16 @@ namespace TinyKingdom.Buildings
             if (data == null || grid == null || data.Footprint.x < 1 || data.Footprint.y < 1)
             {
                 LastPlacementFailureReason = BuildingPlacementFailureReason.InvalidFootprint;
+                return false;
+            }
+            if (BlocksStairAccess(data, origin))
+            {
+                LastPlacementFailureReason = BuildingPlacementFailureReason.BlocksStairAccess;
+                return false;
+            }
+            if (BlocksCrossingAccess(data, origin))
+            {
+                LastPlacementFailureReason = BuildingPlacementFailureReason.BlocksCrossingAccess;
                 return false;
             }
             int height = -1;
@@ -224,6 +245,14 @@ namespace TinyKingdom.Buildings
             }
             return true;
         }
+
+        private bool BlocksStairAccess(BuildingData data, Vector2Int origin)
+            => ProtectStraightLaneStairAccess
+                && RiverMountainsLayout.OverlapsStairAccess(origin, data.Footprint);
+
+        private bool BlocksCrossingAccess(BuildingData data, Vector2Int origin)
+            => ProtectGoblinIslandCrossings
+                && GoblinIslandLayout.OverlapsCrossingAccess(origin, data.Footprint);
 
         public bool TryBuild(BuildingType type, Vector2Int origin,
             IReadOnlyList<PawnBuilder> candidates, out BuildingSite site)

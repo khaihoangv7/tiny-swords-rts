@@ -21,6 +21,32 @@ namespace TinyKingdom.Terrain
         public const int ConnectorCount = 4;
         public const int RampCopyOffset = 1;
 
+        internal static bool OverlapsStairAccess(Vector2Int origin, Vector2Int size)
+        {
+            RectInt footprint = new(origin, size);
+            for (int i = 0; i < ConnectorCount; i++)
+            {
+                TerrainHeightConnectorDefinition stair = Connector(i);
+                // Keep the ramp and the side exits clear at both elevations.
+                RectInt landing = new(stair.VisualX - 1, stair.LowerY - 1, 3,
+                    stair.UpperY - stair.LowerY + RampCopyOffset + 2);
+                if (footprint.Overlaps(landing))
+                    return true;
+            }
+
+            TerrainHeightConnectorDefinition blueInner = Connector(1);
+            TerrainHeightConnectorDefinition redInner = Connector(3);
+            // The landings supply the short turns between tiers. Keep the
+            // connecting row below the central mine clear all the way across.
+            RectInt lane = new(blueInner.LowerX, blueInner.LowerY,
+                redInner.LowerX - blueInner.LowerX + 1, 1);
+            // The opening Pawns stand at x=5..7 and x=52..54 on the Castle courts.
+            RectInt blueCourt = new(5, blueInner.UpperY, blueInner.UpperX - 5, 1);
+            RectInt redCourt = new(redInner.UpperX + 1, redInner.UpperY, blueCourt.width, 1);
+            return footprint.Overlaps(lane) || footprint.Overlaps(blueCourt)
+                || footprint.Overlaps(redCourt);
+        }
+
         // Two complete native ramp visuals overlap by one cell front/back.
         // Their shared gate has ONE authoritative height transition: overlapping
         // artwork must not give the same cell two different navigation heights.

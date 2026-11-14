@@ -27,11 +27,13 @@ namespace TinyKingdom.AI
         public ArmyGroupState State { get; private set; } = ArmyGroupState.Forming;
         public int MembershipVersion { get; private set; }
 
-        public void Synchronize(FactionKnowledge knowledge, UnitController activeScout)
+        public void Synchronize(FactionKnowledge knowledge, UnitController activeScout,
+            HashSet<UnitController> detachedUnits = null)
         {
             removals.Clear();
             for (int i = 0; i < members.Count; i++)
-                if (!IsEligible(members[i], knowledge.Faction, activeScout))
+                if (!IsEligible(members[i], knowledge.Faction, activeScout)
+                    || detachedUnits?.Contains(members[i]) == true)
                     removals.Add(members[i]);
             bool changed = removals.Count > 0;
             for (int i = 0; i < removals.Count; i++) members.Remove(removals[i]);
@@ -41,7 +43,7 @@ namespace TinyKingdom.AI
             {
                 UnitController unit = units[i];
                 if (!IsEligible(unit, knowledge.Faction, activeScout)
-                    || members.Contains(unit)) continue;
+                    || detachedUnits?.Contains(unit) == true || members.Contains(unit)) continue;
                 members.Add(unit);
                 changed = true;
             }

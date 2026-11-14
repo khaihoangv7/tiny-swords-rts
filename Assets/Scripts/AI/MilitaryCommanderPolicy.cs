@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TinyKingdom.Buildings;
 using TinyKingdom.Economy;
 using TinyKingdom.Input;
@@ -133,6 +134,14 @@ namespace TinyKingdom.AI
         private float operationStartTime;
         private float nextOffensiveEvaluationTime;
         private int objectiveFailureCount;
+        private bool demoRouteDispatched;
+        private bool demoBuildingOrderDispatched;
+        private OffensiveTargetSnapshot? demoCastleAfterBarracks;
+        private bool coordinatedIslandAssault;
+        private readonly List<UnitController> islandDefenseGroup = new();
+        private const float IslandDefenseGroupRadius = 5f;
+        private bool islandTrainingOpponent;
+        private const int IslandCommandsPerTick = 6;
         private EntityId blockedTargetId;
         private float blockedTargetUntil;
         private string objectiveReason = "None";
@@ -185,6 +194,8 @@ namespace TinyKingdom.AI
         public TacticalArmyController Tactical => tactical ??= new TacticalArmyController();
         public float BaseDefenseRadius => Mathf.Max(1f, baseDefenseRadius);
         public float DefenseLeashRadius => Mathf.Max(BaseDefenseRadius, defenseLeashRadius);
+        internal const int DemoCastleAssaultMinimum = 4;
+        internal const int IslandAssaultMinimum = 6;
         public int MinOffensiveMilitaryPopulation
             => Mathf.Max(1, minOffensiveMilitaryPopulation);
         public float AssembledFraction => Mathf.Clamp(assembledFraction, 0.5f, 1f);
@@ -209,6 +220,8 @@ namespace TinyKingdom.AI
         public string ObjectiveReason => objectiveReason;
         public float OperationStartTime => operationStartTime;
         public int ObjectiveFailureCount => objectiveFailureCount;
+        internal bool DemoRouteDispatched => demoRouteDispatched;
+        internal bool DemoBuildingOrderDispatched => demoBuildingOrderDispatched;
         public int OffensiveParticipantCount => operationMembers.Count;
         public CombatStrengthTuning CombatStrength
             => combatStrength ??= new CombatStrengthTuning();
@@ -243,7 +256,8 @@ namespace TinyKingdom.AI
         public float StagingRecoveryCooldown => Mathf.Max(1f, stagingRecoveryCooldown);
         public float AttackIdleTimeout => Mathf.Max(2f, attackIdleTimeout);
         public int OffensiveStagingCommandsPerTick
-            => Mathf.Max(1, offensiveStagingCommandsPerTick);
+            => coordinatedIslandAssault ? IslandCommandsPerTick
+                : Mathf.Max(1, offensiveStagingCommandsPerTick);
         public float LastMilitaryProgressTime => lastMilitaryProgressTime;
         public float LastAcceptedMilitaryCommandTime => lastAcceptedMilitaryCommandTime;
         public float LastRejectedMilitaryCommandTime => lastRejectedMilitaryCommandTime;
@@ -291,10 +305,14 @@ namespace TinyKingdom.AI
 
         public void Tick(CommanderDecisionContext context,
             ProductionCommanderPolicy production, UnitController activeScout,
-            StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy,
+            HashSet<UnitController> detachedUnits = null, bool demoAssaultApproved = false,
+            bool qlIsland = false, bool qlOpponent = false)
         {
+            coordinatedIslandAssault = qlIsland;
+            islandTrainingOpponent = qlOpponent;
             activeGoldMineModel = strategy?.GoldMine;
-            army.Synchronize(context.Knowledge, activeScout);
+            army.Synchronize(context.Knowledge, activeScout, detachedUnits);
             Tactical.Refresh(army.Members, context.Knowledge, army.State, context.Time);
             CombatStrengthEvaluator.OwnArmy(army.Members, CombatStrength,
                 out directCombatStrength, out supportStrength);
@@ -303,7 +321,8 @@ namespace TinyKingdom.AI
             RefreshAnchorAndStaging(context.Knowledge, production);
             ObserveMovementProgress(context.Time);
             VisibleThreatCount = 0;
-            if (!hasBaseAnchor || !hasStagingPosition)
+            bool demoAttack = demoAssaultApproved && strategy?.CurrentIntent == StrategicIntent.Attack;
+            if (!hasBaseAnchor || (!hasStagingPosition && !demoAttack))
             {
                 ClearThreat();
                 CancelOffense("Missing base or staging", context.Time, false);
@@ -311,7 +330,8 @@ namespace TinyKingdom.AI
                 return;
             }
 
-            bool requireEmergency = IsOffensiveState || IsWithdrawalState;
+            bool requireEmergency = IsOffensiveState || IsWithdrawalState
+                || (coordinatedIslandAssault && demoAttack);
             bool retained = TryRetainCurrentThreat(context.Knowledge,
                 requireEmergency, out VisibleUnitObservation threat);
             if (retained)
@@ -399,7 +419,7 @@ namespace TinyKingdom.AI
 
             if (IsOffensiveState)
             {
-                TickOffense(context, safety, strategy);
+                TickOffense(context, safety, strategy, demoAssaultApproved);
                 return;
             }
 
@@ -407,6 +427,21 @@ namespace TinyKingdom.AI
                 ? RecoveryAssemblyFraction : AssembledFraction;
             bool sufficientlyStaged = IsAssemblyReady(army.Members, stagingPosition,
                 requiredAssembly);
+            if (demoAttack && context.Time >= nextOffensiveEvaluationTime
+                && TryCollectDemoAssaultGroup(strategy.StrategicTarget.BuildingType
+                    is BuildingType.Castle or BuildingType.Barracks))
+            {
+                if (TryBeginOffense(context, safety, strategy, useAssembledGroup: true)) return;
+                operationMembers.Clear();
+            }
+            if (coordinatedIslandAssault && demoAttack && hasStagingPosition
+                && context.Time >= nextOffensiveEvaluationTime
+                && strategy.StrategicTarget.BuildingType == BuildingType.Castle
+                && army.Members.Count(HarassmentRuleBasedCommander.IsReadyCastleAttacker)
+                    >= IslandAssaultMinimum
+                && TryBeginOffense(context, safety, strategy))
+                return;
+            if (!hasStagingPosition) return;
             if (!sufficientlyStaged)
             {
                 if (HandleStagingNoProgress(context, production, strategy,
@@ -435,6 +470,7 @@ namespace TinyKingdom.AI
 
         public void Reset()
         {
+            demoCastleAfterBarracks = null;
             mineOccupationWaitStart = -1f;
             foreach (CombatController combat in combatProgressSources)
                 if (combat != null) combat.AttackPerformed -= OnCombatAction;
@@ -515,29 +551,42 @@ namespace TinyKingdom.AI
             StrategicSafetyMap safety)
             => TryBeginOffense(context, safety, null);
 
-        private void TryBeginOffense(CommanderDecisionContext context,
+        private bool TryBeginOffense(CommanderDecisionContext context,
             StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
+            => TryBeginOffense(context, safety, strategy, useAssembledGroup: false);
+
+        private bool TryBeginOffense(CommanderDecisionContext context,
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy, bool useAssembledGroup)
         {
             using (OffensiveEvaluationMarker.Auto())
             {
                 bool selected = strategy != null
                     ? TryResolveStrategicTarget(context, strategy, out OffensiveTargetSnapshot target)
                     : TrySelectOffensiveTarget(context, safety, out target);
+                if (!selected && useAssembledGroup && !coordinatedIslandAssault)
+                    selected = TrySelectOffensiveTarget(context, safety, out target);
                 if (!selected)
                 {
                     objectiveReason = "No legally known strategic target";
                     nextOffensiveEvaluationTime = context.Time + 1f;
-                    return;
+                    return false;
                 }
+                if (coordinatedIslandAssault && !useAssembledGroup
+                    && army.Members.Count(HarassmentRuleBasedCommander.IsReadyCastleAttacker)
+                        < IslandAssaultMinimum)
+                    return false;
                 hasOffensiveTarget = true;
                 offensiveTarget = target;
                 mineOccupationWaitStart = -1f;
                 currentObjectivePosition = target.LastKnownPosition;
                 IsOffensiveTargetVisible = context.Knowledge
                     .TryGetVisibleEnemyBuilding(target.RuntimeId, out _);
-                operationMembers.Clear();
-                for (int i = 0; i < army.Members.Count; i++)
-                    operationMembers.Add(army.Members[i]);
+                if (!useAssembledGroup)
+                {
+                    operationMembers.Clear();
+                    for (int i = 0; i < army.Members.Count; i++)
+                        operationMembers.Add(army.Members[i]);
+                }
                 operationStartTime = context.Time;
                 preparationStartTime = context.Time;
                 lastMilitaryProgressTime = context.Time;
@@ -545,15 +594,76 @@ namespace TinyKingdom.AI
                 offensiveStagingCommandCursor = 0;
                 offensiveAdvanceCommandCursor = 0;
                 objectiveFailureCount = 0;
+                demoRouteDispatched = false;
+                demoBuildingOrderDispatched = false;
                 cohesionRegroup = false;
                 recoveryReady = false;
                 ClearCampaignBaseline();
                 currentRetreatReason = RetreatReason.None;
                 objectiveReason = "Selected " + target.Category;
                 ClearCommandIntents();
-                army.SetState(ArmyGroupState.PreparingAttack);
-                TickPreparingAttack(context, safety);
+                if (useAssembledGroup)
+                {
+                    CaptureCampaignBaseline();
+                    army.SetState(ArmyGroupState.Advancing);
+                    OffensiveLaunchSerial++;
+                    LastOffensiveLaunchTime = context.Time;
+                    objectiveReason = "Demo assault launched from current formation";
+                    IssueAdvance(context, safety, true, demoAssault: true);
+                }
+                else
+                {
+                    army.SetState(ArmyGroupState.PreparingAttack);
+                    if (coordinatedIslandAssault && target.BuildingType == BuildingType.Castle)
+                        Debug.Log($"QL_CASTLE_ASSEMBLY faction={context.Faction} time={context.Time:F2}"
+                            + $" troops={operationMembers.Count}");
+                    TickPreparingAttack(context, safety);
+                }
+                return true;
             }
+        }
+
+        private bool TryCollectDemoAssaultGroup(bool earlyAssault, bool preserveOperationOnFailure = false)
+        {
+            Vector3 center = Tactical.ArmyAnchor;
+            float radiusSquared = offensiveCohesionRadius * offensiveCohesionRadius;
+            if (preserveOperationOnFailure && army.Members.Count(member =>
+                    HarassmentRuleBasedCommander.IsReadyCastleAttacker(member)
+                    && DistanceSquared(member.transform.position, center) <= radiusSquared)
+                    < IslandAssaultMinimum)
+                return false;
+            operationMembers.Clear();
+            int readyAttackers = 0;
+            foreach (UnitController member in army.Members)
+            {
+                if (DistanceSquared(member.transform.position, center) <= radiusSquared)
+                {
+                    operationMembers.Add(member);
+                    if (earlyAssault && HarassmentRuleBasedCommander.IsReadyCastleAttacker(member))
+                        readyAttackers++;
+                }
+            }
+            if (earlyAssault && readyAttackers < DemoCastleAssaultMinimum
+                && !coordinatedIslandAssault)
+            {
+                // Units at different rally points can converge while advancing.
+                operationMembers.Clear();
+                readyAttackers = 0;
+                foreach (UnitController member in army.Members)
+                {
+                    if (!HarassmentRuleBasedCommander.IsReadyCastleAttacker(member)) continue;
+                    operationMembers.Add(member);
+                    readyAttackers++;
+                }
+            }
+            if (earlyAssault
+                ? readyAttackers >= (coordinatedIslandAssault ? IslandAssaultMinimum : DemoCastleAssaultMinimum)
+                : operationMembers.Count >= Mathf.CeilToInt(army.Members.Count * 0.75f)
+                && PopulationOf(operationMembers) >= MinOffensiveMilitaryPopulation
+                && CountAttackers(operationMembers) >= 2)
+                return true;
+            operationMembers.Clear();
+            return false;
         }
 
         private bool TryResolveStrategicTarget(CommanderDecisionContext context,
@@ -657,14 +767,58 @@ namespace TinyKingdom.AI
         }
 
         private void TickOffense(CommanderDecisionContext context,
-            StrategicSafetyMap safety, StrategicIntentEvaluator strategy)
+            StrategicSafetyMap safety, StrategicIntentEvaluator strategy, bool demoAssaultApproved)
         {
             if (hasOffensiveTarget
                 && offensiveTarget.BuildingType == BuildingType.GoldMine)
             {
+                if (coordinatedIslandAssault && demoAssaultApproved
+                    && strategy?.CurrentIntent == StrategicIntent.Attack
+                    && strategy.StrategicTarget.BuildingType == BuildingType.Castle
+                    && TryResolveStrategicTarget(context, strategy, out _)
+                    && TryCollectDemoAssaultGroup(earlyAssault: true, preserveOperationOnFailure: true)
+                    && TryBeginOffense(context, safety, strategy, useAssembledGroup: true))
+                    return;
+                if (coordinatedIslandAssault && demoAssaultApproved && hasStagingPosition
+                    && strategy?.CurrentIntent == StrategicIntent.Attack
+                    && strategy.StrategicTarget.BuildingType == BuildingType.Castle
+                    && context.Time >= nextOffensiveEvaluationTime
+                    && army.Members.Count(HarassmentRuleBasedCommander.IsReadyCastleAttacker)
+                        >= IslandAssaultMinimum
+                    && TryBeginOffense(context, safety, strategy))
+                    return;
                 TickGoldMineOffense(context, safety, strategy?.GoldMine);
                 return;
             }
+            StrategicTargetSnapshot preferred = strategy != null ? strategy.StrategicTarget : default;
+            if (demoCastleAfterBarracks.HasValue
+                && !context.Knowledge.TryGetVisibleEnemyBuilding(offensiveTarget.RuntimeId, out _)
+                && (IsObjectiveAreaVisible(context.Knowledge)
+                    || !TryRefreshObjective(context.Knowledge, out _)))
+            {
+                ResumeCastleAssault(context);
+            }
+            if ((demoAssaultApproved || islandTrainingOpponent) && !demoCastleAfterBarracks.HasValue
+                && army.State is (ArmyGroupState.Advancing or ArmyGroupState.Assaulting)
+                && offensiveTarget.BuildingType != BuildingType.Castle
+                && preferred.IsValid && preferred.BuildingType == BuildingType.Castle
+                && TryResolveStrategicTarget(context, strategy, out OffensiveTargetSnapshot castle))
+            {
+                if (!coordinatedIslandAssault && !islandTrainingOpponent
+                    && offensiveTarget.BuildingType == BuildingType.Barracks
+                    && context.Knowledge.TryGetVisibleEnemyBuilding(offensiveTarget.RuntimeId, out BuildingKnowledgeSnapshot barracks)
+                    && IsBarracksAtAssaultFront(barracks, castle.LastKnownPosition))
+                    demoCastleAfterBarracks = castle;
+                else
+                {
+                    SwitchDemoObjective(context, castle);
+                    if (islandTrainingOpponent)
+                        Debug.Log($"QL_CASTLE_RETARGET faction={context.Faction} time={context.Time:F2}");
+                }
+            }
+            if (islandTrainingOpponent && hasOffensiveTarget
+                && (offensiveTarget.BuildingType == BuildingType.Castle || demoCastleAfterBarracks.HasValue))
+                demoAssaultApproved = true;
             if (!hasOffensiveTarget || !TryRefreshObjective(context.Knowledge,
                     out BuildingKnowledgeSnapshot known))
             {
@@ -688,10 +842,19 @@ namespace TinyKingdom.AI
                 return;
             }
 
+            if (!coordinatedIslandAssault && !islandTrainingOpponent && demoAssaultApproved
+                && army.State is (ArmyGroupState.Advancing or ArmyGroupState.Assaulting)
+                && TryClearBarracksApproach(context, onlyAtFront: true))
+            {
+                army.SetState(ArmyGroupState.Assaulting);
+                TickAssault(context, safety, demoAssaultApproved);
+                return;
+            }
+
             // PreparingAttack has its own staging watchdog. Running the shorter
             // attack timeout here would reset its clock before it can fire.
             if (army.State != ArmyGroupState.PreparingAttack
-                && HandleAttackNoProgress(context, safety)) return;
+                && HandleAttackNoProgress(context, safety, demoAssaultApproved)) return;
 
             if (army.State is ArmyGroupState.Advancing or ArmyGroupState.Assaulting
                 && EvaluateRetreat(context))
@@ -706,10 +869,10 @@ namespace TinyKingdom.AI
                     TickPreparingAttack(context, safety);
                     break;
                 case ArmyGroupState.Advancing:
-                    TickAdvance(context, safety);
+                    TickAdvance(context, safety, demoAssaultApproved);
                     break;
                 case ArmyGroupState.Assaulting:
-                    TickAssault(context, safety);
+                    TickAssault(context, safety, demoAssaultApproved);
                     break;
             }
         }
@@ -831,10 +994,20 @@ namespace TinyKingdom.AI
                     >= PreparationTimeoutSeconds;
                 bool robustArrival = IsAssemblyReady(operationMembers, assembly,
                     timedOut ? TimeoutAssemblyFraction : AssembledFraction);
-                if (robustArrival
-                    && (cohesionRegroup || PopulationOf(operationMembers)
+                bool islandAssembly = coordinatedIslandAssault && !cohesionRegroup;
+                int readyAtAssembly = islandAssembly
+                    ? operationMembers.Count(member =>
+                        HarassmentRuleBasedCommander.IsReadyCastleAttacker(member)
+                        && DistanceSquared(member.transform.position, assembly)
+                            <= stagingRegionRadius * stagingRegionRadius)
+                    : 0;
+                if (islandAssembly ? readyAtAssembly >= IslandAssaultMinimum
+                    : robustArrival && (cohesionRegroup || PopulationOf(operationMembers)
                         >= MinOffensiveMilitaryPopulation))
                 {
+                    if (islandAssembly)
+                        operationMembers.RemoveAll(member => DistanceSquared(member.transform.position, assembly)
+                            > stagingRegionRadius * stagingRegionRadius);
                     cohesionRegroup = false;
                     bool firstLaunch = !campaignBaselineCaptured;
                     if (firstLaunch)
@@ -847,7 +1020,8 @@ namespace TinyKingdom.AI
                         OffensiveLaunchSerial++;
                         LastOffensiveLaunchTime = context.Time;
                     }
-                    IssueAdvance(context, safety, true);
+                    IssueAdvance(context, safety, true,
+                        coordinatedIslandAssault && offensiveTarget.BuildingType != BuildingType.GoldMine);
                     return;
                 }
                 // Staging is recovered by the no-progress watchdog in Tick:
@@ -860,8 +1034,10 @@ namespace TinyKingdom.AI
                     return;
                 }
                 if (timedOut && !cohesionRegroup
-                    && PopulationOf(operationMembers)
-                        < MinOffensiveMilitaryPopulation)
+                    && (islandAssembly
+                        ? operationMembers.Count(HarassmentRuleBasedCommander.IsReadyCastleAttacker)
+                            < IslandAssaultMinimum
+                        : PopulationOf(operationMembers) < MinOffensiveMilitaryPopulation))
                 {
                     FailOffense(context, "Attack force fell below minimum while staging");
                     return;
@@ -872,7 +1048,7 @@ namespace TinyKingdom.AI
         }
 
         private void TickAdvance(CommanderDecisionContext context,
-            StrategicSafetyMap safety)
+            StrategicSafetyMap safety, bool demoAssaultApproved)
         {
             using (OffensiveAdvanceMarker.Auto())
             {
@@ -881,19 +1057,21 @@ namespace TinyKingdom.AI
                     attackMoveIntents.Clear();
                     army.SetState(ArmyGroupState.Assaulting);
                     objectiveReason = "Visible objective assault";
-                    TickAssault(context, safety);
+                    TickAssault(context, safety, demoAssaultApproved);
                     return;
                 }
                 Tactical.Refresh(operationMembers, context.Knowledge, army.State,
                     context.Time);
-                if (Tactical.TryEngageVisibleEnemies(context, operationMembers,
+                if (!(demoAssaultApproved && offensiveTarget.BuildingType is (BuildingType.Castle or BuildingType.Barracks))
+                    && Tactical.TryEngageVisibleEnemies(context, operationMembers,
                         Tactical.ArmyAnchor, Tactical.LocalEngagementRadius, default,
                         safety?.ArmyTraversal))
                 {
                     objectiveReason = "Local tactical engagement";
                     return;
                 }
-                if (IsSeverelyFragmented(out Vector3 centroid))
+                if ((!demoAssaultApproved || coordinatedIslandAssault)
+                    && IsSeverelyFragmented(out Vector3 centroid))
                 {
                     cohesionRegroup = true;
                     cohesionRegroupPosition = centroid;
@@ -904,14 +1082,14 @@ namespace TinyKingdom.AI
                     TickPreparingAttack(context, safety);
                     return;
                 }
-                IssueAdvance(context, safety, false);
+                IssueAdvance(context, safety, false, demoAssaultApproved);
             }
         }
 
         private void IssueAdvance(CommanderDecisionContext context,
-            StrategicSafetyMap safety, bool force)
+            StrategicSafetyMap safety, bool force, bool demoAssault = false)
         {
-            EnsureOffensiveDestinations(context.Knowledge);
+            if (!demoAssault) EnsureOffensiveDestinations(context.Knowledge);
             int count = operationMembers.Count;
             if (count == 0) return;
             if (advanceSweepMemberCount != count)
@@ -930,14 +1108,23 @@ namespace TinyKingdom.AI
                 {
                     if (SupportOffense(context, member, safety)) issued++;
                 }
-                else if (attackMoveIntents.TryGetValue(member, out Vector3 destination)
-                    && (force || !HasActiveAttackOrder(member))
-                    && context.Time >= RetryTime(member))
+                else if (context.Time >= RetryTime(member)
+                    && (force || (demoAssault
+                        ? !attackMoveIntents.ContainsKey(member) || !HasMovingAttackOrder(member)
+                        : !HasActiveAttackOrder(member)))
+                    && (demoAssault || attackMoveIntents.ContainsKey(member)))
                 {
                     advanceSweepAttempted++;
                     issued++;
-                    CommanderCommandResult result = context.Commands.TryAttackMove(member,
-                        destination, safety?.ArmyTraversal);
+                    Vector3 destination = default;
+                    CommanderCommandResult result;
+                    if (demoAssault)
+                        result = TryIssueDemoApproach(context, member, safety, out destination);
+                    else
+                    {
+                        destination = attackMoveIntents[member];
+                        result = context.Commands.TryAttackMove(member, destination, safety?.ArmyTraversal);
+                    }
                     RecordCommandResult(result, context.Time,
                         member.GetComponent<UnitMovement>());
                     if (result == CommanderCommandResult.Accepted)
@@ -965,6 +1152,8 @@ namespace TinyKingdom.AI
                         objectiveFailureCount++;
                         if (objectiveFailureCount >= maximumObjectiveFailures)
                         {
+                            if (TryResumeReachableCastle(context)) return;
+                            if (demoAssault && TryClearBarracksApproach(context)) return;
                             FailOffense(context, "Objective route repeatedly failed");
                             return;
                         }
@@ -973,7 +1162,8 @@ namespace TinyKingdom.AI
                     advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
                 }
                 offensiveAdvanceCommandCursor = (i + 1) % count;
-                if (issued >= Mathf.Max(1, offensiveAdvanceCommandsPerTick)) return;
+                if (issued >= (coordinatedIslandAssault
+                    ? IslandCommandsPerTick : Mathf.Max(1, offensiveAdvanceCommandsPerTick))) return;
             }
             // An accepted order is not movement or combat progress. The
             // no-progress watchdog retains failures until actual progress.
@@ -985,20 +1175,85 @@ namespace TinyKingdom.AI
             return combat != null && (combat.HasAttackMoveOrder || combat.Target != null);
         }
 
+        private static bool HasMovingAttackOrder(UnitController member)
+        {
+            CombatController combat = member.GetComponent<CombatController>();
+            UnitMovement movement = member.GetComponent<UnitMovement>();
+            return combat != null && (combat.Target != null
+                || combat.HasAttackMoveOrder && movement != null && movement.IsMoving
+                    && Time.time - movement.LastMovementProgressTime < UnitMovement.StaleMoveSeconds);
+        }
+
+        private CommanderCommandResult TryIssueDemoApproach(CommanderDecisionContext context,
+            UnitController member, StrategicSafetyMap safety, out Vector3 destination)
+        {
+            destination = default;
+            GridManager grid = context.Knowledge.TeamVision?.GridManager;
+            PathfindingSystem paths = grid != null ? grid.GetComponent<PathfindingSystem>() : null;
+            if (paths == null) return CommanderCommandResult.RejectedUnreachable;
+            Vector2Int start = grid.WorldToGrid(member.transform.position);
+            Vector2Int center = grid.WorldToGrid(currentObjectivePosition);
+            float currentDistance = DistanceSquared(grid.GridToWorld(start.x, start.y), currentObjectivePosition);
+            var candidates = new List<GridCell>();
+            for (int y = -7; y <= 7; y++)
+            for (int x = -7; x <= 7; x++)
+            {
+                var point = center + new Vector2Int(x, y);
+                GridCell cell = grid.GetCell(point.x, point.y);
+                if (!TerrainRules.IsStableStandingCell(cell)
+                    || DistanceSquared(cell.WorldPosition, currentObjectivePosition) >= currentDistance)
+                    continue;
+                candidates.Add(cell);
+            }
+            candidates.Sort((a, b) =>
+            {
+                float Score(GridCell cell) => DistanceSquared(cell.WorldPosition, currentObjectivePosition)
+                    + 0.15f * DistanceSquared(cell.WorldPosition, member.transform.position);
+                return Score(a).CompareTo(Score(b));
+            });
+
+            // A failed search can return all reachable cells. Reuse that set
+            // instead of running A* on every tile behind the same obstruction.
+            HashSet<GridCell> reachable = null;
+            IPathTraversalPolicy traversal = safety?.ArmyTraversal;
+            using var source = PathfindingSystem.TrackCommanderRequest(PathfindingRequestSource.MilitaryCombat);
+            foreach (GridCell cell in candidates)
+            {
+                if (reachable != null && !reachable.Contains(cell)) continue;
+                var point = new Vector2Int(cell.GridX, cell.GridY);
+                if (paths.FindPath(start, point, traversal, out HashSet<GridCell> exhausted).Count <= 1)
+                {
+                    reachable ??= exhausted;
+                    continue;
+                }
+                CommanderCommandResult result = context.Commands.TryAttackMove(member, cell.WorldPosition, traversal);
+                if (result != CommanderCommandResult.Accepted) continue;
+                destination = cell.WorldPosition;
+                if (!demoRouteDispatched)
+                {
+                    demoRouteDispatched = true;
+                    Debug.Log($"DEMO_RB01 {context.Faction} advancing toward {offensiveTarget.BuildingType} via {destination}");
+                }
+                return result;
+            }
+            return CommanderCommandResult.RejectedUnreachable;
+        }
+
         private void TickAssault(CommanderDecisionContext context,
-            StrategicSafetyMap safety)
+            StrategicSafetyMap safety, bool demoAssaultApproved)
         {
             if (!IsOffensiveTargetVisible)
             {
                 attackIntents.Clear();
                 army.SetState(ArmyGroupState.Advancing);
                 objectiveReason = "Advance to remembered objective";
-                IssueAdvance(context, safety, true);
+                IssueAdvance(context, safety, true, demoAssaultApproved);
                 return;
             }
             Tactical.Refresh(operationMembers, context.Knowledge, army.State,
                 context.Time);
-            if (Tactical.TryEngageVisibleEnemies(context, operationMembers,
+            if (!(demoAssaultApproved && offensiveTarget.BuildingType is (BuildingType.Castle or BuildingType.Barracks))
+                && Tactical.TryEngageVisibleEnemies(context, operationMembers,
                     Tactical.ArmyAnchor, Tactical.LocalEngagementRadius, default,
                     safety?.ArmyTraversal))
             {
@@ -1024,23 +1279,38 @@ namespace TinyKingdom.AI
                         && combat.BuildingTarget.GetEntityId().CompareTo(
                             offensiveTarget.RuntimeId) == 0)
                         attackIntents[member] = offensiveTarget.RuntimeId;
-                    else if (context.Time >= RetryTime(member))
+                    else if (context.Time >= RetryTime(member)
+                        && (!demoAssaultApproved || !attackMoveIntents.ContainsKey(member)
+                            || !HasMovingAttackOrder(member)))
                     {
                         issued++;
                         CommanderCommandResult result = context.Commands.TryAttackBuilding(
-                            member, offensiveTarget.RuntimeId);
+                            member, offensiveTarget.RuntimeId, searchFullPerimeter: demoAssaultApproved);
                         RecordCommandResult(result, context.Time,
                             member.GetComponent<UnitMovement>());
                         if (result == CommanderCommandResult.Accepted)
                         {
                             attackIntents[member] = offensiveTarget.RuntimeId;
                             attackMoveIntents.Remove(member);
+                            if (demoAssaultApproved && !demoBuildingOrderDispatched)
+                            {
+                                demoBuildingOrderDispatched = true;
+                                Debug.Log($"DEMO_RB01 {context.Faction} building attack accepted: {offensiveTarget.BuildingType}");
+                            }
                         }
-                        else retryAfter[member] = context.Time + commandRetrySeconds;
+                        else
+                        {
+                            if (demoAssaultApproved && !HasMovingAttackOrder(member)
+                                && TryIssueDemoApproach(context, member, safety, out Vector3 approach)
+                                    == CommanderCommandResult.Accepted)
+                                attackMoveIntents[member] = approach;
+                            retryAfter[member] = context.Time + commandRetrySeconds;
+                        }
                     }
                 }
                 offensiveAssaultCommandCursor = (i + 1) % count;
-                if (issued >= Mathf.Max(1, offensiveAssaultCommandsPerTick)) return;
+                if (issued >= (coordinatedIslandAssault
+                    ? IslandCommandsPerTick : Mathf.Max(1, offensiveAssaultCommandsPerTick))) return;
             }
         }
 
@@ -1352,6 +1622,7 @@ namespace TinyKingdom.AI
 
         private void ClearCampaignForRecovery()
         {
+            demoCastleAfterBarracks = null;
             mineOccupationWaitStart = -1f;
             hasOffensiveTarget = false;
             offensiveTarget = default;
@@ -1436,6 +1707,7 @@ namespace TinyKingdom.AI
 
         private void CancelOffense(string reason, float time, bool cooldown)
         {
+            demoCastleAfterBarracks = null;
             mineOccupationWaitStart = -1f;
             hasOffensiveTarget = false;
             offensiveTarget = default;
@@ -1498,6 +1770,39 @@ namespace TinyKingdom.AI
             VisibleUnitObservation threat)
         {
             IReadOnlyList<UnitController> members = army.Members;
+            if (coordinatedIslandAssault)
+            {
+                Vector3 rally = hasStagingPosition ? stagingPosition : baseAnchor;
+                islandDefenseGroup.Clear();
+                // Use the largest local group so a lone soldier or a unit
+                // still walking from production does not receive a chase order.
+                foreach (UnitController anchor in members)
+                {
+                    if (IsMonk(anchor)
+                        || DistanceSquared(anchor.transform.position, baseAnchor)
+                            > DefenseLeashRadius * DefenseLeashRadius) continue;
+                    Vector3 center = anchor.transform.position;
+                    float radiusSquared = IslandDefenseGroupRadius * IslandDefenseGroupRadius;
+                    int fighters = 0;
+                    foreach (UnitController member in members)
+                        if (!IsMonk(member) && DistanceSquared(member.transform.position, center)
+                                <= radiusSquared) fighters++;
+                    if (fighters <= CountAttackers(islandDefenseGroup)) continue;
+                    islandDefenseGroup.Clear();
+                    foreach (UnitController member in members)
+                        if (DistanceSquared(member.transform.position, center) <= radiusSquared)
+                            islandDefenseGroup.Add(member);
+                }
+                int minimum = threat.ThreatActivity == ObservedThreatActivity.AttackingCastle ? 2 : 3;
+                if (CountAttackers(islandDefenseGroup) < minimum)
+                {
+                    objectiveReason = "Hold formation while defenders gather";
+                    RegroupMembers(context, members, rally, true, null, IslandCommandsPerTick);
+                    return;
+                }
+                members = islandDefenseGroup;
+                objectiveReason = "Defend with a gathered group";
+            }
             Tactical.Refresh(members, context.Knowledge, army.State, context.Time);
             if (Tactical.TryEngageVisibleEnemies(context, members, baseAnchor,
                     DefenseLeashRadius, threat.RuntimeId, null)) return;
@@ -1920,7 +2225,7 @@ namespace TinyKingdom.AI
         }
 
         private bool HandleAttackNoProgress(CommanderDecisionContext context,
-            StrategicSafetyMap safety)
+            StrategicSafetyMap safety, bool demoAssault = false)
         {
             if (context.Time - lastMilitaryProgressTime < AttackIdleTimeout)
                 return false;
@@ -1930,18 +2235,128 @@ namespace TinyKingdom.AI
             objectiveReason = "Attack idle watchdog recovery";
             if (objectiveFailureCount >= maximumObjectiveFailures)
             {
+                if (TryResumeReachableCastle(context)) return true;
+                if (demoAssault && TryClearBarracksApproach(context)) return true;
                 FailOffense(context, "Attack made no movement or combat progress");
                 return true;
             }
-            if (army.State == ArmyGroupState.PreparingAttack)
+            if (demoAssault && army.State == ArmyGroupState.Assaulting)
+                TickAssault(context, safety, demoAssault);
+            else if (army.State == ArmyGroupState.PreparingAttack)
             {
                 preparationStartTime = context.Time;
                 RegroupMembers(context, operationMembers,
                     cohesionRegroup ? cohesionRegroupPosition : stagingPosition,
                     true, safety?.ArmyTraversal, OffensiveStagingCommandsPerTick);
             }
-            else IssueAdvance(context, safety, true);
+            else IssueAdvance(context, safety, true, demoAssault);
             return true;
+        }
+
+        private bool TryClearBarracksApproach(CommanderDecisionContext context, bool onlyAtFront = false)
+        {
+            if (!hasOffensiveTarget || offensiveTarget.BuildingType != BuildingType.Castle)
+                return false;
+            Vector2 start = OperationCentroid();
+            Vector2 end = currentObjectivePosition;
+            Vector2 approach = end - start;
+            if (approach.sqrMagnitude < 1f) return false;
+
+            BuildingKnowledgeSnapshot blocker = default;
+            float nearest = float.PositiveInfinity;
+            foreach (BuildingKnowledgeSnapshot building in context.Knowledge.VisibleEnemyBuildings)
+            {
+                if (building.BuildingType != BuildingType.Barracks
+                    || building.Faction != offensiveTarget.Faction
+                    || !building.WasCompleted || building.LastSeenHealthRatio <= 0f
+                    || context.Time < blockedTargetUntil && building.RuntimeId.CompareTo(blockedTargetId) == 0)
+                    continue;
+                Vector2 offset = (Vector2)building.LastSeenPosition - start;
+                float along = Vector2.Dot(offset, approach) / approach.sqrMagnitude;
+                float corridorRadius = Mathf.Max(building.Footprint.x, building.Footprint.y) * 0.5f + 1f;
+                float priority = onlyAtFront ? offset.sqrMagnitude : along;
+                if (priority >= nearest || (onlyAtFront
+                    ? !IsBarracksAtAssaultFront(building, end)
+                    : along <= 0f || along >= 1f
+                        || (offset - approach * along).sqrMagnitude > corridorRadius * corridorRadius))
+                    continue;
+                nearest = priority;
+                blocker = building;
+            }
+            if (float.IsPositiveInfinity(nearest)) return false;
+            if (coordinatedIslandAssault || islandTrainingOpponent)
+            {
+                // Nearness alone does not make a Barracks a route blocker.
+                if (!IsOffensiveTargetVisible || CanReachCastle(context, offensiveTarget.RuntimeId))
+                    return false;
+            }
+
+            demoCastleAfterBarracks = offensiveTarget;
+            SwitchDemoObjective(context, new OffensiveTargetSnapshot(blocker.RuntimeId,
+                blocker.BuildingType, blocker.Faction, blocker.LastSeenPosition,
+                StrategicTargetCategory.MilitaryBuilding, true));
+            Debug.Log(coordinatedIslandAssault || islandTrainingOpponent
+                ? $"QL_CLEARING_BARRACKS faction={context.Faction} time={context.Time:F2}"
+                : $"DEMO_RB01 {context.Faction} clearing Barracks on the Castle approach");
+            return true;
+        }
+
+        private bool CanReachCastle(CommanderDecisionContext context, EntityId castleId)
+        {
+            if (!context.Knowledge.TryGetVisibleEnemyBuilding(castleId, out BuildingKnowledgeSnapshot castle))
+                return false;
+            foreach (UnitController member in operationMembers)
+                if (!IsMonk(member) && context.Commands.CanReachVisibleBuildingToAttack(member, castle))
+                    return true;
+            return false;
+        }
+
+        private void ResumeCastleAssault(CommanderDecisionContext context)
+        {
+            SwitchDemoObjective(context, demoCastleAfterBarracks.Value);
+            demoCastleAfterBarracks = null;
+            Debug.Log(coordinatedIslandAssault || islandTrainingOpponent
+                ? $"QL_CASTLE_RESUMED faction={context.Faction} time={context.Time:F2}"
+                : $"DEMO_RB01 {context.Faction} barracks cleared, resuming Castle assault");
+        }
+
+        private bool TryResumeReachableCastle(CommanderDecisionContext context)
+        {
+            if ((!coordinatedIslandAssault && !islandTrainingOpponent)
+                || !demoCastleAfterBarracks.HasValue
+                || !CanReachCastle(context, demoCastleAfterBarracks.Value.RuntimeId))
+                return false;
+            ResumeCastleAssault(context);
+            return true;
+        }
+
+        private bool IsBarracksAtAssaultFront(BuildingKnowledgeSnapshot building, Vector2 castle)
+        {
+            Vector2 barracks = building.LastSeenPosition;
+            float reach = Mathf.Max(building.Footprint.x, building.Footprint.y) * 0.5f + 2f;
+            foreach (UnitController member in operationMembers)
+            {
+                if (IsMonk(member)) continue;
+                Vector2 position = member.transform.position;
+                if ((position - barracks).sqrMagnitude <= reach * reach
+                    && Vector2.Dot(barracks - position, castle - barracks) >= 0f)
+                    return true;
+            }
+            return false;
+        }
+
+        private void SwitchDemoObjective(CommanderDecisionContext context, OffensiveTargetSnapshot target)
+        {
+            offensiveTarget = target;
+            currentObjectivePosition = target.LastKnownPosition;
+            IsOffensiveTargetVisible = target.WasVisibleWhenSelected;
+            ClearCommandIntents();
+            army.SetState(ArmyGroupState.Advancing);
+            demoRouteDispatched = false;
+            demoBuildingOrderDispatched = false;
+            objectiveFailureCount = 0;
+            advanceSweepVisited = advanceSweepAttempted = advanceSweepAccepted = advanceSweepFailed = 0;
+            lastMilitaryProgressTime = context.Time;
         }
 
         private void RecordCommandResult(CommanderCommandResult result, float time,
@@ -2033,7 +2448,7 @@ namespace TinyKingdom.AI
                 && threat.UnitType is UnitType.Pawn or UnitType.Warrior or UnitType.Archer
                     or UnitType.Lancer or UnitType.Monk;
 
-        private static bool IsDefenseEmergency(VisibleUnitObservation threat)
+        internal static bool IsDefenseEmergency(VisibleUnitObservation threat)
             => threat.ThreatActivity != ObservedThreatActivity.None
                 || threat.UnitType is UnitType.Warrior or UnitType.Archer or UnitType.Lancer;
 

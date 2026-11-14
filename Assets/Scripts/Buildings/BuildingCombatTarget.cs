@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TinyKingdom.Navigation;
 using TinyKingdom.Units;
+using TinyKingdom.Vision;
 using UnityEngine;
 
 namespace TinyKingdom.Buildings
@@ -22,6 +23,10 @@ namespace TinyKingdom.Buildings
         public Transform TargetTransform => host.HostTransform;
         public Collider2D TargetCollider => host.InteractionCollider;
         public event Action<ICombatDamageReceiver> CombatDied;
+
+        internal bool IsFootprintVisibleTo(Faction observer, TeamVisionSystem vision)
+            => host != null && CombatVisibility.IsBuildingFootprintVisible(observer, vision,
+                host.FootprintOrigin, host.Footprint);
 
         public void Configure(IDefensiveBuildingHost owner)
         {
@@ -83,20 +88,49 @@ namespace TinyKingdom.Buildings
         }
 
         public bool TryFindAttackPosition(UnitController attacker, float attackRange,
-            GridManager grid, out Vector3 position)
+            GridManager grid, out Vector3 position, bool searchFullPerimeter = false)
         {
             position = default;
             if (attacker == null || grid == null || host == null) return false;
             PathfindingSystem paths = grid.GetComponent<PathfindingSystem>();
             if (paths == null) return false;
-            BuildingSpawnPoint.TryFindMany(host, grid, 16, candidates, 3);
+            if (searchFullPerimeter)
+            {
+                candidates.Clear();
+                Vector2Int origin = host.FootprintOrigin;
+                Vector2Int end = origin + host.Footprint;
+                int reach = Mathf.CeilToInt(attackRange / grid.NavigationData.CellSize);
+                for (int y = origin.y - reach; y < end.y + reach; y++)
+                for (int x = origin.x - reach; x < end.x + reach; x++)
+                {
+                    GridCell cell = grid.GetCell(x, y);
+                    if (TerrainRules.IsStableStandingCell(cell) && DistanceFrom(cell.WorldPosition) <= attackRange)
+                        candidates.Add(cell.WorldPosition);
+                }
+                Vector3 attackerPosition = attacker.transform.position;
+                candidates.Sort((a, b) => ((Vector2)(a - attackerPosition)).sqrMagnitude
+                    .CompareTo(((Vector2)(b - attackerPosition)).sqrMagnitude));
+            }
+            else BuildingSpawnPoint.TryFindMany(host, grid, 16, candidates, 3);
             Vector2Int start = grid.WorldToGrid(attacker.transform.position);
             float best = float.PositiveInfinity;
+            HashSet<GridCell> reachable = null;
             foreach (Vector3 candidate in candidates)
             {
                 if (DistanceFrom(candidate) > attackRange + 0.15f) continue;
                 Vector2Int destination = grid.WorldToGrid(candidate);
-                if (paths.FindPath(start, destination).Count == 0) continue;
+                if (searchFullPerimeter && reachable != null
+                    && !reachable.Contains(grid.GetCell(destination.x, destination.y))) continue;
+                if (paths.FindPath(start, destination, null, out HashSet<GridCell> exhausted).Count == 0)
+                {
+                    if (searchFullPerimeter) reachable ??= exhausted;
+                    continue;
+                }
+                if (searchFullPerimeter)
+                {
+                    position = candidate;
+                    return true;
+                }
                 float distance = ((Vector2)(candidate - attacker.transform.position)).sqrMagnitude;
                 if (distance >= best) continue;
                 best = distance;

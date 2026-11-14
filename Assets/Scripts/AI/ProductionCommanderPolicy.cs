@@ -82,6 +82,7 @@ namespace TinyKingdom.AI
         }
 
         public void ClearExternalUnit() => externalUnitRequest = null;
+        public bool RequireExternalUnit { get; set; }
 
         public int TargetPawnCount => targetPawnCount;
         public void ConfigureDifficultyTargets(int pawns, int military)
@@ -249,6 +250,7 @@ namespace TinyKingdom.AI
                     return;
                 }
             }
+            if (RequireExternalUnit) return;
             if (LivingPawnCount + QueuedPawnCount < targetPawnCount)
             {
                 DecisionReason = "BaselineNeed:Pawn";

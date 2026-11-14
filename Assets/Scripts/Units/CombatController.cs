@@ -145,7 +145,9 @@ namespace TinyKingdom.Units
             return target != null || !enemy.IsAlive;
         }
 
-        public bool Attack(BuildingCombatTarget enemy)
+        private bool searchFullBuildingPerimeter;
+
+        public bool Attack(BuildingCombatTarget enemy, bool searchFullPerimeter = false)
         {
             if (!MatchManager.AllowsGameplay) return false;
             ResolveReferences();
@@ -153,12 +155,13 @@ namespace TinyKingdom.Units
             if (stationedInternal || mounted || enemy == null || !enemy.IsTargetable
                 || enemy.Faction == controller.Faction
                 || !CombatVisibility.CanFactionCurrentlyObserveTarget(
-                    controller.Faction, enemy)) return false;
+                    controller.Faction, enemy, allowVisibleBuildingEdge: searchFullPerimeter)) return false;
             GetComponent<UnitStationing>()?.CancelPending();
             GetComponent<UnitGuard>()?.EndGuard();
             StopCombat();
             order = CombatOrder.ExplicitAttack;
             buildingTarget = enemy;
+            searchFullBuildingPerimeter = searchFullPerimeter;
             buildingTarget.CombatDied += HandleBuildingTargetDeath;
             repathRemaining = 0f;
             TickCombat(0f);
@@ -242,7 +245,9 @@ namespace TinyKingdom.Units
                 || !controller.IsAlive || stationedInternal || mounted
                 || controller.CurrentState == UnitState.Guarding
                 || order is CombatOrder.ExplicitAttack or CombatOrder.Move
-                || buildingTarget != null || !IsValidTarget(attacker))
+                || buildingTarget != null || !IsValidTarget(attacker)
+                || HoldPositionWhenIdle && order == CombatOrder.Idle
+                    && !IsInIdleWeaponRange(attacker))
                 return false;
 
             // Keep any current valid combat target to prevent target thrashing.
@@ -339,6 +344,12 @@ namespace TinyKingdom.Units
                 FinishTarget(false);
                 return;
             }
+            if (HoldPositionWhenIdle && order == CombatOrder.Idle
+                && (own.HeightLevel != enemy.HeightLevel || !IsInIdleWeaponRange(target)))
+            {
+                FinishTarget(false);
+                return;
+            }
 
             if (autoTarget && acquisitionRemaining <= 0f)
             {
@@ -387,7 +398,8 @@ namespace TinyKingdom.Units
                 || targetCell != lastTargetCell || slotShifted || !hasChasePosition);
             bool inRange = own.HeightLevel == enemy.HeightLevel
                 && Vector2.Distance(transform.position, target.transform.position) <= range;
-            bool approachingSlot = hasSlot && MeleeEngagementSlots.ReservationCount(target) > 1
+            bool approachingSlot = !(HoldPositionWhenIdle && order == CombatOrder.Idle)
+                && hasSlot && MeleeEngagementSlots.ReservationCount(target) > 1
                 && Vector2.Distance(transform.position, slotPosition)
                     > movement.SeparationRadius * 0.5f;
             if (needsChase && (!inRange || approachingSlot))
@@ -621,7 +633,7 @@ namespace TinyKingdom.Units
         {
             if (buildingTarget == null || !buildingTarget.IsTargetable
                 || !CombatVisibility.CanFactionCurrentlyObserveTarget(
-                    controller.Faction, buildingTarget))
+                    controller.Faction, buildingTarget, allowVisibleBuildingEdge: searchFullBuildingPerimeter))
             {
                 ClearBuildingTarget();
                 movement.Stop();
@@ -639,7 +651,7 @@ namespace TinyKingdom.Units
                     rangedShotPending = false;
                     if (buildingTarget == null || !buildingTarget.IsTargetable
                         || !CombatVisibility.CanFactionCurrentlyObserveTarget(
-                            controller.Faction, buildingTarget))
+                            controller.Faction, buildingTarget, allowVisibleBuildingEdge: searchFullBuildingPerimeter))
                     {
                         ClearBuildingTarget();
                         return;
@@ -694,7 +706,8 @@ namespace TinyKingdom.Units
                 grid ??= movement.GridManager != null ? movement.GridManager
                     : FindAnyObjectByType<GridManager>();
                 if (grid == null || !buildingTarget.TryFindAttackPosition(controller,
-                    range, grid, out Vector3 position) || !movement.TryIssueChase(position))
+                    range, grid, out Vector3 position, searchFullBuildingPerimeter)
+                    || !movement.TryIssueChase(position))
                 {
                     ClearBuildingTarget();
                     order = CombatOrder.Idle;
@@ -756,6 +769,8 @@ namespace TinyKingdom.Units
             foreach (UnitController candidate in UnitController.ActiveUnits)
             {
                 if (!CanAcquireThroughTeamVision(candidate)) continue;
+                if (HoldPositionWhenIdle && order == CombatOrder.Idle
+                    && !IsInIdleWeaponRange(candidate)) continue;
                 float distance = ((Vector2)(candidate.transform.position - transform.position)).sqrMagnitude;
                 if (candidate == suppressedAutoTarget)
                 {
@@ -795,12 +810,23 @@ namespace TinyKingdom.Units
 
         private bool IsOutsideAutoChaseLimit()
         {
+            if (HoldPositionWhenIdle && order == CombatOrder.Idle)
+                return !IsInIdleWeaponRange(target);
             if (!autoTarget || target == null || combatData == null) return false;
             float limitSquared = combatData.AutoChaseLimit * combatData.AutoChaseLimit;
             return ((Vector2)(target.transform.position - autoEngagementOrigin)).sqrMagnitude
                     > limitSquared
                 || ((Vector2)(transform.position - autoEngagementOrigin)).sqrMagnitude
                     > limitSquared;
+        }
+
+        internal bool HoldPositionWhenIdle { get; set; }
+
+        private bool IsInIdleWeaponRange(UnitController enemy)
+        {
+            float range = combatData.AttackRange;
+            return enemy != null && ((Vector2)(enemy.transform.position - transform.position))
+                .sqrMagnitude <= range * range;
         }
 
         private bool IsOutsideRetaliationLeash()

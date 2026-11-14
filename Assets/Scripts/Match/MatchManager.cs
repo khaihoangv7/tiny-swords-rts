@@ -7,7 +7,7 @@ using UnityEngine;
 namespace TinyKingdom.Match
 {
     public enum MatchState { Preparing, Playing, Ended }
-    public enum MatchResult { None, BlueVictory, RedVictory }
+    public enum MatchResult { None, BlueVictory, RedVictory, Timeout }
 
     // Gameplay authority for the match lifecycle. Presentation observes this
     // service; it never decides the winner.
@@ -113,6 +113,14 @@ namespace TinyKingdom.Match
 
         private void HandleBlueCastleDestroyed() => Resolve(Faction.Blue);
         private void HandleRedCastleDestroyed() => Resolve(Faction.Red);
+
+        public void EndAtTimeLimit()
+        {
+            if (State != MatchState.Playing) return;
+            Result = MatchResult.Timeout;
+            State = MatchState.Ended;
+            MatchEnded?.Invoke(Result);
+        }
 
         private void Resolve(Faction destroyedFaction)
         {

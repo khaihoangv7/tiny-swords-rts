@@ -31,6 +31,10 @@ namespace TinyKingdom.UI
         public CommandPanelPresenter CommandPanel => commands;
         public CommandTooltipPresenter CommandTooltip => tooltip;
         public DebugMatchControlsPresenter DebugControls => debugControls;
+        public void HideForSpectator()
+        {
+            if (hudRoot != null) hudRoot.gameObject.SetActive(false);
+        }
         public bool IsReady => resources != null && resources.IsReady
             && selectionInfo != null && commands != null
             && tooltip != null && tooltip.HasValidReferences;

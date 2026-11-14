@@ -1,4 +1,5 @@
 using System.Collections;
+using TinyKingdom.AI;
 using TinyKingdom.Input;
 using TinyKingdom.Match;
 using TinyKingdom.Presentation;
@@ -72,8 +73,18 @@ namespace TinyKingdom.UI
             if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
 
             bool victory = manager != null && manager.WinningFaction == manager.HumanFaction;
-            title.text = victory ? "VICTORY" : "DEFEAT";
-            subtitle.text = victory ? "Enemy Castle Destroyed" : "Your Castle Has Fallen";
+            QlExperiment experiment = QlExperiment.Active;
+            if (experiment != null || RuleBasedDemo.Active != null)
+            {
+                title.text = result == MatchResult.Timeout ? "TIMEOUT"
+                    : manager.WinningFaction == Units.Faction.Blue ? "BLUE WINS" : "RED WINS";
+                subtitle.text = experiment != null ? experiment.Pairing : RuleBasedDemo.Label;
+            }
+            else
+            {
+                title.text = victory ? "VICTORY" : "DEFEAT";
+                subtitle.text = victory ? "Enemy Castle Destroyed" : "Your Castle Has Fallen";
+            }
             SetRibbon(victory ? catalog.VictoryRibbon : catalog.DefeatRibbon);
             restartImage.sprite = victory
                 ? catalog.VictoryButtonRegular : catalog.DefeatButtonRegular;

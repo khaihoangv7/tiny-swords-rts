@@ -132,6 +132,10 @@ namespace TinyKingdom.AI
         private bool hasRetreatDestination;
         private bool explorationExhausted;
         private float nextTargetEvaluationTime;
+        private System.Predicate<Vector3> foodExplorationArea;
+
+        internal void SetFoodExplorationArea(System.Predicate<Vector3> area)
+            => foodExplorationArea = area;
         private float nextPromotionAttemptTime;
         private float noIdlePromotionSince = -1f;
         private float reservedWoodShortageSince = -1f;
@@ -148,6 +152,7 @@ namespace TinyKingdom.AI
         private int recentTargetWriteIndex;
         private int nextRescoutMemoryIndex;
         private bool strategicInformationPriority;
+        private bool searchAcrossIsland;
 
         public UnitController Scout => scout;
         public bool HasDestination => hasDestination;
@@ -250,6 +255,7 @@ namespace TinyKingdom.AI
             nextReconMissionTime = 0f;
             intent = ScoutIntent.SearchingForEnemy;
             strategicInformationPriority = false;
+            searchAcrossIsland = false;
         }
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles)
@@ -265,10 +271,11 @@ namespace TinyKingdom.AI
 
         public void Tick(CommanderDecisionContext context, CommanderPawnRoles roles,
             StrategicSafetyMap safety, BuildingCommanderPolicy building,
-            StrategicIntentEvaluator strategy)
+            StrategicIntentEvaluator strategy, bool prioritizeEnemyCastle = false)
         {
+            searchAcrossIsland = prioritizeEnemyCastle && !HasKnownEnemyCastle(context.Knowledge);
             strategicInformationPriority = strategy?.CurrentIntent
-                == StrategicIntent.Scout;
+                == StrategicIntent.Scout || searchAcrossIsland;
             SynchronizeOfficialScout(context, roles);
             if (scout == null)
             {
@@ -628,7 +635,12 @@ namespace TinyKingdom.AI
             out ScoutTarget result)
         {
             StaleRevisitCandidateCount = 0;
+            if (foodExplorationArea != null
+                && TrySelectFrontier(context, safety, out result, foodExplorationArea))
+                return true;
             bool hasEnemyInterest = HasEnemyInterest(context.Knowledge);
+            if (searchAcrossIsland && TrySelectFrontier(context, safety, out result))
+                return true;
             if (hasEnemyInterest && context.Time >= nextReconMissionTime
                 && TrySelectReconTarget(context, safety, out result)) return true;
             // When the enemy Castle is still unknown, a safe frontier provides
@@ -651,12 +663,13 @@ namespace TinyKingdom.AI
         }
 
         private bool TrySelectFrontier(CommanderDecisionContext context,
-            StrategicSafetyMap safety, out ScoutTarget result)
+            StrategicSafetyMap safety, out ScoutTarget result,
+            System.Predicate<Vector3> area = null)
         {
             result = default;
             GridManager grid = context.Knowledge.TeamVision?.GridManager;
             if (grid == null || scout == null) return false;
-            GenerateFrontierCandidates(context, grid);
+            GenerateFrontierCandidates(context, grid, area);
             if (frontierScratch.Count == 0) return false;
             SelectFrontierSeeds(context, grid, safety);
 
@@ -669,7 +682,7 @@ namespace TinyKingdom.AI
                 if (IsBlocked(cell, grid.Width, context.Time)) continue;
                 StrategicRisk risk = safety != null
                     ? safety.RiskAt(cell, StrategicPathKind.Scout) : StrategicRisk.Safe;
-                if (risk > explorationRiskBudget) continue;
+                if (risk > (searchAcrossIsland ? reconRiskBudget : explorationRiskBudget)) continue;
 
                 float informationGain = EstimateInformationGain(context, grid, cell);
                 float regionNovelty = EstimateUnknownRegionValue(context, grid, cell);
@@ -685,6 +698,7 @@ namespace TinyKingdom.AI
                     + unknownRegionWeight * regionNovelty
                     + explorationDepthWeight * depth
                     + enemyInterestWeight * enemyInterest
+                    + IslandReconProgress(context.Faction, grid, cell)
                     - travelWeight * travel
                     - riskWeight * (int)risk
                     - suppression;
@@ -701,7 +715,7 @@ namespace TinyKingdom.AI
         }
 
         private void GenerateFrontierCandidates(CommanderDecisionContext context,
-            GridManager grid)
+            GridManager grid, System.Predicate<Vector3> area)
         {
             using var marker = CandidateGenerationMarker.Auto();
             frontierScratch.Clear();
@@ -709,7 +723,9 @@ namespace TinyKingdom.AI
             for (int x = 0; x < grid.Width; x++)
             {
                 var cell = new Vector2Int(x, y);
-                if (IsFrontier(context, cell)) frontierScratch.Add(cell);
+                if (IsFrontier(context, cell)
+                    && (area == null || area(grid.GridToWorld(x, y))))
+                    frontierScratch.Add(cell);
             }
             FrontierCandidateCount = frontierScratch.Count;
         }
@@ -725,10 +741,11 @@ namespace TinyKingdom.AI
                 if (IsBlocked(cell, grid.Width, context.Time)) continue;
                 StrategicRisk risk = safety != null
                     ? safety.RiskAt(cell, StrategicPathKind.Scout) : StrategicRisk.Safe;
-                if (risk > explorationRiskBudget) continue;
+                if (risk > (searchAcrossIsland ? reconRiskBudget : explorationRiskBudget)) continue;
                 float cheapValue = EstimateUnknownRegionValue(context, grid, cell)
                     + EstimateExplorationDepth(grid, safety, cell)
                     + EstimateEnemyInterest(context, grid, cell)
+                    + IslandReconProgress(context.Faction, grid, cell)
                     - RecentTargetSuppression(cell, context.Time) * 0.25f;
                 var seed = new FrontierSeed(cell, cheapValue);
                 if (frontierSelection.Count < limit)
@@ -760,6 +777,14 @@ namespace TinyKingdom.AI
                     && !context.Knowledge.IsCellExplored(sample)) unknown++;
             }
             return unknown;
+        }
+
+        private float IslandReconProgress(Faction faction, GridManager grid, Vector2Int cell)
+        {
+            if (!searchAcrossIsland) return 0f;
+            // Public map orientation: north and south shores, explored via normal fog.
+            int forward = faction == Faction.Blue ? cell.y : grid.Height - 1 - cell.y;
+            return 60f * forward / Mathf.Max(1, grid.Height - 1);
         }
 
         private static float EstimateExplorationDepth(GridManager grid,

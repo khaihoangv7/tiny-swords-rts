@@ -238,6 +238,15 @@ namespace TinyKingdom.AI
 
         private StrategicIntent? externalIntent;
         private bool externalIntentAccepted;
+        private HarassmentRuleBasedCommander harassment;
+        private MatchDifficulty? demoDifficulty;
+
+        internal void ConfigureDemo(MatchDifficulty difficulty, HarassmentRuleBasedCommander strategy = null)
+        {
+            demoDifficulty = difficulty;
+            harassment = strategy;
+            if (knowledge != null) knowledge.ObserveBuildingEdges = strategy != null;
+        }
 
         public void Configure(Faction owner, FactionKnowledge factionKnowledge,
             FactionCommandService commands, float interval = 0.50f)
@@ -251,10 +260,10 @@ namespace TinyKingdom.AI
 
         private void Start()
         {
-            if (faction != Faction.Red) return;
+            if (faction != Faction.Red && !demoDifficulty.HasValue) return;
             MatchDifficultyCatalog catalog = MatchDifficultyCatalog.Load();
             if (catalog == null) return;
-            CommanderDifficultyProfile profile = catalog.Profile(MatchDifficultyCatalog.Selected);
+            CommanderDifficultyProfile profile = catalog.Profile(demoDifficulty ?? MatchDifficultyCatalog.Selected);
             thinkInterval = Mathf.Max(0.1f, profile.thinkInterval);
             productionPolicy.ConfigureDifficultyTargets(profile.targetPawns, profile.targetMilitary);
         }
@@ -315,20 +324,36 @@ namespace TinyKingdom.AI
                         economicDemand, economyPolicy);
                 using (ProductionPolicyMarker.Auto())
                     productionPolicy.Tick(context, buildingPolicy);
+                bool qlIsland = QlExperiment.UsesGoblinIslandStrategy(this);
                 using (ScoutingPolicyMarker.Auto())
                     scoutingPolicy.Tick(context, pawnRoles, strategicSafety,
-                        buildingPolicy, strategicIntent);
+                        buildingPolicy, strategicIntent, qlIsland);
                 economicDemand.Refresh(context, buildingPolicy, productionPolicy,
                     scoutingPolicy);
+                StrategicIntent? intent = harassment == null ? externalIntent : harassment.Tick(context);
+                bool qlCommander = QlExperiment.Active?.Controls(this) == true;
+                bool qlOpponent = QlExperiment.IsGoblinIslandTrainingOpponent(this);
+                // Production and economy actions have no intent of their own.
+                // Preserve a selected siege while those actions are processed.
+                if (qlIsland && !intent.HasValue
+                    && strategicIntent.CurrentIntent == AI.StrategicIntent.Attack)
+                    intent = AI.StrategicIntent.Attack;
+                bool demoAssaultApproved = (harassment != null || qlCommander)
+                    && (intent == AI.StrategicIntent.Attack
+                        || (qlCommander && militaryPolicy.HasOffensiveTarget
+                            && militaryPolicy.OffensiveTarget.BuildingType != BuildingType.GoldMine));
                 using (StrategicIntentMarker.Auto())
                     strategicIntent.Tick(context, pawnRoles, economicDemand,
                         economyPolicy, buildingPolicy, productionPolicy,
                         scoutingPolicy, militaryPolicy, strategicSafety,
-                        externalIntent);
+                        intent, demoAssaultApproved,
+                        prioritizeCastle: harassment != null || qlCommander || qlOpponent,
+                        commanderHandlesAssembly: qlIsland);
                 externalIntentAccepted = strategicIntent.LastExternalIntentAccepted;
                 using (MilitaryPolicyMarker.Auto())
                     militaryPolicy.Tick(context, productionPolicy, scoutingPolicy.Scout,
-                        strategicSafety, strategicIntent);
+                        strategicSafety, strategicIntent, harassment?.DetachedUnits,
+                        demoAssaultApproved, qlIsland, qlOpponent);
                 goldMineWorkers.Tick(context, pawnRoles,
                     strategicIntent.GoldMine.Current, strategicSafety,
                     strategicIntent.GoldMine);

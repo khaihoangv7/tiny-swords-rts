@@ -36,6 +36,7 @@ namespace TinyKingdom.AI
         public bool EndMatch(Faction owner, MatchResult result)
         {
             if (!Active || result == MatchResult.None) return false;
+            if (result == MatchResult.Timeout) return Truncate();
             TerminalReward = result switch
             {
                 MatchResult.BlueVictory => owner == Faction.Blue ? 1f : -1f,

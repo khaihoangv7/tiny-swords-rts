@@ -57,5 +57,13 @@ namespace TinyKingdom.Units
         public int PopulationCost => populationCost;
         public float TrainingSeconds => trainingSeconds;
         public float VisionRadius => visionRadius;
+
+        internal UnitCombatData CopyWithTrainingCosts(int food, int gold)
+        {
+            UnitCombatData copy = Instantiate(this);
+            copy.foodCost = food;
+            copy.goldCost = gold;
+            return copy;
+        }
     }
 }

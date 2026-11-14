@@ -57,6 +57,8 @@ namespace TinyKingdom.AI
         public int MinimumEconomyWorkers => minimumEconomyWorkers;
         public BuildingType? PlannedBuilding => plannedBuilding;
         public BuildingSite ActiveSite => activeSite;
+        public bool RequireExternalBuilding { get; set; }
+        internal int FoodSafetyReserve => foodSafetyReserve;
         public UnitController CurrentBuilder => builder;
         public Vector2Int CurrentBuildCell => currentBuildCell;
         public int CompletedCoreInfrastructure { get; private set; }
@@ -147,7 +149,7 @@ namespace TinyKingdom.AI
 
             BuildingType? need = ChooseNeed(context.Knowledge, demand);
             bool outpost = false;
-            if (!need.HasValue && CanPlanEconomicOutpost(context, safety, demand,
+            if (!need.HasValue && !RequireExternalBuilding && CanPlanEconomicOutpost(context, safety, demand,
                 out EconomicClusterSnapshot cluster))
             {
                 need = BuildingType.Tower;
@@ -185,6 +187,13 @@ namespace TinyKingdom.AI
             UnitController chosen = ChooseBuilder(context, roles, demand, economy);
             if (chosen == null) return;
             PawnBuilder pawnBuilder = chosen.GetComponent<PawnBuilder>();
+            // Training can use tighter production placement. The placement
+            // authority still validates the footprint and protected crossings.
+            bool narrowProductionGap = QlExperiment.IsActive
+                && (system.ProtectStraightLaneStairAccess && need.Value == BuildingType.Barracks
+                    || system.ProtectGoblinIslandCrossings && RequireExternalBuilding
+                        && need.Value == BuildingType.Archery);
+            int resourceGap = narrowProductionGap ? 0 : 1;
             using (PlacementSearchMarker.Auto())
             {
                 if (candidates.Count == 0)
@@ -200,7 +209,7 @@ namespace TinyKingdom.AI
 #if UNITY_EDITOR || UNITY_INCLUDE_INSTRUMENTATION
                     CandidateEvaluationCount++;
 #endif
-                    if (!IsPolicyCandidate(context.Knowledge, data, origin)
+                    if (!IsPolicyCandidate(context.Knowledge, data, origin, resourceGap)
                         || !IsFootprintSafe(context.Knowledge, data, origin, safety))
                         continue;
                     attempts++;
@@ -450,6 +459,11 @@ namespace TinyKingdom.AI
         private BuildingType? ChooseNeed(FactionKnowledge knowledge,
             EconomicDemandModel demand)
         {
+            if (RequireExternalBuilding)
+                return externalBuildingNeed.HasValue && Time.time <= externalBuildingNeedUntil
+                    && !HasUnderConstruction(knowledge, externalBuildingNeed.Value)
+                    ? externalBuildingNeed.Value : null;
+
             FactionPopulation population = knowledge.Population;
             int free = demand != null ? demand.PopulationHeadroom : population != null
                 ? population.Cap - population.Used - population.Reserved : 0;
@@ -564,7 +578,7 @@ namespace TinyKingdom.AI
                 y - data.Footprint.y / 2));
 
         private static bool IsPolicyCandidate(FactionKnowledge knowledge,
-            BuildingData data, Vector2Int origin)
+            BuildingData data, Vector2Int origin, int resourceGap)
         {
             GridManager grid = knowledge.TeamVision?.GridManager;
             if (grid == null) return false;
@@ -581,7 +595,7 @@ namespace TinyKingdom.AI
                 height = cell.HeightLevel;
             }
             if (TouchesOwnBuilding(knowledge, origin, data.Footprint, 1)) return false;
-            if (TouchesKnownResource(knowledge, origin, data.Footprint, 1)) return false;
+            if (TouchesKnownResource(knowledge, origin, data.Footprint, resourceGap)) return false;
             if (TouchesOwnRally(knowledge, origin, data.Footprint, 2)) return false;
             return !BlocksCastleApproach(knowledge, origin, data.Footprint);
         }
